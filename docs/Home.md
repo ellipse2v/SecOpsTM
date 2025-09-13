@@ -52,8 +52,8 @@ Embark on your journey to enhanced cyber resilience:
 
 1.  **Acquire the Arsenal:**
     ```bash
-    git clone https://github.com/ellipse2v/threatModelBypyTm.git
-    cd threatModelBypyTm
+    git clone https://github.com/ellipse2v/SecOpsTM.git
+    cd SecOpsTM
     ```
 
 2.  **Provision Dependencies:**

@@ -1,6 +1,6 @@
 # Project Roadmap
 
-This document outlines the development roadmap for the ThreatModelByPyTM framework, tracking both completed features and future ambitions.
+This document outlines the development roadmap for the SecOpsTM framework, tracking both completed features and future ambitions.
 
 ---
 

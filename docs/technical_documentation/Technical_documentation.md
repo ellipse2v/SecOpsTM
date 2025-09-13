@@ -1,4 +1,4 @@
-# ThreatModelByPyTM: A Technical Deep Dive
+# SecOpsTM: A Technical Deep Dive
 
 ## 1. Introduction
 
@@ -6,7 +6,7 @@
 
 As software systems grow in complexity, proactively identifying security vulnerabilities during the design phase is significantly more effective than reacting to them post-deployment. Threat modeling provides a structured process for this, but traditional approaches often rely on manual diagramming and static documents that are difficult to maintain and impossible to integrate into automated development pipelines.
 
-This document provides a detailed technical overview of the **ThreatModelByPyTM** framework, a tool designed to address these challenges by treating the threat model as a living artifact that evolves with the system itself.
+This document provides a detailed technical overview of the **SecOpsTM** framework, a tool designed to address these challenges by treating the threat model as a living artifact that evolves with the system itself.
 
 ### 1.2. Core Philosophy: System-Level Threat Model as Code
 
@@ -21,9 +21,9 @@ By defining the system in a Markdown DSL, the threat model becomes:
 
 ## 2. Comparison with Other Threat Modeling Tools
 
-To understand the unique value of ThreatModelByPyTM, it's useful to compare it to other popular tools, focusing on the key differentiator: **automation**.
+To understand the unique value of SecOpsTM, it's useful to compare it to other popular tools, focusing on the key differentiator: **automation**.
 
-| Feature | Microsoft TMT | OWASP Threat Dragon | ThreatModelByPyTM (This Tool) |
+| Feature | Microsoft TMT | OWASP Threat Dragon | SecOpsTM (This Tool) |
 | :--- | :--- | :--- | :--- |
 | **Primary Paradigm** | GUI-based Diagramming | Web-based Diagramming | **Threat Model as Code (TMaC)** |
 | **Input Format** | Proprietary `.tm7` format | JSON, with a web UI | **Markdown (DSL) / IaC Playbooks** |
@@ -76,7 +76,7 @@ graph TD
 
 ## 4. Technical Deep Dive: Module by Module
 
-This section provides a comprehensive breakdown of each component of the ThreatModelByPyTM framework.
+This section provides a comprehensive breakdown of each component of the SecOpsTM framework.
 
 ### 4.1. Entrypoint and Orchestration (`threat_analysis/__main__.py`)
 

@@ -11,7 +11,7 @@ def find_playbooks(directory):
                 playbooks.append(os.path.join(root, file))
     return playbooks
 
-@pytest.mark.parametrize("playbook_path", find_playbooks("/mnt/d/dev/github/threatModelBypyTm/tests/ansible_playbooks"))
+@pytest.mark.parametrize("playbook_path", find_playbooks("tests/ansible_playbooks"))
 def test_ansible_playbook_syntax(playbook_path):
     """Test the syntax of each Ansible playbook."""
     try:

@@ -47,7 +47,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-class ThreatAnalysisFramework:
+class SecOpsTMFramework:
     """Main framework for threat analysis"""
 
     def __init__(
@@ -331,10 +331,10 @@ def load_iac_plugins() -> Dict[str, IaCPlugin]:
 class CustomArgumentParser:
     def __init__(self, loaded_plugins: Dict[str, IaCPlugin]):
         self.parser = argparse.ArgumentParser(
-            description="Threat Analysis Framework",
+            description="SecOpsTM Framework",
             epilog=(
-                "This script also accepts PyTM arguments. "
-                "Use --help with PyTM commands for more details." +
+                "This script also accepts SecOpsTM arguments. "
+                "Use --help with SecOpsTM commands for more details." +
                 "\n\nIaC Plugin Options: " +
                 "\n  " + "\n  ".join([f"--{name}-path <path> ({plugin.description})" for name, plugin in loaded_plugins.items()])
             ),
@@ -441,7 +441,7 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
             sys.exit(1)
 
 
-    framework = ThreatAnalysisFramework(
+    framework = SecOpsTMFramework(
         markdown_content=markdown_content_for_analysis,
         model_name=config.DEFAULT_MODEL_NAME,
         model_description=config.DEFAULT_MODEL_DESCRIPTION,

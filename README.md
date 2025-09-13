@@ -46,9 +46,8 @@ This project is a Python-based, end-to-end STRIDE threat modeling and analysis f
 
 1.  **Clone the repository:**
     ```bash
-    git clone <repository_url>
-    cd <repository_name>
-    ```
+    git clone https://github.com/ellipse2v/SecOpsTM.git
+        cd SecOpsTM    ```
 
 2.  **Install Python dependencies:**
     ```bash
@@ -407,7 +406,7 @@ The `threat_analysis/external_data/stride_to_capec.json` file, which provides ma
 ---
 
 ## Roadmap
-[roadmap link](https://github.com/ellipse2v/pytmThreatModeling/wiki/roadmap)
+[roadmap link](https://github.com/ellipse2v/SecOpsTM/wiki/roadmap)
 ---
 
 ## License
