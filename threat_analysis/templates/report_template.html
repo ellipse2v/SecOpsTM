@@ -497,6 +497,16 @@
             color: #155724; /* Darker green text for contrast */
         }
 
+        .legend .implemented-legend {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            margin-right: 5px;
+            vertical-align: middle;
+            background-color: #d4edda;
+            border: 1px solid #155724;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 1rem;
@@ -579,7 +589,10 @@
         </div>
 
         <div class="card explanation-card" style="margin-top: 2rem;">
-            <p><b>Legend:</b><br>  * : Indicates a CAPEC mapping was manually added to improve relevance.</p>
+            <p class="legend"><b>Legend:</b><br>
+                * : Indicates a CAPEC or MITRE mapping was manually added to improve relevance.<br>
+                <span class="implemented-legend"></span> : Indicates a mitigation has been implemented (see <code>implemented_mitigations.txt</code>).
+            </p>
         </div>
 
         {% if not all_threats %}
@@ -606,6 +619,7 @@
                             <th>#</th>
                             <th>Target</th>
                             <th>Description</th>
+                            <th>CVEs</th>
                             <th>Severity</th>
                             <th>CAPEC</th>
                             <th>MITRE Techniques</th>
@@ -622,13 +636,24 @@
                             <td><div class="row-number">{{ loop.index }}</div></td>
                             <td>{{ threat.target }}</td>
                             <td>{{ threat.description }}</td>
+                            <td>
+                                <div class="scrollable-cell">
+                                    {% if threat.cve %}
+                                    <ul>
+                                    {% for cve_id in threat.cve %}
+                                        <li><a href="https://nvd.nist.gov/vuln/detail/{{ cve_id }}" target="_blank" class="mitre-link">{{ cve_id }}</a></li>
+                                    {% endfor %}
+                                    </ul>
+                                    {% endif %}
+                                </div>
+                            </td>
                             <td class="severity-cell"><span class="severity-{{ threat.severity.level.lower() }}">{{ threat.severity.level }} ({{ "%.1f"|format(threat.severity.score) }})</span></td>
                             <td>
                                 <div class="scrollable-cell">
                                     {% if threat.capecs %}
                                     <ul>
                                     {% for capec in threat.capecs %}
-                                        <li><a href="https://capec.mitre.org/data/definitions/{{ capec.capec_id.split('-')[1] }}.html" target="_blank" class="mitre-link">{{ capec.capec_id }}: {{ capec.description }}</a></li>
+                                        <li><a href="https://capec.mitre.org/data/definitions/{{ capec.capec_id.split('-')[1] }}.html" target="_blank" class="mitre-link">{{ capec.capec_id }}: {{ capec.description }}</a>{% if capec.source == 'manual' %} *{% endif %}</li>
                                     {% endfor %}
                                     </ul>
                                     {% endif %}
@@ -638,7 +663,7 @@
                                 <div class="scrollable-cell">
                                     <ul>
                                     {% for tech in threat.mitre_techniques %}
-                                        <li><a href="https://attack.mitre.org/techniques/{{ tech.id }}" target="_blank" class="mitre-link">{{ tech.id }}: {{ tech.name }}</a></li>
+                                        <li><a href="https://attack.mitre.org/techniques/{{ tech.id }}" target="_blank" class="mitre-link">{{ tech.id }}: {{ tech.name }}</a>{% if tech.fromMitre == 'no' %} *{% endif %}</li>
                                     {% endfor %}
                                     </ul>
                                 </div>

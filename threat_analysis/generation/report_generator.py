@@ -29,6 +29,7 @@ from pathlib import Path
 from collections import defaultdict
 from threat_analysis.utils import _validate_path_within_project
 from threat_analysis.mitigation_suggestions import get_framework_mitigation_suggestions
+from threat_analysis.core.cve_service import CVEService
 
 project_root = Path(__file__).resolve().parents[2]
 if str(project_root) not in sys.path:
@@ -58,6 +59,7 @@ class ReportGenerator:
         self.env = Environment(loader=FileSystemLoader(Path(__file__).parent.parent / 'templates'), extensions=['jinja2.ext.do'])
         self.implemented_mitigations = load_implemented_mitigations(project_root)
         self.all_detailed_threats = []
+        self.cve_service = CVEService(project_root)
 
     def generate_html_report(self, threat_model, grouped_threats: Dict[str, List], 
                              output_file: Path = Path("stride_mitre_report.html"), 
@@ -131,7 +133,7 @@ class ReportGenerator:
         output_file = output_dir / f"{threat_model.tm.name}_stix_attack_flow.json"
 
         with open(output_file, "w", encoding="utf-8") as f:
-            json.dump(stix_bundle, f, indent=2, ensure_ascii=False)
+            json.dump(stix_bundle, f, indent=4)
 
         logging.info(f"STIX report generated at {output_file}")
 
@@ -151,8 +153,6 @@ class ReportGenerator:
         """Gathers detailed information for all threats, including MITRE ATT&CK mapping and severity."""
         all_detailed_threats = []
         
-        stop_words = set(['a', 'an', 'the', 'is', 'in', 'on', 'of', 'for', 'to', 'and', 'or', 'but'])
-
         for threat_type, threats in grouped_threats.items():
             for item in threats:
                 if isinstance(item, tuple) and len(item) == 2:
@@ -163,12 +163,10 @@ class ReportGenerator:
                 else:
                     continue
 
-                # Determine data classification for severity calculation
                 data_classification = None
                 if hasattr(threat, 'target') and hasattr(threat.target, 'data') and hasattr(threat.target.data, 'classification'):
                     data_classification = threat.target.data.classification.name
                 
-                # Extract impact and likelihood from the threat object if available
                 threat_impact = getattr(threat, 'impact', None)
                 threat_likelihood = getattr(threat, 'likelihood', None)
 
@@ -183,6 +181,26 @@ class ReportGenerator:
                 mitre_techniques = mapping_results.get('techniques', [])
                 capecs = mapping_results.get('capecs', [])
 
+                cve_ids_for_threat = set()
+                
+                target_names_to_check = []
+                if isinstance(target, tuple) and len(target) == 2:
+                    source_name = self._extract_name_from_object(target[0])
+                    sink_name = self._extract_name_from_object(target[1])
+                    if source_name != "Unspecified": target_names_to_check.append(source_name)
+                    if sink_name != "Unspecified": target_names_to_check.append(sink_name)
+                else:
+                    target_names_to_check.append(target_name)
+
+                for name_to_check in target_names_to_check:
+                    equipment_cves = self.cve_service.get_cves_for_equipment(name_to_check)
+                    if equipment_cves:
+                        threat_capecs = {capec['capec_id'] for capec in capecs}
+                        for cve_id in equipment_cves:
+                            cve_capecs = self.cve_service.get_capecs_for_cve(cve_id.upper())
+                            if threat_capecs.intersection(cve_capecs):
+                                cve_ids_for_threat.add(cve_id)
+
                 all_detailed_threats.append({
                     "type": threat_type,
                     "description": threat_description,
@@ -191,6 +209,7 @@ class ReportGenerator:
                     "mitre_techniques": mitre_techniques,
                     "stride_category": stride_category,
                     "capecs": capecs,
+                    "cve": sorted(list(cve_ids_for_threat))
                 })
         return all_detailed_threats
 
