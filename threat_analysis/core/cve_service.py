@@ -37,7 +37,8 @@ class CVEService:
             return {}
         try:
             with open(self.cve_definitions_path, 'r', encoding='utf-8') as f:
-                return yaml.safe_load(f) or {}
+                definitions = yaml.safe_load(f) or {}
+                return {str(k).strip(): v for k, v in definitions.items()}
         except Exception as e:
             logging.error(f"❌ Error loading CVE definitions file: {e}")
             return {}
@@ -75,4 +76,4 @@ class CVEService:
 
     def get_cves_for_equipment(self, equipment_name: str) -> List[str]:
         """Returns a list of CVE IDs for a given equipment name."""
-        return self.cve_definitions.get(equipment_name, [])
+        return self.cve_definitions.get(equipment_name.strip(), [])
