@@ -52,15 +52,13 @@ def load_attack_techniques() -> Dict[str, Dict[str, Any]]:
     return techniques
 
 
-def load_capec_to_mitre_mapping() -> Dict[str, List[str]]:
+def load_capec_to_mitre_mapping() -> Dict[str, List[Dict[str, Any]]]:
     """Initializes CAPEC to MITRE ATT&CK mapping from the structured JSON file."""
     capec_to_mitre = {}
     json_path = Path(__file__).parent.parent / 'external_data' / 'capec_to_mitre_structured_mapping.json'
     try:
         with open(json_path, 'r', encoding='utf-8') as f:
-            file_content_for_debug = f.read()
-            logging.info(f"--- Attempting to parse capec_to_mitre_structured_mapping.json ---")
-            structured_data = json.loads(file_content_for_debug)
+            structured_data = json.load(f)
         
         all_techniques = set()
         for capec_entry in structured_data:
@@ -70,16 +68,14 @@ def load_capec_to_mitre_mapping() -> Dict[str, List[str]]:
             if not capec_id:
                 continue
 
-            technique_ids = [
-                tech['id'] for tech in techniques 
+            technique_objects = [
+                tech for tech in techniques 
                 if tech.get('taxonomy') == 'ATT&CK' and tech.get('id')
             ]
             
-            if technique_ids:
-                # Ensure we don't have duplicates
-                unique_ids = sorted(list(set(technique_ids)))
-                capec_to_mitre[capec_id] = unique_ids
-                all_techniques.update(unique_ids)
+            if technique_objects:
+                capec_to_mitre[capec_id] = technique_objects
+                all_techniques.update([tech['id'] for tech in technique_objects])
 
         logging.info(f"Successfully loaded CAPEC->MITRE mapping. "
                       f"Found {len(capec_to_mitre)} CAPEC entries "

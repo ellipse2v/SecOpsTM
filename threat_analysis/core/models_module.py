@@ -20,6 +20,7 @@ from collections import defaultdict
 from typing import List, Dict, Any, Optional, Tuple
 import logging
 from enum import Enum
+from pathlib import Path
 
 # Patch pytm.Boundary to ensure it has all necessary custom attributes
 if not hasattr(Boundary, 'isTrusted'):
@@ -36,6 +37,7 @@ from .mitre_mapping_module import MitreMapping
 from threat_analysis.severity_calculator_module import SeverityCalculator
 from .model_validator import ModelValidator
 from threat_analysis.custom_threats import get_custom_threats
+from .cve_service import CVEService
 
 class CustomThreat:
     """A simple class to represent a custom threat."""
@@ -82,6 +84,10 @@ class ThreatModel:
         self.mitre_analysis_results = {}
         self.threat_mitre_mapping = {}
         self.severity_calculator = SeverityCalculator() # Instantiate SeverityCalculator
+
+        # CVE Service
+        project_root = Path(__file__).resolve().parents[2]
+        self.cve_service = CVEService(project_root)
 
     def add_boundary(self, name: str, color: str = "lightgray", parent_boundary_obj: Optional[Boundary] = None, **kwargs) -> Boundary:
         """Adds a boundary to the model with additional properties, including an optional parent.

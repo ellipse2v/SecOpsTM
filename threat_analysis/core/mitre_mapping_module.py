@@ -160,12 +160,18 @@ class MitreMapping:
                             found_capecs[capec_id] = capec_info
                             break
             
-            technique_ids = self.capec_to_mitre_map.get(capec_id, [])
-            #if not technique_ids:
-                #logging.warning(f"WARNING: No ATT&CK techniques found for CAPEC ID {capec_id}")
-            for tech_id in technique_ids:
-                if tech_id in self.all_attack_techniques and tech_id not in found_techniques:
+            techniques_from_capec = self.capec_to_mitre_map.get(capec_id, [])
+            
+            # Check if any technique for this CAPEC is manually mapped
+            is_manual_capec = any(tech.get('fromMitre') == 'no' for tech in techniques_from_capec)
+            if is_manual_capec and capec_id in found_capecs:
+                found_capecs[capec_id]['source'] = 'manual'
+
+            for tech_info in techniques_from_capec:
+                tech_id = tech_info.get('id')
+                if tech_id and tech_id in self.all_attack_techniques and tech_id not in found_techniques:
                     technique_data = self.all_attack_techniques[tech_id].copy()
+                    technique_data['fromMitre'] = tech_info.get('fromMitre', 'yes')
                     
                     technique_data['mitre_mitigations'] = self.technique_to_mitigation_map.get(tech_id, [])
                     d3fend_list = []

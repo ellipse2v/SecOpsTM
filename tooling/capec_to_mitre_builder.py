@@ -186,6 +186,28 @@ def build_json_from_csv():
                 })
 
         print(f"Successfully parsed {len(capec_map)} CAPEC entries.")
+
+        # Manual mappings section
+        manual_mappings = [
+            {
+                "capec_id": "CAPEC-51",
+                "name": "Exploitation of Authentication Functions",
+                "url": "https://capec.mitre.org/data/definitions/51.html",
+                "fromMitre": "no",
+                "techniques": [
+                    {
+                        "taxonomy": "ATT&CK",
+                        "id": "T1556",
+                        "name": "Modify Authentication Process",
+                        "fromMitre": "no",
+                        "tactics": []
+                    }
+                ]
+            }
+        ]
+        capec_map.extend(manual_mappings)
+        print(f"Added {len(manual_mappings)} manual CAPEC entries.")
+
         if capec_map:
             print(f"Writing JSON output to {JSON_OUTPUT_PATH}...")
             with open(JSON_OUTPUT_PATH, 'w', encoding='utf-8') as jsonfile:

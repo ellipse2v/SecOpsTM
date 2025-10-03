@@ -135,6 +135,53 @@ Here's how to use the Ansible plugin with a sample playbook:
     ```
 3.  **View the results** in the generated `output/` folder, which will now include elements from your Ansible configuration.
 
+### 4. CVE-Based Threat Generation (Optional)
+
+This framework can generate threats based on a list of Common Vulnerabilities and Exposures (CVEs) that you provide for specific components in your threat model.
+
+#### Prerequisites
+
+To use this feature, you must first clone the `CVE2CAPEC` repository from GitHub next to the `SecOpsTM` project directory.
+
+```bash
+# In the same directory where you cloned SecOpsTM
+git clone https://github.com/Galeax/CVE2CAPEC.git
+```
+
+This will create a directory structure like this:
+```
+/your/development/folder/
+├── SecOpsTM/
+└── CVE2CAPEC/
+```
+
+The tool will then use the `CVE2CAPEC` database to map your specified CVEs to CAPEC attack patterns, which are then used to identify relevant MITRE ATT&CK techniques.
+
+#### Usage
+
+1.  **Create `cve_definitions.yml`**: In the root of the `SecOpsTM` project, create a file named `cve_definitions.yml`.
+
+2.  **Define CVEs for your equipment**: In this file, list the equipment (servers or actors from your threat model) and the CVEs associated with them.
+
+    **Example `cve_definitions.yml`:**
+    ```yaml
+    # The equipment name must match the name of a server or actor in your threat_model.md file.
+
+    WebServer:
+      - CVE-2021-44228 # Log4Shell
+      - CVE-2023-1234
+
+    DatabaseServer:
+      - CVE-2022-5678
+    ```
+
+3.  **Run the analysis**: Run the analysis as usual. The tool will automatically detect the `cve_definitions.yml` file, generate threats based on the CVEs, and include them in the report.
+
+    ```bash
+    python -m threat_analysis --model-file path/to/your_model.md
+    ```
+The new CVE-based threats will appear in the generated report, linked to the corresponding equipment.
+
 ### 2. Web-based Graphical User Interface (GUI) Mode (Optional)
 
 Launch the interactive web editor to visualize your threat model in real-time, edit Markdown content, and export various formats directly from your browser.
