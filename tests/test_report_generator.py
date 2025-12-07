@@ -14,13 +14,27 @@
 
 from unittest.mock import MagicMock, mock_open, patch
 import pytest
+from pathlib import Path
 from threat_analysis.generation.report_generator import ReportGenerator
+from threat_analysis.core.cve_service import CVEService
 
 @pytest.fixture
-def report_generator():
+def cve_service(tmp_path):
+    """Provides a CVEService instance with a mock project root."""
+    project_root = tmp_path
+    cve_definitions_path = project_root / "cve_definitions.yml"
+    cve_definitions_path.touch()  # Create an empty file
+    
+    # Mock the cve2capec directory
+    (project_root / "threat_analysis" / "external_data" / "cve2capec").mkdir(parents=True, exist_ok=True)
+
+    return CVEService(project_root, cve_definitions_path)
+
+@pytest.fixture
+def report_generator(cve_service):
     severity_calculator = MagicMock()
     mitre_mapping = MagicMock()
-    return ReportGenerator(severity_calculator, mitre_mapping)
+    return ReportGenerator(severity_calculator, mitre_mapping, cve_service=cve_service)
 
 @patch('threat_analysis.generation.report_generator.get_framework_mitigation_suggestions')
 def test_generate_html_report(mock_get_framework_mitigations, report_generator):

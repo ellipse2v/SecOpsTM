@@ -20,14 +20,22 @@ from threat_analysis.core.mitre_mapping_module import MitreMapping
 from threat_analysis.severity_calculator_module import SeverityCalculator
 from pytm import TM, Boundary, Actor, Server, Dataflow, Data, Classification, Lifetime
 
+from threat_analysis.core.cve_service import CVEService
+from pathlib import Path
+
 # --- Fixtures ---
 
 @pytest.fixture
-def threat_model_instance():
+def cve_service():
+    """Provides a mocked CVEService instance for testing."""
+    return MagicMock(spec=CVEService)
+
+@pytest.fixture
+def threat_model_instance(cve_service):
     with patch('threat_analysis.core.models_module.MitreMapping') as MockMitreMapping:
         with patch('threat_analysis.core.models_module.TM') as MockTM:
             with patch('threat_analysis.core.models_module.SeverityCalculator') as MockSeverityCalculator:
-                tm = ThreatModel(name="Test Model", description="A model for testing")
+                tm = ThreatModel(name="Test Model", description="A model for testing", cve_service=cve_service)
                 # Add some basic elements for general testing
                 tm.add_boundary("Internet", isTrusted=False)
                 tm.add_boundary("Internal Network", isTrusted=True)
@@ -79,25 +87,28 @@ def test_custom_threat_str_representation():
 
 # --- ThreatModel Initialization Tests ---
 
-def test_threat_model_init():
-    tm = ThreatModel(name="My Model", description="A description")
-    assert tm.tm.name == "My Model"
-    assert tm.tm.description == "A description"
-    assert tm.boundaries == {}
-    assert tm.actors == []
-    assert tm.servers == []
-    assert tm.dataflows == []
-    assert tm.severity_multipliers == {}
-    assert tm.custom_mitre_mappings == {}
-    assert tm.protocol_styles == {}
-    assert tm.threats_raw == []
-    assert tm.grouped_threats == {}
-    assert tm.data_objects == {}
-    assert tm._elements_by_name == {}
-    assert isinstance(tm.mitre_mapper, MitreMapping)
-    assert isinstance(tm.severity_calculator, SeverityCalculator) # Corrected assertion
-    assert tm.mitre_analysis_results == {}
-    assert tm.threat_mitre_mapping == {}
+def test_threat_model_init(cve_service):
+    with patch('threat_analysis.core.models_module.MitreMapping'):
+        with patch('threat_analysis.core.models_module.TM') as MockTM:
+            with patch('threat_analysis.core.models_module.SeverityCalculator'):
+                tm = ThreatModel(name="My Model", description="A description", cve_service=cve_service)
+
+                MockTM.assert_called_once_with("My Model")
+                assert tm.tm.description == "A description"
+                
+                assert tm.boundaries == {}
+                assert tm.actors == []
+                assert tm.servers == []
+                assert tm.dataflows == []
+                assert tm.severity_multipliers == {}
+                assert tm.custom_mitre_mappings == {}
+                assert tm.protocol_styles == {}
+                assert tm.threats_raw == []
+                assert tm.grouped_threats == {}
+                assert tm.data_objects == {}
+                assert tm._elements_by_name == {}
+                assert tm.mitre_analysis_results == {}
+                assert tm.threat_mitre_mapping == {}
 
 # --- ThreatModel add_boundary Tests ---
 

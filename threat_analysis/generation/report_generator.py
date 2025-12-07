@@ -42,24 +42,25 @@ from threat_analysis.generation.attack_navigator_generator import AttackNavigato
 from threat_analysis.core.models_module import ThreatModel
 from threat_analysis.core.mitre_mapping_module import MitreMapping
 
-def load_implemented_mitigations(root_path: Path) -> Set[str]:
-    """Loads implemented mitigation IDs from a file in the project root."""
-    implemented_file = root_path / "implemented_mitigations.txt"
-    if not implemented_file.exists():
+def load_implemented_mitigations(mitigations_file: Optional[Path]) -> Set[str]:
+    """Loads implemented mitigation IDs from a file."""
+    if not mitigations_file or not mitigations_file.exists():
         return set()
-    with open(implemented_file, "r", encoding="utf-8") as f:
+    with open(mitigations_file, "r", encoding="utf-8") as f:
         return {line.strip() for line in f if line.strip() and not line.strip().startswith("#")}
 
 class ReportGenerator:
     """Class for generating HTML and JSON reports"""
 
-    def __init__(self, severity_calculator, mitre_mapping):
+    def __init__(self, severity_calculator, mitre_mapping, 
+                 implemented_mitigations_path: Optional[Path] = None, 
+                 cve_service: Optional[CVEService] = None):
         self.severity_calculator = severity_calculator
         self.mitre_mapping = mitre_mapping
         self.env = Environment(loader=FileSystemLoader(Path(__file__).parent.parent / 'templates'), extensions=['jinja2.ext.do'])
-        self.implemented_mitigations = load_implemented_mitigations(project_root)
+        self.implemented_mitigations = load_implemented_mitigations(implemented_mitigations_path)
         self.all_detailed_threats = []
-        self.cve_service = CVEService(project_root)
+        self.cve_service = cve_service if cve_service else CVEService(project_root)
 
     def generate_html_report(self, threat_model, grouped_threats: Dict[str, List], 
                              output_file: Path = Path("stride_mitre_report.html"), 
@@ -273,7 +274,7 @@ class ReportGenerator:
         summary_stats = self.generate_summary_stats(all_threats_details)
         total_mitre_techniques_mapped = len(set(tech['id'] for threat in all_threats_details for tech in threat.get('mitre_techniques', [])))
 
-        dummy_model = ThreatModel("Global Project")
+        dummy_model = ThreatModel("Global Project", cve_service=self.cve_service)
         dummy_model.mitre_analysis_results = {
             'total_threats': total_threats_analyzed,
             'mitre_techniques_count': total_mitre_techniques_mapped,
@@ -323,6 +324,7 @@ class ReportGenerator:
                 markdown_content=markdown_content,
                 model_name=main_model_path.stem,
                 model_description=f"Threat model for {main_model_path.stem}",
+                cve_service=self.cve_service,
                 validate=True
             )
         except Exception as e:
@@ -360,6 +362,7 @@ class ReportGenerator:
                     markdown_content=markdown_content,
                     model_name=model_path.stem,
                     model_description=f"Threat model for {model_path.stem}",
+                    cve_service=self.cve_service,
                     validate=False
                 )
                 if threat_model:
@@ -403,6 +406,7 @@ class ReportGenerator:
                     markdown_content=markdown_content,
                     model_name=model_name,
                     model_description=f"Threat model for {model_name}",
+                    cve_service=self.cve_service,
                     validate=True
                 )
             

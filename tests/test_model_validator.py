@@ -15,15 +15,23 @@
 Tests for the ModelValidator.
 """
 
+from unittest.mock import MagicMock
+from pathlib import Path
 import pytest
+from threat_analysis.core.cve_service import CVEService
 from threat_analysis.core.models_module import ThreatModel
 from threat_analysis.core.model_validator import ModelValidator
 from pytm import Actor, Server, Dataflow, Boundary
 
 @pytest.fixture
-def sample_threat_model():
+def cve_service():
+    """Provides a mocked CVEService instance for testing."""
+    return MagicMock(spec=CVEService)
+
+@pytest.fixture
+def sample_threat_model(cve_service):
     """Provides a sample ThreatModel for testing."""
-    tm = ThreatModel("Test Model", "A model for testing validation")
+    tm = ThreatModel("Test Model", "A model for testing validation", cve_service=cve_service)
     tm.add_boundary("Internet")
     tm.add_boundary("DMZ")
     tm.add_actor("User", "Internet")

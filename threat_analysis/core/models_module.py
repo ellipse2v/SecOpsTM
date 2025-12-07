@@ -58,7 +58,7 @@ class CustomThreat:
 class ThreatModel:
     """Main class for managing the threat model with MITRE ATT&CK integration"""
 
-    def __init__(self, name: str, description: str = ""):
+    def __init__(self, name: str, description: str = "", cve_service: CVEService = None):
         self.tm = TM(name)
         self.tm.description = description
         self.boundaries = {}  # Stores Boundary objects and their properties (e.g., color)
@@ -86,8 +86,9 @@ class ThreatModel:
         self.severity_calculator = SeverityCalculator() # Instantiate SeverityCalculator
 
         # CVE Service
-        project_root = Path(__file__).resolve().parents[2]
-        self.cve_service = CVEService(project_root)
+        if not cve_service:
+            raise ValueError("A CVEService instance must be provided to ThreatModel.")
+        self.cve_service = cve_service
 
     def add_boundary(self, name: str, color: str = "lightgray", parent_boundary_obj: Optional[Boundary] = None, **kwargs) -> Boundary:
         """Adds a boundary to the model with additional properties, including an optional parent.

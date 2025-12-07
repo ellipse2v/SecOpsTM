@@ -10,6 +10,7 @@ from threat_analysis.generation.report_generator import ReportGenerator
 from threat_analysis.severity_calculator_module import SeverityCalculator
 from threat_analysis.core.mitre_mapping_module import MitreMapping
 from threat_analysis.generation.diagram_generator import DiagramGenerator
+from threat_analysis.core.cve_service import CVEService
 
 @pytest.fixture
 def project_tmp_path(tmp_path_factory):
@@ -22,12 +23,22 @@ def project_test_env(project_tmp_path):
     project_path.mkdir()
     output_path.mkdir()
     
+    # Create a dummy cve_definitions.yml for CVEService initialization
+    cve_defs_path = project_path / "cve_definitions.yml"
+    cve_defs_path.touch()
+
     def _run_generator():
         with patch('pytm.pytm.get_args') as mock_get_args:
             mock_get_args.return_value = argparse.Namespace(debug=False, sqldump=None, dfd=None, report=None, exclude=None, seq=None, list=None, colormap=None, describe=None, list_elements=None, json=None, levels=None, stale_days=None)
+            
+            # Initialize CVEService with the dummy file
+            # Assuming project_root for CVEService is the parent of project_path
+            project_root = project_path.parent
+            cve_service = CVEService(project_root, cve_defs_path)
+
             severity_calculator = SeverityCalculator()
             mitre_mapping = MitreMapping()
-            report_generator = ReportGenerator(severity_calculator, mitre_mapping)
+            report_generator = ReportGenerator(severity_calculator, mitre_mapping, cve_service=cve_service)
             report_generator.generate_project_reports(project_path, output_path)
 
     return project_path, output_path, _run_generator

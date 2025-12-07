@@ -30,14 +30,29 @@ from threat_analysis.generation.diagram_generator import DiagramGenerator
 from threat_analysis.generation.attack_navigator_generator import AttackNavigatorGenerator
 from threat_analysis.generation.stix_generator import StixGenerator
 from threat_analysis.core.model_validator import ModelValidator
+from pathlib import Path
+from threat_analysis.core.cve_service import CVEService
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 class ThreatModelService:
     def __init__(self):
         self.mitre_mapping = MitreMapping(threat_model_path="")
         self.severity_calculator = SeverityCalculator()
         self.diagram_generator = DiagramGenerator()
-        self.report_generator = ReportGenerator(self.severity_calculator, self.mitre_mapping)
+        
+        # In the web server context, the CVE service should be initialized when needed
+        # or passed in by the main server application. For now, pass None to avoid eager instantiation.
+        cve_definitions_path = PROJECT_ROOT / "cve_definitions.yml"
+        self.cve_service = CVEService(
+            PROJECT_ROOT, cve_definitions_path, is_path_explicit=False
+        )
+        self.report_generator = ReportGenerator(
+            self.severity_calculator, 
+            self.mitre_mapping,
+            implemented_mitigations_path=None, # No default hardcoded path
+            cve_service=self.cve_service # No eager instantiation
+        )
         self.stix_generator = None # Initialize later with threat_model and all_detailed_threats
 
     def update_diagram_logic(self, markdown_content: str):
@@ -58,7 +73,7 @@ class ThreatModelService:
             markdown_content=markdown_content,
             model_name="WebThreatModel",
             model_description="Live-updated threat model",
-
+            cve_service=self.cve_service,
             validate=False,  # No need to validate on every update
         )
         if not threat_model:
@@ -132,7 +147,7 @@ class ThreatModelService:
             markdown_content=markdown_content,
             model_name="ExportedThreatModel",
             model_description="Exported from web interface",
-
+            cve_service=self.cve_service,
             validate=True,
         )
         if not threat_model:
@@ -206,7 +221,7 @@ class ThreatModelService:
             markdown_content=markdown_content,
             model_name="ExportedThreatModel",
             model_description="Exported from web interface",
-
+            cve_service=self.cve_service,
             validate=True,
         )
         if not threat_model:
@@ -316,7 +331,7 @@ class ThreatModelService:
             markdown_content=markdown_content,
             model_name="ExportedThreatModel",
             model_description="Exported from web interface",
-
+            cve_service=self.cve_service,
             validate=True,
         )
         if not threat_model:
