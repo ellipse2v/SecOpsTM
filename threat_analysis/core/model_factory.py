@@ -22,12 +22,14 @@ from threat_analysis.core.models_module import ThreatModel
 from threat_analysis.core.model_parser import ModelParser
 from threat_analysis.core.model_validator import ModelValidator
 from threat_analysis.core.mitre_mapping_module import MitreMapping
+from threat_analysis.core.cve_service import CVEService
 
 
 def create_threat_model(
     markdown_content: str,
     model_name: str,
     model_description: str,
+    cve_service: CVEService,
     validate: bool = True,
 ) -> Optional[ThreatModel]:
     """
@@ -37,13 +39,18 @@ def create_threat_model(
         markdown_content: The Markdown content of the threat model.
         model_name: The name of the threat model.
         model_description: The description of the threat model.
+        cve_service: An instance of the CVEService.
         validate: Whether to validate the model after parsing.
 
     Returns:
         A ThreatModel object if successful, otherwise None.
     """
     try:
-        threat_model = ThreatModel(model_name, model_description)
+        threat_model = ThreatModel(
+            model_name,
+            model_description,
+            cve_service=cve_service
+        )
         # The MitreMapping object is now created inside ThreatModel, so we get it from there
         parser = ModelParser(threat_model, threat_model.mitre_mapper)
         parser.parse_markdown(markdown_content)

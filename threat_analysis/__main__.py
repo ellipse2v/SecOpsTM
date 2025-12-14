@@ -37,13 +37,14 @@ from threat_analysis.core.model_factory import create_threat_model
 from threat_analysis import config
 from threat_analysis.iac_plugins import IaCPlugin
 from threat_analysis.generation.report_generator import ReportGenerator
-from threat_analysis.utils import _validate_path_within_project
+from threat_analysis.utils import _validate_path_within_project, resolve_path
 from threat_analysis.server.server import run_gui, run_full_gui
 from threat_analysis.core.model_validator import ModelValidator
+from threat_analysis.core.cve_service import CVEService
 
 
 # Add project root to sys.path
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
@@ -51,13 +52,16 @@ class SecOpsTMFramework:
     """Main framework for threat analysis"""
 
     def __init__(
-        self, markdown_content: str, model_name: str, model_description: str, model_file_path: str
+        self, markdown_content: str, model_name: str, model_description: str, model_file_path: str,
+        implemented_mitigations_path: Optional[str] = None,
+        cve_service: Optional[CVEService] = None,
     ):
         """Initializes the analysis framework"""
         self.markdown_content = markdown_content
         self.model_name = model_name
         self.model_description = model_description
         self.model_file_path = model_file_path
+        self.cve_service = cve_service
 
         # --- Output path management ---
         self.output_base_dir = config.OUTPUT_BASE_DIR
@@ -94,7 +98,9 @@ class SecOpsTMFramework:
             markdown_file_path=config.DEFAULT_MODEL_FILEPATH # Keep this for now, will adjust later if needed
         )
         self.report_generator = ReportGenerator(
-            self.severity_calculator, self.mitre_mapper # Use the mitre_mapper from the threat_model
+            self.severity_calculator, self.mitre_mapper, # Use the mitre_mapper from the threat_model
+            implemented_mitigations_path=Path(implemented_mitigations_path) if implemented_mitigations_path else None,
+            cve_service=self.cve_service,
         )
         self.diagram_generator = DiagramGenerator()
 
@@ -123,13 +129,14 @@ class SecOpsTMFramework:
         """Loads and validates the threat model from the Markdown DSL content."""
         logging.info(f"⏳ Loading model from provided Markdown content...")
         try:
+            # Pass the framework's cve_service instance to the factory
             return create_threat_model(
                 markdown_content=markdown_content,
                 model_name=self.model_name,
                 model_description=self.model_description,
+                cve_service=self.cve_service,
                 validate=True,
             )
-
         except Exception as e:
             logging.error(f"❌ Error parsing or validating model: {e}")
             return None
@@ -367,6 +374,16 @@ class CustomArgumentParser:
             action="store_true",
             help="Generate an Attack Flow JSON file for visualization.",
         )
+        self.parser.add_argument(
+            "--implemented-mitigations-file",
+            type=str,
+            help="Path to the implemented mitigations file. If not provided, the tool will look for a file named 'implemented_mitigations.txt' in the same directory as the model or project.",
+        )
+        self.parser.add_argument(
+            "--cve-definitions-file",
+            type=str,
+            help="Path to the CVE definitions file. If not provided, the tool will look for a file named 'cve_definitions.yml' in the same directory as the model or project.",
+        )
 
         # Dynamically add arguments for IaC plugins
         for name, plugin in loaded_plugins.items():
@@ -444,11 +461,26 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
             sys.exit(1)
 
 
+    base_dir = base_model_filepath.parent if base_model_filepath else Path.cwd()
+
+    implemented_mitigations_path, _ = resolve_path(
+        args.implemented_mitigations_file, base_dir, "implemented_mitigations.txt"
+    )
+    cve_definitions_path, is_cve_path_explicit = resolve_path(
+        args.cve_definitions_file, base_dir, "cve_definitions.yml"
+    )
+
+    cve_service = CVEService(
+        PROJECT_ROOT, cve_definitions_path, is_cve_path_explicit
+    )
+
     framework = SecOpsTMFramework(
         markdown_content=markdown_content_for_analysis,
         model_name=config.DEFAULT_MODEL_NAME,
         model_description=config.DEFAULT_MODEL_DESCRIPTION,
-        model_file_path=str(base_model_filepath)
+        model_file_path=str(base_model_filepath),
+        implemented_mitigations_path=str(implemented_mitigations_path),
+        cve_service=cve_service
     )
 
     threats = framework.run_analysis()
@@ -547,9 +579,26 @@ if __name__ == "__main__":
         output_dir = Path(config.OUTPUT_BASE_DIR) / project_path.name
         output_dir.mkdir(parents=True, exist_ok=True)
 
+        implemented_mitigations_path, _ = resolve_path(
+            args.implemented_mitigations_file, project_path, "implemented_mitigations.txt"
+        )
+        cve_definitions_path, is_cve_path_explicit = resolve_path(
+            args.cve_definitions_file, project_path, "cve_definitions.yml"
+        )
+        
+        cve_service = CVEService(
+            PROJECT_ROOT, cve_definitions_path, is_cve_path_explicit
+        )
+
         severity_calculator = SeverityCalculator(markdown_file_path=str(project_path / "main.md"))
         mitre_mapping = MitreMapping(threat_model_path=str(project_path / "main.md"))
-        report_generator = ReportGenerator(severity_calculator, mitre_mapping)
+        report_generator = ReportGenerator(
+            severity_calculator,
+            mitre_mapping,
+            implemented_mitigations_path=Path(implemented_mitigations_path),
+            cve_service=cve_service
+        )
+
         project_threat_model = report_generator.generate_project_reports(project_path, output_dir)
 
         if args.navigator and project_threat_model:

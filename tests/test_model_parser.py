@@ -15,13 +15,21 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from threat_analysis.core.model_parser import ModelParser
-from threat_analysis.core.models_module import ThreatModel, CustomThreat
+from threat_analysis.core.models_module import ThreatModel, CustomThreat, CVEService
 from threat_analysis.core.mitre_mapping_module import MitreMapping
 from pytm import Classification, Lifetime
+from pathlib import Path
 
 @pytest.fixture
-def threat_model():
-    tm = ThreatModel(name="Test Threat Model")
+def cve_service(tmp_path: Path) -> CVEService:
+    """Provides a CVEService instance for testing."""
+    project_root = tmp_path
+    cve_definitions_path = project_root / "cve_definitions.yml"
+    return CVEService(project_root, cve_definitions_path)
+
+@pytest.fixture
+def threat_model(cve_service):
+    tm = ThreatModel(name="Test Threat Model", cve_service=cve_service)
     tm.add_boundary("Default Boundary") # Add a default boundary
     return tm
 
@@ -219,8 +227,7 @@ def test_apply_custom_threats_servers(mock_get_custom_threats, threat_model, mit
     assert any(t[0].description == "Web Server Threat" for t in threat_model.threats_raw)
     assert any(t[1].name == "WebServer" for t in threat_model.threats_raw if not isinstance(t[1], tuple))
 
-    # Test case 2: Server does NOT match condition
-    threat_model_no_match = ThreatModel(name="Test Threat Model No Match")
+    threat_model_no_match = ThreatModel(name="Test Threat Model No Match", cve_service=threat_model.cve_service)
     threat_model_no_match.add_boundary("Default Boundary")
     threat_model_no_match.add_server("DatabaseServer", "Default Boundary", type="database")
     mock_get_custom_threats.return_value = []
@@ -232,7 +239,7 @@ def test_apply_custom_threats_servers(mock_get_custom_threats, threat_model, mit
     assert len(threat_model_no_match.threats_raw) == 0
 
     # Test case 3: Server with no specific type, and a general rule
-    threat_model_general = ThreatModel(name="Test Threat Model General")
+    threat_model_general = ThreatModel(name="Test Threat Model General", cve_service=threat_model.cve_service)
     threat_model_general.add_boundary("Default Boundary")
     threat_model_general.add_server("GenericServer", "Default Boundary") # No type specified
     mock_get_custom_threats.return_value = [
@@ -293,7 +300,7 @@ def test_apply_custom_threats_dataflows_new(mock_get_custom_threats, threat_mode
     assert any(t[1].name == "SecureSensitiveDataFlow" for t in threat_model.threats_raw if not isinstance(t[1], tuple))
 
     # Test case where dataflow does NOT match conditions
-    threat_model_no_match = ThreatModel(name="Test Threat Model No Match")
+    threat_model_no_match = ThreatModel(name="Test Threat Model No Match", cve_service=threat_model.cve_service)
     threat_model_no_match.add_boundary("Default Boundary")
     threat_model_no_match.add_actor("User2", "Default Boundary")
     threat_model_no_match.add_server("WebServer2", "Default Boundary")

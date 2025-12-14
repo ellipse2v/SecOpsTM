@@ -18,22 +18,38 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from typing import Dict, List, Optional
+
 class CVEService:
     """
     A service to handle CVE to CAPEC mappings and definitions.
     """
 
-    def __init__(self, project_root: Path):
+    def __init__(
+        self,
+        project_root: Path,
+        cve_definitions_path: Path,
+        is_path_explicit: bool = False,
+    ):
         self.project_root = project_root
-        self.cve_definitions_path = self.project_root / "cve_definitions.yml"
-        self.cve2capec_db_path = self.project_root / "threat_analysis" / "external_data" / "cve2capec"
+        self.cve_definitions_path = cve_definitions_path
+        self.is_path_explicitly_provided = is_path_explicit
+        self.cve2capec_db_path = (
+            self.project_root
+            / "threat_analysis"
+            / "external_data"
+            / "cve2capec"
+        )
         self.cve_definitions = self._load_cve_definitions()
         self.cve_to_capec_map = self._load_cve_to_capec_map()
 
     def _load_cve_definitions(self) -> Dict[str, List[str]]:
         """Loads the user-defined CVEs for each equipment from cve_definitions.yml."""
         if not self.cve_definitions_path.exists():
-            logging.warning(f"⚠️ CVE definitions file not found at {self.cve_definitions_path}. No CVE-based threats will be generated.")
+            if self.is_path_explicitly_provided:
+                logging.warning(f"⚠️ CVE definitions file not found at {self.cve_definitions_path}. No CVE-based threats will be generated.")
+            else:
+                logging.info(f"ℹ️ Default CVE definitions file not found at {self.cve_definitions_path}. No CVE-based threats will be generated.")
             return {}
         try:
             with open(self.cve_definitions_path, 'r', encoding='utf-8') as f:
