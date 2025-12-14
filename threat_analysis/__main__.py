@@ -38,7 +38,7 @@ from threat_analysis import config
 from threat_analysis.iac_plugins import IaCPlugin
 from threat_analysis.generation.report_generator import ReportGenerator
 from threat_analysis.utils import _validate_path_within_project
-from threat_analysis.server.server import run_gui
+from threat_analysis.server.server import run_gui, run_full_gui
 from threat_analysis.core.model_validator import ModelValidator
 
 
@@ -350,6 +350,9 @@ class CustomArgumentParser:
             "--gui", action="store_true", help="Launch the web-based GUI editor."
         )
         self.parser.add_argument(
+            "--full-gui", action="store_true", help="Launch the full web-based GUI editor."
+        )
+        self.parser.add_argument(
             "--project",
             type=str,
             help="Path to the project directory for hierarchical threat models.",
@@ -523,6 +526,15 @@ if __name__ == "__main__":
     if args.gui:
         try:
             run_gui(args.model_file)
+        except ImportError:
+            logging.error(
+                "❌ Flask is not installed. Please install it to use the GUI: "
+                "pip install Flask"
+            )
+            sys.exit(1)
+    elif args.full_gui:
+        try:
+            run_full_gui(args.model_file)
         except ImportError:
             logging.error(
                 "❌ Flask is not installed. Please install it to use the GUI: "

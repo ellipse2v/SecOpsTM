@@ -29,6 +29,7 @@ from threat_analysis.generation.report_generator import ReportGenerator
 from threat_analysis.generation.diagram_generator import DiagramGenerator
 from threat_analysis.generation.attack_navigator_generator import AttackNavigatorGenerator
 from threat_analysis.generation.stix_generator import StixGenerator
+from threat_analysis.generation.attack_flow_generator import AttackFlowGenerator
 from threat_analysis.core.model_validator import ModelValidator
 
 
@@ -404,5 +405,52 @@ class ThreatModelService:
         logging.info(f"Zip buffer size: {zip_buffer.getbuffer().nbytes} bytes")
 
         shutil.rmtree(export_path)
+
+        return zip_buffer, timestamp
+    
+    def export_attack_flow_logic(self, markdown_content: str):
+        logging.info("Entering export_attack_flow_logic function.")
+        if not markdown_content:
+            raise ValueError("Missing markdown content")
+
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        # Use a temporary directory for generation
+        temp_export_dir = os.path.join(config.TMP_DIR, f"attack_flow_{timestamp}")
+        os.makedirs(temp_export_dir, exist_ok=True)
+
+        threat_model = create_threat_model(
+            markdown_content=markdown_content,
+            model_name="ExportedThreatModel",
+            model_description="Exported from web interface",
+            validate=True,
+        )
+        if not threat_model:
+            raise RuntimeError("Failed to create or validate threat model")
+
+        threat_model.process_threats()
+        all_detailed_threats = threat_model.get_all_threats_details()
+
+        attack_flow_generator = AttackFlowGenerator(
+            threats=all_detailed_threats,
+            model_name=threat_model.tm.name
+        )
+        attack_flow_generator.generate_and_save_flows(temp_export_dir)
+
+        afb_dir = os.path.join(temp_export_dir, "afb")
+        if not os.path.exists(afb_dir) or not os.listdir(afb_dir):
+            logging.warning("No attack flow files were generated.")
+            shutil.rmtree(temp_export_dir)
+            return None, None # No files to zip
+
+        zip_buffer = BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+            for root, _, files in os.walk(afb_dir):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    arcname = os.path.relpath(file_path, afb_dir)
+                    zf.write(file_path, arcname)
+        zip_buffer.seek(0)
+
+        shutil.rmtree(temp_export_dir)
 
         return zip_buffer, timestamp

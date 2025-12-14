@@ -70,7 +70,10 @@ def get_model_name(markdown_content: str) -> str:
     return "Untitled Model"
 
 
-def run_gui(model_filepath: str = None):
+def run_full_gui(model_filepath: str = None):
+    """
+    This function is the main entry point for the web server.
+    """
     global initial_markdown_content
     if model_filepath and os.path.exists(model_filepath):
         try:
@@ -94,24 +97,19 @@ def run_gui(model_filepath: str = None):
         )
 
     print(
-        "\n🚀 Starting Threat Model GUI. Open your browser to: "
-        "http://127.0.0.1:5001\n"
+        "\n🚀 Starting Threat Model Full GUI. Open your browser to: "
+        "http://127.0.0.1:5001/\n"
     )
     app.run(debug=True, port=5001)
 
 
 @app.route("/")
-def index():
+def full_gui():
     """Serves the main web interface."""
-    encoded_markdown = base64.b64encode(
-        initial_markdown_content.encode("utf-8")
-    ).decode("utf-8")
-    model_name = get_model_name(initial_markdown_content)
     return render_template(
-        "web_interface.html",
-        initial_markdown=encoded_markdown,
-        model_name=model_name,
+        "full_gui.html"
     )
+
 
 
 @app.route("/api/update", methods=["POST"])
@@ -144,6 +142,88 @@ def update_diagram():
     except Exception as e:
         logging.error(f"An unexpected error occurred during diagram update: {e}", exc_info=True)
         return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+
+
+def _format_properties(item: dict, props_to_include: list) -> str:
+    """Helper to format key-value properties for Markdown."""
+    props = []
+    for prop_key in props_to_include:
+        prop_value = item.get(prop_key)
+        if prop_value:
+            props.append(f'{prop_key}="{prop_value}"')
+    return ", ".join(props)
+
+def convert_json_to_markdown(data: dict) -> str:
+    """Converts JSON from the graphical editor to Markdown DSL."""
+    markdown_lines = ["# Threat Model: Graphical Editor"]
+    
+    boundaries = data.get('boundaries', [])
+    actors = data.get('actors', [])
+    servers = data.get('servers', [])
+    data_elements = data.get('data', [])
+    dataflows = data.get('dataflows', [])
+
+    boundary_map = {b['id']: b['name'] for b in boundaries}
+
+    markdown_lines.append("\n## Boundaries")
+    for boundary in boundaries:
+        props_str = _format_properties(boundary, ['description'])
+        markdown_lines.append(f"- **{boundary['name']}**: {props_str}")
+
+    markdown_lines.append("\n## Actors")
+    for actor in actors:
+        props = {'boundary': boundary_map.get(actor.get('parentId'))}
+        props_str = _format_properties({**actor, **props}, ['boundary', 'description'])
+        markdown_lines.append(f"- **{actor['name']}**: {props_str}")
+
+    markdown_lines.append("\n## Servers")
+    for server in servers:
+        props = {'boundary': boundary_map.get(server.get('parentId'))}
+        props_str = _format_properties({**server, **props}, ['boundary', 'description'])
+        markdown_lines.append(f"- **{server['name']}**: {props_str}")
+
+    markdown_lines.append("\n## Data")
+    for data_item in data_elements:
+        props_str = _format_properties(data_item, ['description', 'classification'])
+        markdown_lines.append(f"- **{data_item['name']}**: {props_str}")
+
+    markdown_lines.append("\n## Dataflows")
+    nodes = {item['id']: item for item in actors + servers + data_elements}
+    for df in dataflows:
+        from_node = nodes.get(df['from'])
+        to_node = nodes.get(df['to'])
+        if from_node and to_node:
+            df_name = df.get("name") or f"{from_node['name']} to {to_node['name']}"
+            props_str = _format_properties(df, ['protocol', 'description'])
+            markdown_lines.append(f'- **{df_name}**: from="{from_node["name"]}", to="{to_node["name"]}", {props_str}')
+
+    return "\n".join(markdown_lines)
+
+
+@app.route("/api/graphical_update", methods=["POST"])
+def graphical_update():
+    """
+    Receives JSON graph data, converts it to Markdown, and returns the analysis.
+    """
+    logging.info("Entering graphical_update function.")
+    json_data = request.json
+    if not json_data:
+        return jsonify({"error": "JSON data is empty"}), 400
+
+    try:
+        markdown_content = convert_json_to_markdown(json_data)
+        logging.info(f"Converted Markdown:\n{markdown_content}")
+        
+        # Reuse the existing service logic
+        result = threat_model_service.update_diagram_logic(markdown_content)
+        model_name = get_model_name(markdown_content)
+        result["model_name"] = model_name
+        return jsonify(result)
+
+    except Exception as e:
+        logging.error(f"An unexpected error occurred during graphical update: {e}", exc_info=True)
+        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+
 
 
 @app.route("/api/export", methods=["POST"])
@@ -210,32 +290,133 @@ def export_all_files():
         return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
 @app.route("/api/export_navigator_stix", methods=["POST"])
+
 def export_navigator_stix_files():
+
     logging.info("Received request for /api/export_navigator_stix.")
+
     """
+
     Handles exporting ATT&CK Navigator layer and STIX report as a single ZIP archive.
+
     """
+
     markdown_content = request.json.get("markdown", "")
+
     if not markdown_content:
+
         return jsonify({"error": "Missing markdown content"}), 400
+
     logging.info("Entering export_navigator_stix_files function.")
 
+
+
     try:
+
         zip_buffer, timestamp = threat_model_service.export_navigator_stix_logic(markdown_content)
+
         logging.info(f"Generated zip buffer size: {zip_buffer.getbuffer().nbytes} bytes")
+
         return send_file(
+
             zip_buffer,
+
             mimetype="application/zip",
+
             as_attachment=True,
+
             download_name=f"navigator_stix_export_{timestamp}.zip",
+
         )
 
+
+
     except ValueError as e:
+
         logging.error(f"Error during export navigator and stix: {e}")
+
         return jsonify({"error": str(e)}), 400
+
     except RuntimeError as e:
+
         logging.error(f"Error during export navigator and stix: {e}", exc_info=True)
+
         return jsonify({"error": str(e)}), 500
+
     except Exception as e:
+
         logging.error(f"An unexpected error occurred during export navigator and stix: {e}", exc_info=True)
+
+        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+
+
+
+
+
+@app.route("/api/export_attack_flow", methods=["POST"])
+
+def export_attack_flow():
+
+    """
+
+    Handles exporting Attack Flow diagrams as a single ZIP archive.
+
+    """
+
+    json_data = request.json
+
+    if not json_data:
+
+        return jsonify({"error": "Missing model data"}), 400
+
+
+
+    logging.info("Entering export_attack_flow function.")
+
+
+
+    try:
+
+        markdown_content = convert_json_to_markdown(json_data)
+
+        zip_buffer, timestamp = threat_model_service.export_attack_flow_logic(markdown_content)
+
+
+
+        if not zip_buffer:
+
+            return jsonify({"error": "No attack flows were generated. The model may be too simple."}), 404
+
+
+
+        return send_file(
+
+            zip_buffer,
+
+            mimetype="application/zip",
+
+            as_attachment=True,
+
+            download_name=f"attack_flows_{timestamp}.zip",
+
+        )
+
+
+
+    except ValueError as e:
+
+        logging.error(f"Error during Attack Flow export: {e}")
+
+        return jsonify({"error": str(e)}), 400
+
+    except RuntimeError as e:
+
+        logging.error(f"Error during Attack Flow export: {e}", exc_info=True)
+
+        return jsonify({"error": str(e)}), 500
+
+    except Exception as e:
+
+        logging.error(f"An unexpected error occurred during Attack Flow export: {e}", exc_info=True)
+
         return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500

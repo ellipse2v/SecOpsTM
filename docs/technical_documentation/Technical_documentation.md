@@ -84,6 +84,7 @@ The execution of the framework begins in `__main__.py`. This script is responsib
 -   **Argument Parsing**: It uses a `CustomArgumentParser` to handle command-line arguments. This includes standard arguments like `--model-file`, `--gui`, `--project`, and `--navigator`, but it also dynamically loads IaC plugins from the `iac_plugins` directory and adds corresponding arguments for them (e.g., `--ansible-path`).
 -   **Mode Selection**: It determines the execution mode based on the arguments:
     -   `--gui`: Launches the Flask web server via `server.run_gui()`.
+    -   `--full-gui`: Launches the Flask web server with the full GUI via `server.run_full_gui()`.
     -   `--project`: Initiates a hierarchical project analysis via `report_generator.generate_project_reports()`.
     -   `--<iac-plugin>-path`: Triggers the IaC import workflow.
     -   Default: Proceeds with a standard single-file analysis.
@@ -364,6 +365,7 @@ graph TD
 
 -   **`server.py`**: A simple Flask application that defines the API endpoints:
     -   `/`: Serves the main `web_interface.html`.
+    -   `/fullGUI`: Serves the `full_gui.html` with a more comprehensive interface.
     -   `/api/update`: Receives Markdown from the editor, triggers a live analysis, and returns the resulting SVG diagram and legend.
     -   `/api/export` & `/api/export_all`: Handle requests to download the generated artifacts.
 -   **`threat_model_service.py`**: This service layer acts as a bridge between the web server and the core analysis engine. It encapsulates the logic for handling web requests, calling the appropriate framework components, and managing temporary files, keeping the Flask app clean and focused on routing. It has been updated to align with the new `create_threat_model` signature, removing the `mitre_mapping` argument from its calls.

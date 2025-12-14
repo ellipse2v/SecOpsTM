@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graphical Threat Model Editor</title>
+    <script type="text/javascript" src="https://jgraph.github.io/mxgraph/javascript/mxClient.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/split.js/dist/split.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom/dist/svg-pan-zoom.min.js"></script>
+    <style>
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #F0F2F5;
+        }
+        .header {
+            background-color: #ffffff;
+            padding: 10px 20px;
+            border-bottom: 1px solid #d1d5da;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            height: 40px; /* Fixed height */
+        }
+        .header h1 { font-size: 1.5em; margin: 0; }
+        .button-group button {
+            background-color: #2c974b;
+            color: white; border: none; padding: 8px 16px;
+            border-radius: 6px; cursor: pointer; font-size: 14px;
+            margin-left: 10px; transition: background-color 0.2s;
+        }
+        .button-group button:hover { background-color: #278341; }
+        #container { display: flex; width: 100%; height: calc(100vh - 61px); }
+        .split { display: flex; flex-direction: row; width: 100%; }
+        .gutter { background-color: #eee; background-repeat: no-repeat; background-position: 50%; }
+        .gutter.gutter-horizontal { cursor: col-resize; background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxl79uz5T5Gj5WBGjma8+fABAF0pIxXTG4ToAAAAAElFTkSuQmCC'); }
+        #toolbar, #properties-panel {
+            padding: 15px; box-sizing: border-box;
+            background-color: #f8f9fa;
+            overflow-y: auto;
+        }
+        #graph-container {
+            flex-grow: 1;
+            position: relative;
+            background-color: #fff;
+            border-left: 1px solid #d1d5da;
+            border-right: 1px solid #d1d5da;
+        }
+        #toolbar h2, #properties-panel h2 {
+            font-size: 1.2em; margin-top: 0; padding-bottom: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .toolbar-button {
+            display: block; width: 100%; margin-bottom: 10px;
+            padding: 10px; box-sizing: border-box; cursor: pointer;
+            text-align: left; background-color: #fff; border: 1px solid #ccc;
+            border-radius: 5px; font-size: 14px;
+        }
+        .toolbar-button:hover { background-color: #f0f0f0; }
+        .toolbar-separator {
+            height: 1px; background-color: #e0e0e0; margin: 15px 0;
+        }
+        #properties-panel input, #properties-panel select, #properties-panel textarea {
+            width: 100%; padding: 8px; box-sizing: border-box;
+            border: 1px solid #ccc; border-radius: 4px;
+        }
+        #properties-panel label { display: block; margin-top: 15px; font-size: 0.9em; font-weight: bold; margin-bottom: 5px; }
+        .tab-bar { display: flex; border-bottom: 1px solid #ccc; }
+        .tab-button {
+            padding: 10px 15px; cursor: pointer; background-color: #f1f1f1;
+            border: none; border-bottom: 3px solid transparent;
+        }
+        .tab-button.active { background-color: #fff; border-bottom: 3px solid #2c974b; }
+        .tab-content { display: none; padding-top: 15px; }
+        .tab-content.active { display: block; }
+        #analysis-result-container, #legend-container {
+            height: calc(100% - 50px); overflow-y: auto;
+            background-color: #fff; padding: 10px; border: 1px solid #ccc;
+        }
+        .prop-group { margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Graphical Editor</h1>
+        <div class="button-group">
+            <button id="analyze-btn">Analyze Model</button>
+        </div>
+    </div>
+    <div id="container" class="split">
+        <div id="toolbar" style="width: 200px;">
+            <h2>Elements</h2>
+            <button class="toolbar-button" id="add-boundary">Add Boundary</button>
+            <button class="toolbar-button" id="add-actor">Add Actor</button>
+            <button class="toolbar-button" id="add-data">Add Data</button>
+            <div class="toolbar-separator"></div>
+            <button class="toolbar-button" id="add-server">Generic Server</button>
+            <button class="toolbar-button" id="add-web-server">Web Server</button>
+            <button class="toolbar-button" id="add-database">Database</button>
+            <button class="toolbar-button" id="add-firewall">Firewall</button>
+        </div>
+        <div id="graph-container"></div>
+        <div id="properties-panel" style="width: 350px;">
+            <div class="tab-bar">
+                <button class="tab-button active" data-tab="properties">Properties</button>
+                <button class="tab-button" data-tab="analysis">Analysis</button>
+            </div>
+            <div id="properties" class="tab-content active">
+                <h2>Element Properties</h2>
+                <div id="properties-form" style="display: none;">
+                    <div class="prop-group">
+                        <label for="prop-name">Name:</label>
+                        <input type="text" id="prop-name" />
+                    </div>
+                    <div class="prop-group">
+                        <label for="prop-color">Color:</label>
+                        <input type="color" id="prop-color" />
+                    </div>
+                    <div class="prop-group" id="prop-description-group">
+                        <label for="prop-description">Description:</label>
+                        <textarea id="prop-description" rows="3"></textarea>
+                    </div>
+                    <div class="prop-group" id="prop-classification-group">
+                        <label for="prop-classification">Classification:</label>
+                        <select id="prop-classification">
+                            <option value="public">Public</option>
+                            <option value="confidential">Confidential</option>
+                            <option value="secret">Secret</option>
+                            <option value="top-secret">Top Secret</option>
+                        </select>
+                    </div>
+                </div>
+                 <div id="no-selection">Select an element to see its properties.</div>
+            </div>
+            <div id="analysis" class="tab-content">
+                <h2>Analysis Result</h2>
+                <div id="analysis-result-container">Analysis results will appear here.</div>
+                <h2>Legend</h2>
+                <div id="legend-container">Legend will appear here.</div>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        document.addEventListener('DOMContentLoaded', () => {
+            const graphContainer = document.getElementById('graph-container');
+            const propertiesForm = document.getElementById('properties-form');
+            const noSelectionDiv = document.getElementById('no-selection');
+            const nameInput = document.getElementById('prop-name');
+            const colorInput = document.getElementById('prop-color');
+            const descriptionInput = document.getElementById('prop-description');
+            const classificationInput = document.getElementById('prop-classification');
+            const analysisResultContainer = document.getElementById('analysis-result-container');
+            const legendContainer = document.getElementById('legend-container');
+            let panZoomInstance;
+            let debounceTimer;
+
+            Split(['#toolbar', '#graph-container', '#properties-panel'], {
+                sizes: [15, 60, 25], minSize: [150, 300, 300], gutterSize: 8,
+            });
+
+            mxEvent.disableContextMenu(graphContainer);
+            const graph = new mxGraph(graphContainer);
+            new mxRubberband(graph);
+            graph.setTooltips(true);
+            graph.setConnectable(true);
+            graph.setAllowDanglingEdges(false);
+            graph.isCellFoldable = (cell) => cell.isVertex() && cell.getStyle()?.includes('BOUNDARY');
+
+            graph.createGroupCell = function(cells) {
+                const group = mxGraph.prototype.createGroupCell.apply(this, arguments);
+                group.setStyle('BOUNDARY');
+                return group;
+            };
+
+            const stylesheet = graph.getStylesheet();
+            stylesheet.putCellStyle('BOUNDARY', { shape: mxConstants.SHAPE_RECTANGLE, dashed: 1, fillColor: '#f8f9fa', strokeColor: '#adb5bd', fontColor: '#495057', fontSize: 14, fontStyle: mxConstants.FONT_BOLD, verticalAlign: 'top', align: 'left', spacingLeft: 4, swimlane: true });
+            stylesheet.putCellStyle('ACTOR', { shape: mxConstants.SHAPE_IMAGE, image: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png', verticalLabelPosition: 'bottom', verticalAlign: 'top', imageAspect: 0, fillColor: '#E9D5FF', strokeColor: '#9333EA', fontColor: '#581C87' });
+            stylesheet.putCellStyle('DATA', { shape: mxConstants.SHAPE_CYLINDER, fillColor: '#FFE0B2', strokeColor: '#E65100', fontColor: '#BF360C', gradientColor: '#FFCC80', gradientDirection: mxConstants.DIRECTION_EAST, });
+            stylesheet.putCellStyle('SERVER', { shape: mxConstants.SHAPE_RECTANGLE, rounded: 1, fillColor: '#D1FAE5', strokeColor: '#065F46', fontColor: '#064E3B' });
+            stylesheet.putCellStyle('WEB_SERVER', { shape: mxConstants.SHAPE_IMAGE, image: 'https://cdn-icons-png.flaticon.com/512/2920/2920277.png', verticalLabelPosition: 'bottom', verticalAlign: 'top', imageAspect: 0, fillColor: '#D1FAE5', strokeColor: '#065F46', fontColor: '#064E3B' });
+            stylesheet.putCellStyle('DATABASE', { shape: mxConstants.SHAPE_IMAGE, image: 'https://cdn-icons-png.flaticon.com/512/1197/1197492.png', verticalLabelPosition: 'bottom', verticalAlign: 'top', imageAspect: 0, fillColor: '#D1FAE5', strokeColor: '#065F46', fontColor: '#064E3B' });
+            stylesheet.putCellStyle('FIREWALL', { shape: mxConstants.SHAPE_IMAGE, image: 'https://cdn-icons-png.flaticon.com/512/2301/2301642.png', verticalLabelPosition: 'bottom', verticalAlign: 'top', imageAspect: 0, fillColor: '#FFCDD2', strokeColor: '#B71C1C', fontColor: '#B71C1C' });
+
+            const parent = graph.getDefaultParent();
+
+            graph.getModel().addListener(mxEvent.CHANGE, (model, event) => {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(analyzeModel, 800);
+            });
+
+            graph.getSelectionModel().addListener(mxEvent.CHANGE, (sender, evt) => {
+                updatePropertiesPanel(graph.getSelectionCell());
+            });
+
+            nameInput.addEventListener('input', (evt) => updateCellProperty('label', evt.target.value));
+            colorInput.addEventListener('input', (evt) => updateCellProperty('fillColor', evt.target.value));
+            descriptionInput.addEventListener('input', (evt) => updateCellProperty('description', evt.target.value));
+            classificationInput.addEventListener('change', (evt) => updateCellProperty('classification', evt.target.value));
+
+            document.getElementById('analyze-btn').addEventListener('click', analyzeModel);
+            
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    document.querySelectorAll('.tab-button, .tab-content').forEach(el => el.classList.remove('active'));
+                    button.classList.add('active');
+                    document.getElementById(button.dataset.tab).classList.add('active');
+                });
+            });
+
+            function getCellUserData(cell) {
+                if (cell && cell.value && typeof cell.value === 'object') {
+                    return cell.value;
+                }
+                const doc = mxUtils.createXmlDocument();
+                const obj = doc.createElement('object');
+                obj.setAttribute('label', cell.value || '');
+                return obj;
+            }
+
+            function updatePropertiesPanel(cell) {
+                if (cell && cell.isVertex()) {
+                    propertiesForm.style.display = 'block';
+                    noSelectionDiv.style.display = 'none';
+                    
+                    const userData = getCellUserData(cell);
+                    nameInput.value = userData.getAttribute('label', '');
+                    descriptionInput.value = userData.getAttribute('description', '');
+                    classificationInput.value = userData.getAttribute('classification', 'public');
+                    
+                    const style = graph.getCellStyle(cell);
+                    colorInput.value = style[mxConstants.STYLE_FILLCOLOR] || '#ffffff';
+
+                    // Show/hide properties based on cell type
+                    const isData = style.includes('DATA');
+                    document.getElementById('prop-classification-group').style.display = isData ? 'block' : 'none';
+                } else {
+                    propertiesForm.style.display = 'none';
+                    noSelectionDiv.style.display = 'block';
+                }
+            }
+
+            function updateCellProperty(key, value) {
+                const cell = graph.getSelectionCell();
+                if (cell) {
+                    graph.getModel().beginUpdate();
+                    try {
+                        if (key === 'fillColor') {
+                            graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, value, [cell]);
+                        } else {
+                            const userData = getCellUserData(cell);
+                            userData.setAttribute(key, value);
+                            graph.getModel().setValue(cell, userData);
+                        }
+                    } finally {
+                        graph.getModel().endUpdate();
+                    }
+                }
+            }
+
+            const addVertex = (style, name, width, height) => {
+                const targetParent = graph.getSelectionCell()?.getStyle()?.includes('BOUNDARY') ? graph.getSelectionCell() : parent;
+                graph.getModel().beginUpdate();
+                try {
+                    const doc = mxUtils.createXmlDocument();
+                    const obj = doc.createElement('object');
+                    obj.setAttribute('label', name);
+                    const v = graph.insertVertex(targetParent, null, obj, 20, 20, width, height, style);
+                    graph.setSelectionCell(v);
+                } finally {
+                    graph.getModel().endUpdate();
+                }
+            };
+
+            document.getElementById('add-boundary').addEventListener('click', () => addVertex('BOUNDARY', 'New Boundary', 400, 300));
+            document.getElementById('add-actor').addEventListener('click', () => addVertex('ACTOR', 'New Actor', 80, 80));
+            document.getElementById('add-data').addEventListener('click', () => addVertex('DATA', 'New Data', 100, 80));
+            document.getElementById('add-server').addEventListener('click', () => addVertex('SERVER', 'New Server', 140, 70));
+            document.getElementById('add-web-server').addEventListener('click', () => addVertex('WEB_SERVER', 'Web Server', 100, 100));
+            document.getElementById('add-database').addEventListener('click', () => addVertex('DATABASE', 'Database', 100, 100));
+            document.getElementById('add-firewall').addEventListener('click', () => addVertex('FIREWALL', 'Firewall', 100, 100));
+
+            function analyzeModel() {
+                const model = graph.getModel();
+                const cells = model.getChildCells(model.getRoot(), true, true);
+                const threatModelJSON = { boundaries: [], actors: [], servers: [], data: [], dataflows: [] };
+
+                const styleMap = {
+                    'BOUNDARY': 'boundaries', 'ACTOR': 'actors', 'SERVER': 'servers',
+                    'WEB_SERVER': 'servers', 'DATABASE': 'servers', 'FIREWALL': 'servers', 'DATA': 'data'
+                };
+
+                cells.forEach(cell => {
+                    const parentCell = cell.getParent();
+                    const parentId = (parentCell && parentCell.id !== '0' && parentCell.id !== '1' ) ? parentCell.id : null;
+
+                    if (cell.isVertex()) {
+                        const style = cell.getStyle();
+                        const userData = getCellUserData(cell);
+                        const label = userData.getAttribute('label', '');
+                        const props = {
+                            id: cell.id, name: label, parentId: parentId,
+                            description: userData.getAttribute('description', ''),
+                            classification: userData.getAttribute('classification', 'public')
+                        };
+
+                        for (const key in styleMap) {
+                            if (style.includes(key)) {
+                                threatModelJSON[styleMap[key]].push({ ...props, type: key });
+                                break;
+                            }
+                        }
+                    } else if (cell.isEdge()) {
+                        const userData = getCellUserData(cell);
+                        const label = userData.getAttribute('label', '');
+                        threatModelJSON.dataflows.push({
+                            id: cell.id, name: label || 'Dataflow',
+                            from: cell.source?.id, to: cell.target?.id
+                        });
+                    }
+                });
+
+                fetch('/api/graphical_update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(threatModelJSON)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        analysisResultContainer.innerHTML = `<div style="color: red;">Error: ${data.error}</div>`;
+                        return;
+                    }
+                    analysisResultContainer.innerHTML = data.diagram_svg;
+                    legendContainer.innerHTML = data.legend_html;
+
+                    if (panZoomInstance) panZoomInstance.destroy();
+                    const svgElement = analysisResultContainer.querySelector('svg');
+                    if (svgElement) {
+                        panZoomInstance = svgPanZoom(svgElement, {
+                            zoomEnabled: true, panEnabled: true,
+                            controlIconsEnabled: true, fit: true, center: true
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    analysisResultContainer.innerHTML = `<div style="color: red;">An error occurred.</div>`;
+                });
+            }
+            
+            analyzeModel(); // Initial analysis
+        });
+    </script>
+</body>
+</html>
