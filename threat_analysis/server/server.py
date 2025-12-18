@@ -27,7 +27,7 @@ project_root = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "..")
 )
 if project_root not in sys.path:
-    sys.sys.path.insert(0, project_root)
+    sys.path.insert(0, project_root)
 
 app = Flask(__name__, template_folder="templates")
 
@@ -70,6 +70,30 @@ def get_model_name(markdown_content: str) -> str:
     return "Untitled Model"
 
 
+def run_gui(model_filepath: str = None):
+    """
+    This function is the main entry point for the simple web server.
+    """
+    global initial_markdown_content
+    if model_filepath and os.path.exists(model_filepath):
+        try:
+            with open(model_filepath, "r", encoding="utf-8") as f:
+                initial_markdown_content = f.read()
+            logging.info(f"Loaded initial threat model from {model_filepath}")
+        except Exception as e:
+            logging.error(f"Error loading initial model from {model_filepath}: {e}")
+            initial_markdown_content = DEFAULT_EMPTY_MARKDOWN
+            logging.info("Loaded initial threat model from a temporary model due to file loading error.")
+    else:
+        initial_markdown_content = DEFAULT_EMPTY_MARKDOWN
+        logging.info("No initial threat model file provided or found. Starting with a default empty model.")
+
+    print(
+        "\n🚀 Starting Threat Model GUI. Open your browser to: http://127.0.0.1:5000/\n"
+    )
+    app.run(debug=True, port=5000)
+
+
 def run_full_gui(model_filepath: str = None):
     """
     This function is the main entry point for the web server.
@@ -98,12 +122,24 @@ def run_full_gui(model_filepath: str = None):
 
     print(
         "\n🚀 Starting Threat Model Full GUI. Open your browser to: "
-        "http://127.0.0.1:5001/\n"
+        "http://127.0.0.1:5001/full\n"
     )
     app.run(debug=True, port=5001)
 
 
 @app.route("/")
+def simple_gui():
+    """Serves the simple web interface."""
+    model_name = get_model_name(initial_markdown_content)
+    encoded_markdown = base64.b64encode(initial_markdown_content.encode('utf-8')).decode('utf-8')
+    return render_template(
+        "web_interface.html",
+        initial_markdown=encoded_markdown,
+        model_name=model_name
+    )
+
+
+@app.route("/full")
 def full_gui():
     """Serves the main web interface."""
     return render_template(
@@ -416,7 +452,6 @@ def export_attack_flow():
         return jsonify({"error": str(e)}), 500
 
     except Exception as e:
-
         logging.error(f"An unexpected error occurred during Attack Flow export: {e}", exc_info=True)
-
         return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+
