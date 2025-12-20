@@ -30,6 +30,7 @@ from collections import defaultdict
 from threat_analysis.utils import _validate_path_within_project
 from threat_analysis.mitigation_suggestions import get_framework_mitigation_suggestions
 from threat_analysis.core.cve_service import CVEService
+from .utils import extract_name_from_object, get_target_name
 
 project_root = Path(__file__).resolve().parents[2]
 if str(project_root) not in sys.path:
@@ -186,8 +187,8 @@ class ReportGenerator:
                 
                 target_names_to_check = []
                 if isinstance(target, tuple) and len(target) == 2:
-                    source_name = self._extract_name_from_object(target[0])
-                    sink_name = self._extract_name_from_object(target[1])
+                    source_name = extract_name_from_object(target[0])
+                    sink_name = extract_name_from_object(target[1])
                     if source_name != "Unspecified": target_names_to_check.append(source_name)
                     if sink_name != "Unspecified": target_names_to_check.append(sink_name)
                 else:
@@ -216,28 +217,7 @@ class ReportGenerator:
 
     def _get_target_name_for_severity_calc(self, target: Any) -> str:
         """Determines the target name for severity calculation, handling different target types."""
-        if isinstance(target, tuple) and len(target) == 2:
-            source, sink = target
-            if hasattr(source, 'source') and hasattr(source, 'sink'):
-                source_name = self._extract_name_from_object(source.source)
-            else:
-                source_name = self._extract_name_from_object(source)
-
-            if hasattr(sink, 'source') and hasattr(sink, 'sink'):
-                dest_name = self._extract_name_from_object(sink.sink)
-            else:
-                dest_name = self._extract_name_from_object(sink)
-            return f"{source_name} → {dest_name}"
-        return self._extract_name_from_object(target)
-
-    def _extract_name_from_object(self, obj: Any) -> str:
-        if isinstance(obj, tuple) and len(obj) == 1:
-            obj = obj[0]
-        if obj is None: return "Unspecified"
-        try:
-            return str(obj.name)
-        except AttributeError:
-            return "Unspecified"
+        return get_target_name(target)
 
     def generate_summary_stats(self, all_detailed_threats: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Generates summary statistics based on severity scores."""

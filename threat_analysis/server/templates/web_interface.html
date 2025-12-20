@@ -78,6 +78,30 @@
         }
         .editor-pane {
             background-color: #ffffff;
+            position: relative; /* Needed for positioning the drop overlay */
+        }
+        .drop-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 122, 204, 0.2); /* Light blue overlay */
+            border: 2px dashed #007acc; /* Blue dashed border */
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #007acc;
+            font-size: 1.5em;
+            font-weight: bold;
+            z-index: 1000;
+            pointer-events: none; /* Allow events to pass through when not active */
+            opacity: 0; /* Hidden by default */
+            transition: opacity 0.3s ease;
+        }
+        .drop-overlay.drag-over {
+            opacity: 1; /* Visible when dragging over */
         }
         .CodeMirror {
             width: 100%;
@@ -193,6 +217,7 @@
 
     <div id="split-container" class="container">
         <div id="editor-split" class="editor-pane">
+            <div id="drop-overlay" class="drop-overlay">Drop .md file here to load</div>
             <textarea id="markdown-editor" placeholder="Enter your threat model in Markdown here..."></textarea>
         </div>
         <div id="preview-split" class="preview-container">
@@ -479,6 +504,56 @@
                         el.classList.remove('svg-element-hidden');
                     }
                 });
+            }
+        }
+
+        // --- Drag and Drop functionality ---
+        const editorSplit = document.getElementById('editor-split');
+        const dropOverlay = document.getElementById('drop-overlay');
+
+        // Prevent default drag behaviors
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            editorSplit.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false); // Prevent browser default for whole document
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        // Highlight drop area when item is dragged over it
+        ['dragenter', 'dragover'].forEach(eventName => {
+            editorSplit.addEventListener(eventName, () => dropOverlay.classList.add('drag-over'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            editorSplit.addEventListener(eventName, () => dropOverlay.classList.remove('drag-over'), false);
+        });
+
+        // Handle dropped files
+        editorSplit.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+
+            if (files.length === 0) {
+                return;
+            }
+
+            const file = files[0];
+            if (file.name.endsWith('.md')) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    editor.setValue(event.target.result);
+                };
+                reader.onerror = () => {
+                    showErrorMessage('Error reading file.');
+                };
+                reader.readAsText(file);
+            } else {
+                showErrorMessage('Only .md files are supported for drag and drop.');
             }
         }
     </script>

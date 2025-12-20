@@ -19,6 +19,7 @@ import logging
 from datetime import datetime, timezone
 from collections import defaultdict
 from .tactic_logic import TACTIC_PROGRESSION, TACTIC_INFO
+from .utils import extract_name_from_object, get_target_name
 
 class AttackFlowGenerator:
     """
@@ -190,35 +191,10 @@ class AttackFlowGenerator:
                     print(f"ERROR: Error writing file for objective '{objective}': {e}")
             i += 1
 
-    # --- Start of Duplicated Methods from Report Generator ---
+    # Use shared utility functions instead of duplicated methods
     def _get_target_name(self, target: any) -> str:
         """Determines the target name, handling different target types."""
-        if isinstance(target, tuple):
-            if len(target) == 2:
-                source, sink = target
-                if hasattr(source, 'source') and hasattr(source, 'sink'):
-                    source_name = self._extract_name_from_object(source.source)
-                else:
-                    source_name = self._extract_name_from_object(source)
-                if hasattr(sink, 'source') and hasattr(sink, 'sink'):
-                    dest_name = self._extract_name_from_object(sink.sink)
-                else:
-                    dest_name = self._extract_name_from_object(sink)
-                return f"{source_name} → {dest_name}"
-        return self._extract_name_from_object(target)
-
-    def _extract_name_from_object(self, obj: any) -> str:
-        if isinstance(obj, tuple) and len(obj) == 1:
-            obj = obj[0]
-        if obj is None: 
-            return "Unspecified"
-        try:
-            return str(obj.name)
-        except AttributeError:
-            if isinstance(obj, str):
-                return obj
-            return "Unspecified"
-    # --- End of Duplicated Methods ---
+        return get_target_name(target)
 
     def _generate_single_path_flow(self, path, path_number):
         all_objects, layout, nodes_in_path, asset_node_cache = [], {}, [], {}

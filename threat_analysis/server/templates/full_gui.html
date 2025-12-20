@@ -187,6 +187,15 @@
 
             const parent = graph.getDefaultParent();
 
+            // Custom function to convert our XML user data to display label
+            graph.convertValueToString = function(cell) {
+                if (cell && cell.value && cell.value.nodeType === Node.ELEMENT_NODE) {
+                    // This is our XML object, extract the label attribute
+                    return cell.value.getAttribute('label') || 'Unnamed';
+                }
+                return mxGraph.prototype.convertValueToString.apply(this, arguments);
+            };
+
             graph.getModel().addListener(mxEvent.CHANGE, (model, event) => {
                 clearTimeout(debounceTimer);
                 debounceTimer = setTimeout(analyzeModel, 800);
@@ -194,6 +203,21 @@
 
             graph.getSelectionModel().addListener(mxEvent.CHANGE, (sender, evt) => {
                 updatePropertiesPanel(graph.getSelectionCell());
+            });
+
+            // Add listener for when editing stops (user finishes editing text directly on the diagram)
+            graph.addListener(mxEvent.EDITING_STOPPED, (sender, evt) => {
+                const cell = graph.getSelectionCell();
+                if (cell) {
+                    // When user edits text directly on the diagram, update the user data
+                    const newLabel = graph.getLabel(cell);
+                    const userData = getCellUserData(cell);
+                    userData.setAttribute('label', newLabel);
+                    graph.getModel().setValue(cell, userData);
+                    
+                    // Update the properties panel to reflect the change
+                    nameInput.value = newLabel;
+                }
             });
 
             nameInput.addEventListener('input', (evt) => updateCellProperty('label', evt.target.value));
@@ -211,6 +235,7 @@
                 });
             });
 
+
             function getCellUserData(cell) {
                 if (cell && cell.value && typeof cell.value === 'object') {
                     return cell.value;
@@ -227,7 +252,10 @@
                     noSelectionDiv.style.display = 'none';
                     
                     const userData = getCellUserData(cell);
-                    nameInput.value = userData.getAttribute('label', '');
+                    
+                    // Use the display label as the source of truth (which should match user data)
+                    const displayLabel = graph.convertValueToString(cell);
+                    nameInput.value = displayLabel;
                     descriptionInput.value = userData.getAttribute('description', '');
                     classificationInput.value = userData.getAttribute('classification', 'public');
                     
@@ -254,6 +282,16 @@
                             const userData = getCellUserData(cell);
                             userData.setAttribute(key, value);
                             graph.getModel().setValue(cell, userData);
+                            
+                            // If we're updating the label, also update the displayed label
+                            if (key === 'label') {
+                                // Update the user data
+                                userData.setAttribute(key, value);
+                                graph.getModel().setValue(cell, userData);
+                                
+                                // Force refresh to ensure the new label is displayed
+                                graph.refresh(cell);
+                            }
                         }
                     } finally {
                         graph.getModel().endUpdate();
