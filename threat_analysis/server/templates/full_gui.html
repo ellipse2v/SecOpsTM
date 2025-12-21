@@ -3,10 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Graphical Threat Model Editor</title>
-    <script type="text/javascript" src="https://jgraph.github.io/mxgraph/javascript/mxClient.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/split.js/dist/split.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom/dist/svg-pan-zoom.min.js"></script>
+    <title>Graphical Threat Model Editor - Offline Mode</title>
+    <script>
+        // Configure mxGraph paths before loading the library
+        var mxBasePath = '/static/js/lib';
+        var mxImageBasePath = '/static/js/lib/images';
+    </script>
+    <script type="text/javascript" src="/static/js/lib/mxgraph.min.js"></script>
+    <script src="/static/js/lib/split.min.js"></script>
+    <script src="/static/js/lib/svg-pan-zoom.min.js"></script>
+    <script src="/static/js/export_manager.js"></script>
     <style>
         body, html {
             margin: 0; padding: 0;
@@ -15,6 +21,7 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #F0F2F5;
         }
+
         .header {
             background-color: #ffffff;
             padding: 10px 20px;
@@ -81,6 +88,84 @@
             background-color: #fff; padding: 10px; border: 1px solid #ccc;
         }
         .prop-group { margin-bottom: 15px; }
+        
+        /* Export menu styles */
+        .export-container {
+            position: relative;
+            display: inline-block;
+            margin-left: 10px;
+        }
+        
+        .export-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+        
+        .export-btn:hover {
+            background-color: #45a049;
+        }
+        
+        .export-menu {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            min-width: 200px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+            border-radius: 4px;
+            overflow: hidden;
+            right: 0;
+        }
+        
+        .export-option {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        
+        .export-option:hover {
+            background-color: #e7f3ff;
+        }
+        
+        .export-option:first-child {
+            border-top-left-radius: 4px;
+            border-top-right-radius: 4px;
+        }
+        
+        .export-option:last-child {
+            border-bottom-left-radius: 4px;
+            border-bottom-right-radius: 4px;
+        }
+        
+        /* Loading spinner for exports */
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid #4CAF50;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -88,6 +173,16 @@
         <h1>Graphical Editor</h1>
         <div class="button-group">
             <button id="analyze-btn">Analyze Model</button>
+            <div class="export-container">
+                <button id="export-btn" class="export-btn">📥 Export</button>
+                <div id="export-menu" class="export-menu">
+                    <div class="export-option" onclick="exportModel('svg')">📊 SVG Diagram</div>
+                    <div class="export-option" onclick="exportModel('diagram')">🖼️ HTML Diagram</div>
+                    <div class="export-option" onclick="exportModel('report')">📄 HTML Report</div>
+                    <div class="export-option" onclick="exportModel('json')">📋 JSON Analysis</div>
+                    <div class="export-option" onclick="exportModel('markdown')">📝 Markdown</div>
+                </div>
+            </div>
         </div>
     </div>
     <div id="container" class="split">
@@ -145,6 +240,17 @@
     </div>
 
     <script type="text/javascript">
+        // Register Service Worker for offline-only mode
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/static/js/sw.js').then(function(registration) {
+                    console.log('ServiceWorker registration successful - Offline mode activated');
+                }, function(err) {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+        
         document.addEventListener('DOMContentLoaded', () => {
             const graphContainer = document.getElementById('graph-container');
             const propertiesForm = document.getElementById('properties-form');
@@ -157,13 +263,32 @@
             const legendContainer = document.getElementById('legend-container');
             let panZoomInstance;
             let debounceTimer;
+            let graph;
+            let threatModelJSON = {};
+
+            console.log('DOMContentLoaded - Starting initialization');
 
             Split(['#toolbar', '#graph-container', '#properties-panel'], {
                 sizes: [15, 60, 25], minSize: [150, 300, 300], gutterSize: 8,
             });
 
-            mxEvent.disableContextMenu(graphContainer);
-            const graph = new mxGraph(graphContainer);
+            console.log('Split initialized');
+
+            try {
+                if (typeof mxEvent === 'undefined') {
+                    console.error('mxEvent is not defined. mxgraph library failed to load.');
+                    return;
+                }
+                
+                if (typeof mxGraph === 'undefined') {
+                    console.error('mxGraph is not defined. mxgraph library failed to load.');
+                    return;
+                }
+                
+                mxEvent.disableContextMenu(graphContainer);
+                console.log('mxEvent disabled context menu');
+                graph = new mxGraph(graphContainer);
+                console.log('mxGraph created successfully');
             new mxRubberband(graph);
             graph.setTooltips(true);
             graph.setConnectable(true);
@@ -178,12 +303,12 @@
 
             const stylesheet = graph.getStylesheet();
             stylesheet.putCellStyle('BOUNDARY', { shape: mxConstants.SHAPE_RECTANGLE, dashed: 1, fillColor: '#f8f9fa', strokeColor: '#adb5bd', fontColor: '#495057', fontSize: 14, fontStyle: mxConstants.FONT_BOLD, verticalAlign: 'top', align: 'left', spacingLeft: 4, swimlane: true });
-            stylesheet.putCellStyle('ACTOR', { shape: mxConstants.SHAPE_IMAGE, image: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png', verticalLabelPosition: 'bottom', verticalAlign: 'top', imageAspect: 0, fillColor: '#E9D5FF', strokeColor: '#9333EA', fontColor: '#581C87' });
+            stylesheet.putCellStyle('ACTOR', { shape: mxConstants.SHAPE_IMAGE, image: '/static/resources/icons/actor.png', verticalLabelPosition: 'bottom', verticalAlign: 'top', imageAspect: 0, fillColor: '#E9D5FF', strokeColor: '#9333EA', fontColor: '#581C87' });
             stylesheet.putCellStyle('DATA', { shape: mxConstants.SHAPE_CYLINDER, fillColor: '#FFE0B2', strokeColor: '#E65100', fontColor: '#BF360C', gradientColor: '#FFCC80', gradientDirection: mxConstants.DIRECTION_EAST, });
             stylesheet.putCellStyle('SERVER', { shape: mxConstants.SHAPE_RECTANGLE, rounded: 1, fillColor: '#D1FAE5', strokeColor: '#065F46', fontColor: '#064E3B' });
-            stylesheet.putCellStyle('WEB_SERVER', { shape: mxConstants.SHAPE_IMAGE, image: 'https://cdn-icons-png.flaticon.com/512/2920/2920277.png', verticalLabelPosition: 'bottom', verticalAlign: 'top', imageAspect: 0, fillColor: '#D1FAE5', strokeColor: '#065F46', fontColor: '#064E3B' });
-            stylesheet.putCellStyle('DATABASE', { shape: mxConstants.SHAPE_IMAGE, image: 'https://cdn-icons-png.flaticon.com/512/1197/1197492.png', verticalLabelPosition: 'bottom', verticalAlign: 'top', imageAspect: 0, fillColor: '#D1FAE5', strokeColor: '#065F46', fontColor: '#064E3B' });
-            stylesheet.putCellStyle('FIREWALL', { shape: mxConstants.SHAPE_IMAGE, image: 'https://cdn-icons-png.flaticon.com/512/2301/2301642.png', verticalLabelPosition: 'bottom', verticalAlign: 'top', imageAspect: 0, fillColor: '#FFCDD2', strokeColor: '#B71C1C', fontColor: '#B71C1C' });
+            stylesheet.putCellStyle('WEB_SERVER', { shape: mxConstants.SHAPE_IMAGE, image: '/static/resources/icons/web-server.png', verticalLabelPosition: 'bottom', verticalAlign: 'top', imageAspect: 0, fillColor: '#D1FAE5', strokeColor: '#065F46', fontColor: '#064E3B' });
+            stylesheet.putCellStyle('DATABASE', { shape: mxConstants.SHAPE_IMAGE, image: '/static/resources/icons/database.png', verticalLabelPosition: 'bottom', verticalAlign: 'top', imageAspect: 0, fillColor: '#D1FAE5', strokeColor: '#065F46', fontColor: '#064E3B' });
+            stylesheet.putCellStyle('FIREWALL', { shape: mxConstants.SHAPE_IMAGE, image: '/static/resources/icons/firewall.png', verticalLabelPosition: 'bottom', verticalAlign: 'top', imageAspect: 0, fillColor: '#FFCDD2', strokeColor: '#B71C1C', fontColor: '#B71C1C' });
 
             const parent = graph.getDefaultParent();
 
@@ -227,6 +352,10 @@
 
             document.getElementById('analyze-btn').addEventListener('click', analyzeModel);
             
+            // Initialize ExportManager
+            const exportManager = new ExportManager(analysisResultContainer, threatModelJSON, convert_json_to_markdown);
+            exportManager.initialize('export-btn', 'export-menu');
+            
             document.querySelectorAll('.tab-button').forEach(button => {
                 button.addEventListener('click', () => {
                     document.querySelectorAll('.tab-button, .tab-content').forEach(el => el.classList.remove('active'));
@@ -259,11 +388,12 @@
                     descriptionInput.value = userData.getAttribute('description', '');
                     classificationInput.value = userData.getAttribute('classification', 'public');
                     
-                    const style = graph.getCellStyle(cell);
-                    colorInput.value = style[mxConstants.STYLE_FILLCOLOR] || '#ffffff';
+                    const styleObject = graph.getCellStyle(cell);
+                    colorInput.value = styleObject[mxConstants.STYLE_FILLCOLOR] || '#ffffff';
 
                     // Show/hide properties based on cell type
-                    const isData = style.includes('DATA');
+                    const styleString = cell.getStyle();
+                    const isData = styleString.includes('DATA');
                     document.getElementById('prop-classification-group').style.display = isData ? 'block' : 'none';
                 } else {
                     propertiesForm.style.display = 'none';
@@ -300,31 +430,180 @@
             }
 
             const addVertex = (style, name, width, height) => {
+                console.log(`Adding vertex: style=${style}, name=${name}, width=${width}, height=${height}`);
+                
                 const targetParent = graph.getSelectionCell()?.getStyle()?.includes('BOUNDARY') ? graph.getSelectionCell() : parent;
+                console.log(`Target parent: ${targetParent ? targetParent.id : 'root'}`);
+                
                 graph.getModel().beginUpdate();
                 try {
                     const doc = mxUtils.createXmlDocument();
                     const obj = doc.createElement('object');
                     obj.setAttribute('label', name);
+                    console.log(`Created XML object with label: ${name}`);
+                    
                     const v = graph.insertVertex(targetParent, null, obj, 20, 20, width, height, style);
-                    graph.setSelectionCell(v);
+                    console.log(`Inserted vertex: ${v ? v.id : 'null'}`);
+                    
+                    if (v) {
+                        graph.setSelectionCell(v);
+                        console.log('Set selection cell');
+                    } else {
+                        console.error('Failed to insert vertex');
+                    }
                 } finally {
                     graph.getModel().endUpdate();
+                    console.log('Graph update completed');
                 }
             };
 
-            document.getElementById('add-boundary').addEventListener('click', () => addVertex('BOUNDARY', 'New Boundary', 400, 300));
-            document.getElementById('add-actor').addEventListener('click', () => addVertex('ACTOR', 'New Actor', 80, 80));
-            document.getElementById('add-data').addEventListener('click', () => addVertex('DATA', 'New Data', 100, 80));
-            document.getElementById('add-server').addEventListener('click', () => addVertex('SERVER', 'New Server', 140, 70));
-            document.getElementById('add-web-server').addEventListener('click', () => addVertex('WEB_SERVER', 'Web Server', 100, 100));
-            document.getElementById('add-database').addEventListener('click', () => addVertex('DATABASE', 'Database', 100, 100));
-            document.getElementById('add-firewall').addEventListener('click', () => addVertex('FIREWALL', 'Firewall', 100, 100));
+            document.getElementById('add-boundary').addEventListener('click', () => {
+                console.log('Add Boundary button clicked');
+                try {
+                    addVertex('BOUNDARY', 'New Boundary', 400, 300);
+                    console.log('Add Boundary completed successfully');
+                } catch (error) {
+                    console.error('Error adding boundary:', error);
+                }
+            });
+            document.getElementById('add-actor').addEventListener('click', () => {
+                console.log('Add Actor button clicked');
+                try {
+                    addVertex('ACTOR', 'New Actor', 80, 80);
+                    console.log('Add Actor completed successfully');
+                } catch (error) {
+                    console.error('Error adding actor:', error);
+                }
+            });
+            document.getElementById('add-data').addEventListener('click', () => {
+                console.log('Add Data button clicked');
+                try {
+                    addVertex('DATA', 'New Data', 100, 80);
+                    console.log('Add Data completed successfully');
+                } catch (error) {
+                    console.error('Error adding data:', error);
+                }
+            });
+            document.getElementById('add-server').addEventListener('click', () => {
+                console.log('Add Server button clicked');
+                try {
+                    addVertex('SERVER', 'New Server', 140, 70);
+                    console.log('Add Server completed successfully');
+                } catch (error) {
+                    console.error('Error adding server:', error);
+                }
+            });
+            document.getElementById('add-web-server').addEventListener('click', () => {
+                console.log('Add Web Server button clicked');
+                try {
+                    addVertex('WEB_SERVER', 'Web Server', 100, 100);
+                    console.log('Add Web Server completed successfully');
+                } catch (error) {
+                    console.error('Error adding web server:', error);
+                }
+            });
+            document.getElementById('add-database').addEventListener('click', () => {
+                console.log('Add Database button clicked');
+                try {
+                    addVertex('DATABASE', 'Database', 100, 100);
+                    console.log('Add Database completed successfully');
+                } catch (error) {
+                    console.error('Error adding database:', error);
+                }
+            });
+            document.getElementById('add-firewall').addEventListener('click', () => {
+                console.log('Add Firewall button clicked');
+                try {
+                    addVertex('FIREWALL', 'Firewall', 100, 100);
+                    console.log('Add Firewall completed successfully');
+                } catch (error) {
+                    console.error('Error adding firewall:', error);
+                }
+            });
+
+            } catch (e) {
+                console.error("An error occurred during graph initialization:", e);
+            }
+
+
+            function convert_json_to_markdown(data) {
+                const markdown_lines = ["# Threat Model: Graphical Editor"];
+
+                const boundaries = data.boundaries || [];
+                const actors = data.actors || [];
+                const servers = data.servers || [];
+                const data_elements = data.data || [];
+                const dataflows = data.dataflows || [];
+
+                const boundary_map = boundaries.reduce((acc, b) => {
+                    acc[b.id] = b.name;
+                    return acc;
+                }, {});
+
+                const _format_properties = (item, props_to_include) => {
+                    const props = [];
+                    for (const prop_key of props_to_include) {
+                        const prop_value = item[prop_key];
+                        if (prop_value) {
+                            props.push(`${prop_key}="${prop_value}"`);
+                        }
+                    }
+                    return props.join(', ');
+                };
+
+                markdown_lines.push("\n## Boundaries");
+                for (const boundary of boundaries) {
+                    const props_str = _format_properties(boundary, ['description']);
+                    markdown_lines.push(`- **${boundary.name}**: ${props_str}`);
+                }
+
+                markdown_lines.push("\n## Actors");
+                for (const actor of actors) {
+                    const props = { 'boundary': boundary_map[actor.parentId] };
+                    const props_str = _format_properties({ ...actor, ...props }, ['boundary', 'description']);
+                    markdown_lines.push(`- **${actor.name}**: ${props_str}`);
+                }
+
+                markdown_lines.push("\n## Servers");
+                for (const server of servers) {
+                    const props = { 'boundary': boundary_map[server.parentId] };
+                    const props_str = _format_properties({ ...server, ...props }, ['boundary', 'description']);
+                    markdown_lines.push(`- **${server.name}**: ${props_str}`);
+                }
+
+                markdown_lines.push("\n## Data");
+                for (const data_item of data_elements) {
+                    const props_str = _format_properties(data_item, ['description', 'classification']);
+                    markdown_lines.push(`- **${data_item.name}**: ${props_str}`);
+                }
+
+                markdown_lines.push("\n## Dataflows");
+                const nodes = [...actors, ...servers, ...data_elements].reduce((acc, item) => {
+                    acc[item.id] = item;
+                    return acc;
+                }, {});
+                for (const df of dataflows) {
+                    const from_node = nodes[df.from];
+                    const to_node = nodes[df.to];
+                    if (from_node && to_node) {
+                        const df_name = df.name || `${from_node.name} to ${to_node.name}`;
+                        const props_str = _format_properties(df, ['protocol', 'description']);
+                        markdown_lines.push(`- **${df_name}**: from="${from_node.name}", to="${to_node.name}", ${props_str}`);
+                    }
+                }
+
+                return markdown_lines.join('\n');
+            }
 
             function analyzeModel() {
+                if (panZoomInstance && analysisResultContainer.querySelector('svg')) {
+                    panZoomInstance.destroy();
+                    panZoomInstance = null;
+                }
+
                 const model = graph.getModel();
                 const cells = model.getChildCells(model.getRoot(), true, true);
-                const threatModelJSON = { boundaries: [], actors: [], servers: [], data: [], dataflows: [] };
+                threatModelJSON = { boundaries: [], actors: [], servers: [], data: [], dataflows: [] };
 
                 const styleMap = {
                     'BOUNDARY': 'boundaries', 'ACTOR': 'actors', 'SERVER': 'servers',
@@ -375,7 +654,20 @@
                     analysisResultContainer.innerHTML = data.diagram_svg;
                     legendContainer.innerHTML = data.legend_html;
 
-                    if (panZoomInstance) panZoomInstance.destroy();
+                    // Display output directory information
+                    if (data.output_dir) {
+                        const outputInfo = document.createElement('div');
+                        outputInfo.style.marginTop = '15px';
+                        outputInfo.style.padding = '10px';
+                        outputInfo.style.backgroundColor = '#e7f3ff';
+                        outputInfo.style.borderLeft = '4px solid #2196F3';
+                        outputInfo.innerHTML = `
+                            <strong>📁 Output Directory:</strong> <code>${data.output_dir}</code><br>
+                            <small>All generated files are saved in this timestamped directory.</small>
+                        `;
+                        analysisResultContainer.appendChild(outputInfo);
+                    }
+
                     const svgElement = analysisResultContainer.querySelector('svg');
                     if (svgElement) {
                         panZoomInstance = svgPanZoom(svgElement, {

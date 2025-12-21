@@ -205,6 +205,15 @@ class ThreatModelService:
             )
             return output_path, output_filename
 
+        elif export_format == "markdown":
+            output_filename = "threat_model.md"
+            output_path = os.path.join(
+                config.OUTPUT_BASE_DIR, output_filename
+            )
+            with open(output_path, "w", encoding="utf-8") as f:
+                f.write(markdown_content)
+            return output_path, output_filename
+
         else:
             raise ValueError("Invalid export format")
 

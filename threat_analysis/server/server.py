@@ -29,7 +29,13 @@ project_root = os.path.abspath(
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-app = Flask(__name__, template_folder="templates")
+# Get the absolute path to the server directory
+server_dir = os.path.dirname(os.path.abspath(__file__))
+
+app = Flask(__name__, 
+          template_folder=os.path.join(server_dir, "templates"),
+          static_folder=os.path.join(server_dir, "static"),
+          static_url_path="/static")
 
 # Initialize the service layer
 threat_model_service = ThreatModelService()
@@ -126,6 +132,11 @@ def run_full_gui(model_filepath: str = None):
     )
     app.run(debug=True, port=5001)
 
+
+@app.route('/static/<path:filename>')
+def serve_static(filename):
+    """Serve static files from the static directory."""
+    return send_from_directory(app.static_folder, filename)
 
 @app.route("/")
 def simple_gui():
@@ -250,10 +261,14 @@ def graphical_update():
         markdown_content = convert_json_to_markdown(json_data)
         logging.info(f"Converted Markdown:\n{markdown_content}")
         
+        # Ensure output directory exists (using the same structure as other modes)
+        os.makedirs(config.OUTPUT_BASE_DIR, exist_ok=True)
+        
         # Reuse the existing service logic
         result = threat_model_service.update_diagram_logic(markdown_content)
         model_name = get_model_name(markdown_content)
         result["model_name"] = model_name
+        result["output_dir"] = str(config.OUTPUT_BASE_DIR)
         return jsonify(result)
 
     except Exception as e:
@@ -280,9 +295,15 @@ def export_files():
     try:
         output_path, output_filename = threat_model_service.export_files_logic(markdown_content, export_format)
         absolute_output_directory = os.path.join(project_root, os.path.dirname(output_path))
-        return send_from_directory(
+        
+        # Return both the file and the output directory information
+        response = send_from_directory(
             absolute_output_directory, output_filename, as_attachment=True
         )
+        
+        # Add custom header with output directory information
+        response.headers['X-Output-Directory'] = str(config.OUTPUT_BASE_DIR)
+        return response
 
     except ValueError as e:
         logging.error(f"Error during export: {e}")
