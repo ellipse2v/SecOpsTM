@@ -191,122 +191,112 @@ class DiagramGenerator:
         
         # Get element name and custom attributes
         if isinstance(element, dict):
-            # Handle dictionary format with 'object' key (your format)
             if 'object' in element:
-                # Get name from the PyTM object
                 pytm_object = element['object']
                 node_name = getattr(pytm_object, 'name', element.get('name', 'Unnamed'))
-                # Get custom attributes from the dict (not from PyTM object)
                 color = element.get('color')
                 is_filled = element.get('is_filled')
                 fillcolor = element.get('fillcolor')
             else:
-                # Handle simple dictionary format
                 node_name = element.get('name', 'Unnamed')
                 color = element.get('color')
                 is_filled = element.get('is_filled')
                 fillcolor = element.get('fillcolor')
         elif isinstance(element, str):
-            # Handle string format
             node_name = element
             color = None
             is_filled = None
             fillcolor = None
         else:
-            # Handle object format (old format)
             node_name = getattr(element, 'name', str(element))
             color = getattr(element, 'color', None)
             is_filled = getattr(element, 'is_filled', None)
             fillcolor = getattr(element, 'fillcolor', None)
         
-        node_name_lower = node_name.lower()
-        
-        # Escape the label
         escaped_name = self._escape_label(node_name)
         
-        # Check for special node types based on name
-        # Extract 'type' if available in the element dictionary
         element_type = None
         if isinstance(element, dict):
             element_type = element.get('type')
-        
-        # Prioritize 'type' for rendering, then fall back to name-based inference
-        if element_type == 'router':
-            attributes.append('shape=box')
-            default_fillcolor = '#FFD700'
-            icon = '🌐 '
-        elif element_type == 'switch':
-            attributes.append('shape=diamond')
-            default_fillcolor = 'orange'
-            icon = '🔀 '
-        elif element_type == 'firewall':
-            attributes.append('shape=hexagon')
-            default_fillcolor = 'red'
-            icon = '🔥 '
-        elif element_type == 'database':
-            attributes.append('shape=cylinder')
-            icon = '🗄️ '
-            default_fillcolor = 'lightblue'
-        elif element_type == 'web_server': # Using 'web_server' as the type
-            attributes.append('shape=box')
-            attributes.append('style=filled')
-            attributes.append('fillcolor=lightgreen')
-            icon = '🌐 '
-            default_fillcolor = 'lightgreen'
-        elif element_type == 'api_gateway': # Using 'api_gateway' as the type
-            attributes.append('shape=box')
-            attributes.append('style=filled')
-            attributes.append('fillcolor=lightyellow')
-            icon = '🔌 '
-            default_fillcolor = 'lightyellow'
-        
-        else:
-            # Default shapes based on node type
-            if node_type == 'actor':
-                attributes.append('shape=oval')
-                icon = '👤 '
-                default_fillcolor = 'yellow'
-            elif node_type == 'server':
-                attributes.append('shape=box')
-                icon = '🖥️ '
-                default_fillcolor = 'lightgreen'
-            else:
-                attributes.append('shape=box')
-                default_fillcolor = 'lightblue'
-                icon = ''
-        
-        # Handle fill style
-        if is_filled is not None:
-            if is_filled:
-                attributes.append('style=filled')
-            else:
-                attributes.append('style=""')
-        else:
-            # Default to filled for most elements
-            attributes.append('style=filled')
-        
-        # Handle colors - priority: fillcolor > color > default
-        final_fillcolor = fillcolor or color or default_fillcolor
-        if final_fillcolor:
-            attributes.append(f'fillcolor="{final_fillcolor}"')
-        
-        # Handle border color (if different from fill color)
-        if color and fillcolor and color != fillcolor:
-            attributes.append(f'color="{color}"')
-        elif color and not fillcolor:
-            # If only color is specified, use it for border too
-            attributes.append(f'color="{color}"')
-        
-        # Set label with icon if applicable
-        if icon:
-            attributes.append(f'label="{icon}{escaped_name}"')
-        else:
-            attributes.append(f'label="{escaped_name}"')
 
-        # Add id for easier lookup
+        ICON_MAP = {
+            "actor": "threat_analysis/server/static/resources/icons/actor.png",
+            "web_server": "threat_analysis/server/static/resources/icons/web-server.png",
+            "database": "threat_analysis/server/static/resources/icons/database.png",
+            "firewall": "threat_analysis/server/static/resources/icons/firewall.png",
+            "server": "threat_analysis/server/static/resources/icons/server.png",
+        }
+        
+        icon_path = ICON_MAP.get(element_type) if element_type else None
+        if not icon_path and node_type in ICON_MAP:
+             icon_path = ICON_MAP.get(node_type)
+
+
+        if icon_path and Path(icon_path).exists():
+            attributes.append(f'image="{icon_path}"')
+            attributes.append('imagescale=true')
+            attributes.append('fixedsize=true')
+            attributes.append('width=0.5')
+            attributes.append('height=0.5')
+            attributes.append('labelloc=b')
+            attributes.append('shape=none') 
+            attributes.append(f'label="{escaped_name}"')
+        else:
+            # Fallback to shapes and unicode icons
+            icon = ''
+            if element_type == 'router':
+                attributes.append('shape=box')
+                icon = '🌐 '
+            elif element_type == 'switch':
+                attributes.append('shape=diamond')
+                icon = '🔀 '
+            elif element_type == 'firewall':
+                attributes.append('shape=hexagon')
+                icon = '🔥 '
+            elif element_type == 'database':
+                attributes.append('shape=cylinder')
+                icon = '🗄️ '
+            elif element_type == 'web_server':
+                attributes.append('shape=box')
+                icon = '🌐 '
+            elif element_type == 'api_gateway':
+                attributes.append('shape=box')
+                icon = '🔌 '
+            else:
+                if node_type == 'actor':
+                    attributes.append('shape=oval')
+                    icon = '👤 '
+                elif node_type == 'server':
+                    attributes.append('shape=box')
+                    icon = '🖥️ '
+                else:
+                    attributes.append('shape=box')
+            if icon:
+                attributes.append(f'label="{icon}{escaped_name}"')
+            else:
+                attributes.append(f'label="{escaped_name}"')
+
+            if is_filled is not None:
+                if is_filled:
+                    attributes.append('style=filled')
+                else:
+                    attributes.append('style=""')
+            else:
+                attributes.append('style=filled')
+            
+            final_fillcolor = fillcolor or color or 'lightblue'
+            if final_fillcolor:
+                attributes.append(f'fillcolor="{final_fillcolor}"')
+            
+            if color and fillcolor and color != fillcolor:
+                attributes.append(f'color="{color}"')
+            elif color and not fillcolor:
+                attributes.append(f'color="{color}"')
+        
         attributes.append(f'id="{self._sanitize_name(node_name)}"')
         
         return f'[{", ".join(attributes)}]'
+
 
     def add_links_to_svg(self, svg_content: str, threat_model: ThreatModel) -> str:
         """

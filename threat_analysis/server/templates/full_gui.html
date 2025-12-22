@@ -196,6 +196,7 @@
             <button class="toolbar-button" id="add-web-server">Web Server</button>
             <button class="toolbar-button" id="add-database">Database</button>
             <button class="toolbar-button" id="add-firewall">Firewall</button>
+            <button class="toolbar-button" id="add-switch">Switch</button>
         </div>
         <div id="graph-container"></div>
         <div id="properties-panel" style="width: 350px;">
@@ -218,6 +219,39 @@
                         <label for="prop-description">Description:</label>
                         <textarea id="prop-description" rows="3"></textarea>
                     </div>
+                    <div class="prop-group" id="prop-os-group">
+                        <label for="prop-os">OS:</label>
+                        <input type="text" id="prop-os" />
+                    </div>
+                    <div class="prop-group" id="prop-stereotype-group">
+                        <label for="prop-stereotype">Stereotype:</label>
+                        <input type="text" id="prop-stereotype" />
+                    </div>
+                    <div class="prop-group" id="prop-is-filled-group">
+                        <label for="prop-is-filled">Is Filled:</label>
+                        <input type="checkbox" id="prop-is-filled" />
+                    </div>
+                    <div class="prop-group" id="prop-is-trusted-group">
+                        <label for="prop-is-trusted">Is Trusted:</label>
+                        <input type="checkbox" id="prop-is-trusted" />
+                    </div>
+                    <div class="prop-group" id="prop-line-style-group">
+                        <label for="prop-line-style">Line Style:</label>
+                        <select id="prop-line-style">
+                            <option value="solid">Solid</option>
+                            <option value="dashed">Dashed</option>
+                            <option value="dotted">Dotted</option>
+                            <option value="bold">Bold</option>
+                        </select>
+                    </div>
+                    <div class="prop-group" id="prop-format-group">
+                        <label for="prop-format">Format:</label>
+                        <input type="text" id="prop-format" />
+                    </div>
+                    <div class="prop-group" id="prop-credentials-life-group">
+                        <label for="prop-credentials-life">Credentials Life:</label>
+                        <input type="text" id="prop-credentials-life" />
+                    </div>
                     <div class="prop-group" id="prop-classification-group">
                         <label for="prop-classification">Classification:</label>
                         <select id="prop-classification">
@@ -226,6 +260,61 @@
                             <option value="secret">Secret</option>
                             <option value="top-secret">Top Secret</option>
                         </select>
+                    </div>
+                    <div class="prop-group" id="prop-cia-group">
+                        <label>CIA:</label>
+                        <select id="prop-confidentiality">
+                            <option value="low">C: Low</option>
+                            <option value="medium">C: Medium</option>
+                            <option value="high">C: High</option>
+                            <option value="critical">C: Critical</option>
+                        </select>
+                        <select id="prop-integrity">
+                            <option value="low">I: Low</option>
+                            <option value="medium">I: Medium</option>
+                            <option value="high">I: High</option>
+                            <option value="critical">I: Critical</option>
+                        </select>
+                        <select id="prop-availability">
+                            <option value="low">A: Low</option>
+                            <option value="medium">A: Medium</option>
+                            <option value="high">A: High</option>
+                            <option value="critical">A: Critical</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="edge-properties-form" style="display: none;">
+                    <div class="prop-group">
+                        <label for="edge-prop-name">Name:</label>
+                        <input type="text" id="edge-prop-name" />
+                    </div>
+                    <div class="prop-group">
+                        <label for="edge-prop-protocol">Protocol:</label>
+                        <input type="text" id="edge-prop-protocol" />
+                    </div>
+                    <div class="prop-group">
+                        <label for="edge-prop-src-port">Source Port:</label>
+                        <input type="number" id="edge-prop-src-port" />
+                    </div>
+                    <div class="prop-group">
+                        <label for="edge-prop-dst-port">Destination Port:</label>
+                        <input type="number" id="edge-prop-dst-port" />
+                    </div>
+                    <div class="prop-group">
+                        <label for="edge-prop-data">Data:</label>
+                        <input type="text" id="edge-prop-data" />
+                    </div>
+                    <div class="prop-group">
+                        <label for="edge-prop-is-encrypted">Is Encrypted:</label>
+                        <input type="checkbox" id="edge-prop-is-encrypted" />
+                    </div>
+                    <div class="prop-group">
+                        <label for="edge-prop-is-authenticated">Is Authenticated:</label>
+                        <input type="checkbox" id="edge-prop-is-authenticated" />
+                    </div>
+                    <div class="prop-group">
+                        <label for="edge-prop-is-bidirectional">Is Bidirectional:</label>
+                        <input type="checkbox" id="edge-prop-is-bidirectional" />
                     </div>
                 </div>
                  <div id="no-selection">Select an element to see its properties.</div>
@@ -258,13 +347,42 @@
             const nameInput = document.getElementById('prop-name');
             const colorInput = document.getElementById('prop-color');
             const descriptionInput = document.getElementById('prop-description');
+            const osInput = document.getElementById('prop-os');
+            const stereotypeInput = document.getElementById('prop-stereotype');
+            const isFilledInput = document.getElementById('prop-is-filled');
+            const isTrustedInput = document.getElementById('prop-is-trusted');
+            const lineStyleInput = document.getElementById('prop-line-style');
+            const formatInput = document.getElementById('prop-format');
+            const credentialsLifeInput = document.getElementById('prop-credentials-life');
             const classificationInput = document.getElementById('prop-classification');
+
+            const confidentialityInput = document.getElementById('prop-confidentiality');
+            const integrityInput = document.getElementById('prop-integrity');
+            const availabilityInput = document.getElementById('prop-availability');
+
+            const edgeNameInput = document.getElementById('edge-prop-name');
+            const edgeProtocolInput = document.getElementById('edge-prop-protocol');
+            const edgeSrcPortInput = document.getElementById('edge-prop-src-port');
+            const edgeDstPortInput = document.getElementById('edge-prop-dst-port');
+            const edgeDataInput = document.getElementById('edge-prop-data');
+            const edgeIsEncryptedInput = document.getElementById('edge-prop-is-encrypted');
+            const edgeIsAuthenticatedInput = document.getElementById('edge-prop-is-authenticated');
+            const edgeIsBidirectionalInput = document.getElementById('edge-prop-is-bidirectional');
+
             const analysisResultContainer = document.getElementById('analysis-result-container');
             const legendContainer = document.getElementById('legend-container');
             let panZoomInstance;
             let debounceTimer;
             let graph;
             let threatModelJSON = {};
+
+            const styleMap = {
+                'BOUNDARY': 'boundaries', 'ACTOR': 'actors', 'SERVER': 'servers',
+                'WEB_SERVER': 'servers', 'DATABASE': 'servers', 'FIREWALL': 'servers',
+                'ROUTER': 'servers', 'SWITCH': 'servers', 'API_GATEWAY': 'servers',
+                'DATA': 'data'
+            };
+
 
             console.log('DOMContentLoaded - Starting initialization');
 
@@ -305,7 +423,11 @@
             stylesheet.putCellStyle('BOUNDARY', { shape: mxConstants.SHAPE_RECTANGLE, dashed: 1, fillColor: '#f8f9fa', strokeColor: '#adb5bd', fontColor: '#495057', fontSize: 14, fontStyle: mxConstants.FONT_BOLD, verticalAlign: 'top', align: 'left', spacingLeft: 4, swimlane: true });
             stylesheet.putCellStyle('ACTOR', { shape: mxConstants.SHAPE_IMAGE, image: '/static/resources/icons/actor.png', verticalLabelPosition: 'bottom', verticalAlign: 'top', imageAspect: 0, fillColor: '#E9D5FF', strokeColor: '#9333EA', fontColor: '#581C87' });
             stylesheet.putCellStyle('DATA', { shape: mxConstants.SHAPE_CYLINDER, fillColor: '#FFE0B2', strokeColor: '#E65100', fontColor: '#BF360C', gradientColor: '#FFCC80', gradientDirection: mxConstants.DIRECTION_EAST, });
-            stylesheet.putCellStyle('SERVER', { shape: mxConstants.SHAPE_RECTANGLE, rounded: 1, fillColor: '#D1FAE5', strokeColor: '#065F46', fontColor: '#064E3B' });
+            stylesheet.putCellStyle('SERVER', { shape: mxConstants.SHAPE_RECTANGLE, fillColor: '#D1FAE5', strokeColor: '#065F46', fontColor: '#064E3B' });
+            stylesheet.putCellStyle('ROUTER', { shape: mxConstants.SHAPE_RECTANGLE, fillColor: '#FFD700', strokeColor: '#B8860B', fontColor: '#8B4513' });
+            stylesheet.putCellStyle('SWITCH', { shape: mxConstants.SHAPE_RHOMBUS, fillColor: 'orange', strokeColor: '#B8860B', fontColor: '#8B4513' });
+            stylesheet.putCellStyle('API_GATEWAY', { shape: mxConstants.SHAPE_RECTANGLE, fillColor: 'lightyellow', strokeColor: '#B8860B', fontColor: '#8B4513' });
+
             stylesheet.putCellStyle('WEB_SERVER', { shape: mxConstants.SHAPE_IMAGE, image: '/static/resources/icons/web-server.png', verticalLabelPosition: 'bottom', verticalAlign: 'top', imageAspect: 0, fillColor: '#D1FAE5', strokeColor: '#065F46', fontColor: '#064E3B' });
             stylesheet.putCellStyle('DATABASE', { shape: mxConstants.SHAPE_IMAGE, image: '/static/resources/icons/database.png', verticalLabelPosition: 'bottom', verticalAlign: 'top', imageAspect: 0, fillColor: '#D1FAE5', strokeColor: '#065F46', fontColor: '#064E3B' });
             stylesheet.putCellStyle('FIREWALL', { shape: mxConstants.SHAPE_IMAGE, image: '/static/resources/icons/firewall.png', verticalLabelPosition: 'bottom', verticalAlign: 'top', imageAspect: 0, fillColor: '#FFCDD2', strokeColor: '#B71C1C', fontColor: '#B71C1C' });
@@ -348,7 +470,28 @@
             nameInput.addEventListener('input', (evt) => updateCellProperty('label', evt.target.value));
             colorInput.addEventListener('input', (evt) => updateCellProperty('fillColor', evt.target.value));
             descriptionInput.addEventListener('input', (evt) => updateCellProperty('description', evt.target.value));
+            osInput.addEventListener('input', (evt) => updateCellProperty('os', evt.target.value));
+            stereotypeInput.addEventListener('input', (evt) => updateCellProperty('stereotype', evt.target.value));
+            isFilledInput.addEventListener('change', (evt) => updateCellProperty('isFilled', evt.target.checked));
+            isTrustedInput.addEventListener('change', (evt) => updateCellProperty('isTrusted', evt.target.checked));
+            lineStyleInput.addEventListener('change', (evt) => updateCellProperty('lineStyle', evt.target.value));
+            formatInput.addEventListener('input', (evt) => updateCellProperty('format', evt.target.value));
+            credentialsLifeInput.addEventListener('input', (evt) => updateCellProperty('credentialsLife', evt.target.value));
             classificationInput.addEventListener('change', (evt) => updateCellProperty('classification', evt.target.value));
+
+            confidentialityInput.addEventListener('change', (evt) => updateCellProperty('confidentiality', evt.target.value));
+            integrityInput.addEventListener('change', (evt) => updateCellProperty('integrity', evt.target.value));
+            availabilityInput.addEventListener('change', (evt) => updateCellProperty('availability', evt.target.value));
+
+            edgeNameInput.addEventListener('input', (evt) => updateCellProperty('label', evt.target.value));
+            edgeProtocolInput.addEventListener('input', (evt) => updateCellProperty('protocol', evt.target.value));
+            edgeSrcPortInput.addEventListener('input', (evt) => updateCellProperty('srcPort', evt.target.value));
+            edgeDstPortInput.addEventListener('input', (evt) => updateCellProperty('dstPort', evt.target.value));
+            edgeDataInput.addEventListener('input', (evt) => updateCellProperty('data', evt.target.value));
+            edgeIsEncryptedInput.addEventListener('change', (evt) => updateCellProperty('isEncrypted', evt.target.checked));
+            edgeIsAuthenticatedInput.addEventListener('change', (evt) => updateCellProperty('isAuthenticated', evt.target.checked));
+            edgeIsBidirectionalInput.addEventListener('change', (evt) => updateCellProperty('bidirectional', evt.target.checked));
+
 
             document.getElementById('analyze-btn').addEventListener('click', analyzeModel);
             
@@ -378,25 +521,88 @@
             function updatePropertiesPanel(cell) {
                 if (cell && cell.isVertex()) {
                     propertiesForm.style.display = 'block';
+                    document.getElementById('edge-properties-form').style.display = 'none';
                     noSelectionDiv.style.display = 'none';
                     
                     const userData = getCellUserData(cell);
                     
-                    // Use the display label as the source of truth (which should match user data)
-                    const displayLabel = graph.convertValueToString(cell);
-                    nameInput.value = displayLabel;
+                    // Set all values
+                    nameInput.value = graph.convertValueToString(cell);
                     descriptionInput.value = userData.getAttribute('description', '');
+                    osInput.value = userData.getAttribute('os', '');
+                    const styleString = cell.getStyle();
+                    let type = '';
+                    for (const key in styleMap) {
+                        if (styleString.includes(key)) {
+                            type = key;
+                            break;
+                        }
+                    }
+                    stereotypeInput.value = userData.getAttribute('stereotype', type);
+                    
+                    const isFilled = userData.getAttribute('isFilled', 'true') === 'true';
+                    isFilledInput.checked = isFilled;
+                    if (!isFilled) {
+                        graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, 'none', [cell]);
+                    }
+
+                    const isTrusted = userData.getAttribute('isTrusted', 'true') === 'true';
+                    isTrustedInput.checked = isTrusted;
+                    lineStyleInput.value = userData.getAttribute('lineStyle', '');
+                    formatInput.value = userData.getAttribute('format', '');
+                    credentialsLifeInput.value = userData.getAttribute('credentialsLife', '');
                     classificationInput.value = userData.getAttribute('classification', 'public');
+                    confidentialityInput.value = userData.getAttribute('confidentiality', 'medium');
+                    integrityInput.value = userData.getAttribute('integrity', 'medium');
+                    availabilityInput.value = userData.getAttribute('availability', 'medium');
                     
                     const styleObject = graph.getCellStyle(cell);
                     colorInput.value = styleObject[mxConstants.STYLE_FILLCOLOR] || '#ffffff';
 
+                    const targetStrokeColor = isTrusted ? '#adb5bd' : 'red';
+                    const targetStrokeWidth = isTrusted ? '1' : '2';
+
+                    if (styleObject[mxConstants.STYLE_STROKECOLOR] !== targetStrokeColor) {
+                        graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, targetStrokeColor, [cell]);
+                    }
+                    if (styleObject[mxConstants.STYLE_STROKEWIDTH] !== targetStrokeWidth) {
+                        graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, targetStrokeWidth, [cell]);
+                    }
+
                     // Show/hide properties based on cell type
-                    const styleString = cell.getStyle();
+                    const isIconBased = styleString.includes('FIREWALL') || styleString.includes('SWITCH') || styleString.includes('DATABASE') || styleString.includes('WEB_SERVER') || styleString.includes('ACTOR');
+                    document.getElementById('prop-color').parentElement.style.display = isIconBased ? 'none' : 'block';
+
                     const isData = styleString.includes('DATA');
+                    const isServer = styleString.includes('SERVER');
+                    const isBoundary = styleString.includes('BOUNDARY');
+                    const isActor = styleString.includes('ACTOR');
+                    
                     document.getElementById('prop-classification-group').style.display = isData ? 'block' : 'none';
+                    document.getElementById('prop-os-group').style.display = isServer ? 'block' : 'none';
+                    document.getElementById('prop-stereotype-group').style.display = isServer ? 'block' : 'none';
+                    document.getElementById('prop-is-filled-group').style.display = isBoundary || isActor ? 'block' : 'none';
+                    document.getElementById('prop-is-trusted-group').style.display = isBoundary ? 'block' : 'none';
+                    document.getElementById('prop-line-style-group').style.display = isBoundary ? 'block' : 'none';
+                    document.getElementById('prop-format-group').style.display = isData ? 'block' : 'none';
+                    document.getElementById('prop-credentials-life-group').style.display = isData ? 'block' : 'none';
+                } else if (cell && cell.isEdge()) {
+                    propertiesForm.style.display = 'none';
+                    document.getElementById('edge-properties-form').style.display = 'block';
+                    noSelectionDiv.style.display = 'none';
+                    
+                    const userData = getCellUserData(cell);
+                    edgeNameInput.value = graph.convertValueToString(cell);
+                    edgeProtocolInput.value = userData.getAttribute('protocol', '');
+                    edgeSrcPortInput.value = userData.getAttribute('srcPort', '');
+                    edgeDstPortInput.value = userData.getAttribute('dstPort', '');
+                    edgeDataInput.value = userData.getAttribute('data', '');
+                    edgeIsEncryptedInput.checked = userData.getAttribute('isEncrypted', 'false') === 'true';
+                    edgeIsAuthenticatedInput.checked = userData.getAttribute('isAuthenticated', 'false') === 'true';
+                    edgeIsBidirectionalInput.checked = userData.getAttribute('bidirectional', 'false') === 'true';
                 } else {
                     propertiesForm.style.display = 'none';
+                    document.getElementById('edge-properties-form').style.display = 'none';
                     noSelectionDiv.style.display = 'block';
                 }
             }
@@ -406,10 +612,51 @@
                 if (cell) {
                     graph.getModel().beginUpdate();
                     try {
+                        const userData = getCellUserData(cell);
                         if (key === 'fillColor') {
                             graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, value, [cell]);
+                        } else if (key === 'stereotype') {
+                            userData.setAttribute('type', value);
+                            userData.setAttribute('stereotype', value);
+                            graph.getModel().setValue(cell, userData);
+                            graph.setCellStyle(value.toUpperCase());
+                        } else if (key === 'isFilled') {
+                            const color = colorInput.value;
+                            graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, value ? color : 'none', [cell]);
+                            userData.setAttribute(key, String(value));
+                            graph.getModel().setValue(cell, userData);
+                        } else if (key === 'lineStyle') {
+                            userData.setAttribute(key, value);
+                            graph.getModel().setValue(cell, userData);
+
+                            if (value === 'dashed') {
+                                graph.setCellStyles(mxConstants.STYLE_DASHED, '1', [cell]);
+                                graph.setCellStyles(mxConstants.STYLE_DASH_PATTERN, null, [cell]);
+                                graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, '1', [cell]);
+                            } else if (value === 'dotted') {
+                                graph.setCellStyles(mxConstants.STYLE_DASHED, '1', [cell]);
+                                graph.setCellStyles(mxConstants.STYLE_DASH_PATTERN, '1 1', [cell]);
+                                graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, '1', [cell]);
+                            } else if (value === 'bold') {
+                                graph.setCellStyles(mxConstants.STYLE_DASHED, '0', [cell]);
+                                graph.setCellStyles(mxConstants.STYLE_DASH_PATTERN, null, [cell]);
+                                graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, '2', [cell]);
+                            } else { // solid
+                                graph.setCellStyles(mxConstants.STYLE_DASHED, '0', [cell]);
+                                graph.setCellStyles(mxConstants.STYLE_DASH_PATTERN, null, [cell]);
+                                graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, '1', [cell]);
+                            }
+                        } else if (key === 'isTrusted') {
+                            userData.setAttribute(key, String(value));
+                            graph.getModel().setValue(cell, userData);
+                            if (value) { // isTrusted is true
+                                graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, '#adb5bd', [cell]);
+                                graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, '1', [cell]);
+                            } else { // isTrusted is false
+                                graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, 'red', [cell]);
+                                graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, '2', [cell]);
+                            }
                         } else {
-                            const userData = getCellUserData(cell);
                             userData.setAttribute(key, value);
                             graph.getModel().setValue(cell, userData);
                             
@@ -440,6 +687,10 @@
                     const doc = mxUtils.createXmlDocument();
                     const obj = doc.createElement('object');
                     obj.setAttribute('label', name);
+                    if (style === 'BOUNDARY') {
+                        obj.setAttribute('isFilled', 'true');
+                        obj.setAttribute('isTrusted', 'true');
+                    }
                     console.log(`Created XML object with label: ${name}`);
                     
                     const v = graph.insertVertex(targetParent, null, obj, 20, 20, width, height, style);
@@ -518,6 +769,15 @@
                     console.log('Add Firewall completed successfully');
                 } catch (error) {
                     console.error('Error adding firewall:', error);
+                }
+            });
+            document.getElementById('add-switch').addEventListener('click', () => {
+                console.log('Add Switch button clicked');
+                try {
+                    addVertex('SWITCH', 'New Switch', 100, 100);
+                    console.log('Add Switch completed successfully');
+                } catch (error) {
+                    console.error('Error adding switch:', error);
                 }
             });
 
@@ -605,11 +865,6 @@
                 const cells = model.getChildCells(model.getRoot(), true, true);
                 threatModelJSON = { boundaries: [], actors: [], servers: [], data: [], dataflows: [] };
 
-                const styleMap = {
-                    'BOUNDARY': 'boundaries', 'ACTOR': 'actors', 'SERVER': 'servers',
-                    'WEB_SERVER': 'servers', 'DATABASE': 'servers', 'FIREWALL': 'servers', 'DATA': 'data'
-                };
-
                 cells.forEach(cell => {
                     const parentCell = cell.getParent();
                     const parentId = (parentCell && parentCell.id !== '0' && parentCell.id !== '1' ) ? parentCell.id : null;
@@ -621,7 +876,17 @@
                         const props = {
                             id: cell.id, name: label, parentId: parentId,
                             description: userData.getAttribute('description', ''),
-                            classification: userData.getAttribute('classification', 'public')
+                            os: userData.getAttribute('os', ''),
+                            stereotype: userData.getAttribute('stereotype', ''),
+                            isFilled: userData.getAttribute('isFilled', 'false'),
+                            isTrusted: userData.getAttribute('isTrusted', 'false'),
+                            lineStyle: userData.getAttribute('lineStyle', ''),
+                            format: userData.getAttribute('format', ''),
+                            credentialsLife: userData.getAttribute('credentialsLife', ''),
+                            classification: userData.getAttribute('classification', 'public'),
+                            confidentiality: userData.getAttribute('confidentiality', 'medium'),
+                            integrity: userData.getAttribute('integrity', 'medium'),
+                            availability: userData.getAttribute('availability', 'medium')
                         };
 
                         for (const key in styleMap) {
@@ -635,7 +900,14 @@
                         const label = userData.getAttribute('label', '');
                         threatModelJSON.dataflows.push({
                             id: cell.id, name: label || 'Dataflow',
-                            from: cell.source?.id, to: cell.target?.id
+                            from: cell.source?.id, to: cell.target?.id,
+                            protocol: userData.getAttribute('protocol', ''),
+                            srcPort: userData.getAttribute('srcPort', ''),
+                            dstPort: userData.getAttribute('dstPort', ''),
+                            data: userData.getAttribute('data', ''),
+                            isEncrypted: userData.getAttribute('isEncrypted', 'false'),
+                            isAuthenticated: userData.getAttribute('isAuthenticated', 'false'),
+                            bidirectional: userData.getAttribute('bidirectional', 'false')
                         });
                     }
                 });
