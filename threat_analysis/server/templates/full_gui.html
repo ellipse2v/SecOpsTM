@@ -49,34 +49,34 @@
             background-color: #f8f9fa;
             overflow-y: auto;
         }
-        #graph-container {
+        #graph-container { 
             flex-grow: 1;
             position: relative;
             background-color: #fff;
             border-left: 1px solid #d1d5da;
             border-right: 1px solid #d1d5da;
         }
-        #toolbar h2, #properties-panel h2 {
+        #toolbar h2, #properties-panel h2 { 
             font-size: 1.2em; margin-top: 0; padding-bottom: 10px;
             border-bottom: 1px solid #e0e0e0;
         }
-        .toolbar-button {
+        .toolbar-button { 
             display: block; width: 100%; margin-bottom: 10px;
             padding: 10px; box-sizing: border-box; cursor: pointer;
             text-align: left; background-color: #fff; border: 1px solid #ccc;
             border-radius: 5px; font-size: 14px;
         }
         .toolbar-button:hover { background-color: #f0f0f0; }
-        .toolbar-separator {
+        .toolbar-separator { 
             height: 1px; background-color: #e0e0e0; margin: 15px 0;
         }
-        #properties-panel input, #properties-panel select, #properties-panel textarea {
+        #properties-panel input, #properties-panel select, #properties-panel textarea { 
             width: 100%; padding: 8px; box-sizing: border-box;
             border: 1px solid #ccc; border-radius: 4px;
         }
         #properties-panel label { display: block; margin-top: 15px; font-size: 0.9em; font-weight: bold; margin-bottom: 5px; }
         .tab-bar { display: flex; border-bottom: 1px solid #ccc; }
-        .tab-button {
+        .tab-button { 
             padding: 10px 15px; cursor: pointer; background-color: #f1f1f1;
             border: none; border-bottom: 3px solid transparent;
         }
@@ -98,8 +98,7 @@
         
         .export-btn {
             background-color: #4CAF50;
-            color: white;
-            border: none;
+            color: white; border: none;
             padding: 8px 16px;
             text-align: center;
             text-decoration: none;
@@ -111,9 +110,7 @@
             font-family: inherit;
         }
         
-        .export-btn:hover {
-            background-color: #45a049;
-        }
+        .export-btn:hover { background-color: #45a049; }
         
         .export-menu {
             display: none;
@@ -137,9 +134,7 @@
             transition: background-color 0.2s;
         }
         
-        .export-option:hover {
-            background-color: #e7f3ff;
-        }
+        .export-option:hover { background-color: #e7f3ff; }
         
         .export-option:first-child {
             border-top-left-radius: 4px;
@@ -161,6 +156,59 @@
             animation: spin 1s linear infinite;
             margin: 0 auto;
         }
+
+        /* Modal styles */
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 1000; 
+            left: 0;
+            top: 0;
+            width: 100%; 
+            height: 100%; 
+            overflow: auto; 
+            background-color: rgb(0,0,0); 
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 700px;
+            border-radius: 8px;
+        }
+
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        #model-list-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 20px 0;
+        }
+        .model-list-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+        .model-list-item:hover {
+            background-color: #f0f0f0;
+        }
         
         @keyframes spin {
             0% { transform: rotate(0deg); }
@@ -172,7 +220,8 @@
     <div class="header">
         <h1>Graphical Editor</h1>
         <div class="button-group">
-            <button id="analyze-btn">Analyze Model</button>
+            <button id="open-model-btn">Open Model</button>
+            <button id="analyze-btn">Generate</button>
             <div class="export-container">
                 <button id="export-btn" class="export-btn">📥 Export</button>
                 <div id="export-menu" class="export-menu">
@@ -241,7 +290,6 @@
                             <option value="solid">Solid</option>
                             <option value="dashed">Dashed</option>
                             <option value="dotted">Dotted</option>
-                            <option value="bold">Bold</option>
                         </select>
                     </div>
                     <div class="prop-group" id="prop-format-group">
@@ -328,6 +376,19 @@
         </div>
     </div>
 
+    <div id="open-model-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Open Threat Model</h2>
+            <div id="model-list-container">
+                <p>Loading models...</p>
+            </div>
+            <button id="refresh-models-btn">Refresh</button>
+            <button id="open-from-computer-btn">Open from computer</button>
+            <input type="file" id="file-input" multiple accept=".md,.json" style="display: none;">
+        </div>
+    </div>
+
     <script type="text/javascript">
         // Register Service Worker for offline-only mode
         if ('serviceWorker' in navigator) {
@@ -407,6 +468,19 @@
                 console.log('mxEvent disabled context menu');
                 graph = new mxGraph(graphContainer);
                 console.log('mxGraph created successfully');
+                graph.setPanning(true);
+
+                // Enable zooming with mouse wheel
+                mxEvent.addMouseWheelListener(function (evt, up) {
+                    // Holding down Alt key is not required for zooming
+                    if (up) {
+                        graph.zoomIn();
+                    } else {
+                        graph.zoomOut();
+                    }
+                    mxEvent.consume(evt);
+                }, graphContainer);
+
             new mxRubberband(graph);
             graph.setTooltips(true);
             graph.setConnectable(true);
@@ -445,7 +519,7 @@
 
             graph.getModel().addListener(mxEvent.CHANGE, (model, event) => {
                 clearTimeout(debounceTimer);
-                debounceTimer = setTimeout(analyzeModel, 800);
+                debounceTimer = setTimeout(analyzeModelForPreview, 800);
             });
 
             graph.getSelectionModel().addListener(mxEvent.CHANGE, (sender, evt) => {
@@ -493,7 +567,7 @@
             edgeIsBidirectionalInput.addEventListener('change', (evt) => updateCellProperty('bidirectional', evt.target.checked));
 
 
-            document.getElementById('analyze-btn').addEventListener('click', analyzeModel);
+            document.getElementById('analyze-btn').addEventListener('click', generate);
             
             // Initialize ExportManager
             const exportManager = new ExportManager(analysisResultContainer, threatModelJSON, convert_json_to_markdown);
@@ -560,7 +634,7 @@
                     colorInput.value = styleObject[mxConstants.STYLE_FILLCOLOR] || '#ffffff';
 
                     const targetStrokeColor = isTrusted ? '#adb5bd' : 'red';
-                    const targetStrokeWidth = isTrusted ? '1' : '2';
+                    const targetStrokeWidth = isTrusted ? '2' : '1';
 
                     if (styleObject[mxConstants.STYLE_STROKECOLOR] !== targetStrokeColor) {
                         graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, targetStrokeColor, [cell]);
@@ -632,29 +706,22 @@
                             if (value === 'dashed') {
                                 graph.setCellStyles(mxConstants.STYLE_DASHED, '1', [cell]);
                                 graph.setCellStyles(mxConstants.STYLE_DASH_PATTERN, null, [cell]);
-                                graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, '1', [cell]);
                             } else if (value === 'dotted') {
                                 graph.setCellStyles(mxConstants.STYLE_DASHED, '1', [cell]);
                                 graph.setCellStyles(mxConstants.STYLE_DASH_PATTERN, '1 1', [cell]);
-                                graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, '1', [cell]);
-                            } else if (value === 'bold') {
-                                graph.setCellStyles(mxConstants.STYLE_DASHED, '0', [cell]);
-                                graph.setCellStyles(mxConstants.STYLE_DASH_PATTERN, null, [cell]);
-                                graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, '2', [cell]);
                             } else { // solid
                                 graph.setCellStyles(mxConstants.STYLE_DASHED, '0', [cell]);
                                 graph.setCellStyles(mxConstants.STYLE_DASH_PATTERN, null, [cell]);
-                                graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, '1', [cell]);
                             }
                         } else if (key === 'isTrusted') {
                             userData.setAttribute(key, String(value));
                             graph.getModel().setValue(cell, userData);
                             if (value) { // isTrusted is true
                                 graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, '#adb5bd', [cell]);
-                                graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, '1', [cell]);
+                                graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, '2', [cell]);
                             } else { // isTrusted is false
                                 graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, 'red', [cell]);
-                                graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, '2', [cell]);
+                                graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, '1', [cell]);
                             }
                         } else {
                             userData.setAttribute(key, value);
@@ -691,6 +758,7 @@
                         obj.setAttribute('isFilled', 'true');
                         obj.setAttribute('isTrusted', 'true');
                     }
+                    obj.setAttribute('stereotype', style);
                     console.log(`Created XML object with label: ${name}`);
                     
                     const v = graph.insertVertex(targetParent, null, obj, 20, 20, width, height, style);
@@ -813,7 +881,7 @@
 
                 markdown_lines.push("\n## Boundaries");
                 for (const boundary of boundaries) {
-                    const props_str = _format_properties(boundary, ['description']);
+                    const props_str = _format_properties(boundary, ['description', 'isTrusted', 'lineStyle']);
                     markdown_lines.push(`- **${boundary.name}**: ${props_str}`);
                 }
 
@@ -825,15 +893,16 @@
                 }
 
                 markdown_lines.push("\n## Servers");
-                for (const server of servers) {
-                    const props = { 'boundary': boundary_map[server.parentId] };
-                    const props_str = _format_properties({ ...server, ...props }, ['boundary', 'description']);
-                    markdown_lines.push(`- **${server.name}**: ${props_str}`);
+                for (const server of (data.servers || [])) {
+                    const server_with_type = {...server, type: server.stereotype};
+                    const props = { 'boundary': boundary_map[server_with_type.parentId] };
+                    const props_str = _format_properties({ ...server_with_type, ...props }, ['boundary', 'description', 'os', 'type']);
+                    markdown_lines.push(`- **${server_with_type.name}**: ${props_str}`);
                 }
 
                 markdown_lines.push("\n## Data");
                 for (const data_item of data_elements) {
-                    const props_str = _format_properties(data_item, ['description', 'classification']);
+                    const props_str = _format_properties(data_item, ['description', 'classification', 'format', 'credentialsLife', 'confidentiality', 'integrity', 'availability']);
                     markdown_lines.push(`- **${data_item.name}**: ${props_str}`);
                 }
 
@@ -847,7 +916,7 @@
                     const to_node = nodes[df.to];
                     if (from_node && to_node) {
                         const df_name = df.name || `${from_node.name} to ${to_node.name}`;
-                        const props_str = _format_properties(df, ['protocol', 'description']);
+                        const props_str = _format_properties(df, ['protocol', 'description', 'srcPort', 'dstPort', 'data', 'isEncrypted', 'isAuthenticated', 'bidirectional']);
                         markdown_lines.push(`- **${df_name}**: from="${from_node.name}", to="${to_node.name}", ${props_str}`);
                     }
                 }
@@ -855,24 +924,34 @@
                 return markdown_lines.join('\n');
             }
 
-            function analyzeModel() {
+            function getModelName(markdownContent) {
+                const match = markdownContent.match(/^# Threat Model: (.*)$/m);
+                return match ? match[1].trim() : "Untitled Model";
+            }
+
+            function generate() {
                 if (panZoomInstance && analysisResultContainer.querySelector('svg')) {
                     panZoomInstance.destroy();
                     panZoomInstance = null;
                 }
 
                 const model = graph.getModel();
-                const cells = model.getChildCells(model.getRoot(), true, true);
-                threatModelJSON = { boundaries: [], actors: [], servers: [], data: [], dataflows: [] };
+                const defaultParent = graph.getDefaultParent();
+                const cells = model.getChildCells(defaultParent, true, true);
+                console.log("Number of cells found:", cells.length);
+
+                const positions = { boundaries: {}, actors: {}, servers: {}, dataflows: {} };
+                const threatModelJSON = { boundaries: [], actors: [], servers: [], data: [], dataflows: [] };
 
                 cells.forEach(cell => {
                     const parentCell = cell.getParent();
                     const parentId = (parentCell && parentCell.id !== '0' && parentCell.id !== '1' ) ? parentCell.id : null;
+                    const style = cell.getStyle();
+                    const userData = getCellUserData(cell);
+                    const label = userData.getAttribute('label', '') || graph.convertValueToString(cell);
 
                     if (cell.isVertex()) {
-                        const style = cell.getStyle();
-                        const userData = getCellUserData(cell);
-                        const label = userData.getAttribute('label', '');
+                        const geometry = cell.getGeometry();
                         const props = {
                             id: cell.id, name: label, parentId: parentId,
                             description: userData.getAttribute('description', ''),
@@ -889,17 +968,28 @@
                             availability: userData.getAttribute('availability', 'medium')
                         };
 
-                        for (const key in styleMap) {
+                        const styleKeys = Object.keys(styleMap).sort((a, b) => b.length - a.length);
+                        for (const key of styleKeys) {
                             if (style.includes(key)) {
-                                threatModelJSON[styleMap[key]].push({ ...props, type: key });
+                                if (!props.stereotype) {
+                                    props.stereotype = key;
+                                }
+                                const category = styleMap[key];
+                                 if (category === 'data' && !positions.data) {
+                                    positions.data = {};
+                                }
+                                threatModelJSON[category].push({ ...props, type: key });
+                                if (positions[category]) {
+                                    positions[category][label.toLowerCase()] = { x: geometry.x, y: geometry.y, width: geometry.width, height: geometry.height };
+                                }
                                 break;
                             }
                         }
                     } else if (cell.isEdge()) {
-                        const userData = getCellUserData(cell);
-                        const label = userData.getAttribute('label', '');
+                        const geometry = cell.getGeometry();
+                        const df_name = label || 'Dataflow';
                         threatModelJSON.dataflows.push({
-                            id: cell.id, name: label || 'Dataflow',
+                            id: cell.id, name: df_name,
                             from: cell.source?.id, to: cell.target?.id,
                             protocol: userData.getAttribute('protocol', ''),
                             srcPort: userData.getAttribute('srcPort', ''),
@@ -909,13 +999,21 @@
                             isAuthenticated: userData.getAttribute('isAuthenticated', 'false'),
                             bidirectional: userData.getAttribute('bidirectional', 'false')
                         });
+                        if (geometry && geometry.points) {
+                            positions.dataflows[df_name.toLowerCase()] = { points: geometry.points };
+                        }
                     }
                 });
 
-                fetch('/api/graphical_update', {
+                console.log("Threat Model JSON for generate:", threatModelJSON);
+                console.log("Positions for generate:", positions);
+                const markdownContent = convert_json_to_markdown(threatModelJSON);
+                const modelName = getModelName(markdownContent);
+
+                fetch('/api/generate_all', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(threatModelJSON)
+                    body: JSON.stringify({ markdown: markdownContent, model_name: modelName, positions: positions })
                 })
                 .then(response => response.json())
                 .then(data => {
@@ -923,39 +1021,371 @@
                         analysisResultContainer.innerHTML = `<div style="color: red;">Error: ${data.error}</div>`;
                         return;
                     }
-                    analysisResultContainer.innerHTML = data.diagram_svg;
-                    legendContainer.innerHTML = data.legend_html;
 
-                    // Display output directory information
-                    if (data.output_dir) {
-                        const outputInfo = document.createElement('div');
-                        outputInfo.style.marginTop = '15px';
-                        outputInfo.style.padding = '10px';
-                        outputInfo.style.backgroundColor = '#e7f3ff';
-                        outputInfo.style.borderLeft = '4px solid #2196F3';
-                        outputInfo.innerHTML = `
-                            <strong>📁 Output Directory:</strong> <code>${data.output_dir}</code><br>
-                            <small>All generated files are saved in this timestamped directory.</small>
-                        `;
-                        analysisResultContainer.appendChild(outputInfo);
+                    let generatedFilesHtml = '<h3>Generated Files:</h3><ul>';
+                    for (const key in data.generated_files) {
+                        if (typeof data.generated_files[key] === 'string') {
+                            generatedFilesHtml += `<li>${key}: <code>${data.generated_files[key]}</code></li>`;
+                        } else {
+                            generatedFilesHtml += `<li>${key}:<ul>`;
+                            for (const subKey in data.generated_files[key]) {
+                                generatedFilesHtml += `<li>${subKey}: <code>${data.generated_files[key][subKey]}</code></li>`;
+                            }
+                            generatedFilesHtml += `</ul></li>`;
+                        }
                     }
+                    generatedFilesHtml += '</ul>';
 
-                    const svgElement = analysisResultContainer.querySelector('svg');
-                    if (svgElement) {
-                        panZoomInstance = svgPanZoom(svgElement, {
-                            zoomEnabled: true, panEnabled: true,
-                            controlIconsEnabled: true, fit: true, center: true
-                        });
-                    }
+
+                    analysisResultContainer.innerHTML = `
+                        <div style="padding: 10px; background-color: #e7f3ff; border-left: 4px solid #2196F3;">
+                            <strong>✅ All artifacts generated successfully in:</strong> <code>${data.generation_dir}</code>
+                        </div>
+                        ${generatedFilesHtml}
+                    `;
+                    legendContainer.innerHTML = '';
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    analysisResultContainer.innerHTML = `<div style="color: red;">An error occurred.</div>`;
+                    analysisResultContainer.innerHTML = `<div style="color: red;">An error occurred while generating the project.</div>`;
                 });
             }
+
+            document.getElementById('analyze-btn').addEventListener('click', generate);
+
+            // Debounced analysis for live updates
+            graph.getModel().addListener(mxEvent.CHANGE, (model, event) => {
+                clearTimeout(debounceTimer);
+                // We don't want to call generate on every change, so we can keep the old analyzeModel for the live preview
+                // or disable it if we only want to generate on button click.
+                // For now, let's keep a lighter version of analyzeModel for live updates.
+                // debounceTimer = setTimeout(analyzeModelForPreview, 800);
+            });
+
+            function analyzeModelForPreview() {
+                // This function can be a slimmed down version of analyzeModel that only fetches the diagram
+                // and doesn't trigger the full generation. For now, we can leave it empty to disable live updates.
+            }
             
-            analyzeModel(); // Initial analysis
+            const openModelModal = document.getElementById('open-model-modal');
+            const openModelBtn = document.getElementById('open-model-btn');
+            const closeBtn = openModelModal.querySelector('.close-button');
+            const modelListContainer = document.getElementById('model-list-container');
+            const refreshModelsBtn = document.getElementById('refresh-models-btn');
+            const openFromComputerBtn = document.getElementById('open-from-computer-btn');
+            const fileInput = document.getElementById('file-input');
+
+            openFromComputerBtn.onclick = () => {
+                fileInput.click();
+            };
+
+            fileInput.onchange = (event) => {
+                console.log("fileInput.onchange triggered");
+                const files = event.target.files;
+                if (files.length === 0) {
+                    return;
+                }
+
+                let markdownFile = null;
+                let metadataFile = null;
+
+                // Find the first markdown file
+                for (let i = 0; i < files.length; i++) {
+                    if (files[i].name.endsWith('.md')) {
+                        markdownFile = files[i];
+                        break;
+                    }
+                }
+
+                if (!markdownFile) {
+                    alert('Please select a markdown (.md) file.');
+                    return;
+                }
+
+                // Look for a corresponding metadata file
+                const expectedMetadataName = markdownFile.name.replace('.md', '_metadata.json');
+                for (let i = 0; i < files.length; i++) {
+                    if (files[i].name === expectedMetadataName) {
+                        metadataFile = files[i];
+                        break;
+                    }
+                }
+                
+                // If no specific metadata file, take the first json
+                if (!metadataFile) {
+                    for (let i = 0; i < files.length; i++) {
+                        if (files[i].name.endsWith('.json')) {
+                            metadataFile = files[i];
+                            break;
+                        }
+                    }
+                }
+
+                const markdownReader = new FileReader();
+                markdownReader.onload = (e) => {
+                    const markdownContent = e.target.result;
+
+                    if (metadataFile) {
+                        const metadataReader = new FileReader();
+                        metadataReader.onload = (me) => {
+                            try {
+                                const metadataContent = JSON.parse(me.target.result);
+                                repopulateGraph(markdownContent, metadataContent);
+                                openModelModal.style.display = 'none';
+                            } catch (jsonError) {
+                                alert('Error parsing metadata file. Loading model without metadata.');
+                                repopulateGraph(markdownContent, null);
+                                openModelModal.style.display = 'none';
+                            }
+                        };
+                        metadataReader.readAsText(metadataFile);
+                    } else {
+                        console.log("No metadata file selected. Loading without positions.");
+                        alert("No metadata file was selected.\n\nFor security reasons, the browser cannot automatically load the metadata file from your computer.\n\nPlease select both the .md file and its corresponding _metadata.json file at the same time to load the positions.");
+                        repopulateGraph(markdownContent, null);
+                        openModelModal.style.display = 'none';
+                    }
+                };
+                markdownReader.readAsText(markdownFile);
+            };
+
+            openModelBtn.onclick = () => {
+                openModelModal.style.display = 'block';
+                fetchModels();
+            };
+            closeBtn.onclick = () => {
+                openModelModal.style.display = 'none';
+            };
+            window.onclick = (event) => {
+                if (event.target == openModelModal) {
+                    openModelModal.style.display = 'none';
+                }
+            };
+            refreshModelsBtn.onclick = fetchModels;
+
+            function fetchModels() {
+                console.log("fetchModels called");
+                modelListContainer.innerHTML = '<p>Loading models...</p>';
+                fetch('/api/models')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            modelListContainer.innerHTML = `<p style="color: red;">Error: ${data.error}</p>`;
+                            return;
+                        }
+                        modelListContainer.innerHTML = '';
+                        if (data.models.length === 0) {
+                            modelListContainer.innerHTML = '<p>No saved models found.</p>';
+                        } else {
+                            data.models.forEach(modelPath => {
+                                console.log("Creating list item for:", modelPath);
+                                const item = document.createElement('div');
+                                item.className = 'model-list-item';
+                                item.textContent = modelPath;
+                                item.onclick = () => loadModel(modelPath);
+                                modelListContainer.appendChild(item);
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching models:', error);
+                        modelListContainer.innerHTML = '<p style="color: red;">Failed to fetch models.</p>';
+                    });
+            }
+
+            function loadModel(modelPath) {
+                console.log("Loading model:", modelPath);
+                fetch('/api/load_model', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model_path: modelPath })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Data from /api/load_model:", JSON.stringify(data, null, 2));
+                    if (data.error) {
+                        alert(`Error loading model: ${data.error}`);
+                        return;
+                    }
+                    if (!data.metadata) {
+                        console.error("Metadata is null or undefined in the response from /api/load_model");
+                    }
+                    repopulateGraph(data.markdown_content, data.metadata);
+                    openModelModal.style.display = 'none';
+                })
+                .catch(error => {
+                    console.error('Error loading model:', error);
+                    alert('Failed to load model.');
+                });
+            }
+
+            function repopulateGraph(markdown, metadata) {
+                console.log("repopulateGraph called with metadata:", JSON.stringify(metadata, null, 2));
+                
+                // New logic: Convert position keys to lowercase if metadata exists
+                let processedPositions = null;
+                if (metadata && metadata.positions) {
+                    processedPositions = {};
+                    for (const category in metadata.positions) {
+                        processedPositions[category] = {};
+                        for (const name in metadata.positions[category]) {
+                            processedPositions[category][name.toLowerCase()] = metadata.positions[category][name];
+                        }
+                    }
+                }
+
+                fetch('/api/markdown_to_json', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ markdown: markdown })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(`Error converting model: ${data.error}`);
+                        return;
+                    }
+                    drawGraphFromJSON(data.model_json, processedPositions); // Use processedPositions
+                })
+                .catch(error => {
+                    console.error('Error converting model:', error);
+                    alert('Failed to convert model.');
+                });
+            }
+
+            function drawGraphFromJSON(modelJSON, positions) {
+                console.log("Drawing graph from JSON. modelJSON:", JSON.stringify(modelJSON, null, 2));
+                console.log("Positions:", JSON.stringify(positions, null, 2));
+
+                graph.getModel().beginUpdate();
+                try {
+                    graph.removeCells(graph.getChildVertices(graph.getDefaultParent()));
+                    const cellMap = {}; // Maps model ID to mxGraph cell
+                    const parent = graph.getDefaultParent();
+
+                    // Create boundaries first
+                    const boundaryTree = [];
+                    const boundaryMap = {};
+                    if (modelJSON.boundaries) {
+                        modelJSON.boundaries.forEach(b => {
+                            boundaryMap[b.id] = { ...b, children: [] };
+                        });
+                        modelJSON.boundaries.forEach(b => {
+                            if (b.parentId && boundaryMap[b.parentId]) {
+                                boundaryMap[b.parentId].children.push(boundaryMap[b.id]);
+                            } else {
+                                boundaryTree.push(boundaryMap[b.id]);
+                            }
+                        });
+                    }
+
+                    function createBoundaryVertices(boundaries, parentCell) {
+                        boundaries.forEach(b => {
+                            const pos = positions?.boundaries?.[b.name.toLowerCase()] || { x: 20, y: 20, width: 400, height: 300 };
+                            console.log("Position for boundary", b.name, ":", pos);
+                            
+                            let relativeX = pos.x;
+                            let relativeY = pos.y;
+                            if (parentCell && parentCell !== parent) {
+                                const parentGeo = graph.getCellGeometry(parentCell);
+                                if (parentGeo) {
+                                    relativeX -= parentGeo.x;
+                                    relativeY -= parentGeo.y;
+                                }
+                            }
+
+                            const doc = mxUtils.createXmlDocument();
+                            const obj = doc.createElement('object');
+                            obj.setAttribute('label', b.name);
+                            obj.setAttribute('description', b.description);
+                            obj.setAttribute('isTrusted', String(b.isTrusted));
+                            obj.setAttribute('lineStyle', b.lineStyle);
+
+                            const v = graph.insertVertex(parentCell, null, obj, relativeX, relativeY, pos.width, pos.height, 'BOUNDARY');
+                            cellMap[b.id] = v;
+                            createBoundaryVertices(b.children, v);
+                        });
+                    }
+
+                    createBoundaryVertices(boundaryTree, parent);
+
+                    ['actors', 'servers', 'data'].forEach(type => {
+                        if (modelJSON[type]) {
+                            modelJSON[type].forEach(elem => {
+                                const pos = positions?.[type]?.[elem.name.toLowerCase()] || { x: 20, y: 20, width: 80, height: 80 };
+                                console.log(`Position for ${type}`, elem.name, ":", pos);
+
+                                let style;
+                                const stereotype = elem.type || elem.stereotype;
+                                if (type === 'servers') {
+                                    style = (stereotype || 'SERVER').toUpperCase();
+                                } else {
+                                    style = type.slice(0, -1).toUpperCase();
+                                }
+                                if (type === 'data') style = 'DATA';
+                                if (type === 'actors') style = 'ACTOR';
+
+
+                                const parentCell = elem.parentId ? cellMap[elem.parentId] : parent;
+                                let relativeX = pos.x;
+                                let relativeY = pos.y;
+
+                                if (parentCell && parentCell !== parent) {
+                                    const parentGeo = graph.getCellGeometry(parentCell);
+                                    if (parentGeo) {
+                                        relativeX -= parentGeo.x;
+                                        relativeY -= parentGeo.y;
+                                    }
+                                }
+
+                                const doc = mxUtils.createXmlDocument();
+                                const obj = doc.createElement('object');
+                                obj.setAttribute('label', elem.name);
+                                obj.setAttribute('description', elem.description);
+                                if(elem.os) obj.setAttribute('os', elem.os);
+                                if(stereotype) {
+                                    obj.setAttribute('stereotype', stereotype);
+                                }
+                                
+                                const v = graph.insertVertex(parentCell, null, obj, relativeX, relativeY, pos.width, pos.height, style);
+                                cellMap[elem.id] = v;
+                            });
+                        }
+                    });
+
+                    // Create dataflows
+                    if (modelJSON.dataflows) {
+                        modelJSON.dataflows.forEach(df => {
+                            const fromCell = cellMap[df.from];
+                            const toCell = cellMap[df.to];
+                            if (fromCell && toCell) {
+                                const doc = mxUtils.createXmlDocument();
+                                const obj = doc.createElement('object');
+                                obj.setAttribute('label', df.name);
+                                obj.setAttribute('protocol', df.protocol);
+                                obj.setAttribute('description', df.description);
+                                obj.setAttribute('isEncrypted', String(df.isEncrypted));
+                                obj.setAttribute('isAuthenticated', String(df.isAuthenticated));
+
+                                const edge = graph.insertEdge(parent, null, obj, fromCell, toCell);
+                                
+                                const pos = positions?.dataflows?.[df.name.toLowerCase()];
+                                if (pos && pos.points) {
+                                    const geo = graph.getCellGeometry(edge);
+                                    if(geo) {
+                                        geo.points = pos.points;
+                                    }
+                                }
+                            }
+                        });
+                    }
+
+                } finally {
+                    graph.getModel().endUpdate();
+                }
+            }
+            
+            analyzeModelForPreview(); // Initial analysis for preview
         });
     </script>
-</body>
 </html>

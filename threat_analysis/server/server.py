@@ -17,7 +17,10 @@ import sys
 import base64
 import logging
 import re
-from flask import Flask, render_template, request, jsonify, send_from_directory, send_file
+import datetime
+import json
+import glob
+from flask import Flask, render_template, request, jsonify, send_from_directory, send_file, make_response
 
 from threat_analysis.server.threat_model_service import ThreatModelService
 from threat_analysis import config
@@ -475,4 +478,267 @@ def export_attack_flow():
     except Exception as e:
         logging.error(f"An unexpected error occurred during Attack Flow export: {e}", exc_info=True)
         return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+
+
+@app.route("/api/models", methods=["GET"])
+def list_models():
+    """
+    Lists all threat models (.md files) in the output directory.
+    """
+    try:
+        output_dir = config.OUTPUT_BASE_DIR
+        model_files = []
+        for filepath in glob.iglob(os.path.join(output_dir, '**', '*.md'), recursive=True):
+            model_files.append(os.path.relpath(filepath, project_root))
+        return jsonify({"success": True, "models": model_files})
+    except Exception as e:
+        logging.error(f"Error listing models: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/load_model", methods=["POST"])
+def load_model():
+    """
+    Loads a threat model and its metadata.
+    """
+    try:
+        data = request.get_json()
+        model_path = data.get('model_path', '')
+        logging.info(f"Received request to load model: {model_path}")
+
+        if not model_path:
+            return jsonify({"error": "Missing model path"}), 400
+
+        # Security check: ensure the path is within the project
+        full_model_path = os.path.abspath(os.path.join(project_root, model_path))
+        # Corrected security check to use startswith on the output directory
+        if not full_model_path.startswith(os.path.abspath(config.OUTPUT_BASE_DIR)):
+            return jsonify({"error": "Invalid model path"}), 400
+
+        if not os.path.exists(full_model_path):
+            return jsonify({"error": "Model file not found"}), 404
+
+        with open(full_model_path, 'r', encoding="utf-8") as f:
+            markdown_content = f.read()
+
+        metadata = None
+        metadata_path = full_model_path.replace('.md', '_metadata.json')
+        logging.info(f"Looking for metadata at: {metadata_path}")
+        if os.path.exists(metadata_path):
+            logging.info("Metadata file found. Loading.")
+            with open(metadata_path, 'r', encoding="utf-8") as f:
+                metadata = json.load(f)
+        else:
+            logging.warning("Metadata file not found.")
+
+        return jsonify({
+            "success": True,
+            "markdown_content": markdown_content,
+            "metadata": metadata,
+            "message": "Model loaded successfully"
+        })
+    except Exception as e:
+        logging.error(f"Error during model load: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/markdown_to_json", methods=["POST"])
+def markdown_to_json():
+    """
+    Converts markdown content to a JSON representation for the GUI.
+    """
+    try:
+        data = request.get_json()
+        markdown_content = data.get('markdown', '')
+        
+        if not markdown_content:
+            return jsonify({"error": "Missing markdown content"}), 400
+            
+        model_json = threat_model_service.markdown_to_json_for_gui(markdown_content)
+        
+        return jsonify({
+            "success": True,
+            "model_json": model_json
+        })
+    except Exception as e:
+        logging.error(f"Error during markdown to json conversion: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/save_model", methods=["POST"])
+def save_model():
+    """
+    Saves the threat model along with its metadata and exact positions.
+    """
+    try:
+        data = request.get_json()
+        markdown_content = data.get('markdown', '')
+        model_name = data.get('model_name', 'threat_model')
+        positions_data = data.get('positions', None)  # Exact positions from UI
+        
+        if not markdown_content:
+            return jsonify({"error": "Missing markdown content"}), 400
+        
+        # Ensure output directory exists
+        os.makedirs(config.OUTPUT_BASE_DIR, exist_ok=True)
+        
+        # Create a unique filename with timestamp
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_model_name = re.sub(r'[^a-zA-Z0-9_]', '_', model_name)
+        output_filename = f"{safe_model_name}_{timestamp}.md"
+        output_path = os.path.join(config.OUTPUT_BASE_DIR, output_filename)
+        
+        # Save model with metadata and positions
+        metadata_path = threat_model_service.save_model_with_metadata(
+            markdown_content, output_path, positions_data
+        )
+        
+        return jsonify({
+            "success": True,
+            "model_path": output_path,
+            "metadata_path": metadata_path,
+            "message": "Model and metadata saved successfully",
+            "version": "1.0"
+        })
+    except Exception as e:
+        logging.error(f"Error during model save: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/generate_all", methods=["POST"])
+def generate_all():
+    """
+    Generates all artifacts for a threat model: reports, diagrams, metadata, etc.
+    This is the complete 'Generate' button functionality.
+    """
+    try:
+        data = request.get_json()
+        markdown_content = data.get('markdown', '')
+        model_name = data.get('model_name', 'threat_model')
+        positions_data = data.get('positions', None)
+        
+        if not markdown_content:
+            return jsonify({"error": "Missing markdown content"}), 400
+        
+        # Ensure output directory exists
+        os.makedirs(config.OUTPUT_BASE_DIR, exist_ok=True)
+        
+        # Create a unique directory for this generation
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_model_name = re.sub(r'[^a-zA-Z0-9_]', '_', model_name)
+        generation_dir = os.path.join(config.OUTPUT_BASE_DIR, f"{safe_model_name}_{timestamp}")
+        os.makedirs(generation_dir, exist_ok=True)
+        
+        # Save the model with metadata
+        model_filename = f"{safe_model_name}.md"
+        model_path = os.path.join(generation_dir, model_filename)
+        metadata_path = threat_model_service.save_model_with_metadata(
+            markdown_content, model_path, positions_data
+        )
+        
+        # Generate all reports and diagrams
+        result = threat_model_service.generate_full_project_export(
+            markdown_content, generation_dir
+        )
+        
+        # Create a summary of generated files
+        generated_files = {
+            "model": model_path,
+            "metadata": metadata_path,
+            "reports": result.get("reports", {}),
+            "diagrams": result.get("diagrams", {})
+        }
+        
+        return jsonify({
+            "success": True,
+            "generation_dir": generation_dir,
+            "generated_files": generated_files,
+            "message": "All artifacts generated successfully"
+        })
+    except Exception as e:
+        logging.error(f"Error during complete generation: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/check_version_compatibility", methods=["POST"])
+def check_version_compatibility():
+    """
+    Checks if a model and its metadata have compatible versions.
+    """
+    try:
+        data = request.get_json()
+        model_path = data.get('model_path', '')
+        metadata_path = data.get('metadata_path', '')
+        
+        if not model_path or not metadata_path:
+            return jsonify({"error": "Missing model or metadata path"}), 400
+        
+        # Check if paths are valid and within allowed directory
+        if not model_path.startswith(config.OUTPUT_BASE_DIR) or not metadata_path.startswith(config.OUTPUT_BASE_DIR):
+            return jsonify({"error": "Invalid file paths"}), 400
+        
+        if not os.path.exists(model_path) or not os.path.exists(metadata_path):
+            return jsonify({"error": "Model or metadata file not found"}), 404
+        
+        # Check version compatibility
+        is_compatible = threat_model_service.check_version_compatibility(model_path, metadata_path)
+        
+        return jsonify({
+            "success": True,
+            "compatible": is_compatible,
+            "message": "Version compatibility checked successfully"
+        })
+    except Exception as e:
+        logging.error(f"Error during version compatibility check: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/load_metadata", methods=["POST"])
+def load_metadata():
+    """
+    Loads metadata from a saved metadata file.
+    """
+    try:
+        data = request.get_json()
+        metadata_path = data.get('metadata_path', '')
+        
+        if not metadata_path:
+            return jsonify({"error": "Missing metadata path"}), 400
+        
+        # Check if path is valid and within allowed directory
+        if not metadata_path.startswith(config.OUTPUT_BASE_DIR):
+            return jsonify({"error": "Invalid metadata path"}), 400
+        
+        if not os.path.exists(metadata_path):
+            return jsonify({"error": "Metadata file not found"}), 404
+        
+        # Load and return the metadata
+        with open(metadata_path, 'r') as f:
+            metadata = json.load(f)
+        
+        return jsonify({
+            "success": True,
+            "metadata": metadata,
+            "message": "Metadata loaded successfully"
+        })
+    except Exception as e:
+        logging.error(f"Error during metadata load: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/export_metadata", methods=["POST"])
+def export_metadata():
+    """
+    Exports metadata containing element positions for layout restoration.
+    """
+    try:
+        # Get the current element positions from the service
+        metadata = threat_model_service.get_element_positions()
+        
+        # Create a response with the metadata
+        response = make_response(json.dumps(metadata, indent=2))
+        response.headers['Content-Disposition'] = 'attachment; filename=element_positions.json'
+        response.headers['Content-Type'] = 'application/json'
+        return response
+    except Exception as e:
+        logging.error(f"Error during metadata export: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
 
