@@ -143,70 +143,86 @@ def test_get_edge_attributes_for_protocol(diagram_generator):
     assert "fontsize" not in attributes
 
 def test_get_node_attributes_actor(diagram_generator):
-    actor_dict = {'name': 'User', 'color': 'red', 'is_filled': True}
-    attrs = diagram_generator._get_node_attributes(actor_dict, 'actor')
-    assert 'shape=oval' in attrs
-    assert 'fillcolor="red"' in attrs
-    assert 'label="👤 User"' in attrs
-    assert 'style=filled' in attrs
+    with patch('threat_analysis.generation.diagram_generator.Path') as mock_path:
+        mock_path.return_value.exists.return_value = False
+        actor_dict = {'name': 'User', 'color': 'red', 'is_filled': True}
+        attrs = diagram_generator._get_node_attributes(actor_dict, 'actor')
+        assert 'shape=oval' in attrs
+        assert 'fillcolor="red"' in attrs
+        assert 'label="👤 User"' in attrs
+        assert 'style=filled' in attrs
 
 
 
 def test_get_node_attributes_firewall(diagram_generator):
-    firewall_dict = {'name': 'External Firewall', 'type': 'firewall'}
-    attrs = diagram_generator._get_node_attributes(firewall_dict, 'server')
-    assert 'shape=hexagon' in attrs
-    assert 'fillcolor="red"' in attrs
-    assert 'label="🔥 External Firewall"' in attrs
+    with patch('threat_analysis.generation.diagram_generator.Path') as mock_path:
+        mock_path.return_value.exists.return_value = False
+        firewall_dict = {'name': 'External Firewall', 'type': 'firewall'}
+        attrs = diagram_generator._get_node_attributes(firewall_dict, 'server')
+        assert 'shape=hexagon' in attrs
+        assert 'fillcolor="lightblue"' in attrs
+        assert 'label="🔥 External Firewall"' in attrs
 
 def test_get_node_attributes_database(diagram_generator):
-    db_dict = {'name': 'App Database', 'type': 'database'}
-    attrs = diagram_generator._get_node_attributes(db_dict, 'server')
-    assert 'shape=cylinder' in attrs
-    assert 'fillcolor="lightblue"' in attrs
-    assert 'label="🗄️ App Database"' in attrs
+    with patch('threat_analysis.generation.diagram_generator.Path') as mock_path:
+        mock_path.return_value.exists.return_value = False
+        db_dict = {'name': 'App Database', 'type': 'database'}
+        attrs = diagram_generator._get_node_attributes(db_dict, 'server')
+        assert 'shape=cylinder' in attrs
+        assert 'fillcolor="lightblue"' in attrs
+        assert 'label="🗄️ App Database"' in attrs
 
 def test_get_node_attributes_web_server(diagram_generator):
-    web_server_dict = {'name': 'Web Server', 'type': 'web_server'}
-    attrs = diagram_generator._get_node_attributes(web_server_dict, 'server')
-    assert 'shape=box' in attrs
-    assert 'style=filled' in attrs
-    assert 'fillcolor=lightgreen' in attrs
-    assert 'label="🌐 Web Server"' in attrs
+    with patch('threat_analysis.generation.diagram_generator.Path') as mock_path:
+        mock_path.return_value.exists.return_value = False
+        web_server_dict = {'name': 'Web Server', 'type': 'web_server'}
+        attrs = diagram_generator._get_node_attributes(web_server_dict, 'server')
+        assert 'shape=box' in attrs
+        assert 'style=filled' in attrs
+        assert 'fillcolor="lightblue"' in attrs
+        assert 'label="🌐 Web Server"' in attrs
 
 def test_get_node_attributes_api(diagram_generator):
-    api_dict = {'name': 'Payment API', 'type': 'api_gateway'}
-    attrs = diagram_generator._get_node_attributes(api_dict, 'server')
-    assert 'shape=box' in attrs
-    assert 'style=filled' in attrs
-    assert 'fillcolor=lightyellow' in attrs
-    assert 'label="🔌 Payment API"' in attrs
+    with patch('threat_analysis.generation.diagram_generator.Path') as mock_path:
+        mock_path.return_value.exists.return_value = False
+        api_dict = {'name': 'Payment API', 'type': 'api_gateway'}
+        attrs = diagram_generator._get_node_attributes(api_dict, 'server')
+        assert 'shape=box' in attrs
+        assert 'style=filled' in attrs
+        assert 'fillcolor="lightblue"' in attrs
+        assert 'label="🔌 Payment API"' in attrs
 
 def test_get_node_attributes_default(diagram_generator):
-    default_dict = {'name': 'Generic Node'}
-    attrs = diagram_generator._get_node_attributes(default_dict, 'unknown')
-    assert 'shape=box' in attrs
-    assert 'fillcolor="lightblue"' in attrs
-    assert 'label="Generic Node"' in attrs
+    with patch('threat_analysis.generation.diagram_generator.Path') as mock_path:
+        mock_path.return_value.exists.return_value = False
+        default_dict = {'name': 'Generic Node'}
+        attrs = diagram_generator._get_node_attributes(default_dict, 'unknown')
+        assert 'shape=box' in attrs
+        assert 'fillcolor="lightblue"' in attrs
+        assert 'label="Generic Node"' in attrs
 
 
 
 def test_get_node_attributes_string_format(diagram_generator):
-    attrs = diagram_generator._get_node_attributes("MyStringNode", 'actor')
-    assert 'shape=oval' in attrs
-    assert 'fillcolor="yellow"' in attrs
-    assert 'label="👤 MyStringNode"' in attrs
-    assert 'style=filled' in attrs
+    with patch('threat_analysis.generation.diagram_generator.Path') as mock_path:
+        mock_path.return_value.exists.return_value = False
+        attrs = diagram_generator._get_node_attributes("MyStringNode", 'actor')
+        assert 'shape=oval' in attrs
+        assert 'fillcolor="lightblue"' in attrs
+        assert 'label="👤 MyStringNode"' in attrs
+        assert 'style=filled' in attrs
 
 def test_get_node_attributes_dict_with_object(diagram_generator):
-    mock_pytm_obj = MagicMock()
-    mock_pytm_obj.name = "PyTM Object Name"
-    element_dict = {'object': mock_pytm_obj, 'color': 'orange', 'is_filled': True}
-    attrs = diagram_generator._get_node_attributes(element_dict, 'server')
-    assert 'shape=box' in attrs
-    assert 'fillcolor="orange"' in attrs
-    assert 'label="🖥️ PyTM Object Name"' in attrs
-    assert 'style=filled' in attrs
+    with patch('threat_analysis.generation.diagram_generator.Path') as mock_path:
+        mock_path.return_value.exists.return_value = False
+        mock_pytm_obj = MagicMock()
+        mock_pytm_obj.name = "PyTM Object Name"
+        element_dict = {'object': mock_pytm_obj, 'color': 'orange', 'is_filled': True}
+        attrs = diagram_generator._get_node_attributes(element_dict, 'server')
+        assert 'shape=box' in attrs
+        assert 'fillcolor="orange"' in attrs
+        assert 'label="🖥️ PyTM Object Name"' in attrs
+        assert 'style=filled' in attrs
 
 def test_get_protocol_styles_from_model_get_all_protocol_styles(diagram_generator):
     mock_threat_model = MagicMock()

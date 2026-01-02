@@ -38,3 +38,25 @@ DOT_DIAGRAM_FILENAME_TPL = "tm_diagram_{timestamp}.dot"
 SVG_DIAGRAM_FILENAME_TPL = "tm_diagram_{timestamp}.svg"
 HTML_DIAGRAM_FILENAME_TPL = "tm_diagram_{timestamp}.html"
 JSON_NAVIGATOR_FILENAME_TPL = "attack_navigator_layer_{timestamp}.json"
+
+# --- UI and Diagram Configuration ---
+ICON_MAPPING = {
+    "actor": "resources/icons/actor.png",
+    "web_server": "resources/icons/web-server.png",
+    "database": "resources/icons/database.png",
+    "firewall": "resources/icons/firewall.png",
+    "data": "resources/icons/data.png",
+    "router": "resources/icons/routers.png",
+    "switch": "resources/icons/switch.png",
+}
+
+# --- Web UI Configuration ---
+WEB_ICON_MAPPING = {
+    "actor": "/static/resources/icons/actor.png",
+    "web_server": "/static/resources/icons/web-server.png",
+    "database": "/static/resources/icons/database.png",
+    "firewall": "/static/resources/icons/firewall.png",
+    "data": "/static/resources/icons/data.png",
+    "router": "/static/resources/icons/routers.png",
+    "switch": "/static/resources/icons/switch.png",
+}

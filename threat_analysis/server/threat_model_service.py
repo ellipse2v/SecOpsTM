@@ -18,6 +18,7 @@ import base64
 import datetime
 import zipfile
 import shutil
+import tempfile
 from io import BytesIO
 import json
 from threat_analysis import config
@@ -313,61 +314,72 @@ class ThreatModelService:
         if not markdown_content:
             logging.error("update_diagram_logic: Markdown content is empty.")
             raise ValueError("Markdown content is empty")
-        tmp_md_path = os.path.join(config.TMP_DIR, "live_model.md")
-        os.makedirs(config.TMP_DIR, exist_ok=True)
-        with open(tmp_md_path, "w", encoding="utf-8") as f:
-            f.write(markdown_content)
-        logging.info(f"Saved live markdown to {tmp_md_path}")
-        threat_model = create_threat_model(
-            markdown_content=markdown_content,
-            model_name="WebThreatModel",
-            model_description="Live-updated threat model",
-            cve_service=self.cve_service,
-            validate=False,
-        )
-        if not threat_model:
-            raise RuntimeError("Failed to create threat model")
-        validator = ModelValidator(threat_model)
-        errors = validator.validate()
-        if errors:
-            logging.warning(f"update_diagram_logic: Model validation failed with errors: {errors}")
-            error_html = "<div class='validation-errors'><h3>Validation Errors:</h3><ul>"
-            for error in errors:
-                error_html += f"<li>{error}</li>"
-            error_html += "</ul></div>"
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_md_path = os.path.join(tmpdir, "live_model.md")
+            with open(tmp_md_path, "w", encoding="utf-8") as f:
+                f.write(markdown_content)
+            logging.info(f"Saved live markdown to {tmp_md_path}")
+
+            threat_model = create_threat_model(
+                markdown_content=markdown_content,
+                model_name="WebThreatModel",
+                model_description="Live-updated threat model",
+                cve_service=self.cve_service,
+                validate=False,
+            )
+            if not threat_model:
+                raise RuntimeError("Failed to create threat model")
+
+            validator = ModelValidator(threat_model)
+            errors = validator.validate()
+            if errors:
+                logging.warning(f"update_diagram_logic: Model validation failed with errors: {errors}")
+                error_html = "<div class='validation-errors'><h3>Validation Errors:</h3><ul>"
+                for error in errors:
+                    error_html += f"<li>{error}</li>"
+                error_html += "</ul></div>"
+                return {
+                    "diagram_html": error_html,
+                    "diagram_svg": "",
+                    "legend_html": "",
+                    "validation_errors": errors
+                }
+
+            self.element_positions = self._extract_element_positions(threat_model)
+            dot_code = self.diagram_generator._generate_manual_dot(threat_model)
+            logging.info(
+                f"Generated DOT code (first 500 chars): \n{dot_code[:500]}..."
+            )
+            if not dot_code:
+                raise RuntimeError("Failed to generate DOT code from model")
+
+            temp_svg_path = os.path.join(tmpdir, "live_preview.svg")
+            svg_path = self.diagram_generator.generate_diagram_from_dot(
+                dot_code, temp_svg_path, "svg"
+            )
+            logging.info(f"update_diagram_logic: SVG generated at {svg_path}")
+            if not svg_path or not os.path.exists(svg_path):
+                raise RuntimeError("Failed to generate SVG diagram")
+
+            with open(svg_path, "r", encoding="utf-8") as f:
+                svg_content = f.read()
+
+            # Post-process SVG to fix image paths
+            static_path_base = str(PROJECT_ROOT / 'threat_analysis' / 'server' / 'static')
+            svg_content = svg_content.replace(static_path_base, '/static')
+            
+            legend_html = self.diagram_generator._generate_legend_html(threat_model)
+            full_html = self.diagram_generator._create_complete_html(
+                svg_content, legend_html, threat_model
+            )
+            
+            logging.info("update_diagram_logic: Successfully updated diagram.")
             return {
-                "diagram_html": error_html,
-                "diagram_svg": "",
-                "legend_html": "",
-                "validation_errors": errors
+                "diagram_html": full_html,
+                "diagram_svg": svg_content,
+                "legend_html": legend_html,
             }
-        self.element_positions = self._extract_element_positions(threat_model)
-        dot_code = self.diagram_generator._generate_manual_dot(threat_model)
-        logging.info(
-            f"Generated DOT code (first 500 chars): \n{dot_code[:500]}..."
-        )
-        if not dot_code:
-            raise RuntimeError("Failed to generate DOT code from model")
-        temp_svg_path = os.path.join(config.TMP_DIR, "live_preview.svg")
-        os.makedirs(os.path.dirname(temp_svg_path), exist_ok=True)
-        svg_path = self.diagram_generator.generate_diagram_from_dot(
-            dot_code, temp_svg_path, "svg"
-        )
-        logging.info(f"update_diagram_logic: SVG generated at {svg_path}")
-        if not svg_path or not os.path.exists(svg_path):
-            raise RuntimeError("Failed to generate SVG diagram")
-        with open(svg_path, "r", encoding="utf-8") as f:
-            svg_content = f.read()
-        legend_html = self.diagram_generator._generate_legend_html(threat_model)
-        full_html = self.diagram_generator._create_complete_html(
-            svg_content, legend_html, threat_model
-        )
-        logging.info("update_diagram_logic: Successfully updated diagram.")
-        return {
-            "diagram_html": full_html,
-            "diagram_svg": svg_content,
-            "legend_html": legend_html,
-        }
 
     def export_files_logic(self, markdown_content: str, export_format: str):
         logging.info(f"Entering export_files_logic function for format: {export_format}")
@@ -635,42 +647,37 @@ class ThreatModelService:
             raise ValueError("Missing markdown content")
 
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        temp_export_dir = os.path.join(config.TMP_DIR, f"attack_flow_{timestamp}")
-        os.makedirs(temp_export_dir, exist_ok=True)
+        with tempfile.TemporaryDirectory() as temp_export_dir:
+            threat_model = create_threat_model(
+                markdown_content=markdown_content,
+                model_name="ExportedThreatModel",
+                model_description="Exported from web interface",
+                validate=True,
+            )
+            if not threat_model:
+                raise RuntimeError("Failed to create or validate threat model")
 
-        threat_model = create_threat_model(
-            markdown_content=markdown_content,
-            model_name="ExportedThreatModel",
-            model_description="Exported from web interface",
-            validate=True,
-        )
-        if not threat_model:
-            raise RuntimeError("Failed to create or validate threat model")
+            threat_model.process_threats()
+            all_detailed_threats = threat_model.get_all_threats_details()
 
-        threat_model.process_threats()
-        all_detailed_threats = threat_model.get_all_threats_details()
+            attack_flow_generator = AttackFlowGenerator(
+                threats=all_detailed_threats,
+                model_name=threat_model.tm.name
+            )
+            attack_flow_generator.generate_and_save_flows(temp_export_dir)
 
-        attack_flow_generator = AttackFlowGenerator(
-            threats=all_detailed_threats,
-            model_name=threat_model.tm.name
-        )
-        attack_flow_generator.generate_and_save_flows(temp_export_dir)
+            afb_dir = os.path.join(temp_export_dir, "afb")
+            if not os.path.exists(afb_dir) or not os.listdir(afb_dir):
+                logging.warning("No attack flow files were generated.")
+                return None, None
 
-        afb_dir = os.path.join(temp_export_dir, "afb")
-        if not os.path.exists(afb_dir) or not os.listdir(afb_dir):
-            logging.warning("No attack flow files were generated.")
-            shutil.rmtree(temp_export_dir)
-            return None, None
+            zip_buffer = BytesIO()
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+                for root, _, files in os.walk(afb_dir):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        arcname = os.path.relpath(file_path, afb_dir)
+                        zf.write(file_path, arcname)
+            zip_buffer.seek(0)
 
-        zip_buffer = BytesIO()
-        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-            for root, _, files in os.walk(afb_dir):
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    arcname = os.path.relpath(file_path, afb_dir)
-                    zf.write(file_path, arcname)
-        zip_buffer.seek(0)
-
-        shutil.rmtree(temp_export_dir)
-
-        return zip_buffer, timestamp
+            return zip_buffer, timestamp

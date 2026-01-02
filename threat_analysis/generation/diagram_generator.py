@@ -26,6 +26,9 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
 from threat_analysis.core.models_module import ThreatModel
+from threat_analysis import config
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 class DiagramGenerator:
     """Enhanced class for threat model diagram generation with protocol styles and boundary attributes"""
@@ -219,80 +222,86 @@ class DiagramGenerator:
         if isinstance(element, dict):
             element_type = element.get('type')
 
-        ICON_MAP = {
-            "actor": "threat_analysis/server/static/resources/icons/actor.png",
-            "web_server": "threat_analysis/server/static/resources/icons/web-server.png",
-            "database": "threat_analysis/server/static/resources/icons/database.png",
-            "firewall": "threat_analysis/server/static/resources/icons/firewall.png",
-            "server": "threat_analysis/server/static/resources/icons/server.png",
-        }
-        
-        icon_path = ICON_MAP.get(element_type) if element_type else None
-        if not icon_path and node_type in ICON_MAP:
-             icon_path = ICON_MAP.get(node_type)
+        # 1. Determine shape and icon (for fallback)
+        shape = 'box'
+        icon = ''
+        if element_type == 'router':
+            shape = 'box'
+            icon = '🌐 '
+        elif element_type == 'switch':
+            shape = 'diamond'
+            icon = '🔀 '
+        elif element_type == 'firewall':
+            shape = 'hexagon'
+            icon = '🔥 '
+        elif element_type == 'database':
+            shape = 'cylinder'
+            icon = '🗄️ '
+        elif element_type == 'web_server':
+            shape = 'box'
+            icon = '🌐 '
+        elif element_type == 'api_gateway':
+            shape = 'box'
+            icon = '🔌 '
+        else: # Fallback to node_type
+            if node_type == 'actor':
+                shape = 'oval'
+                icon = '👤 '
+            elif node_type == 'server':
+                shape = 'box'
+                icon = '🖥️ '
 
+        attributes.append(f'shape={shape}')
 
-        if icon_path and Path(icon_path).exists():
-            attributes.append(f'image="{icon_path}"')
-            attributes.append('imagescale=true')
-            attributes.append('fixedsize=true')
-            attributes.append('width=0.5')
-            attributes.append('height=0.5')
-            attributes.append('labelloc=b')
-            attributes.append('shape=none') 
-            attributes.append(f'label="{escaped_name}"')
-        else:
-            # Fallback to shapes and unicode icons
-            icon = ''
-            if element_type == 'router':
-                attributes.append('shape=box')
-                icon = '🌐 '
-            elif element_type == 'switch':
-                attributes.append('shape=diamond')
-                icon = '🔀 '
-            elif element_type == 'firewall':
-                attributes.append('shape=hexagon')
-                icon = '🔥 '
-            elif element_type == 'database':
-                attributes.append('shape=cylinder')
-                icon = '🗄️ '
-            elif element_type == 'web_server':
-                attributes.append('shape=box')
-                icon = '🌐 '
-            elif element_type == 'api_gateway':
-                attributes.append('shape=box')
-                icon = '🔌 '
+        # 2. Set style and color
+        if is_filled is not None:
+            if is_filled:
+                attributes.append('style=filled')
             else:
-                if node_type == 'actor':
-                    attributes.append('shape=oval')
-                    icon = '👤 '
-                elif node_type == 'server':
-                    attributes.append('shape=box')
-                    icon = '🖥️ '
-                else:
-                    attributes.append('shape=box')
+                attributes.append('style=""')
+        else:
+            attributes.append('style=filled')
+        
+        final_fillcolor = fillcolor or color or 'lightblue'
+        if final_fillcolor:
+            attributes.append(f'fillcolor="{final_fillcolor}"')
+
+        if color and fillcolor and color != fillcolor:
+            attributes.append(f'color="{color}"')
+        elif color and not fillcolor:
+            attributes.append(f'color="{color}"')
+        
+        # 3. Handle image
+        ICON_MAP = config.ICON_MAPPING
+        
+        relative_icon_path = ICON_MAP.get(element_type) if element_type else None
+        if not relative_icon_path and node_type in ICON_MAP:
+             relative_icon_path = ICON_MAP.get(node_type)
+
+        filesystem_icon_path = None
+        if relative_icon_path:
+            filesystem_icon_path = PROJECT_ROOT / 'threat_analysis' / 'server' / 'static' / relative_icon_path
+
+        if filesystem_icon_path and filesystem_icon_path.exists():
+            # Image exists: use HTML-like label with compact sizing
+            image_size = "48"  # Size in inches
+            attributes.append('fixedsize=true')
+            attributes.append('width=0.75')
+            attributes.append('height=0.75')
+  
+            html_label = f'''<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0">
+    <TR><TD ALIGN="CENTER" WIDTH="{image_size}" HEIGHT="{image_size}" FIXEDSIZE="TRUE"><IMG SRC="{filesystem_icon_path}" SCALE="TRUE"/></TD></TR>
+    <TR><TD ALIGN="CENTER"><FONT POINT-SIZE="10">{escaped_name}</FONT></TD></TR>
+    </TABLE>>'''
+            attributes.append(f'label={html_label}')
+        else:
+
             if icon:
                 attributes.append(f'label="{icon}{escaped_name}"')
             else:
                 attributes.append(f'label="{escaped_name}"')
 
-            if is_filled is not None:
-                if is_filled:
-                    attributes.append('style=filled')
-                else:
-                    attributes.append('style=""')
-            else:
-                attributes.append('style=filled')
-            
-            final_fillcolor = fillcolor or color or 'lightblue'
-            if final_fillcolor:
-                attributes.append(f'fillcolor="{final_fillcolor}"')
-            
-            if color and fillcolor and color != fillcolor:
-                attributes.append(f'color="{color}"')
-            elif color and not fillcolor:
-                attributes.append(f'color="{color}"')
-        
+        # 4. Add common attributes
         attributes.append(f'id="{self._sanitize_name(node_name)}"')
         
         return f'[{", ".join(attributes)}]'

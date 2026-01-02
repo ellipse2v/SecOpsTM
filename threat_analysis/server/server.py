@@ -100,7 +100,7 @@ def run_gui(model_filepath: str = None):
     print(
         "\n🚀 Starting Threat Model GUI. Open your browser to: http://127.0.0.1:5000/\n"
     )
-    app.run(debug=True, port=5000)
+    app.run(debug=os.environ.get('FLASK_DEBUG', 'false').lower() == 'true', port=5000)
 
 
 def run_full_gui(model_filepath: str = None):
@@ -133,7 +133,7 @@ def run_full_gui(model_filepath: str = None):
         "\n🚀 Starting Threat Model Full GUI. Open your browser to: "
         "http://127.0.0.1:5001/full\n"
     )
-    app.run(debug=True, port=5001)
+    app.run(debug=os.environ.get('FLASK_DEBUG', 'false').lower() == 'true', port=5001)
 
 
 @app.route('/static/<path:filename>')
@@ -156,8 +156,10 @@ def simple_gui():
 @app.route("/full")
 def full_gui():
     """Serves the main web interface."""
+    icon_map_json = json.dumps(config.ICON_MAPPING)
     return render_template(
-        "full_gui.html"
+        "full_gui.html",
+        icon_map_json=icon_map_json
     )
 
 

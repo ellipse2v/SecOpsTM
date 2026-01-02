@@ -4,14 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Graphical Threat Model Editor - Offline Mode</title>
-    <script>
-        // Configure mxGraph paths before loading the library
-        var mxBasePath = '/static/js/lib';
-        var mxImageBasePath = '/static/js/lib/images';
-    </script>
-    <script type="text/javascript" src="/static/js/lib/mxgraph.min.js"></script>
+    <script type="text/javascript" src="/static/js/lib/konva.min.js"></script>
     <script src="/static/js/lib/split.min.js"></script>
     <script src="/static/js/lib/svg-pan-zoom.min.js"></script>
+    <script src="/static/js/config.js"></script>
     <script src="/static/js/export_manager.js"></script>
     <style>
         body, html {
@@ -56,6 +52,22 @@
             border-left: 1px solid #d1d5da;
             border-right: 1px solid #d1d5da;
         }
+        
+        #resize-instruction {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background-color: rgba(0,0,0,0.7);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 100;
+            pointer-events: none;
+            opacity: 0.8;
+        }
+        
+
         #toolbar h2, #properties-panel h2 { 
             font-size: 1.2em; margin-top: 0; padding-bottom: 10px;
             border-bottom: 1px solid #e0e0e0;
@@ -236,15 +248,17 @@
     </div>
     <div id="container" class="split">
         <div id="toolbar" style="width: 200px;">
+            <div id="resize-instruction">Double-click to resize</div>
             <h2>Elements</h2>
             <button class="toolbar-button" id="add-boundary">Add Boundary</button>
             <button class="toolbar-button" id="add-actor">Add Actor</button>
-            <button class="toolbar-button" id="add-data">Add Data</button>
+
             <div class="toolbar-separator"></div>
             <button class="toolbar-button" id="add-server">Generic Server</button>
             <button class="toolbar-button" id="add-web-server">Web Server</button>
             <button class="toolbar-button" id="add-database">Database</button>
             <button class="toolbar-button" id="add-firewall">Firewall</button>
+            <button class="toolbar-button" id="add-router">Router</button>
             <button class="toolbar-button" id="add-switch">Switch</button>
         </div>
         <div id="graph-container"></div>
@@ -331,41 +345,15 @@
                         </select>
                     </div>
                 </div>
-                <div id="edge-properties-form" style="display: none;">
-                    <div class="prop-group">
-                        <label for="edge-prop-name">Name:</label>
-                        <input type="text" id="edge-prop-name" />
+                 <div id="no-selection">
+                    Select an element to see its properties.
+                    <hr style="margin-top: 20px; margin-bottom: 20px;">
+                    <h3>Graph Properties</h3>
+                    <div>
+                        <label for="graph-bg-color">Background Color:</label>
+                        <input type="color" id="graph-bg-color" value="#ffffff">
                     </div>
-                    <div class="prop-group">
-                        <label for="edge-prop-protocol">Protocol:</label>
-                        <input type="text" id="edge-prop-protocol" />
-                    </div>
-                    <div class="prop-group">
-                        <label for="edge-prop-src-port">Source Port:</label>
-                        <input type="number" id="edge-prop-src-port" />
-                    </div>
-                    <div class="prop-group">
-                        <label for="edge-prop-dst-port">Destination Port:</label>
-                        <input type="number" id="edge-prop-dst-port" />
-                    </div>
-                    <div class="prop-group">
-                        <label for="edge-prop-data">Data:</label>
-                        <input type="text" id="edge-prop-data" />
-                    </div>
-                    <div class="prop-group">
-                        <label for="edge-prop-is-encrypted">Is Encrypted:</label>
-                        <input type="checkbox" id="edge-prop-is-encrypted" />
-                    </div>
-                    <div class="prop-group">
-                        <label for="edge-prop-is-authenticated">Is Authenticated:</label>
-                        <input type="checkbox" id="edge-prop-is-authenticated" />
-                    </div>
-                    <div class="prop-group">
-                        <label for="edge-prop-is-bidirectional">Is Bidirectional:</label>
-                        <input type="checkbox" id="edge-prop-is-bidirectional" />
-                    </div>
-                </div>
-                 <div id="no-selection">Select an element to see its properties.</div>
+                 </div>
             </div>
             <div id="analysis" class="tab-content">
                 <h2>Analysis Result</h2>
@@ -421,31 +409,139 @@
             const integrityInput = document.getElementById('prop-integrity');
             const availabilityInput = document.getElementById('prop-availability');
 
-            const edgeNameInput = document.getElementById('edge-prop-name');
-            const edgeProtocolInput = document.getElementById('edge-prop-protocol');
-            const edgeSrcPortInput = document.getElementById('edge-prop-src-port');
-            const edgeDstPortInput = document.getElementById('edge-prop-dst-port');
-            const edgeDataInput = document.getElementById('edge-prop-data');
-            const edgeIsEncryptedInput = document.getElementById('edge-prop-is-encrypted');
-            const edgeIsAuthenticatedInput = document.getElementById('edge-prop-is-authenticated');
-            const edgeIsBidirectionalInput = document.getElementById('edge-prop-is-bidirectional');
+
 
             const analysisResultContainer = document.getElementById('analysis-result-container');
             const legendContainer = document.getElementById('legend-container');
-            let panZoomInstance;
-            let debounceTimer;
-            let graph;
-            let threatModelJSON = {};
+                        let stage;
+                        let layer;
+                        let panZoomInstance;
+                        let threatModelJSON = {};
+            
+                        // Konva initialization
+                        stage = new Konva.Stage({
+                            container: 'graph-container',
+                            width: graphContainer.offsetWidth,
+                            height: graphContainer.offsetHeight,
+                        });
+            
+                        layer = new Konva.Layer();
+                        stage.add(layer);
+            
+                        // Resize stage when container resizes
+                        new ResizeObserver(() => {
+                            stage.width(graphContainer.offsetWidth);
+                            stage.height(graphContainer.offsetHeight);
+                        }).observe(graphContainer);
 
-            const styleMap = {
-                'BOUNDARY': 'boundaries', 'ACTOR': 'actors', 'SERVER': 'servers',
-                'WEB_SERVER': 'servers', 'DATABASE': 'servers', 'FIREWALL': 'servers',
-                'ROUTER': 'servers', 'SWITCH': 'servers', 'API_GATEWAY': 'servers',
-                'DATA': 'data'
-            };
 
 
-            console.log('DOMContentLoaded - Starting initialization');
+            // Konva Transformer initialization
+            const tr = new Konva.Transformer({
+                enabledAnchors: [], // Start with no anchors (resizing disabled by default)
+                rotateEnabled: false,
+                borderEnabled: true,
+                anchorSize: 8,
+                anchorCornerRadius: 4,
+                anchorFill: '#4CAF50',
+                anchorStroke: '#2E7D32',
+                anchorStrokeWidth: 1,
+                borderStroke: '#4CAF50',
+                borderStrokeWidth: 2,
+                borderDash: [3, 3],
+                keepRatio: false,
+                // Enable resizing when transformer is attached to a node
+                shouldOverdrawWholeArea: true,
+            });
+            layer.add(tr);
+
+            // Single click for selection
+            stage.on('click tap', (e) => {
+                // If click on empty area, remove all transformers
+                if (e.target === stage) {
+                    tr.nodes([]);
+                    updatePropertiesPanel(null);
+                    return;
+                }
+
+                // Do nothing if clicked on transformer
+                if (e.target.getParent() && e.target.getParent().className === 'Transformer') {
+                    return;
+                }
+
+                // If we clicked on a shape that is not selected, select it
+                if (!e.target.hasName('shape')) { // Only shapes are selectable
+                    tr.nodes([]);
+                    updatePropertiesPanel(null);
+                    return;
+                }
+
+                // Get the parent group of the clicked shape
+                const group = e.target.getParent();
+                if (!group || !group.id()) { // If group has no ID, it's not a threat model element
+                    tr.nodes([]);
+                    updatePropertiesPanel(null);
+                    return;
+                }
+                
+                // If multiple nodes are selected, deselect others and select only the clicked one
+                const selectedNodes = tr.nodes();
+                if (selectedNodes.length > 1) {
+                    tr.nodes([group]);
+                } else if (selectedNodes.length === 1 && selectedNodes[0].id() !== group.id()) {
+                    tr.nodes([group]);
+                } else if (selectedNodes.length === 0) {
+                    tr.nodes([group]);
+                }
+
+                updatePropertiesPanel(group); // Update properties panel for the selected group
+            });
+
+            // Double click to enable resizing
+            stage.on('dblclick dbltap', (e) => {
+                if (e.target.hasName('shape')) {
+                    const group = e.target.getParent();
+                    if (group && group.id()) {
+                        // Enable resizing on double click
+                        tr.nodes([group]);
+                        tr.enabledAnchors(['top-left', 'top-right', 'bottom-left', 'bottom-right']);
+                        tr.rotateEnabled(false);
+                        tr.borderEnabled(true);
+                        layer.draw();
+                    }
+                }
+            });
+
+            // Add key listener for deletion with confirmation
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Delete' || e.key === 'Backspace') {
+                    const selectedNodes = tr.nodes();
+                    if (selectedNodes.length > 0) {
+                        // Confirm deletion for important elements
+                        const nodeType = selectedNodes[0].name();
+                        const nodeName = selectedNodes[0].findOne('.label') ? 
+                                        selectedNodes[0].findOne('.label').text() : 'this element';
+                        
+                        let confirmDelete = true;
+                        
+                        // Always confirm for boundaries
+                        if (nodeType === 'BOUNDARY') {
+                            confirmDelete = confirm(`Delete boundary "${nodeName}"? This may affect contained elements.`);
+                        }
+                        
+                        if (confirmDelete) {
+                            // Destroy the selected nodes
+                            selectedNodes.forEach(node => {
+                                node.destroy();
+                            });
+                            
+                            tr.nodes([]); // Clear transformer selection
+                            layer.draw();
+                            updatePropertiesPanel(null); // Clear properties panel
+                        }
+                    }
+                }
+            });
 
             Split(['#toolbar', '#graph-container', '#properties-panel'], {
                 sizes: [15, 60, 25], minSize: [150, 300, 300], gutterSize: 8,
@@ -453,120 +549,626 @@
 
             console.log('Split initialized');
 
-            try {
-                if (typeof mxEvent === 'undefined') {
-                    console.error('mxEvent is not defined. mxgraph library failed to load.');
-                    return;
-                }
+            const addNode = (type, name, x, y) => {
+                // Get configuration from central config
+                const config = ThreatModelConfig;
+                const dimensions = config.ELEMENT_DIMENSIONS[type] || { width: 120, height: 80 };
+                const colors = config.COLOR_SCHEMES[type] || config.COLOR_SCHEMES.DEFAULT;
+                const defaultProps = config.DEFAULT_PROPERTIES[type] || {};
                 
-                if (typeof mxGraph === 'undefined') {
-                    console.error('mxGraph is not defined. mxgraph library failed to load.');
-                    return;
-                }
-                
-                mxEvent.disableContextMenu(graphContainer);
-                console.log('mxEvent disabled context menu');
-                graph = new mxGraph(graphContainer);
-                console.log('mxGraph created successfully');
-                graph.setPanning(true);
+                const width = dimensions.width;
+                const height = dimensions.height;
+                const fill = colors.fill;
+                const stroke = colors.stroke;
+                const textColor = colors.text;
+                const iconPath = config.ICON_MAPPING[type.toLowerCase().replace('_', '')];
 
-                // Enable zooming with mouse wheel
-                mxEvent.addMouseWheelListener(function (evt, up) {
-                    // Holding down Alt key is not required for zooming
-                    if (up) {
-                        graph.zoomIn();
-                    } else {
-                        graph.zoomOut();
+                const group = new Konva.Group({
+                    x: x,
+                    y: y,
+                    draggable: true,
+                    name: type,
+                    id: 'id_' + Math.random().toString(36).substr(2, 9),
+                });
+
+                let shape;
+                let text;
+                const PADDING = 10;
+                const TEXT_HEIGHT = 12;
+
+                // Special handling for network devices (firewall, switch, router)
+                const isNetworkDevice = ['FIREWALL', 'SWITCH', 'ROUTER'].includes(type);
+                
+                if (type === 'ACTOR') {
+                    const radiusX = width / 2;
+                    const radiusY = height / 2;
+                    
+                    shape = new Konva.Ellipse({
+                        x: width / 2,
+                        y: height / 2,
+                        radiusX: radiusX,
+                        radiusY: radiusY,
+                        fill: fill,
+                        stroke: fill,
+                        strokeWidth: 2,
+                        name: 'shape',
+                    });
+                    
+                    text = new Konva.Text({
+                        x: 0,
+                        y: height + PADDING / 2,
+                        text: name,
+                        fontSize: TEXT_HEIGHT,
+                        fill: textColor,
+                        width: width,
+                        align: 'center',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+                        name: 'label',
+                    });
+                    
+                    // Add icon if available
+                    if (iconPath) {
+                        Konva.Image.fromURL(iconPath, (image) => {
+                            image.setAttrs({
+                                x: (width - 48) / 2,
+                                y: (height - 48) / 2,
+                                width: 48,
+                                height: 48,
+                                listening: false,
+                                name: 'image',
+                            });
+                            group.add(image);
+                            layer.draw();
+                        });
                     }
-                    mxEvent.consume(evt);
-                }, graphContainer);
+                } else if (isNetworkDevice) {
+                    // Network devices: larger icon with text below
+                    const iconSize = type === 'SWITCH' ? 59 : 64; // Switch is 5px smaller
+                    const totalHeight = iconSize + TEXT_HEIGHT + 10;
+                    
+                    // Create a shape that matches GUI mode (hexagon for firewall, etc.)
+                    if (type === 'FIREWALL') {
+                        // Hexagon shape for firewall
+                        shape = new Konva.RegularPolygon({
+                            x: width / 2,
+                            y: iconSize / 2,
+                            sides: 6,
+                            radius: iconSize / 2,
+                            fill: fill,
+                            stroke: fill,
+                            strokeWidth: 2,
+                            name: 'shape',
+                        });
+                    } else {
+                        // Rectangle for switch and router
+                        // Switch has larger shape to show background
+                        const shapeSize = type === 'SWITCH' ? iconSize + 5 : iconSize;
+                        shape = new Konva.Rect({
+                            x: (width - shapeSize) / 2,
+                            y: (iconSize - shapeSize) / 2,  // Center the larger shape
+                            width: shapeSize,
+                            height: shapeSize,
+                            fill: fill,
+                            stroke: fill,
+                            strokeWidth: 2,
+                            name: 'shape',
+                        });
+                    }
+                    
+                    // Text below the icon
+                    text = new Konva.Text({
+                        x: 0,
+                        y: iconSize + 5,
+                        text: name,
+                        fontSize: TEXT_HEIGHT,
+                        fill: textColor,
+                        width: width,
+                        align: 'center',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+                        name: 'label',
+                    });
+                    
+                    // Add larger icon
+                    if (iconPath) {
+                        Konva.Image.fromURL(iconPath, (image) => {
+                            image.setAttrs({
+                                x: (width - iconSize) / 2,
+                                y: 0,
+                                width: iconSize,
+                                height: iconSize,
+                                listening: false,
+                                name: 'image',
+                            });
+                            group.add(image);
+                            layer.draw();
+                        });
+                    }
+                } else if (type === 'DATABASE') {
+                    // Database: larger icon (64x64) centered, text below
+                    const iconSize = 64;
+                    const shapeHeight = 80; // Reduced shape height
+                    
+                    shape = new Konva.Rect({
+                        x: 0,
+                        y: 0,
+                        width: width,
+                        height: shapeHeight,
+                        fill: fill,
+                        stroke: fill,
+                        strokeWidth: 2,
+                        name: 'shape',
+                    });
+                    
+                    // Text below the shape (lower position)
+                    text = new Konva.Text({
+                        x: PADDING,
+                        y: shapeHeight + 5,  // Position below shape
+                        text: name,
+                        fontSize: TEXT_HEIGHT,
+                        fill: textColor,
+                        width: width - 2 * PADDING,
+                        align: 'center',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+                        name: 'label',
+                    });
+                    
+                    // Add larger database icon (64x64) centered in shape
+                    if (iconPath) {
+                        Konva.Image.fromURL(iconPath, (image) => {
+                            image.setAttrs({
+                                x: (width - iconSize) / 2,
+                                y: (shapeHeight - iconSize) / 2,
+                                width: iconSize,
+                                height: iconSize,
+                                listening: false,
+                                name: 'icon',
+                            });
+                            group.add(image);
+                            layer.draw();
+                        });
+                    }
+                } else if (type === 'WEB_SERVER') {
+                    // Web Server: with icon (corrected - should use icon)
+                    shape = new Konva.Rect({
+                        x: 0,
+                        y: 0,
+                        width: width,
+                        height: height,
+                        fill: fill,
+                        stroke: fill,
+                        strokeWidth: 2,
+                        name: 'shape',
+                    });
+                    
+                    text = new Konva.Text({
+                        x: PADDING,
+                        y: (height - TEXT_HEIGHT) / 2,
+                        text: name,
+                        fontSize: TEXT_HEIGHT,
+                        fill: textColor,
+                        width: width - 2 * PADDING,
+                        align: 'center',
+                        verticalAlign: 'middle',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+                        name: 'label',
+                    });
+                    
+                    // Add icon for web server (corrected)
+                    if (iconPath) {
+                        Konva.Image.fromURL(iconPath, (image) => {
+                            image.setAttrs({
+                                x: width - 32,
+                                y: height - 32,
+                                width: 24,
+                                height: 24,
+                                listening: false,
+                                name: 'icon',
+                            });
+                            group.add(image);
+                            layer.draw();
+                        });
+                    }
+                } else if (type === 'BOUNDARY') {
+                    // Special handling for BOUNDARY - text below the shape, starting from bottom left
+                    shape = new Konva.Rect({
+                        x: 0,
+                        y: 0,
+                        width: width,
+                        height: height,
+                        fill: fill,
+                        stroke: fill,  // Match border color to fill color
+                        strokeWidth: 2,
+                        name: 'shape',
+                    });
+                    
+                    text = new Konva.Text({
+                        x: 0,
+                        y: height + PADDING,
+                        text: name,
+                        fontSize: TEXT_HEIGHT,
+                        fill: textColor,
+                        width: width,
+                        align: 'left',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+                        name: 'label',
+                    });
+                } else {
+                    // Other regular elements (servers, etc.)
+                    shape = new Konva.Rect({
+                        x: 0,
+                        y: 0,
+                        width: width,
+                        height: height,
+                        fill: fill,
+                        stroke: fill,
+                        strokeWidth: 2,
+                        name: 'shape',
+                    });
+                    
+                    text = new Konva.Text({
+                        x: PADDING,
+                        y: (height - TEXT_HEIGHT) / 2,
+                        text: name,
+                        fontSize: TEXT_HEIGHT,
+                        fill: textColor,
+                        width: width - 2 * PADDING,
+                        align: 'center',
+                        verticalAlign: 'middle',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+                        name: 'label',
+                    });
+                    
+                    // Add icon if available and not an actor
+                    if (iconPath && type !== 'ACTOR') {
+                        Konva.Image.fromURL(iconPath, (image) => {
+                            image.setAttrs({
+                                x: width - 32,
+                                y: height - 32,
+                                width: 24,
+                                height: 24,
+                                listening: false,
+                                name: 'icon',
+                            });
+                            group.add(image);
+                            layer.draw();
+                        });
+                    }
+                }
+                
+                group.add(shape);
+                if (text) group.add(text);
+                layer.add(group);
+                layer.draw();
 
-            new mxRubberband(graph);
-            graph.setTooltips(true);
-            graph.setConnectable(true);
-            graph.setAllowDanglingEdges(false);
-            graph.isCellFoldable = (cell) => cell.isVertex() && cell.getStyle()?.includes('BOUNDARY');
+                // Store custom properties on the group with defaults from config
+                const properties = {
+                    name: name || defaultProps.name || 'New Element',
+                    description: defaultProps.description || '',
+                    os: defaultProps.os || '',
+                    stereotype: type,
+                    isFilled: defaultProps.isFilled !== undefined ? defaultProps.isFilled : (type === 'BOUNDARY' ? false : true),
+                    isTrusted: defaultProps.isTrusted !== undefined ? defaultProps.isTrusted : (type === 'BOUNDARY' ? false : true),
+                    lineStyle: defaultProps.lineStyle || 'solid',
+                    format: defaultProps.format || '',
+                    credentialsLife: defaultProps.credentialsLife || '',
+                    classification: defaultProps.classification || 'public',
+                    confidentiality: defaultProps.confidentiality || 'medium',
+                    integrity: defaultProps.integrity || 'medium',
+                    availability: defaultProps.availability || 'medium',
+                    color: fill,
+                };
 
-            graph.createGroupCell = function(cells) {
-                const group = mxGraph.prototype.createGroupCell.apply(this, arguments);
-                group.setStyle('BOUNDARY');
+                group.setAttr('threatModelProperties', properties);
+                
+                // Apply isFilled property visually
+                if (properties.isFilled) {
+                    shape.fill(properties.color);
+                } else {
+                    shape.fill('transparent');
+                }
+                
+                // Apply isTrusted border override for BOUNDARY
+                if (type === 'BOUNDARY') {
+                    shape.stroke(properties.isTrusted ? '#adb5bd' : 'red');
+                    shape.strokeWidth(properties.isTrusted ? 2 : 1);
+                } else {
+                    // For non-boundary elements, match border color to fill
+                    shape.stroke(properties.color);
+                }
+
+                // Single click for selection
+                group.on('click', (e) => {
+                    e.cancelBubble = true;
+                    
+                    // Normal selection behavior
+                    tr.nodes([group]);
+                    tr.enabledAnchors([]); // Disable resizing by default
+                    updatePropertiesPanel(group);
+                });
+
                 return group;
             };
 
-            const stylesheet = graph.getStylesheet();
-            stylesheet.putCellStyle('BOUNDARY', { shape: mxConstants.SHAPE_RECTANGLE, dashed: 1, fillColor: '#f8f9fa', strokeColor: '#adb5bd', fontColor: '#495057', fontSize: 14, fontStyle: mxConstants.FONT_BOLD, verticalAlign: 'top', align: 'left', spacingLeft: 4, swimlane: true });
-            stylesheet.putCellStyle('ACTOR', { shape: mxConstants.SHAPE_IMAGE, image: '/static/resources/icons/actor.png', verticalLabelPosition: 'bottom', verticalAlign: 'top', imageAspect: 0, fillColor: '#E9D5FF', strokeColor: '#9333EA', fontColor: '#581C87' });
-            stylesheet.putCellStyle('DATA', { shape: mxConstants.SHAPE_CYLINDER, fillColor: '#FFE0B2', strokeColor: '#E65100', fontColor: '#BF360C', gradientColor: '#FFCC80', gradientDirection: mxConstants.DIRECTION_EAST, });
-            stylesheet.putCellStyle('SERVER', { shape: mxConstants.SHAPE_RECTANGLE, fillColor: '#D1FAE5', strokeColor: '#065F46', fontColor: '#064E3B' });
-            stylesheet.putCellStyle('ROUTER', { shape: mxConstants.SHAPE_RECTANGLE, fillColor: '#FFD700', strokeColor: '#B8860B', fontColor: '#8B4513' });
-            stylesheet.putCellStyle('SWITCH', { shape: mxConstants.SHAPE_RHOMBUS, fillColor: 'orange', strokeColor: '#B8860B', fontColor: '#8B4513' });
-            stylesheet.putCellStyle('API_GATEWAY', { shape: mxConstants.SHAPE_RECTANGLE, fillColor: 'lightyellow', strokeColor: '#B8860B', fontColor: '#8B4513' });
-
-            stylesheet.putCellStyle('WEB_SERVER', { shape: mxConstants.SHAPE_IMAGE, image: '/static/resources/icons/web-server.png', verticalLabelPosition: 'bottom', verticalAlign: 'top', imageAspect: 0, fillColor: '#D1FAE5', strokeColor: '#065F46', fontColor: '#064E3B' });
-            stylesheet.putCellStyle('DATABASE', { shape: mxConstants.SHAPE_IMAGE, image: '/static/resources/icons/database.png', verticalLabelPosition: 'bottom', verticalAlign: 'top', imageAspect: 0, fillColor: '#D1FAE5', strokeColor: '#065F46', fontColor: '#064E3B' });
-            stylesheet.putCellStyle('FIREWALL', { shape: mxConstants.SHAPE_IMAGE, image: '/static/resources/icons/firewall.png', verticalLabelPosition: 'bottom', verticalAlign: 'top', imageAspect: 0, fillColor: '#FFCDD2', strokeColor: '#B71C1C', fontColor: '#B71C1C' });
-
-            const parent = graph.getDefaultParent();
-
-            // Custom function to convert our XML user data to display label
-            graph.convertValueToString = function(cell) {
-                if (cell && cell.value && cell.value.nodeType === Node.ELEMENT_NODE) {
-                    // This is our XML object, extract the label attribute
-                    return cell.value.getAttribute('label') || 'Unnamed';
-                }
-                return mxGraph.prototype.convertValueToString.apply(this, arguments);
-            };
-
-            graph.getModel().addListener(mxEvent.CHANGE, (model, event) => {
-                clearTimeout(debounceTimer);
-                debounceTimer = setTimeout(analyzeModelForPreview, 800);
+            document.getElementById('add-boundary').addEventListener('click', () => {
+                const group = addNode('BOUNDARY', 'New Boundary', 50, 50);
+                tr.nodes([group]);
+                updatePropertiesPanel(group);
+            });
+            document.getElementById('add-actor').addEventListener('click', () => {
+                const group = addNode('ACTOR', 'New Actor', 50, 50);
+                tr.nodes([group]);
+                updatePropertiesPanel(group);
             });
 
-            graph.getSelectionModel().addListener(mxEvent.CHANGE, (sender, evt) => {
-                updatePropertiesPanel(graph.getSelectionCell());
+            document.getElementById('add-server').addEventListener('click', () => {
+                const group = addNode('SERVER', 'New Server', 50, 50);
+                tr.nodes([group]);
+                updatePropertiesPanel(group);
+            });
+            document.getElementById('add-web-server').addEventListener('click', () => {
+                const group = addNode('WEB_SERVER', 'Web Server', 50, 50);
+                tr.nodes([group]);
+                updatePropertiesPanel(group);
+            });
+            document.getElementById('add-database').addEventListener('click', () => {
+                const group = addNode('DATABASE', 'Database', 50, 50);
+                tr.nodes([group]);
+                updatePropertiesPanel(group);
+            });
+            document.getElementById('add-firewall').addEventListener('click', () => {
+                const group = addNode('FIREWALL', 'Firewall', 50, 50);
+                tr.nodes([group]);
+                updatePropertiesPanel(group);
+            });
+            document.getElementById('add-router').addEventListener('click', () => {
+                const group = addNode('ROUTER', 'Router', 50, 50);
+                tr.nodes([group]);
+                updatePropertiesPanel(group);
+            });
+            document.getElementById('add-switch').addEventListener('click', () => {
+                const group = addNode('SWITCH', 'New Switch', 50, 50);
+                tr.nodes([group]);
+                updatePropertiesPanel(group);
             });
 
-            // Add listener for when editing stops (user finishes editing text directly on the diagram)
-            graph.addListener(mxEvent.EDITING_STOPPED, (sender, evt) => {
-                const cell = graph.getSelectionCell();
-                if (cell) {
-                    // When user edits text directly on the diagram, update the user data
-                    const newLabel = graph.getLabel(cell);
-                    const userData = getCellUserData(cell);
-                    userData.setAttribute('label', newLabel);
-                    graph.getModel().setValue(cell, userData);
+
+
+
+            
+
+
+
+            function updatePropertiesPanel(node) {
+                // node can be a Konva.Group (for elements) or null (no selection)
+                if (node && node.getAttr('threatModelProperties')) {
+                    const props = node.getAttr('threatModelProperties');
                     
-                    // Update the properties panel to reflect the change
-                    nameInput.value = newLabel;
+                    // Handle regular nodes
+                    propertiesForm.style.display = 'block';
+                    noSelectionDiv.style.display = 'none';
+                        
+                        const type = props.stereotype;
+
+                        nameInput.value = props.name || '';
+                        descriptionInput.value = props.description || '';
+                        osInput.value = props.os || '';
+                        stereotypeInput.value = props.stereotype || '';
+                        isFilledInput.checked = props.isFilled !== undefined ? props.isFilled : true;
+                        isTrustedInput.checked = props.isTrusted !== undefined ? props.isTrusted : true;
+                        lineStyleInput.value = props.lineStyle || 'solid';
+                        formatInput.value = props.format || '';
+                        credentialsLifeInput.value = props.credentialsLife || '';
+                        classificationInput.value = props.classification || 'public';
+                        confidentialityInput.value = props.confidentiality || 'medium';
+                        integrityInput.value = props.integrity || 'medium';
+                        availabilityInput.value = props.availability || 'medium';
+                        colorInput.value = props.color || '#D1FAE5';
+
+                        // Toggle visibility of specific property groups
+                        const isData = (type === 'DATA');
+                        const isBoundary = (type === 'BOUNDARY');
+                        const isServer = (type === 'SERVER' || type === 'WEB_SERVER' || type === 'DATABASE' || type === 'FIREWALL' || type === 'ROUTER' || type === 'SWITCH' || type === 'API_GATEWAY');
+
+                        document.getElementById('prop-classification-group').style.display = isData ? 'block' : 'none';
+                        document.getElementById('prop-os-group').style.display = isServer ? 'block' : 'none';
+                        document.getElementById('prop-stereotype-group').style.display = isServer ? 'block' : 'none';
+                        document.getElementById('prop-is-filled-group').style.display = isBoundary ? 'block' : 'none';
+                        document.getElementById('prop-is-trusted-group').style.display = isBoundary ? 'block' : 'none';
+                        document.getElementById('prop-line-style-group').style.display = isBoundary ? 'block' : 'none';
+                        document.getElementById('prop-format-group').style.display = isData ? 'block' : 'none';
+                        document.getElementById('prop-credentials-life-group').style.display = isData ? 'block' : 'none';
+
+                        document.getElementById('prop-color').parentElement.style.display = 'block';
+                } else {
+                    propertiesForm.style.display = 'none';
+                    noSelectionDiv.style.display = 'block';
                 }
-            });
+            }
 
-            nameInput.addEventListener('input', (evt) => updateCellProperty('label', evt.target.value));
-            colorInput.addEventListener('input', (evt) => updateCellProperty('fillColor', evt.target.value));
-            descriptionInput.addEventListener('input', (evt) => updateCellProperty('description', evt.target.value));
-            osInput.addEventListener('input', (evt) => updateCellProperty('os', evt.target.value));
-            stereotypeInput.addEventListener('input', (evt) => updateCellProperty('stereotype', evt.target.value));
-            isFilledInput.addEventListener('change', (evt) => updateCellProperty('isFilled', evt.target.checked));
-            isTrustedInput.addEventListener('change', (evt) => updateCellProperty('isTrusted', evt.target.checked));
-            lineStyleInput.addEventListener('change', (evt) => updateCellProperty('lineStyle', evt.target.value));
-            formatInput.addEventListener('input', (evt) => updateCellProperty('format', evt.target.value));
-            credentialsLifeInput.addEventListener('input', (evt) => updateCellProperty('credentialsLife', evt.target.value));
-            classificationInput.addEventListener('change', (evt) => updateCellProperty('classification', evt.target.value));
+            function updateCellProperty(key, value) {
+                const selectedNodes = tr.nodes(); // Get selected nodes from transformer
+                if (selectedNodes.length === 1) {
+                    const node = selectedNodes[0];
+                    const props = node.getAttr('threatModelProperties');
+                    props[key] = value;
+                    node.setAttr('threatModelProperties', props);
 
-            confidentialityInput.addEventListener('change', (evt) => updateCellProperty('confidentiality', evt.target.value));
-            integrityInput.addEventListener('change', (evt) => updateCellProperty('integrity', evt.target.value));
-            availabilityInput.addEventListener('change', (evt) => updateCellProperty('availability', evt.target.value));
+                    // Update visual properties based on changes
+                    if (key === 'name') {
+                        const textNode = node.findOne('.label');
+                        if (textNode) {
+                            textNode.text(value);
+                        }
+                    } else if (key === 'color') {
+                        const shapeNode = node.findOne('.shape');
+                        if (shapeNode) {
+                            props.color = value; // Update the stored color first
+                            shapeNode.fill(value); // Directly apply the fill
+                        }
+                    } else if (key === 'isTrusted') {
+                        const shapeNode = node.findOne('.shape');
+                        if (shapeNode) {
+                            // For BOUNDARY, override border color based on isTrusted
+                            if (props.stereotype === 'BOUNDARY') {
+                                shapeNode.stroke(value ? '#adb5bd' : 'red');
+                                shapeNode.strokeWidth(value ? 2 : 1);
+                            }
+                            // Non-boundary elements don't use isTrusted for border color
+                        }
+                    } else if (key === 'isFilled') {
+                        const shapeNode = node.findOne('.shape');
+                        if (shapeNode) {
+                            shapeNode.fill(value ? props.color : 'transparent');
+                        }
+                    } else if (key === 'lineStyle') {
+                        const shapeNode = node.findOne('.shape');
+                        if (shapeNode) {
+                            if (value === 'dashed') {
+                                shapeNode.dash([10, 5]);
+                            } else if (value === 'dotted') {
+                                shapeNode.dash([2, 5]);
+                            } else {
+                                shapeNode.dash([]);
+                            }
+                        }
+                    }
+                    layer.batchDraw();
+                }
+            }
 
-            edgeNameInput.addEventListener('input', (evt) => updateCellProperty('label', evt.target.value));
-            edgeProtocolInput.addEventListener('input', (evt) => updateCellProperty('protocol', evt.target.value));
-            edgeSrcPortInput.addEventListener('input', (evt) => updateCellProperty('srcPort', evt.target.value));
-            edgeDstPortInput.addEventListener('input', (evt) => updateCellProperty('dstPort', evt.target.value));
-            edgeDataInput.addEventListener('input', (evt) => updateCellProperty('data', evt.target.value));
-            edgeIsEncryptedInput.addEventListener('change', (evt) => updateCellProperty('isEncrypted', evt.target.checked));
-            edgeIsAuthenticatedInput.addEventListener('change', (evt) => updateCellProperty('isAuthenticated', evt.target.checked));
-            edgeIsBidirectionalInput.addEventListener('change', (evt) => updateCellProperty('bidirectional', evt.target.checked));
 
 
+
+            
+            if (nameInput) {
+                            if (nameInput) {
+                                nameInput.addEventListener('input', (evt) => {
+                                    updateCellProperty('name', evt.target.value);
+                                    // Also update the label if it exists
+                                    const selectedNodes = tr.nodes();
+                                    if (selectedNodes.length === 1) {
+                                        const node = selectedNodes[0];
+                                        const textNode = node.findOne('.label');
+                                        if (textNode) {
+                                            textNode.text(evt.target.value);
+                                            layer.draw();
+                                        }
+                                    }
+                                });
+                            }            }
+            if (colorInput) {
+                colorInput.addEventListener('input', (evt) => updateCellProperty('color', evt.target.value));
+            }
+            if (descriptionInput) {
+                descriptionInput.addEventListener('input', (evt) => updateCellProperty('description', evt.target.value));
+            }
+            if (osInput) {
+                osInput.addEventListener('input', (evt) => updateCellProperty('os', evt.target.value));
+            }
+            if (stereotypeInput) {
+                stereotypeInput.addEventListener('input', (evt) => updateCellProperty('stereotype', evt.target.value));
+            }
+            if (isFilledInput) {
+                isFilledInput.addEventListener('change', (evt) => updateCellProperty('isFilled', evt.target.checked));
+            }
+            if (isTrustedInput) {
+                isTrustedInput.addEventListener('change', (evt) => updateCellProperty('isTrusted', evt.target.checked));
+            }
+            if (lineStyleInput) {
+                lineStyleInput.addEventListener('change', (evt) => updateCellProperty('lineStyle', evt.target.value));
+            }
+            if (formatInput) {
+                formatInput.addEventListener('input', (evt) => updateCellProperty('format', evt.target.value));
+            }
+            if (credentialsLifeInput) {
+                credentialsLifeInput.addEventListener('input', (evt) => updateCellProperty('credentialsLife', evt.target.value));
+            }
+            if (classificationInput) {
+                classificationInput.addEventListener('change', (evt) => updateCellProperty('classification', evt.target.value));
+            }
+
+            if (confidentialityInput) {
+                confidentialityInput.addEventListener('change', (evt) => updateCellProperty('confidentiality', evt.target.value));
+            }
+            if (integrityInput) {
+                integrityInput.addEventListener('change', (evt) => updateCellProperty('integrity', evt.target.value));
+            }
+            if (availabilityInput) {
+                availabilityInput.addEventListener('change', (evt) => updateCellProperty('availability', evt.target.value));
+            }
+
+
+
+
+            function generate() {
+                console.log('Generate button clicked');
+                
+                // Collect all elements from the graph
+                const elements = [];
+                const boundaries = [];
+                const actors = [];
+                const servers = [];
+                const dataElements = [];
+                
+                // Find all groups in the layer
+                layer.find('Group').forEach(group => {
+                    if (group.id() && group.getAttr('threatModelProperties')) {
+                        const props = group.getAttr('threatModelProperties');
+                        const elementType = props.stereotype || group.name();
+                        
+                        const element = {
+                            id: group.id(),
+                            name: props.name,
+                            type: elementType,
+                            x: group.x(),
+                            y: group.y(),
+                            width: group.width(),
+                            height: group.height(),
+                            properties: props
+                        };
+                        
+                        elements.push(element);
+                        
+                        // Categorize elements
+                        if (elementType === 'BOUNDARY') {
+                            boundaries.push(element);
+                        } else if (elementType === 'ACTOR') {
+                            actors.push(element);
+                        } else if (elementType === 'DATA') {
+                            dataElements.push(element);
+                        } else if (['SERVER', 'WEB_SERVER', 'DATABASE', 'FIREWALL', 'ROUTER', 'SWITCH', 'API_GATEWAY'].includes(elementType)) {
+                            servers.push(element);
+                        }
+                    }
+                });
+                
+
+                
+                // Create threat model JSON
+                threatModelJSON = {
+                    boundaries: boundaries,
+                    actors: actors,
+                    servers: servers,
+                    data: dataElements,
+                    elements: elements
+                };
+                
+                console.log('Generated threat model:', threatModelJSON);
+                
+                // Display analysis results
+                analysisResultContainer.innerHTML = '<h3>Analysis Results</h3><pre>' + 
+                    JSON.stringify(threatModelJSON, null, 2) + '</pre>';
+                
+                // Update legend
+                legendContainer.innerHTML = '<h3>Legend</h3>' +
+                    '<ul>' +
+                    '<li><strong>Boundaries</strong>: ' + boundaries.length + '</li>' +
+                    '<li><strong>Actors</strong>: ' + actors.length + '</li>' +
+                    '<li><strong>Servers</strong>: ' + servers.length + '</li>' +
+                    '<li><strong>Data Elements</strong>: ' + dataElements.length + '</li>' +
+                    '</ul>';
+            }
+            
             document.getElementById('analyze-btn').addEventListener('click', generate);
             
             // Initialize ExportManager
@@ -582,276 +1184,19 @@
             });
 
 
-            function getCellUserData(cell) {
-                if (cell && cell.value && typeof cell.value === 'object') {
-                    return cell.value;
-                }
-                const doc = mxUtils.createXmlDocument();
-                const obj = doc.createElement('object');
-                obj.setAttribute('label', cell.value || '');
-                return obj;
-            }
 
-            function updatePropertiesPanel(cell) {
-                if (cell && cell.isVertex()) {
-                    propertiesForm.style.display = 'block';
-                    document.getElementById('edge-properties-form').style.display = 'none';
-                    noSelectionDiv.style.display = 'none';
-                    
-                    const userData = getCellUserData(cell);
-                    
-                    // Set all values
-                    nameInput.value = graph.convertValueToString(cell);
-                    descriptionInput.value = userData.getAttribute('description', '');
-                    osInput.value = userData.getAttribute('os', '');
-                    const styleString = cell.getStyle();
-                    let type = '';
-                    for (const key in styleMap) {
-                        if (styleString.includes(key)) {
-                            type = key;
-                            break;
-                        }
-                    }
-                    stereotypeInput.value = userData.getAttribute('stereotype', type);
-                    
-                    const isFilled = userData.getAttribute('isFilled', 'true') === 'true';
-                    isFilledInput.checked = isFilled;
-                    if (!isFilled) {
-                        graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, 'none', [cell]);
-                    }
 
-                    const isTrusted = userData.getAttribute('isTrusted', 'true') === 'true';
-                    isTrustedInput.checked = isTrusted;
-                    lineStyleInput.value = userData.getAttribute('lineStyle', '');
-                    formatInput.value = userData.getAttribute('format', '');
-                    credentialsLifeInput.value = userData.getAttribute('credentialsLife', '');
-                    classificationInput.value = userData.getAttribute('classification', 'public');
-                    confidentialityInput.value = userData.getAttribute('confidentiality', 'medium');
-                    integrityInput.value = userData.getAttribute('integrity', 'medium');
-                    availabilityInput.value = userData.getAttribute('availability', 'medium');
-                    
-                    const styleObject = graph.getCellStyle(cell);
-                    colorInput.value = styleObject[mxConstants.STYLE_FILLCOLOR] || '#ffffff';
 
-                    const targetStrokeColor = isTrusted ? '#adb5bd' : 'red';
-                    const targetStrokeWidth = isTrusted ? '2' : '1';
 
-                    if (styleObject[mxConstants.STYLE_STROKECOLOR] !== targetStrokeColor) {
-                        graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, targetStrokeColor, [cell]);
-                    }
-                    if (styleObject[mxConstants.STYLE_STROKEWIDTH] !== targetStrokeWidth) {
-                        graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, targetStrokeWidth, [cell]);
-                    }
 
-                    // Show/hide properties based on cell type
-                    const isIconBased = styleString.includes('FIREWALL') || styleString.includes('SWITCH') || styleString.includes('DATABASE') || styleString.includes('WEB_SERVER') || styleString.includes('ACTOR');
-                    document.getElementById('prop-color').parentElement.style.display = isIconBased ? 'none' : 'block';
 
-                    const isData = styleString.includes('DATA');
-                    const isServer = styleString.includes('SERVER');
-                    const isBoundary = styleString.includes('BOUNDARY');
-                    const isActor = styleString.includes('ACTOR');
-                    
-                    document.getElementById('prop-classification-group').style.display = isData ? 'block' : 'none';
-                    document.getElementById('prop-os-group').style.display = isServer ? 'block' : 'none';
-                    document.getElementById('prop-stereotype-group').style.display = isServer ? 'block' : 'none';
-                    document.getElementById('prop-is-filled-group').style.display = isBoundary || isActor ? 'block' : 'none';
-                    document.getElementById('prop-is-trusted-group').style.display = isBoundary ? 'block' : 'none';
-                    document.getElementById('prop-line-style-group').style.display = isBoundary ? 'block' : 'none';
-                    document.getElementById('prop-format-group').style.display = isData ? 'block' : 'none';
-                    document.getElementById('prop-credentials-life-group').style.display = isData ? 'block' : 'none';
-                } else if (cell && cell.isEdge()) {
-                    propertiesForm.style.display = 'none';
-                    document.getElementById('edge-properties-form').style.display = 'block';
-                    noSelectionDiv.style.display = 'none';
-                    
-                    const userData = getCellUserData(cell);
-                    edgeNameInput.value = graph.convertValueToString(cell);
-                    edgeProtocolInput.value = userData.getAttribute('protocol', '');
-                    edgeSrcPortInput.value = userData.getAttribute('srcPort', '');
-                    edgeDstPortInput.value = userData.getAttribute('dstPort', '');
-                    edgeDataInput.value = userData.getAttribute('data', '');
-                    edgeIsEncryptedInput.checked = userData.getAttribute('isEncrypted', 'false') === 'true';
-                    edgeIsAuthenticatedInput.checked = userData.getAttribute('isAuthenticated', 'false') === 'true';
-                    edgeIsBidirectionalInput.checked = userData.getAttribute('bidirectional', 'false') === 'true';
-                } else {
-                    propertiesForm.style.display = 'none';
-                    document.getElementById('edge-properties-form').style.display = 'none';
-                    noSelectionDiv.style.display = 'block';
-                }
-            }
 
-            function updateCellProperty(key, value) {
-                const cell = graph.getSelectionCell();
-                if (cell) {
-                    graph.getModel().beginUpdate();
-                    try {
-                        const userData = getCellUserData(cell);
-                        if (key === 'fillColor') {
-                            graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, value, [cell]);
-                        } else if (key === 'stereotype') {
-                            userData.setAttribute('type', value);
-                            userData.setAttribute('stereotype', value);
-                            graph.getModel().setValue(cell, userData);
-                            graph.setCellStyle(value.toUpperCase());
-                        } else if (key === 'isFilled') {
-                            const color = colorInput.value;
-                            graph.setCellStyles(mxConstants.STYLE_FILLCOLOR, value ? color : 'none', [cell]);
-                            userData.setAttribute(key, String(value));
-                            graph.getModel().setValue(cell, userData);
-                        } else if (key === 'lineStyle') {
-                            userData.setAttribute(key, value);
-                            graph.getModel().setValue(cell, userData);
 
-                            if (value === 'dashed') {
-                                graph.setCellStyles(mxConstants.STYLE_DASHED, '1', [cell]);
-                                graph.setCellStyles(mxConstants.STYLE_DASH_PATTERN, null, [cell]);
-                            } else if (value === 'dotted') {
-                                graph.setCellStyles(mxConstants.STYLE_DASHED, '1', [cell]);
-                                graph.setCellStyles(mxConstants.STYLE_DASH_PATTERN, '1 1', [cell]);
-                            } else { // solid
-                                graph.setCellStyles(mxConstants.STYLE_DASHED, '0', [cell]);
-                                graph.setCellStyles(mxConstants.STYLE_DASH_PATTERN, null, [cell]);
-                            }
-                        } else if (key === 'isTrusted') {
-                            userData.setAttribute(key, String(value));
-                            graph.getModel().setValue(cell, userData);
-                            if (value) { // isTrusted is true
-                                graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, '#adb5bd', [cell]);
-                                graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, '2', [cell]);
-                            } else { // isTrusted is false
-                                graph.setCellStyles(mxConstants.STYLE_STROKECOLOR, 'red', [cell]);
-                                graph.setCellStyles(mxConstants.STYLE_STROKEWIDTH, '1', [cell]);
-                            }
-                        } else {
-                            userData.setAttribute(key, value);
-                            graph.getModel().setValue(cell, userData);
-                            
-                            // If we're updating the label, also update the displayed label
-                            if (key === 'label') {
-                                // Update the user data
-                                userData.setAttribute(key, value);
-                                graph.getModel().setValue(cell, userData);
-                                
-                                // Force refresh to ensure the new label is displayed
-                                graph.refresh(cell);
-                            }
-                        }
-                    } finally {
-                        graph.getModel().endUpdate();
-                    }
-                }
-            }
 
-            const addVertex = (style, name, width, height) => {
-                console.log(`Adding vertex: style=${style}, name=${name}, width=${width}, height=${height}`);
-                
-                const targetParent = graph.getSelectionCell()?.getStyle()?.includes('BOUNDARY') ? graph.getSelectionCell() : parent;
-                console.log(`Target parent: ${targetParent ? targetParent.id : 'root'}`);
-                
-                graph.getModel().beginUpdate();
-                try {
-                    const doc = mxUtils.createXmlDocument();
-                    const obj = doc.createElement('object');
-                    obj.setAttribute('label', name);
-                    if (style === 'BOUNDARY') {
-                        obj.setAttribute('isFilled', 'true');
-                        obj.setAttribute('isTrusted', 'true');
-                    }
-                    obj.setAttribute('stereotype', style);
-                    console.log(`Created XML object with label: ${name}`);
-                    
-                    const v = graph.insertVertex(targetParent, null, obj, 20, 20, width, height, style);
-                    console.log(`Inserted vertex: ${v ? v.id : 'null'}`);
-                    
-                    if (v) {
-                        graph.setSelectionCell(v);
-                        console.log('Set selection cell');
-                    } else {
-                        console.error('Failed to insert vertex');
-                    }
-                } finally {
-                    graph.getModel().endUpdate();
-                    console.log('Graph update completed');
-                }
-            };
 
-            document.getElementById('add-boundary').addEventListener('click', () => {
-                console.log('Add Boundary button clicked');
-                try {
-                    addVertex('BOUNDARY', 'New Boundary', 400, 300);
-                    console.log('Add Boundary completed successfully');
-                } catch (error) {
-                    console.error('Error adding boundary:', error);
-                }
-            });
-            document.getElementById('add-actor').addEventListener('click', () => {
-                console.log('Add Actor button clicked');
-                try {
-                    addVertex('ACTOR', 'New Actor', 80, 80);
-                    console.log('Add Actor completed successfully');
-                } catch (error) {
-                    console.error('Error adding actor:', error);
-                }
-            });
-            document.getElementById('add-data').addEventListener('click', () => {
-                console.log('Add Data button clicked');
-                try {
-                    addVertex('DATA', 'New Data', 100, 80);
-                    console.log('Add Data completed successfully');
-                } catch (error) {
-                    console.error('Error adding data:', error);
-                }
-            });
-            document.getElementById('add-server').addEventListener('click', () => {
-                console.log('Add Server button clicked');
-                try {
-                    addVertex('SERVER', 'New Server', 140, 70);
-                    console.log('Add Server completed successfully');
-                } catch (error) {
-                    console.error('Error adding server:', error);
-                }
-            });
-            document.getElementById('add-web-server').addEventListener('click', () => {
-                console.log('Add Web Server button clicked');
-                try {
-                    addVertex('WEB_SERVER', 'Web Server', 100, 100);
-                    console.log('Add Web Server completed successfully');
-                } catch (error) {
-                    console.error('Error adding web server:', error);
-                }
-            });
-            document.getElementById('add-database').addEventListener('click', () => {
-                console.log('Add Database button clicked');
-                try {
-                    addVertex('DATABASE', 'Database', 100, 100);
-                    console.log('Add Database completed successfully');
-                } catch (error) {
-                    console.error('Error adding database:', error);
-                }
-            });
-            document.getElementById('add-firewall').addEventListener('click', () => {
-                console.log('Add Firewall button clicked');
-                try {
-                    addVertex('FIREWALL', 'Firewall', 100, 100);
-                    console.log('Add Firewall completed successfully');
-                } catch (error) {
-                    console.error('Error adding firewall:', error);
-                }
-            });
-            document.getElementById('add-switch').addEventListener('click', () => {
-                console.log('Add Switch button clicked');
-                try {
-                    addVertex('SWITCH', 'New Switch', 100, 100);
-                    console.log('Add Switch completed successfully');
-                } catch (error) {
-                    console.error('Error adding switch:', error);
-                }
-            });
 
-            } catch (e) {
-                console.error("An error occurred during graph initialization:", e);
-            }
+
+
 
 
             function convert_json_to_markdown(data) {
@@ -861,7 +1206,6 @@
                 const actors = data.actors || [];
                 const servers = data.servers || [];
                 const data_elements = data.data || [];
-                const dataflows = data.dataflows || [];
 
                 const boundary_map = boundaries.reduce((acc, b) => {
                     acc[b.id] = b.name;
@@ -888,7 +1232,7 @@
                 markdown_lines.push("\n## Actors");
                 for (const actor of actors) {
                     const props = { 'boundary': boundary_map[actor.parentId] };
-                    const props_str = _format_properties({ ...actor, ...props }, ['boundary', 'description']);
+                    const props_str = _format_properties({ ...actor, ...props }, ['boundary', 'description', 'color']);
                     markdown_lines.push(`- **${actor.name}**: ${props_str}`);
                 }
 
@@ -896,7 +1240,7 @@
                 for (const server of (data.servers || [])) {
                     const server_with_type = {...server, type: server.stereotype};
                     const props = { 'boundary': boundary_map[server_with_type.parentId] };
-                    const props_str = _format_properties({ ...server_with_type, ...props }, ['boundary', 'description', 'os', 'type']);
+                    const props_str = _format_properties({ ...server_with_type, ...props }, ['boundary', 'description', 'os', 'type', 'color']);
                     markdown_lines.push(`- **${server_with_type.name}**: ${props_str}`);
                 }
 
@@ -906,20 +1250,7 @@
                     markdown_lines.push(`- **${data_item.name}**: ${props_str}`);
                 }
 
-                markdown_lines.push("\n## Dataflows");
-                const nodes = [...actors, ...servers, ...data_elements].reduce((acc, item) => {
-                    acc[item.id] = item;
-                    return acc;
-                }, {});
-                for (const df of dataflows) {
-                    const from_node = nodes[df.from];
-                    const to_node = nodes[df.to];
-                    if (from_node && to_node) {
-                        const df_name = df.name || `${from_node.name} to ${to_node.name}`;
-                        const props_str = _format_properties(df, ['protocol', 'description', 'srcPort', 'dstPort', 'data', 'isEncrypted', 'isAuthenticated', 'bidirectional']);
-                        markdown_lines.push(`- **${df_name}**: from="${from_node.name}", to="${to_node.name}", ${props_str}`);
-                    }
-                }
+
 
                 return markdown_lines.join('\n');
             }
@@ -929,143 +1260,11 @@
                 return match ? match[1].trim() : "Untitled Model";
             }
 
-            function generate() {
-                if (panZoomInstance && analysisResultContainer.querySelector('svg')) {
-                    panZoomInstance.destroy();
-                    panZoomInstance = null;
-                }
 
-                const model = graph.getModel();
-                const defaultParent = graph.getDefaultParent();
-                const cells = model.getChildCells(defaultParent, true, true);
-                console.log("Number of cells found:", cells.length);
-
-                const positions = { boundaries: {}, actors: {}, servers: {}, dataflows: {} };
-                const threatModelJSON = { boundaries: [], actors: [], servers: [], data: [], dataflows: [] };
-
-                cells.forEach(cell => {
-                    const parentCell = cell.getParent();
-                    const parentId = (parentCell && parentCell.id !== '0' && parentCell.id !== '1' ) ? parentCell.id : null;
-                    const style = cell.getStyle();
-                    const userData = getCellUserData(cell);
-                    const label = userData.getAttribute('label', '') || graph.convertValueToString(cell);
-
-                    if (cell.isVertex()) {
-                        const geometry = cell.getGeometry();
-                        const props = {
-                            id: cell.id, name: label, parentId: parentId,
-                            description: userData.getAttribute('description', ''),
-                            os: userData.getAttribute('os', ''),
-                            stereotype: userData.getAttribute('stereotype', ''),
-                            isFilled: userData.getAttribute('isFilled', 'false'),
-                            isTrusted: userData.getAttribute('isTrusted', 'false'),
-                            lineStyle: userData.getAttribute('lineStyle', ''),
-                            format: userData.getAttribute('format', ''),
-                            credentialsLife: userData.getAttribute('credentialsLife', ''),
-                            classification: userData.getAttribute('classification', 'public'),
-                            confidentiality: userData.getAttribute('confidentiality', 'medium'),
-                            integrity: userData.getAttribute('integrity', 'medium'),
-                            availability: userData.getAttribute('availability', 'medium')
-                        };
-
-                        const styleKeys = Object.keys(styleMap).sort((a, b) => b.length - a.length);
-                        for (const key of styleKeys) {
-                            if (style.includes(key)) {
-                                if (!props.stereotype) {
-                                    props.stereotype = key;
-                                }
-                                const category = styleMap[key];
-                                 if (category === 'data' && !positions.data) {
-                                    positions.data = {};
-                                }
-                                threatModelJSON[category].push({ ...props, type: key });
-                                if (positions[category]) {
-                                    positions[category][label.toLowerCase()] = { x: geometry.x, y: geometry.y, width: geometry.width, height: geometry.height };
-                                }
-                                break;
-                            }
-                        }
-                    } else if (cell.isEdge()) {
-                        const geometry = cell.getGeometry();
-                        const df_name = label || 'Dataflow';
-                        threatModelJSON.dataflows.push({
-                            id: cell.id, name: df_name,
-                            from: cell.source?.id, to: cell.target?.id,
-                            protocol: userData.getAttribute('protocol', ''),
-                            srcPort: userData.getAttribute('srcPort', ''),
-                            dstPort: userData.getAttribute('dstPort', ''),
-                            data: userData.getAttribute('data', ''),
-                            isEncrypted: userData.getAttribute('isEncrypted', 'false'),
-                            isAuthenticated: userData.getAttribute('isAuthenticated', 'false'),
-                            bidirectional: userData.getAttribute('bidirectional', 'false')
-                        });
-                        if (geometry && geometry.points) {
-                            positions.dataflows[df_name.toLowerCase()] = { points: geometry.points };
-                        }
-                    }
-                });
-
-                console.log("Threat Model JSON for generate:", threatModelJSON);
-                console.log("Positions for generate:", positions);
-                const markdownContent = convert_json_to_markdown(threatModelJSON);
-                const modelName = getModelName(markdownContent);
-
-                fetch('/api/generate_all', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ markdown: markdownContent, model_name: modelName, positions: positions })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        analysisResultContainer.innerHTML = `<div style="color: red;">Error: ${data.error}</div>`;
-                        return;
-                    }
-
-                    let generatedFilesHtml = '<h3>Generated Files:</h3><ul>';
-                    for (const key in data.generated_files) {
-                        if (typeof data.generated_files[key] === 'string') {
-                            generatedFilesHtml += `<li>${key}: <code>${data.generated_files[key]}</code></li>`;
-                        } else {
-                            generatedFilesHtml += `<li>${key}:<ul>`;
-                            for (const subKey in data.generated_files[key]) {
-                                generatedFilesHtml += `<li>${subKey}: <code>${data.generated_files[key][subKey]}</code></li>`;
-                            }
-                            generatedFilesHtml += `</ul></li>`;
-                        }
-                    }
-                    generatedFilesHtml += '</ul>';
-
-
-                    analysisResultContainer.innerHTML = `
-                        <div style="padding: 10px; background-color: #e7f3ff; border-left: 4px solid #2196F3;">
-                            <strong>✅ All artifacts generated successfully in:</strong> <code>${data.generation_dir}</code>
-                        </div>
-                        ${generatedFilesHtml}
-                    `;
-                    legendContainer.innerHTML = '';
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    analysisResultContainer.innerHTML = `<div style="color: red;">An error occurred while generating the project.</div>`;
-                });
-            }
 
             document.getElementById('analyze-btn').addEventListener('click', generate);
 
-            // Debounced analysis for live updates
-            graph.getModel().addListener(mxEvent.CHANGE, (model, event) => {
-                clearTimeout(debounceTimer);
-                // We don't want to call generate on every change, so we can keep the old analyzeModel for the live preview
-                // or disable it if we only want to generate on button click.
-                // For now, let's keep a lighter version of analyzeModel for live updates.
-                // debounceTimer = setTimeout(analyzeModelForPreview, 800);
-            });
 
-            function analyzeModelForPreview() {
-                // This function can be a slimmed down version of analyzeModel that only fetches the diagram
-                // and doesn't trigger the full generation. For now, we can leave it empty to disable live updates.
-            }
             
             const openModelModal = document.getElementById('open-model-modal');
             const openModelBtn = document.getElementById('open-model-btn');
@@ -1253,139 +1452,16 @@
                 });
             }
 
-            function drawGraphFromJSON(modelJSON, positions) {
-                console.log("Drawing graph from JSON. modelJSON:", JSON.stringify(modelJSON, null, 2));
-                console.log("Positions:", JSON.stringify(positions, null, 2));
 
-                graph.getModel().beginUpdate();
-                try {
-                    graph.removeCells(graph.getChildVertices(graph.getDefaultParent()));
-                    const cellMap = {}; // Maps model ID to mxGraph cell
-                    const parent = graph.getDefaultParent();
-
-                    // Create boundaries first
-                    const boundaryTree = [];
-                    const boundaryMap = {};
-                    if (modelJSON.boundaries) {
-                        modelJSON.boundaries.forEach(b => {
-                            boundaryMap[b.id] = { ...b, children: [] };
-                        });
-                        modelJSON.boundaries.forEach(b => {
-                            if (b.parentId && boundaryMap[b.parentId]) {
-                                boundaryMap[b.parentId].children.push(boundaryMap[b.id]);
-                            } else {
-                                boundaryTree.push(boundaryMap[b.id]);
-                            }
-                        });
-                    }
-
-                    function createBoundaryVertices(boundaries, parentCell) {
-                        boundaries.forEach(b => {
-                            const pos = positions?.boundaries?.[b.name.toLowerCase()] || { x: 20, y: 20, width: 400, height: 300 };
-                            console.log("Position for boundary", b.name, ":", pos);
-                            
-                            let relativeX = pos.x;
-                            let relativeY = pos.y;
-                            if (parentCell && parentCell !== parent) {
-                                const parentGeo = graph.getCellGeometry(parentCell);
-                                if (parentGeo) {
-                                    relativeX -= parentGeo.x;
-                                    relativeY -= parentGeo.y;
-                                }
-                            }
-
-                            const doc = mxUtils.createXmlDocument();
-                            const obj = doc.createElement('object');
-                            obj.setAttribute('label', b.name);
-                            obj.setAttribute('description', b.description);
-                            obj.setAttribute('isTrusted', String(b.isTrusted));
-                            obj.setAttribute('lineStyle', b.lineStyle);
-
-                            const v = graph.insertVertex(parentCell, null, obj, relativeX, relativeY, pos.width, pos.height, 'BOUNDARY');
-                            cellMap[b.id] = v;
-                            createBoundaryVertices(b.children, v);
-                        });
-                    }
-
-                    createBoundaryVertices(boundaryTree, parent);
-
-                    ['actors', 'servers', 'data'].forEach(type => {
-                        if (modelJSON[type]) {
-                            modelJSON[type].forEach(elem => {
-                                const pos = positions?.[type]?.[elem.name.toLowerCase()] || { x: 20, y: 20, width: 80, height: 80 };
-                                console.log(`Position for ${type}`, elem.name, ":", pos);
-
-                                let style;
-                                const stereotype = elem.type || elem.stereotype;
-                                if (type === 'servers') {
-                                    style = (stereotype || 'SERVER').toUpperCase();
-                                } else {
-                                    style = type.slice(0, -1).toUpperCase();
-                                }
-                                if (type === 'data') style = 'DATA';
-                                if (type === 'actors') style = 'ACTOR';
-
-
-                                const parentCell = elem.parentId ? cellMap[elem.parentId] : parent;
-                                let relativeX = pos.x;
-                                let relativeY = pos.y;
-
-                                if (parentCell && parentCell !== parent) {
-                                    const parentGeo = graph.getCellGeometry(parentCell);
-                                    if (parentGeo) {
-                                        relativeX -= parentGeo.x;
-                                        relativeY -= parentGeo.y;
-                                    }
-                                }
-
-                                const doc = mxUtils.createXmlDocument();
-                                const obj = doc.createElement('object');
-                                obj.setAttribute('label', elem.name);
-                                obj.setAttribute('description', elem.description);
-                                if(elem.os) obj.setAttribute('os', elem.os);
-                                if(stereotype) {
-                                    obj.setAttribute('stereotype', stereotype);
-                                }
-                                
-                                const v = graph.insertVertex(parentCell, null, obj, relativeX, relativeY, pos.width, pos.height, style);
-                                cellMap[elem.id] = v;
-                            });
-                        }
-                    });
-
-                    // Create dataflows
-                    if (modelJSON.dataflows) {
-                        modelJSON.dataflows.forEach(df => {
-                            const fromCell = cellMap[df.from];
-                            const toCell = cellMap[df.to];
-                            if (fromCell && toCell) {
-                                const doc = mxUtils.createXmlDocument();
-                                const obj = doc.createElement('object');
-                                obj.setAttribute('label', df.name);
-                                obj.setAttribute('protocol', df.protocol);
-                                obj.setAttribute('description', df.description);
-                                obj.setAttribute('isEncrypted', String(df.isEncrypted));
-                                obj.setAttribute('isAuthenticated', String(df.isAuthenticated));
-
-                                const edge = graph.insertEdge(parent, null, obj, fromCell, toCell);
-                                
-                                const pos = positions?.dataflows?.[df.name.toLowerCase()];
-                                if (pos && pos.points) {
-                                    const geo = graph.getCellGeometry(edge);
-                                    if(geo) {
-                                        geo.points = pos.points;
-                                    }
-                                }
-                            }
-                        });
-                    }
-
-                } finally {
-                    graph.getModel().endUpdate();
-                }
-            }
             
-            analyzeModelForPreview(); // Initial analysis for preview
+
+
+            const graphBgColorInput = document.getElementById('graph-bg-color');
+            graphBgColorInput.addEventListener('input', (event) => {
+                stage.container().style.backgroundColor = event.target.value;
+                // Also update the layer background if needed
+                layer.draw();
+            });
         });
     </script>
 </html>
