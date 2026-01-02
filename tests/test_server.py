@@ -27,7 +27,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 # Now we can import the app
 from threat_analysis.server.server import app, run_gui, DEFAULT_EMPTY_MARKDOWN, threat_model_service
-from threat_analysis import config
 
 @pytest.fixture
 def client():

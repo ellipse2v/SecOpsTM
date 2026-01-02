@@ -23,7 +23,6 @@ import glob
 from flask import Flask, render_template, request, jsonify, send_from_directory, send_file, make_response
 
 from threat_analysis.server.threat_model_service import ThreatModelService
-from threat_analysis import config
 
 # Add project root to sys.path
 project_root = os.path.abspath(
@@ -42,6 +41,53 @@ app = Flask(__name__,
 
 # Initialize the service layer
 threat_model_service = ThreatModelService()
+
+# Generate configuration files if needed
+def generate_config_files():
+    """Generate configuration files to ensure they're up to date"""
+    try:
+        # Add the threat_analysis directory to the path
+        import sys
+        from pathlib import Path
+        sys.path.append(str(Path(__file__).parent))
+        
+        # Import and use the config generator directly
+        from threat_analysis.config_generator import generate_config_js
+        generate_config_js()
+        
+    except Exception as e:
+        print(f"Warning: Error generating configuration files: {e}")
+
+# Generate config.js on startup
+generate_config_files()
+
+# Verify that the config file was generated successfully
+import os
+import time
+config_js_path = os.path.join(os.path.dirname(__file__), "static", "js", "config.js")
+max_attempts = 3
+attempt = 0
+
+while attempt < max_attempts:
+    if os.path.exists(config_js_path):
+        # Check if the file has content
+        try:
+            with open(config_js_path, 'r') as f:
+                content = f.read()
+                if len(content) > 100:  # Basic check for valid content
+                    print(f"Configuration file verified: {config_js_path}")
+                    break
+        except Exception as e:
+            print(f"Warning: Could not read config.js: {e}")
+    else:
+        print(f"Warning: config.js not found at {config_js_path}, attempt {attempt + 1}")
+    
+    attempt += 1
+    if attempt < max_attempts:
+        time.sleep(0.5)  # Wait a bit before retrying
+
+if attempt == max_attempts:
+    print("Warning: Could not verify config.js generation")
 
 initial_markdown_content = ""
 
@@ -156,11 +202,8 @@ def simple_gui():
 @app.route("/full")
 def full_gui():
     """Serves the main web interface."""
-    icon_map_json = json.dumps(config.ICON_MAPPING)
-    return render_template(
-        "full_gui.html",
-        icon_map_json=icon_map_json
-    )
+    # icon_map_json no longer needed as config.js is used directly
+    return render_template("full_gui.html")
 
 
 

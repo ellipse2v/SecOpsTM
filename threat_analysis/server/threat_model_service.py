@@ -21,7 +21,21 @@ import shutil
 import tempfile
 from io import BytesIO
 import json
-from threat_analysis import config
+from pathlib import Path
+import datetime
+
+# Hardcoded configuration values (previously from config.py)
+TIMESTAMP = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+OUTPUT_BASE_DIR = Path("output") / TIMESTAMP
+TMP_DIR = Path("output") / "tmp"
+
+# Filename templates
+HTML_REPORT_FILENAME_TPL = "stride_mitre_report_{timestamp}.html"
+JSON_REPORT_FILENAME_TPL = "mitre_analysis_{timestamp}.json"
+DOT_DIAGRAM_FILENAME_TPL = "tm_diagram_{timestamp}.dot"
+SVG_DIAGRAM_FILENAME_TPL = "tm_diagram_{timestamp}.svg"
+HTML_DIAGRAM_FILENAME_TPL = "tm_diagram_{timestamp}.html"
+JSON_NAVIGATOR_FILENAME_TPL = "attack_navigator_layer_{timestamp}.json"
 
 from threat_analysis.core.model_factory import create_threat_model
 from threat_analysis.core.mitre_mapping_module import MitreMapping
@@ -398,12 +412,12 @@ class ThreatModelService:
         errors = validator.validate()
         if errors:
             raise ValueError("Validation failed: " + ", ".join(errors))
-        os.makedirs(config.OUTPUT_BASE_DIR, exist_ok=True)
+        os.makedirs(OUTPUT_BASE_DIR, exist_ok=True)
         if export_format == "svg":
             dot_code = self.diagram_generator._generate_manual_dot(threat_model)
             output_filename = "diagram.svg"
             output_path = os.path.join(
-                config.OUTPUT_BASE_DIR, output_filename
+                OUTPUT_BASE_DIR, output_filename
             )
             generated_path = self.diagram_generator.generate_diagram_from_dot(
                 dot_code, output_path, "svg"
@@ -414,14 +428,14 @@ class ThreatModelService:
         elif export_format == "diagram":
             dot_code = self.diagram_generator._generate_manual_dot(threat_model)
             svg_path_temp = os.path.join(
-                config.OUTPUT_BASE_DIR, "temp_diagram.svg"
+                OUTPUT_BASE_DIR, "temp_diagram.svg"
             )
             self.diagram_generator.generate_diagram_from_dot(
                 dot_code, svg_path_temp, "svg"
             )
             output_filename = "diagram.html"
             output_path = os.path.join(
-                config.OUTPUT_BASE_DIR, output_filename
+                OUTPUT_BASE_DIR, output_filename
             )
             self.diagram_generator._generate_html_with_legend(
                 svg_path_temp, output_path, threat_model
@@ -431,7 +445,7 @@ class ThreatModelService:
             grouped_threats = threat_model.process_threats()
             output_filename = "threat_report.html"
             output_path = os.path.join(
-                config.OUTPUT_BASE_DIR, output_filename
+                OUTPUT_BASE_DIR, output_filename
             )
             self.report_generator.generate_html_report(
                 threat_model, grouped_threats, output_path
@@ -440,7 +454,7 @@ class ThreatModelService:
         elif export_format == "markdown":
             output_filename = "threat_model.md"
             output_path = os.path.join(
-                config.OUTPUT_BASE_DIR, output_filename
+                OUTPUT_BASE_DIR, output_filename
             )
             with open(output_path, "w", encoding="utf-8") as f:
                 f.write(markdown_content)
@@ -508,7 +522,7 @@ class ThreatModelService:
             threat_model_name=threat_model.tm.name,
             all_detailed_threats=all_detailed_threats
         )
-        navigator_filename = config.JSON_NAVIGATOR_FILENAME_TPL.format(timestamp=config.TIMESTAMP)
+        navigator_filename = JSON_NAVIGATOR_FILENAME_TPL.format(timestamp=TIMESTAMP)
         navigator_filepath = os.path.join(export_path, navigator_filename)
         navigator_generator.save_layer_to_file(navigator_filepath)
 
@@ -517,7 +531,7 @@ class ThreatModelService:
             all_detailed_threats=all_detailed_threats
         )
         stix_bundle = stix_generator_instance.generate_stix_bundle()
-        stix_filename = f"stix_report_{config.TIMESTAMP}.json"
+        stix_filename = f"stix_report_{TIMESTAMP}.json"
         stix_filepath = os.path.join(export_path, stix_filename)
         with open(stix_filepath, "w", encoding="utf-8") as f:
             json.dump(stix_bundle, f, indent=4)
@@ -542,7 +556,7 @@ class ThreatModelService:
 
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         export_dir_name = f"export_{timestamp}"
-        export_path = os.path.join(config.OUTPUT_BASE_DIR, export_dir_name)
+        export_path = os.path.join(OUTPUT_BASE_DIR, export_dir_name)
         os.makedirs(export_path, exist_ok=True)
 
         result = self.generate_full_project_export(markdown_content, export_path)
@@ -592,7 +606,7 @@ class ThreatModelService:
 
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         export_dir_name = f"navigator_stix_export_{timestamp}"
-        export_path = os.path.join(config.OUTPUT_BASE_DIR, export_dir_name)
+        export_path = os.path.join(OUTPUT_BASE_DIR, export_dir_name)
         os.makedirs(export_path, exist_ok=True)
 
         threat_model = create_threat_model(
@@ -615,7 +629,7 @@ class ThreatModelService:
             threat_model_name=threat_model.tm.name,
             all_detailed_threats=all_detailed_threats
         )
-        navigator_filename = config.JSON_NAVIGATOR_FILENAME_TPL.format(timestamp=timestamp)
+        navigator_filename = JSON_NAVIGATOR_FILENAME_TPL.format(timestamp=timestamp)
         navigator_filepath = os.path.join(export_path, navigator_filename)
         navigator_generator.save_layer_to_file(navigator_filepath)
 

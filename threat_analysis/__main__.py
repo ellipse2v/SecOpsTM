@@ -34,7 +34,6 @@ from threat_analysis.generation.diagram_generator import DiagramGenerator
 from threat_analysis.generation.attack_navigator_generator import AttackNavigatorGenerator
 from threat_analysis.generation.attack_flow_generator import AttackFlowGenerator
 from threat_analysis.core.model_factory import create_threat_model
-from threat_analysis import config
 from threat_analysis.iac_plugins import IaCPlugin
 from threat_analysis.generation.report_generator import ReportGenerator
 from threat_analysis.utils import _validate_path_within_project, resolve_path
@@ -95,7 +94,7 @@ class SecOpsTMFramework:
             sys.exit(1)  # Exit if model loading fails
 
         self.severity_calculator = SeverityCalculator(
-            markdown_file_path=config.DEFAULT_MODEL_FILEPATH # Keep this for now, will adjust later if needed
+            markdown_file_path=Path("threatModel_Template/threat_model.md") # Hardcoded path instead of config
         )
         self.report_generator = ReportGenerator(
             self.severity_calculator, self.mitre_mapper, # Use the mitre_mapper from the threat_model
@@ -350,7 +349,7 @@ class CustomArgumentParser:
         self.parser.add_argument(
             "--model-file",
             type=str,
-            default=config.DEFAULT_MODEL_FILEPATH,
+            default="threatModel_Template/threat_model.md",
             help="Path to the threat model Markdown file.",
         )
         self.parser.add_argument(
@@ -476,8 +475,8 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
 
     framework = SecOpsTMFramework(
         markdown_content=markdown_content_for_analysis,
-        model_name=config.DEFAULT_MODEL_NAME,
-        model_description=config.DEFAULT_MODEL_DESCRIPTION,
+        model_name="Enhanced DMZ Security Analysis",
+        model_description="Advanced DMZ architecture with 8 external flows and command zone",
         model_file_path=str(base_model_filepath),
         implemented_mitigations_path=str(implemented_mitigations_path),
         cve_service=cve_service

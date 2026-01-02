@@ -26,7 +26,6 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
 from threat_analysis.core.models_module import ThreatModel
-from threat_analysis import config
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -271,8 +270,16 @@ class DiagramGenerator:
         elif color and not fillcolor:
             attributes.append(f'color="{color}"')
         
-        # 3. Handle image
-        ICON_MAP = config.ICON_MAPPING
+        # 3. Handle image - Use hardcoded icon mapping to avoid dependency on config.py
+        ICON_MAP = {
+            "actor": "resources/icons/actor.png",
+            "web_server": "resources/icons/web-server.png", 
+            "database": "resources/icons/database.png",
+            "firewall": "resources/icons/firewall.png",
+            "data": "resources/icons/data.png",
+            "router": "resources/icons/routers.png",
+            "switch": "resources/icons/switch.png",
+        }
         
         relative_icon_path = ICON_MAP.get(element_type) if element_type else None
         if not relative_icon_path and node_type in ICON_MAP:
