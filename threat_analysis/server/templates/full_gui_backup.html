@@ -226,20 +226,6 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
-        /* Connection styles */
-        .connection-label {
-            font-size: 12px;
-            background: white;
-            padding: 2px 4px;
-            border-radius: 2px;
-            pointer-events: none;
-        }
-        
-        .connection-selected {
-            stroke: #1976d2 !important;
-            stroke-width: 3px !important;
-        }
     </style>
 </head>
 <body>
@@ -481,12 +467,6 @@
                 if (e.target === stage) {
                     tr.nodes([]);
                     updatePropertiesPanel(null);
-                    if (selectedConnection) {
-                        selectedConnection.arrow.stroke('#000');
-                        selectedConnection.arrow.strokeWidth(2);
-                        selectedConnection = null;
-                        layer.draw();
-                    }
                     return;
                 }
 
@@ -575,77 +555,25 @@
 
             console.log('Split initialized');
 
-			// Glow effect
-			function setGlow(node, on) {
-				const shapeNode = node.findOne('.shape');
-				if (shapeNode) {
-					shapeNode.shadowColor('#2196f3');
-					shapeNode.shadowBlur(on ? 35 : 0);
-					shapeNode.shadowOpacity(1);
-					layer.batchDraw();
-				}
-			}
-
-			function getAnchor(node, targetPoint) {
-                const group = node;
-                const absPos = group.getAbsolutePosition();
-                const shape = group.findOne('.shape');
-                
-                if (!shape) {
-                    return { x: absPos.x, y: absPos.y };
+            // Connection management functions
+            function setGlow(node, on) {
+                const shapeNode = node.findOne('.shape');
+                if (shapeNode) {
+                    shapeNode.shadowColor('#2196f3');
+                    shapeNode.shadowBlur(on ? 35 : 0);
+                    shapeNode.shadowOpacity(1);
+                    layer.batchDraw();
                 }
-                
-                // For actors (ellipses), we need to get the actual ellipse shape dimensions
-                if (group.name() === 'ACTOR') {
-                    const radiusX = shape.radiusX();
-                    const radiusY = shape.radiusY();
-                    const center = {
-                        x: absPos.x + shape.x(),
-                        y: absPos.y + shape.y()
-                    };
-                    
-                    const angle = Math.atan2(targetPoint.y - center.y, targetPoint.x - center.x);
-                    return {
-                        x: center.x + radiusX * Math.cos(angle),
-                        y: center.y + radiusY * Math.sin(angle)
-                    };
-                }
+            }
 
-                // For rectangles and other shapes, use the shape's actual position and dimensions
-                const shapeAbsPos = shape.getAbsolutePosition();
-                const w = shape.width();
-                const h = shape.height();
-                
-                // Calculate the actual center of the shape
-                const center = {
-                    x: shapeAbsPos.x + w / 2,
-                    y: shapeAbsPos.y + h / 2,
-                };
-
-                // Calculate intersection with edges
-                const dx = targetPoint.x - center.x;
-                const dy = targetPoint.y - center.y;
-                
-                // Avoid division by zero
-                if (Math.abs(dx) < 0.001 && Math.abs(dy) < 0.001) {
-                    return { x: center.x, y: center.y };
-                }
-                
-                // Calculate which edge the line intersects
-                const halfW = w / 2;
-                const halfH = h / 2;
-                
-                // Time to intersection with vertical edges (left/right)
-                const tx = dx !== 0 ? (dx > 0 ? halfW / dx : -halfW / dx) : Infinity;
-                // Time to intersection with horizontal edges (top/bottom)
-                const ty = dy !== 0 ? (dy > 0 ? halfH / dy : -halfH / dy) : Infinity;
-                
-                // Choose the smaller time (closer intersection)
-                const t = Math.min(tx, ty);
-                
+            function getAnchor(node, targetPoint) {
+                const center = node.getAbsolutePosition();
+                const angle = Math.atan2(targetPoint.y - center.y, targetPoint.x - center.x);
+                const radiusX = node.width() / 2;
+                const radiusY = node.height() / 2;
                 return {
-                    x: center.x + dx * t,
-                    y: center.y + dy * t
+                    x: center.x + radiusX * Math.cos(angle),
+                    y: center.y + radiusY * Math.sin(angle)
                 };
             }
 
@@ -691,17 +619,8 @@
                 update() {
                     if (!this.toNode) return;
 
-                    const toCenter = {
-                        x: this.toNode.getAbsolutePosition().x + this.toNode.width() / 2,
-                        y: this.toNode.getAbsolutePosition().y + this.toNode.height() / 2
-                    };
-                    const fromCenter = {
-                        x: this.fromNode.getAbsolutePosition().x + this.fromNode.width() / 2,
-                        y: this.fromNode.getAbsolutePosition().y + this.fromNode.height() / 2
-                    };
-
-                    const p1 = getAnchor(this.fromNode, toCenter);
-                    const p2 = getAnchor(this.toNode, fromCenter);
+                    const p1 = getAnchor(this.fromNode, this.toNode.getAbsolutePosition());
+                    const p2 = getAnchor(this.toNode, p1);
 
                     const dx = p2.x - p1.x;
                     const dy = p2.y - p1.y;
@@ -727,13 +646,6 @@
                 attach(node) {
                     this.toNode = node;
                     recomputeConflicts(this.fromNode, this.toNode);
-                    this.update();				
-                }
-                
-                setLabel(text) {
-                    this.labelText = text;
-                    this.label.text(text);
-                    layer.draw();
                 }
 
                 destroy() {
@@ -766,12 +678,10 @@
             function selectConnection(c) {
                 if (selectedConnection) {
                     selectedConnection.arrow.stroke('#000');
-                    selectedConnection.arrow.strokeWidth(2);
                 }
 
                 selectedConnection = c;
                 c.arrow.stroke('#1976d2');
-                c.arrow.strokeWidth(3);
                 layer.draw();
             }
 
@@ -789,35 +699,28 @@
             });
 
             // Add mouse event handlers for connections
-        // Mouse events for connections
-			stage.on('mousemove', () => {
-				if (!activeConnection) return;
-				const pos = stage.getPointerPosition();
-				if (!pos) return;
-
-				// Draw temporary arrow from node center to cursor
-				const fromPos = activeConnection.fromNode.getAbsolutePosition();
-				activeConnection.arrow.points([
-					fromPos.x,
-					fromPos.y,
-					pos.x,
-					pos.y
-				]);
+            stage.on('mousemove', () => {
+                if (!activeConnection) return;
+                const pos = stage.getPointerPosition();
+                if (!pos) return;
+                
+                activeConnection.arrow.points([
+                    activeConnection.fromNode.x(),
+                    activeConnection.fromNode.y(),
+                    pos.x, pos.y
+                ]);
 
                 const intersected = stage.getIntersection(pos);
                 const targetNode = intersected ? intersected.getParent() : null;
                 
                 nodes.forEach(n => setGlow(n, false));
-                if (targetNode && targetNode.isNode && targetNode !== activeConnection.fromNode) {
-                    hoverNode = targetNode;
+                if (targetNode && targetNode.hasName('shape') && targetNode !== activeConnection.fromNode) {
+                    hoverNode = targetNode.getParent();
                     setGlow(hoverNode, true);
                 } else {
                     hoverNode = null;
                 }
-				layer.batchDraw();
             });
-            
-
 
             stage.on('mouseup', () => {
                 if (!activeConnection) return;
@@ -829,7 +732,6 @@
                 nodes.forEach(n => setGlow(n, false));
                 activeConnection = null;
                 hoverNode = null;
-				layer.draw();
             });
 
             const addNode = (type, name, x, y) => {
@@ -853,8 +755,6 @@
                     name: type,
                     id: 'id_' + Math.random().toString(36).substr(2, 9),
                 });
-				
-				group.isNode = true; // Important marker
 
                 let shape;
                 let text;
@@ -1171,44 +1071,37 @@
                     updatePropertiesPanel(group);
                 });
 
-                // Add ports for connections - simplified approach
+                // Add ports for connections
                 const ports = [];
-                const portOffset = 8;
-                
-                // Position ports relative to the group center (0,0 is center for all shapes)
-                // This matches the approach in the test.html example
+                // Define port positions based on element type and size
                 const portPositions = [
-                    {x: width/2, y: -portOffset},                    // Top center
-                    {x: width + portOffset, y: height/2},           // Right middle
-                    {x: width/2, y: height + portOffset},           // Bottom center
-                    {x: -portOffset, y: height/2}                   // Left middle
+                    {x: 0, y: -height/2},    // Top
+                    {x: width/2, y: 0},     // Right
+                    {x: 0, y: height/2},     // Bottom
+                    {x: -width/2, y: 0}     // Left
                 ];
 
-                    portPositions.forEach(p => {
-                        const port = new Konva.Circle({
-                            x: p.x,
-                            y: p.y,
-                            radius: 6,
-                            fill: '#fff',
-                            stroke: '#1976d2',
-                            strokeWidth: 2,
-                            visible: false,
-                            cursor: 'crosshair',
-                            name: 'port',
-                            shadowColor: 'rgba(0,0,0,0.3)',
-                            shadowBlur: 3,
-                            shadowOffset: {x: 1, y: 1}
-                        });
-                        
-                        port.on('mousedown', (e) => {
-                            e.cancelBubble = true;
-                            startConnection(group);
-                        });
-                        
-                        group.add(port);
-                        ports.push(port);
-					});
-                // No else needed - we use the same simple approach for all cases
+                portPositions.forEach(p => {
+                    const port = new Konva.Circle({
+                        x: p.x,
+                        y: p.y,
+                        radius: 6,
+                        fill: '#fff',
+                        stroke: '#1976d2',
+                        strokeWidth: 2,
+                        visible: false,
+                        cursor: 'crosshair',
+                        name: 'port'
+                    });
+                    
+                    port.on('mousedown', (e) => {
+                        e.cancelBubble = true;
+                        startConnection(group);
+                    });
+                    
+                    group.add(port);
+                    ports.push(port);
+                });
 
                 // Show/hide ports on hover
                 group.showPorts = (show) => ports.forEach(p => p.visible(show));
@@ -1225,43 +1118,43 @@
             };
 
             document.getElementById('add-boundary').addEventListener('click', () => {
-                const group = addNodeWithTracking('BOUNDARY', 'New Boundary', 50, 50);
+                const group = addNode('BOUNDARY', 'New Boundary', 50, 50);
                 tr.nodes([group]);
                 updatePropertiesPanel(group);
             });
             document.getElementById('add-actor').addEventListener('click', () => {
-                const group = addNodeWithTracking('ACTOR', 'New Actor', 50, 50);
+                const group = addNode('ACTOR', 'New Actor', 50, 50);
                 tr.nodes([group]);
                 updatePropertiesPanel(group);
             });
 
             document.getElementById('add-server').addEventListener('click', () => {
-                const group = addNodeWithTracking('SERVER', 'New Server', 50, 50);
+                const group = addNode('SERVER', 'New Server', 50, 50);
                 tr.nodes([group]);
                 updatePropertiesPanel(group);
             });
             document.getElementById('add-web-server').addEventListener('click', () => {
-                const group = addNodeWithTracking('WEB_SERVER', 'Web Server', 50, 50);
+                const group = addNode('WEB_SERVER', 'Web Server', 50, 50);
                 tr.nodes([group]);
                 updatePropertiesPanel(group);
             });
             document.getElementById('add-database').addEventListener('click', () => {
-                const group = addNodeWithTracking('DATABASE', 'Database', 50, 50);
+                const group = addNode('DATABASE', 'Database', 50, 50);
                 tr.nodes([group]);
                 updatePropertiesPanel(group);
             });
             document.getElementById('add-firewall').addEventListener('click', () => {
-                const group = addNodeWithTracking('FIREWALL', 'Firewall', 50, 50);
+                const group = addNode('FIREWALL', 'Firewall', 50, 50);
                 tr.nodes([group]);
                 updatePropertiesPanel(group);
             });
             document.getElementById('add-router').addEventListener('click', () => {
-                const group = addNodeWithTracking('ROUTER', 'Router', 50, 50);
+                const group = addNode('ROUTER', 'Router', 50, 50);
                 tr.nodes([group]);
                 updatePropertiesPanel(group);
             });
             document.getElementById('add-switch').addEventListener('click', () => {
-                const group = addNodeWithTracking('SWITCH', 'New Switch', 50, 50);
+                const group = addNode('SWITCH', 'New Switch', 50, 50);
                 tr.nodes([group]);
                 updatePropertiesPanel(group);
             });
@@ -1814,43 +1707,13 @@
             // Initialize nodes array for connection management
             const nodes = [];
             
-            // Modify the addNode function to track nodes by wrapping it
-            const addNodeWithTracking = (type, name, x, y) => {
-                const group = addNode(type, name, x, y);
+            // Modify addNode to track all nodes for connection system
+            const originalAddNode = addNode;
+            addNode = (type, name, x, y) => {
+                const group = originalAddNode(type, name, x, y);
                 nodes.push(group);
                 return group;
             };
-            
-            // Replace the original addNode with the tracking version
-            // We'll update all the event listeners to use the new function
-        
-        // Function to load connections from JSON data
-        function loadConnectionsFromJSON(modelData) {
-            if (!modelData.connections || !modelData.connections.length) return;
-            
-            // Create a mapping of element IDs to nodes
-            const idToNode = {};
-            layer.find("Group").forEach(group => {
-                if (group.id()) {
-                    idToNode[group.id()] = group;
-                }
-            });
-            
-            // Create connections
-            modelData.connections.forEach(conn => {
-                const fromNode = idToNode[conn.from];
-                const toNode = idToNode[conn.to];
-                
-                if (fromNode && toNode) {
-                    const connection = new Connection(fromNode);
-                    connection.attach(toNode);
-                    if (conn.label) {
-                        connection.labelText = conn.label;
-                        connection.label.text(conn.label);
-                    }
-                }
-            });
-        }
-    });
+        });
     </script>
 </html>
