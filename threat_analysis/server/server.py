@@ -21,7 +21,7 @@ import datetime
 import json
 import glob
 from flask import Flask, render_template, request, jsonify, send_from_directory, send_file, make_response
-
+from threat_analysis import config
 from threat_analysis.server.threat_model_service import ThreatModelService
 
 # Add project root to sys.path

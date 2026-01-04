@@ -304,6 +304,32 @@
                         <label for="prop-stereotype">Stereotype:</label>
                         <input type="text" id="prop-stereotype" />
                     </div>
+                    <div class="prop-group" id="prop-protocol-group" style="display: none;">
+                        <label for="prop-protocol">Protocol:</label>
+                                                <select id="prop-protocol">
+                            <option value="TCP">TCP</option>
+                            <option value="UDP">UDP</option>
+                            <option value="HTTP">HTTP</option>
+                            <option value="HTTPS">HTTPS</option>
+                            <option value="FTP">FTP</option>
+                            <option value="SMB">SMB</option>
+                            <option value="RPC">RPC</option>
+                            <option value="SQL">SQL</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                    </div>
+                    <div class="prop-group" id="prop-is-encrypted-group" style="display: none;">
+                        <label for="prop-is-encrypted">Is Encrypted:</label>
+                        <input type="checkbox" id="prop-is-encrypted" />
+                    </div>
+                    <div class="prop-group" id="prop-is-authenticated-group" style="display: none;">
+                        <label for="prop-is-authenticated">Is Authenticated:</label>
+                        <input type="checkbox" id="prop-is-authenticated" />
+                    </div>
+                    <div class="prop-group" id="prop-data-group" style="display: none;">
+                        <label for="prop-data">Data:</label>
+                        <input type="text" id="prop-data" />
+                    </div>
                     <div class="prop-group" id="prop-is-filled-group">
                         <label for="prop-is-filled">Is Filled:</label>
                         <input type="checkbox" id="prop-is-filled" />
@@ -431,6 +457,7 @@
                         let layer;
                         let panZoomInstance;
                         let threatModelJSON = {};
+                        let nodes = [];
                         
                         // Connection management variables
                         const connections = [];
@@ -654,7 +681,16 @@
                     this.fromNode = fromNode;
                     this.toNode = null;
                     this.offsetIndex = 0;
-                    this.labelText = 'link';
+                    this.properties = {
+                        name: 'New Dataflow',
+                        protocol: 'TCP',
+                        isEncrypted: false,
+                        isAuthenticated: false,
+                        description: '',
+                        color: '#000000',
+                        data: ''
+                    };
+                    this.labelText = this.properties.name;
 
                     this.arrow = new Konva.Arrow({
                         stroke: '#000',
@@ -773,10 +809,35 @@
                 c.arrow.stroke('#1976d2');
                 c.arrow.strokeWidth(3);
                 layer.draw();
+                updatePropertiesPanel(c); // Update properties panel for connection
+                tr.nodes([]); // Deselect any nodes
+            }
+
+            function findUniqueDataflowName(baseName) {
+                const existingNames = new Set();
+                connections.forEach(conn => {
+                    existingNames.add(conn.properties.name);
+                });
+
+                if (!existingNames.has(baseName)) {
+                    return baseName;
+                }
+
+                let i = 1;
+                while (true) {
+                    const newName = `${baseName} ${i}`;
+                    if (!existingNames.has(newName)) {
+                        return newName;
+                    }
+                    i++;
+                }
             }
 
             function startConnection(n) {
                 activeConnection = new Connection(n);
+                const uniqueName = findUniqueDataflowName('New Dataflow');
+                activeConnection.properties.name = uniqueName;
+                activeConnection.setLabel(uniqueName);
             }
 
             // Add key listener for connection deletion
@@ -832,15 +893,15 @@
 				layer.draw();
             });
 
-            const addNode = (type, name, x, y) => {
+            const addNode = (type, name, x, y, newWidth, newHeight) => {
                 // Get configuration from central config
                 const config = ThreatModelConfig;
                 const dimensions = config.ELEMENT_DIMENSIONS[type] || { width: 120, height: 80 };
                 const colors = config.COLOR_SCHEMES[type] || config.COLOR_SCHEMES.DEFAULT;
                 const defaultProps = config.DEFAULT_PROPERTIES[type] || {};
                 
-                const width = dimensions.width;
-                const height = dimensions.height;
+                const width = newWidth || dimensions.width || (type === 'BOUNDARY' ? 300 : 120);
+                const height = newHeight || dimensions.height || (type === 'BOUNDARY' ? 200 : 80);
                 const fill = colors.fill;
                 const stroke = colors.stroke;
                 const textColor = colors.text;
@@ -1122,6 +1183,7 @@
                 
                 group.add(shape);
                 if (text) group.add(text);
+
                 layer.add(group);
                 layer.draw();
 
@@ -1169,6 +1231,19 @@
                     tr.nodes([group]);
                     tr.enabledAnchors([]); // Disable resizing by default
                     updatePropertiesPanel(group);
+                });
+
+                group.on('transform', () => {
+                    const textNode = group.findOne('.label');
+                    if (textNode) {
+                        textNode.scaleX(1 / group.scaleX());
+                        textNode.scaleY(1 / group.scaleY());
+                    }
+                    const iconNode = group.findOne('.image') || group.findOne('.icon');
+                    if (iconNode) {
+                        iconNode.scaleX(1 / group.scaleX());
+                        iconNode.scaleY(1 / group.scaleY());
+                    }
                 });
 
                 // Add ports for connections - simplified approach
@@ -1224,44 +1299,66 @@
                 return group;
             };
 
+            function findUniqueName(baseName) {
+                const existingNames = new Set();
+                layer.find('Group').forEach(group => {
+                    if (group.id() && group.getAttr('threatModelProperties')) {
+                        existingNames.add(group.getAttr('threatModelProperties').name);
+                    }
+                });
+
+                if (!existingNames.has(baseName)) {
+                    return baseName;
+                }
+
+                let i = 1;
+                while (true) {
+                    const newName = `${baseName} ${i}`;
+                    if (!existingNames.has(newName)) {
+                        return newName;
+                    }
+                    i++;
+                }
+            }
+            
             document.getElementById('add-boundary').addEventListener('click', () => {
-                const group = addNodeWithTracking('BOUNDARY', 'New Boundary', 50, 50);
+                const group = addNodeWithTracking('BOUNDARY', findUniqueName('New Boundary'), 50, 50);
                 tr.nodes([group]);
                 updatePropertiesPanel(group);
             });
             document.getElementById('add-actor').addEventListener('click', () => {
-                const group = addNodeWithTracking('ACTOR', 'New Actor', 50, 50);
+                const group = addNodeWithTracking('ACTOR', findUniqueName('New Actor'), 50, 50);
                 tr.nodes([group]);
                 updatePropertiesPanel(group);
             });
 
             document.getElementById('add-server').addEventListener('click', () => {
-                const group = addNodeWithTracking('SERVER', 'New Server', 50, 50);
+                const group = addNodeWithTracking('SERVER', findUniqueName('New Server'), 50, 50);
                 tr.nodes([group]);
                 updatePropertiesPanel(group);
             });
             document.getElementById('add-web-server').addEventListener('click', () => {
-                const group = addNodeWithTracking('WEB_SERVER', 'Web Server', 50, 50);
+                const group = addNodeWithTracking('WEB_SERVER', findUniqueName('Web Server'), 50, 50);
                 tr.nodes([group]);
                 updatePropertiesPanel(group);
             });
             document.getElementById('add-database').addEventListener('click', () => {
-                const group = addNodeWithTracking('DATABASE', 'Database', 50, 50);
+                const group = addNodeWithTracking('DATABASE', findUniqueName('Database'), 50, 50);
                 tr.nodes([group]);
                 updatePropertiesPanel(group);
             });
             document.getElementById('add-firewall').addEventListener('click', () => {
-                const group = addNodeWithTracking('FIREWALL', 'Firewall', 50, 50);
+                const group = addNodeWithTracking('FIREWALL', findUniqueName('Firewall'), 50, 50);
                 tr.nodes([group]);
                 updatePropertiesPanel(group);
             });
             document.getElementById('add-router').addEventListener('click', () => {
-                const group = addNodeWithTracking('ROUTER', 'Router', 50, 50);
+                const group = addNodeWithTracking('ROUTER', findUniqueName('Router'), 50, 50);
                 tr.nodes([group]);
                 updatePropertiesPanel(group);
             });
             document.getElementById('add-switch').addEventListener('click', () => {
-                const group = addNodeWithTracking('SWITCH', 'New Switch', 50, 50);
+                const group = addNodeWithTracking('SWITCH', findUniqueName('New Switch'), 50, 50);
                 tr.nodes([group]);
                 updatePropertiesPanel(group);
             });
@@ -1273,47 +1370,79 @@
 
 
 
-            function updatePropertiesPanel(node) {
-                // node can be a Konva.Group (for elements) or null (no selection)
-                if (node && node.getAttr('threatModelProperties')) {
-                    const props = node.getAttr('threatModelProperties');
-                    
-                    // Handle regular nodes
+            function updatePropertiesPanel(item) {
+                if (item instanceof Connection) { // It's a connection
+                    const props = item.properties;
                     propertiesForm.style.display = 'block';
                     noSelectionDiv.style.display = 'none';
-                        
-                        const type = props.stereotype;
+                    
+                    document.getElementById('prop-name').value = props.name;
+                    document.getElementById('prop-description').value = props.description;
+                    document.getElementById('prop-protocol').value = props.protocol;
+                    document.getElementById('prop-is-encrypted').checked = props.isEncrypted;
+                    document.getElementById('prop-is-authenticated').checked = props.isAuthenticated;
+                    document.getElementById('prop-color').value = props.color || '#000000';
+                    document.getElementById('prop-data').value = props.data || '';
 
-                        nameInput.value = props.name || '';
-                        descriptionInput.value = props.description || '';
-                        osInput.value = props.os || '';
-                        stereotypeInput.value = props.stereotype || '';
-                        isFilledInput.checked = props.isFilled !== undefined ? props.isFilled : true;
-                        isTrustedInput.checked = props.isTrusted !== undefined ? props.isTrusted : true;
-                        lineStyleInput.value = props.lineStyle || 'solid';
-                        formatInput.value = props.format || '';
-                        credentialsLifeInput.value = props.credentialsLife || '';
-                        classificationInput.value = props.classification || 'public';
-                        confidentialityInput.value = props.confidentiality || 'medium';
-                        integrityInput.value = props.integrity || 'medium';
-                        availabilityInput.value = props.availability || 'medium';
-                        colorInput.value = props.color || '#D1FAE5';
+                    // Hide all node-specific fields
+                    document.getElementById('prop-os-group').style.display = 'none';
+                    document.getElementById('prop-stereotype-group').style.display = 'none';
+                    document.getElementById('prop-is-filled-group').style.display = 'none';
+                    document.getElementById('prop-is-trusted-group').style.display = 'none';
+                    document.getElementById('prop-line-style-group').style.display = 'none';
+                    document.getElementById('prop-format-group').style.display = 'none';
+                    document.getElementById('prop-credentials-life-group').style.display = 'none';
+                    document.getElementById('prop-classification-group').style.display = 'none';
+                    document.getElementById('prop-cia-group').style.display = 'none';
 
-                        // Toggle visibility of specific property groups
-                        const isData = (type === 'DATA');
-                        const isBoundary = (type === 'BOUNDARY');
-                        const isServer = (type === 'SERVER' || type === 'WEB_SERVER' || type === 'DATABASE' || type === 'FIREWALL' || type === 'ROUTER' || type === 'SWITCH' || type === 'API_GATEWAY');
+                    // Show dataflow fields
+                    document.getElementById('prop-color').parentElement.style.display = 'block';
+                    document.getElementById('prop-protocol-group').style.display = 'block';
+                    document.getElementById('prop-is-encrypted-group').style.display = 'block';
+                    document.getElementById('prop-is-authenticated-group').style.display = 'block';
+                    document.getElementById('prop-description-group').style.display = 'block';
+                    document.getElementById('prop-data-group').style.display = 'block';
 
-                        document.getElementById('prop-classification-group').style.display = isData ? 'block' : 'none';
-                        document.getElementById('prop-os-group').style.display = isServer ? 'block' : 'none';
-                        document.getElementById('prop-stereotype-group').style.display = isServer ? 'block' : 'none';
-                        document.getElementById('prop-is-filled-group').style.display = isBoundary ? 'block' : 'none';
-                        document.getElementById('prop-is-trusted-group').style.display = isBoundary ? 'block' : 'none';
-                        document.getElementById('prop-line-style-group').style.display = isBoundary ? 'block' : 'none';
-                        document.getElementById('prop-format-group').style.display = isData ? 'block' : 'none';
-                        document.getElementById('prop-credentials-life-group').style.display = isData ? 'block' : 'none';
+                } else if (item && item.getAttr('threatModelProperties')) { // It's a node
+                    const props = item.getAttr('threatModelProperties');
+                    propertiesForm.style.display = 'block';
+                    noSelectionDiv.style.display = 'none';
 
-                        document.getElementById('prop-color').parentElement.style.display = 'block';
+                    const type = props.stereotype;
+                    nameInput.value = props.name || '';
+                    descriptionInput.value = props.description || '';
+                    osInput.value = props.os || '';
+                    stereotypeInput.value = props.stereotype || '';
+                    isFilledInput.checked = props.isFilled !== undefined ? props.isFilled : true;
+                    isTrustedInput.checked = props.isTrusted !== undefined ? props.isTrusted : true;
+                    lineStyleInput.value = props.lineStyle || 'solid';
+                    formatInput.value = props.format || '';
+                    credentialsLifeInput.value = props.credentialsLife || '';
+                    classificationInput.value = props.classification || 'public';
+                    confidentialityInput.value = props.confidentiality || 'medium';
+                    integrityInput.value = props.integrity || 'medium';
+                    availabilityInput.value = props.availability || 'medium';
+                    colorInput.value = props.color || '#D1FAE5';
+
+                    // Toggle visibility
+                    const isData = (type === 'DATA');
+                    const isBoundary = (type === 'BOUNDARY');
+                    const isServer = (type === 'SERVER' || type === 'WEB_SERVER' || type === 'DATABASE' || type === 'FIREWALL' || type === 'ROUTER' || type === 'SWITCH' || type === 'API_GATEWAY');
+                    document.getElementById('prop-protocol-group').style.display = 'none';
+                    document.getElementById('prop-is-encrypted-group').style.display = 'none';
+                    document.getElementById('prop-is-authenticated-group').style.display = 'none';
+                    document.getElementById('prop-data-group').style.display = 'none';
+                    document.getElementById('prop-classification-group').style.display = isData ? 'block' : 'none';
+                    document.getElementById('prop-os-group').style.display = isServer ? 'block' : 'none';
+                    document.getElementById('prop-stereotype-group').style.display = isServer ? 'block' : 'none';
+                    document.getElementById('prop-is-filled-group').style.display = isBoundary || type === 'ACTOR' ? 'block' : 'none';
+                    document.getElementById('prop-is-trusted-group').style.display = isBoundary ? 'block' : 'none';
+                    document.getElementById('prop-line-style-group').style.display = isBoundary ? 'block' : 'none';
+                    document.getElementById('prop-format-group').style.display = isData ? 'block' : 'none';
+                    document.getElementById('prop-credentials-life-group').style.display = isData ? 'block' : 'none';
+                    document.getElementById('prop-color').parentElement.style.display = 'block';
+                    document.getElementById('prop-cia-group').style.display = 'block';
+
                 } else {
                     propertiesForm.style.display = 'none';
                     noSelectionDiv.style.display = 'block';
@@ -1321,7 +1450,7 @@
             }
 
             function updateCellProperty(key, value) {
-                const selectedNodes = tr.nodes(); // Get selected nodes from transformer
+                const selectedNodes = tr.nodes();
                 if (selectedNodes.length === 1) {
                     const node = selectedNodes[0];
                     const props = node.getAttr('threatModelProperties');
@@ -1338,17 +1467,18 @@
                         const shapeNode = node.findOne('.shape');
                         if (shapeNode) {
                             props.color = value; // Update the stored color first
-                            shapeNode.fill(value); // Directly apply the fill
+                            if (props.isFilled) {
+                                shapeNode.fill(value); // Directly apply the fill
+                            }
+                            if (props.stereotype !== 'BOUNDARY') {
+                                shapeNode.stroke(value);
+                            }
                         }
                     } else if (key === 'isTrusted') {
                         const shapeNode = node.findOne('.shape');
-                        if (shapeNode) {
-                            // For BOUNDARY, override border color based on isTrusted
-                            if (props.stereotype === 'BOUNDARY') {
-                                shapeNode.stroke(value ? '#adb5bd' : 'red');
-                                shapeNode.strokeWidth(value ? 2 : 1);
-                            }
-                            // Non-boundary elements don't use isTrusted for border color
+                        if (shapeNode && props.stereotype === 'BOUNDARY') {
+                            shapeNode.stroke(value ? '#adb5bd' : 'red');
+                            shapeNode.strokeWidth(value ? 2 : 1);
                         }
                     } else if (key === 'isFilled') {
                         const shapeNode = node.findOne('.shape');
@@ -1368,6 +1498,15 @@
                         }
                     }
                     layer.batchDraw();
+                } else if (selectedConnection) {
+                    selectedConnection.properties[key] = value;
+                    if (key === 'name') {
+                        selectedConnection.setLabel(value);
+                    } else if (key === 'color') {
+                        selectedConnection.arrow.stroke(value);
+                        selectedConnection.arrow.fill(value);
+                    }
+                    layer.draw();
                 }
             }
 
@@ -1432,89 +1571,174 @@
                 availabilityInput.addEventListener('change', (evt) => updateCellProperty('availability', evt.target.value));
             }
 
+            const protocolInput = document.getElementById('prop-protocol');
+            if (protocolInput) {
+                protocolInput.addEventListener('change', (evt) => updateCellProperty('protocol', evt.target.value));
+            }
+            const isEncryptedInput = document.getElementById('prop-is-encrypted');
+            if (isEncryptedInput) {
+                isEncryptedInput.addEventListener('change', (evt) => updateCellProperty('isEncrypted', evt.target.checked));
+            }
+            const isAuthenticatedInput = document.getElementById('prop-is-authenticated');
+            if (isAuthenticatedInput) {
+                isAuthenticatedInput.addEventListener('change', (evt) => updateCellProperty('isAuthenticated', evt.target.checked));
+            }
+            const dataInput = document.getElementById('prop-data');
+            if (dataInput) {
+                dataInput.addEventListener('input', (evt) => updateCellProperty('data', evt.target.value));
+            }
+
+
+
 
 
 
             function generate() {
-                console.log('Generate button clicked');
-                
-                // Collect all elements from the graph
-                const elements = [];
-                const boundaries = [];
-                const actors = [];
-                const servers = [];
-                const dataElements = [];
-                
-                // Find all groups in the layer
-                layer.find('Group').forEach(group => {
-                    if (group.id() && group.getAttr('threatModelProperties')) {
-                        const props = group.getAttr('threatModelProperties');
-                        const elementType = props.stereotype || group.name();
-                        
-                        const element = {
-                            id: group.id(),
-                            name: props.name,
-                            type: elementType,
-                            x: group.x(),
-                            y: group.y(),
-                            width: group.width(),
-                            height: group.height(),
-                            properties: props
-                        };
-                        
-                        elements.push(element);
-                        
-                        // Categorize elements
-                        if (elementType === 'BOUNDARY') {
-                            boundaries.push(element);
-                        } else if (elementType === 'ACTOR') {
-                            actors.push(element);
-                        } else if (elementType === 'DATA') {
-                            dataElements.push(element);
-                        } else if (['SERVER', 'WEB_SERVER', 'DATABASE', 'FIREWALL', 'ROUTER', 'SWITCH', 'API_GATEWAY'].includes(elementType)) {
-                            servers.push(element);
-                        }
-                    }
-                });
-                
-
-                
-                // Collect all connections
-                const connectionsData = connections.map(conn => {
-                    if (!conn.toNode) return null;
+                try {
+                    console.log('Generate button clicked');
                     
-                    return {
-                        from: conn.fromNode.id(),
-                        to: conn.toNode.id(),
-                        type: 'connection',
-                        label: conn.labelText
+                    // Collect all elements from the graph
+                    const elements = [];
+                    const boundaries = [];
+                    const actors = [];
+                    const servers = [];
+                    const dataElements = [];
+                    
+                    layer.find('Group').forEach(group => {
+                        if (group.id() && group.getAttr('threatModelProperties')) {
+                            const props = group.getAttr('threatModelProperties');
+                            const elementType = props.stereotype || group.name();
+                            
+                            const shape = group.findOne('.shape');
+                            const rect = shape.getClientRect();
+                            const element = {
+                                id: group.id(),
+                                name: props.name,
+                                type: elementType,
+                                x: group.x(),
+                                y: group.y(),
+                                width: rect.width,
+                                height: rect.height,
+                                properties: props
+                            };
+                            
+                            elements.push(element);
+                            
+                            if (elementType === 'BOUNDARY') { boundaries.push(element); }
+                            else if (elementType === 'ACTOR') { actors.push(element); }
+                            else if (elementType === 'DATA') { dataElements.push(element); }
+                            else if (['SERVER', 'WEB_SERVER', 'DATABASE', 'FIREWALL', 'ROUTER', 'SWITCH', 'API_GATEWAY'].includes(elementType)) { servers.push(element); }
+                        }
+                    });
+                    
+                    const connectionsData = connections.map(conn => {
+                        if (!conn.toNode) return null;
+                        return { 
+                            from: conn.fromNode.id(), 
+                            to: conn.toNode.id(), 
+                            type: 'connection', 
+                            label: conn.labelText,
+                            properties: conn.properties
+                        };
+                    }).filter(Boolean);
+                    
+                    // Add parentId to elements
+                    let debug_info = '<h3>Boundary-Element Overlap Debugging:</h3><table border="1"><tr><th>Element</th><th>Center (x,y)</th><th>Boundary</th><th>Bounds (x,y,w,h)</th><th>Contained?</th></tr>';
+                    [...actors, ...servers, ...dataElements].forEach(element => {
+                        const group_center = { x: element.x + element.width / 2, y: element.y + element.height / 2 };
+                        let parent_boundary = null;
+                        let smallest_area = Infinity;
+
+                        boundaries.forEach(boundary => {
+                            const bx = boundary.x;
+                            const by = boundary.y;
+                            const bw = boundary.width;
+                            const bh = boundary.height;
+                            let contained = false;
+                            if (group_center.x > bx && group_center.x < bx + bw &&
+                                group_center.y > by && group_center.y < by + bh) {
+                                contained = true;
+                                const area = bw * bh;
+                                if (area < smallest_area) {
+                                    smallest_area = area;
+                                    parent_boundary = boundary;
+                                }
+                            }
+                            debug_info += `<tr><td>${element.name}</td><td>(${group_center.x.toFixed(2)}, ${group_center.y.toFixed(2)})</td><td>${boundary.name}</td><td>(${bx.toFixed(2)}, ${by.toFixed(2)}, ${bw.toFixed(2)}, ${bh.toFixed(2)})</td><td>${contained}</td></tr>`;
+                        });
+                        if (parent_boundary) {
+                            element.parentId = parent_boundary.id;
+                        }
+                    });
+                    debug_info += '</table>';
+
+                    const threatModelJSON = {
+                        boundaries: boundaries,
+                        actors: actors,
+                        servers: servers,
+                        data: dataElements,
+                        elements: elements,
+                        connections: connectionsData
                     };
-                }).filter(Boolean); // Filter out null connections
-                
-                // Create threat model JSON
-                threatModelJSON = {
-                    boundaries: boundaries,
-                    actors: actors,
-                    servers: servers,
-                    data: dataElements,
-                    elements: elements,
-                    connections: connectionsData
-                };
-                
-                console.log('Generated threat model:', threatModelJSON);
-                
-                // Display analysis results
-                analysisResultContainer.innerHTML = '<h3>Analysis Results</h3><pre>' + 
-                    JSON.stringify(threatModelJSON, null, 2) + '</pre>';
-                
-                // Update legend
-                legendContainer.innerHTML = '<h3>Legend</h3>' +
-                    '<ul>' +
-                    '<li><strong>Boundaries</strong>: ' + boundaries.length + '</li>' +
-                    '<li><strong>Actors</strong>: ' + actors.length + '</li>' +
-                    '<li><strong>Servers</strong>: ' + servers.length + '</li>' +
-                    '<li><strong>Data Elements</strong>: ' + dataElements.length + '</li>' +
-                    '</ul>';
+                    console.log("Threat Model JSON:", JSON.stringify(threatModelJSON, null, 2));
+
+                    const metadata = { positions: { actors: {}, servers: {}, data: {}, boundaries: {} } };
+                    threatModelJSON.actors.forEach(actor => { metadata.positions.actors[actor.name] = { x: actor.x, y: actor.y, width: actor.width, height: actor.height }; });
+                    threatModelJSON.servers.forEach(server => { metadata.positions.servers[server.name] = { x: server.x, y: server.y, width: server.width, height: server.height }; });
+                    threatModelJSON.data.forEach(data => { metadata.positions.data[data.name] = { x: data.x, y: data.y }; });
+                    threatModelJSON.boundaries.forEach(boundary => { metadata.positions.boundaries[boundary.name] = { x: boundary.x, y: boundary.y, width: boundary.width, height: boundary.height }; });
+
+                    const markdownContent = convert_json_to_markdown(threatModelJSON);
+                    console.log("Generated Markdown:", markdownContent);
+                    const modelName = getModelName(markdownContent);
+                    const positionsData = metadata.positions;
+
+                    analysisResultContainer.innerHTML = '<h3>Generating...</h3><div class="loading-spinner"></div>';
+
+                    fetch('/api/generate_all', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            markdown: markdownContent,
+                            model_name: modelName,
+                            positions: positionsData,
+                        }),
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            alert('Error during generation:\n' + data.error);
+                            analysisResultContainer.innerHTML = '<h3>Error during generation</h3><pre>' + data.error + '</pre>' + debug_info;
+                            console.error('Generation error:', data.error);
+                            return;
+                        }
+
+                        let filesHtml = '<ul>';
+                        for (const key in data.generated_files.reports) {
+                            filesHtml += `<li>${key}: ${data.generated_files.reports[key]}</li>`;
+                        }
+                        for (const key in data.generated_files.diagrams) {
+                            filesHtml += `<li>${key}: ${data.generated_files.diagrams[key]}</li>`;
+                        }
+                        filesHtml += `<li>model: ${data.generated_files.model}</li>`;
+                        filesHtml += `<li>metadata: ${data.generated_files.metadata}</li>`;
+                        filesHtml += '</ul>';
+
+                        analysisResultContainer.innerHTML = '<h3>Generation Successful</h3>' +
+                            `<p>All artifacts generated in directory: ${data.generation_dir}</p>` +
+                            '<h4>Generated Files:</h4>' +
+                            filesHtml + debug_info;
+                    })
+                    .catch(error => {
+                        alert('Network Error:\n' + error.message);
+                        analysisResultContainer.innerHTML = '<h3>Network Error</h3><pre>' + error.message + '</pre>' + debug_info;
+                        console.error('Network error:', error);
+                    });
+
+                } catch (e) {
+                    analysisResultContainer.innerHTML = '<h3>Error during generation</h3><pre>' + e.stack + '</pre>';
+                    console.error("Error in generate function:", e);
+                }
             }
             
             document.getElementById('analyze-btn').addEventListener('click', generate);
@@ -1560,11 +1784,11 @@
                     return acc;
                 }, {});
 
-                const _format_properties = (item, props_to_include) => {
+                const _format_properties = (item_properties, props_to_include) => {
                     const props = [];
                     for (const prop_key of props_to_include) {
-                        const prop_value = item[prop_key];
-                        if (prop_value) {
+                        const prop_value = item_properties[prop_key];
+                        if (prop_value !== undefined && prop_value !== null && prop_value !== '') {
                             props.push(`${prop_key}="${prop_value}"`);
                         }
                     }
@@ -1573,32 +1797,39 @@
 
                 markdown_lines.push("\n## Boundaries");
                 for (const boundary of boundaries) {
-                    const props_str = _format_properties(boundary, ['description', 'isTrusted', 'lineStyle']);
+                    const props_str = _format_properties(boundary.properties, ['description', 'isTrusted', 'lineStyle']);
                     markdown_lines.push(`- **${boundary.name}**: ${props_str}`);
                 }
 
                 markdown_lines.push("\n## Actors");
                 for (const actor of actors) {
-                    const props = { 'boundary': boundary_map[actor.parentId] };
-                    const props_str = _format_properties({ ...actor, ...props }, ['boundary', 'description', 'color']);
+                    const boundary_name = actor.parentId ? boundary_map[actor.parentId] : '';
+                    const props = { ...actor.properties, boundary: boundary_name };
+                    const props_str = _format_properties(props, ['boundary', 'description', 'color', 'isFilled']);
                     markdown_lines.push(`- **${actor.name}**: ${props_str}`);
                 }
 
                 markdown_lines.push("\n## Servers");
-                for (const server of (data.servers || [])) {
-                    const server_with_type = {...server, type: server.stereotype};
-                    const props = { 'boundary': boundary_map[server_with_type.parentId] };
-                    const props_str = _format_properties({ ...server_with_type, ...props }, ['boundary', 'description', 'os', 'type', 'color']);
-                    markdown_lines.push(`- **${server_with_type.name}**: ${props_str}`);
+                for (const server of servers) {
+                    const boundary_name = server.parentId ? boundary_map[server.parentId] : '';
+                    const props = { ...server.properties, boundary: boundary_name, type: server.type };
+                    const props_str = _format_properties(props, ['boundary', 'type', 'description', 'os', 'color']);
+                    markdown_lines.push(`- **${server.name}**: ${props_str}`);
                 }
 
                 markdown_lines.push("\n## Data");
                 for (const data_item of data_elements) {
-                    const props_str = _format_properties(data_item, ['description', 'classification', 'format', 'credentialsLife', 'confidentiality', 'integrity', 'availability']);
+                    const props_str = _format_properties(data_item.properties, ['description', 'classification', 'format', 'credentialsLife', 'confidentiality', 'integrity', 'availability']);
                     markdown_lines.push(`- **${data_item.name}**: ${props_str}`);
                 }
-
-
+                
+                markdown_lines.push("\n## Dataflows");
+                for (const conn of (data.connections || [])) {
+                    const from_name = (data.elements.find(e => e.id === conn.from) || {}).name;
+                    const to_name = (data.elements.find(e => e.id === conn.to) || {}).name;
+                    const props_str = conn.properties ? _format_properties(conn.properties, ['protocol', 'isEncrypted', 'isAuthenticated', 'description', 'color', 'data']) : '';
+                    markdown_lines.push(`- **${(conn.properties || {}).name || conn.label}**: from="${from_name}", to="${to_name}", ${props_str}`);
+                }
 
                 return markdown_lines.join('\n');
             }
@@ -1766,6 +1997,88 @@
                 });
             }
 
+            function drawGraphFromJSON(modelData, positions) {
+                layer.destroyChildren(); // Clear previous content
+                tr.nodes([]);
+                connections.length = 0;
+                nodes.length = 0;
+
+
+                const idMap = {};
+
+                // First pass: create all nodes
+                // Ensure all elements have a stereotype before processing
+                const allElements = [
+                    ...(modelData.boundaries || []).map(item => ({ ...item, stereotype: item.stereotype || item.type || 'BOUNDARY' })),
+                    ...(modelData.actors || []).map(item => ({ ...item, stereotype: item.stereotype || item.type || 'ACTOR' })),
+                    ...(modelData.servers || []).map(item => ({ ...item, stereotype: item.stereotype || item.type || 'SERVER' })),
+                    ...(modelData.data || []).map(item => ({ ...item, stereotype: item.stereotype || item.type || 'DATA' }))
+                ];
+
+                allElements.forEach(item => {
+                    const stereotype = item.stereotype || item.type;
+                    if (!stereotype) {
+                        console.warn("Skipping element with no stereotype:", item);
+                        return;
+                    }
+                    
+                    const serverTypes = ['SERVER', 'WEB_SERVER', 'DATABASE', 'FIREWALL', 'ROUTER', 'SWITCH', 'API_GATEWAY'];
+                    let pos_category;
+                    if (stereotype === 'BOUNDARY') {
+                        pos_category = 'boundaries';
+                    } else if (stereotype === 'ACTOR') {
+                        pos_category = 'actors';
+                    } else if (stereotype === 'DATA') {
+                        pos_category = 'data';
+                    } else if (serverTypes.includes(stereotype)) {
+                        pos_category = 'servers';
+                    } else {
+                        pos_category = stereotype.toLowerCase() + 's'; // Fallback
+                    }
+
+                    const pos = positions?.[pos_category]?.[item.name.toLowerCase()] || { x: 50, y: 50 };
+                    const node = addNode(stereotype, item.name, pos.x, pos.y, pos.width, pos.height);
+                    idMap[item.id] = node;
+                    nodes.push(node);
+                });
+
+                // Second pass: set parent-child relationships for boundaries
+                if (modelData.boundaries) {
+                    modelData.boundaries.forEach(boundary => {
+                        if (boundary.parentId && idMap[boundary.parentId] && idMap[boundary.id]) {
+                            const childNode = idMap[boundary.id];
+                            const parentNode = idMap[boundary.parentId];
+                            childNode.moveTo(parentNode); // Move child into parent group
+                        }
+                    });
+                }
+                
+                // Third pass: create connections
+                if(modelData.dataflows) {
+                    modelData.dataflows.forEach(df => {
+                        const fromNode = idMap[df.from];
+                        const toNode = idMap[df.to];
+                        if (fromNode && toNode) {
+                            const conn = new Connection(fromNode);
+                            conn.attach(toNode);
+                            conn.setLabel(df.name);
+                            conn.properties = {
+                                name: df.name,
+                                protocol: df.protocol,
+                                isEncrypted: df.isEncrypted,
+                                isAuthenticated: df.isAuthenticated,
+                                description: df.description,
+                                color: df.color || '#000000',
+                                data: df.data || ''
+                            };
+                        }
+                    });
+                }
+                
+
+                layer.draw();
+            }
+
             function repopulateGraph(markdown, metadata) {
                 console.log("repopulateGraph called with metadata:", JSON.stringify(metadata, null, 2));
                 
@@ -1804,6 +2117,13 @@
             
 
 
+            const addNodeWithTracking = (type, name, x, y) => {
+
+                const group = addNode(type, name, x, y);
+                nodes.push(group);
+                return group;
+            };
+
             const graphBgColorInput = document.getElementById('graph-bg-color');
             graphBgColorInput.addEventListener('input', (event) => {
                 stage.container().style.backgroundColor = event.target.value;
@@ -1811,46 +2131,7 @@
                 layer.draw();
             });
             
-            // Initialize nodes array for connection management
-            const nodes = [];
-            
-            // Modify the addNode function to track nodes by wrapping it
-            const addNodeWithTracking = (type, name, x, y) => {
-                const group = addNode(type, name, x, y);
-                nodes.push(group);
-                return group;
-            };
-            
-            // Replace the original addNode with the tracking version
-            // We'll update all the event listeners to use the new function
-        
-        // Function to load connections from JSON data
-        function loadConnectionsFromJSON(modelData) {
-            if (!modelData.connections || !modelData.connections.length) return;
-            
-            // Create a mapping of element IDs to nodes
-            const idToNode = {};
-            layer.find("Group").forEach(group => {
-                if (group.id()) {
-                    idToNode[group.id()] = group;
-                }
-            });
-            
-            // Create connections
-            modelData.connections.forEach(conn => {
-                const fromNode = idToNode[conn.from];
-                const toNode = idToNode[conn.to];
-                
-                if (fromNode && toNode) {
-                    const connection = new Connection(fromNode);
-                    connection.attach(toNode);
-                    if (conn.label) {
-                        connection.labelText = conn.label;
-                        connection.label.text(conn.label);
-                    }
-                }
-            });
-        }
+
     });
     </script>
 </html>

@@ -253,6 +253,7 @@ class ThreatModelService:
             model_json["boundaries"].append({
                 "id": b_id,
                 "name": name,
+                "type": "BOUNDARY",
                 "parentId": parent_id,
                 "description": b_info.get('description', ''),
                 "isTrusted": b_info.get('isTrusted', False),

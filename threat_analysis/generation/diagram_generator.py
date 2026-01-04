@@ -547,8 +547,6 @@ class DiagramGenerator:
                 actor_boundary_obj = None
                 if isinstance(actor_info, dict):
                     actor_boundary_obj = actor_info.get('boundary')
-                elif hasattr(actor_info, 'inBoundary'):
-                    actor_boundary_obj = actor_info.inBoundary
 
                 if actor_boundary_obj == boundary_obj:
                     actors_in_boundary.append({
@@ -562,8 +560,6 @@ class DiagramGenerator:
                 server_boundary_obj = None
                 if isinstance(server_info, dict):
                     server_boundary_obj = server_info.get('boundary')
-                elif hasattr(server_info, 'inBoundary'):
-                    server_boundary_obj = server_info.inBoundary
 
                 if server_boundary_obj == boundary_obj:
                     servers_in_boundary.append({
