@@ -1,16 +1,16 @@
 // Threat Model Configuration - Web UI
-// Generated on: 2026-01-03 15:54:01
+// Generated on: 2026-01-07 21:59:03
 // This file contains configuration for the threat model web interface
 
 const ThreatModelConfig = {
     "ICON_MAPPING": {
-        "actor": "/static/resources/icons/actor.png",
-        "web_server": "/static/resources/icons/web-server.png",
-        "database": "/static/resources/icons/database.png",
-        "firewall": "/static/resources/icons/firewall.png",
-        "data": "/static/resources/icons/data.png",
-        "router": "/static/resources/icons/routers.png",
-        "switch": "/static/resources/icons/switch.png"
+        "actor": "/static/resources/icons/actor.svg",
+        "web_server": "/static/resources/icons/web-server.svg",
+        "database": "/static/resources/icons/database.svg",
+        "firewall": "/static/resources/icons/firewall.svg",
+        "data": "/static/resources/icons/data.svg",
+        "router": "/static/resources/icons/routers.svg",
+        "switch": "/static/resources/icons/switch.svg"
     },
     "DEFAULT_PROPERTIES": {
         "BOUNDARY": {
