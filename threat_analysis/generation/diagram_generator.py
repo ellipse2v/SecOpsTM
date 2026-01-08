@@ -286,19 +286,16 @@ class DiagramGenerator:
             filesystem_icon_path = PROJECT_ROOT / 'threat_analysis' / 'server' / 'static' / relative_icon_path
 
         if filesystem_icon_path and filesystem_icon_path.exists():
-            # Image exists: use HTML-like label with compact sizing
-            image_size = "48"  # Size in inches
+            # Use the 'image' attribute directly for robustness with JSON output
+            attributes.append(f'image="{filesystem_icon_path}"')
+            attributes.append('shape=none') # Don't draw a shape around the image
+            attributes.append(f'label="{escaped_name}"') # Pass the label for custom positioning
+            attributes.append('labelloc=b') # Suggest bottom location for label
+            # Add size constraints to control icon size in the UI's SVG
             attributes.append('fixedsize=true')
             attributes.append('width=0.75')
             attributes.append('height=0.75')
-  
-            html_label = f'''<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0">
-    <TR><TD ALIGN="CENTER" WIDTH="{image_size}" HEIGHT="{image_size}" FIXEDSIZE="TRUE"><IMG SRC="{filesystem_icon_path}" SCALE="TRUE"/></TD></TR>
-    <TR><TD ALIGN="CENTER"><FONT POINT-SIZE="10">{escaped_name}</FONT></TD></TR>
-    </TABLE>>'''
-            attributes.append(f'label={html_label}')
         else:
-
             if icon:
                 attributes.append(f'label="{icon}{escaped_name}"')
             else:
@@ -842,6 +839,22 @@ class DiagramGenerator:
             logging.warning(f"⚠️ Error extracting protocol styles: {e}")
         
         return {}
+
+    def generate_custom_svg_export(self, dot_code: str, output_file: str) -> Optional[str]:
+        """
+        Generates SVG using custom SVG generator for export purposes.
+        This method uses SVG icons instead of text icons for better quality.
+        """
+        from threat_analysis.generation.svg_generator import CustomSVGGenerator
+        
+        try:
+            logging.info("🎨 Using custom SVG generator for export")
+            generator = CustomSVGGenerator()
+            return generator.generate_svg_from_dot(dot_code, output_file)
+        except Exception as e:
+            logging.error(f"❌ Error in custom SVG export generation: {e}")
+            logging.info("🔄 Falling back to Graphviz for SVG export")
+            return self.generate_diagram_from_dot(dot_code, output_file, "svg")
 
     def check_graphviz_installation(self) -> bool:
         """Checks if Graphviz is installed"""

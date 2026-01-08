@@ -420,8 +420,9 @@ class ThreatModelService:
             output_path = os.path.join(
                 OUTPUT_BASE_DIR, output_filename
             )
-            generated_path = self.diagram_generator.generate_diagram_from_dot(
-                dot_code, output_path, "svg"
+            # Use custom SVG generator for export to get better quality with SVG icons
+            generated_path = self.diagram_generator.generate_custom_svg_export(
+                dot_code, output_path
             )
             if not generated_path:
                 raise RuntimeError("Failed to generate SVG file")
@@ -431,8 +432,9 @@ class ThreatModelService:
             svg_path_temp = os.path.join(
                 OUTPUT_BASE_DIR, "temp_diagram.svg"
             )
-            self.diagram_generator.generate_diagram_from_dot(
-                dot_code, svg_path_temp, "svg"
+            # Use custom SVG generator for better quality in diagram export
+            self.diagram_generator.generate_custom_svg_export(
+                dot_code, svg_path_temp
             )
             output_filename = "diagram.html"
             output_path = os.path.join(
@@ -491,8 +493,9 @@ class ThreatModelService:
         dot_code = self.diagram_generator._generate_manual_dot(threat_model)
         svg_filename = "tm_diagram.svg"
         svg_filepath = os.path.join(export_path, svg_filename)
-        self.diagram_generator.generate_diagram_from_dot(
-            dot_code, svg_filepath, "svg"
+        # Use custom SVG generator for better quality in full export
+        self.diagram_generator.generate_custom_svg_export(
+            dot_code, svg_filepath
         )
 
         html_diagram_filename = "tm_diagram.html"
