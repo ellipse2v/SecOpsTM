@@ -318,9 +318,16 @@ The `SeverityCalculator` provides a nuanced risk score for each threat.
 
 -   **`diagram_generator.py`**: This module is responsible for all visual representations.
     -   It uses a Jinja2 template (`threat_model.dot.j2`) to generate Graphviz DOT language code from the `ThreatModel` object.
-    -   **Visual Styling**: The generator includes logic for rich visual styling:
-        -   It automatically assigns shapes based on keywords in element names (e.g., `cylinder` for "database", `hexagon` for "firewall").
-        -   It adds icons (e.g., 👤 for actors, 🖥️ for servers, 🔥 for firewalls) to node labels for better readability.
+    -   **Visual Styling**: The generator includes sophisticated logic for rich visual styling, combining native Graphviz shapes with embedded SVG icons. The layout of the icon and text is adjusted based on the element type for maximum clarity:
+        -   **Native Shapes & Sizing**: It assigns semantic shapes to elements and sets their sizes for a clean visual hierarchy:
+            -   **Actors**: Rendered as fixed-size **circles**.
+            -   **Switches and Firewalls**: Rendered as fixed-size diamonds and hexagons, respectively, which are smaller than other nodes for visual distinction.
+            -   **Servers (generic, web, API)**: Rendered as **rectangles** with a minimum width and height to enforce a consistent aspect ratio.
+            -   **Databases**: Rendered as cylinders.
+        -   **Conditional Icon & Text Layout**: The placement of the icon and text label is conditional:
+            -   For **generic servers**, the icon and centered text are rendered **side-by-side** on the same line, providing a compact view.
+            -   For **all other elements** (actors, firewalls, web servers, etc.), the icon is rendered **above** the text, creating a top-down layout.
+        -   **Icon Implementation**: This is achieved using Graphviz's HTML-like labels, which embed scaled SVG icons (e.g., 30x30 points) inside the node's shape. If an SVG icon is not found, the system falls back to a text-based Unicode character icon.
     -   It calls the `dot` command-line tool to render the DOT code into SVG, PNG, or other formats.
     -   **Navigable Diagrams**: For hierarchical projects, it makes diagrams navigable by post-processing the SVG. The `add_links_to_svg` function uses Python's `xml.etree.ElementTree` to find SVG nodes corresponding to elements with a `submodel` property and wraps them in an `<a>` hyperlink tag pointing to the sub-model's diagram.
 -   **`report_generator.py`**: Creates the primary user-facing artifacts.

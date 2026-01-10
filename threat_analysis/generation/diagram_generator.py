@@ -222,35 +222,46 @@ class DiagramGenerator:
         if isinstance(element, dict):
             element_type = element.get('type')
 
-        # 1. Determine shape and icon (for fallback)
+        # 1. Determine shape, icon, and sizing attributes
         shape = 'box'
         icon = ''
-        if element_type == 'router':
+        is_generic_server = (node_type == 'server' and not element_type)
+        
+        if is_generic_server:
+            shape = 'box'
+            icon = '🖥️ '
+            attributes.append("width=1.5")
+            attributes.append("height=0.75")
+        elif element_type == 'router':
             shape = 'box'
             icon = '🌐 '
         elif element_type == 'switch':
             shape = 'diamond'
             icon = '🔀 '
+            attributes.append("fixedsize=true")
+            attributes.append("width=0.5")
+            attributes.append("height=0.5")
         elif element_type == 'firewall':
             shape = 'hexagon'
             icon = '🔥 '
+            attributes.append("fixedsize=true")
+            attributes.append("width=0.5")
+            attributes.append("height=0.5")
         elif element_type == 'database':
             shape = 'cylinder'
             icon = '🗄️ '
-        elif element_type == 'web_server':
+        elif element_type == 'web_server' or element_type == 'api_gateway':
             shape = 'box'
-            icon = '🌐 '
-        elif element_type == 'api_gateway':
-            shape = 'box'
-            icon = '🔌 '
-        else: # Fallback to node_type
-            if node_type == 'actor':
-                shape = 'oval'
-                icon = '👤 '
-            elif node_type == 'server':
-                shape = 'box'
-                icon = '🖥️ '
-
+            icon = '🌐 ' if element_type == 'web_server' else '🔌 '
+            attributes.append("width=1.5")
+            attributes.append("height=0.75")
+        elif node_type == 'actor':
+            shape = 'circle'
+            icon = '👤 '
+            attributes.append("fixedsize=true")
+            attributes.append("width=0.5")
+            attributes.append("height=0.5")
+        
         attributes.append(f'shape={shape}')
 
         # 2. Set style and color
@@ -271,31 +282,33 @@ class DiagramGenerator:
         elif color and not fillcolor:
             attributes.append(f'color="{color}"')
         
-        # 3. Handle image - Use icon mapping from centralized config
+        # 3. Handle icon and label generation
         ICON_MAPPING = CONFIG_DATA["ICON_MAPPING"]
-        # Convert web paths to relative paths for diagram generator
         ICON_MAP = {key: value.replace('/static/', '') for key, value in ICON_MAPPING.items()}
         
-        
-        relative_icon_path = ICON_MAP.get(element_type) if element_type else None
-        if not relative_icon_path and node_type in ICON_MAP:
-             relative_icon_path = ICON_MAP.get(node_type)
+        lookup_key = element_type if element_type else node_type
+        relative_icon_path = ICON_MAP.get(lookup_key)
 
         filesystem_icon_path = None
         if relative_icon_path:
             filesystem_icon_path = PROJECT_ROOT / 'threat_analysis' / 'server' / 'static' / relative_icon_path
 
         if filesystem_icon_path and filesystem_icon_path.exists():
-            # Use the 'image' attribute directly for robustness with JSON output
-            attributes.append(f'image="{filesystem_icon_path}"')
-            attributes.append('shape=none') # Don't draw a shape around the image
-            attributes.append(f'label="{escaped_name}"') # Pass the label for custom positioning
-            attributes.append('labelloc=b') # Suggest bottom location for label
-            # Add size constraints to control icon size in the UI's SVG
-            attributes.append('fixedsize=true')
-            attributes.append('width=0.75')
-            attributes.append('height=0.75')
+            if is_generic_server:
+                # Side-by-side layout for generic servers (centered text is default for TD)
+                html_label = f'<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR>' \
+                             f'<TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="{filesystem_icon_path}" SCALE="TRUE"/></TD>' \
+                             f'<TD>{escaped_name}</TD>' \
+                             f'</TR></TABLE>>'
+            else:
+                # Top-and-bottom layout for all other elements
+                html_label = f'<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">' \
+                             f'<TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="{filesystem_icon_path}" SCALE="TRUE"/></TD></TR>' \
+                             f'<TR><TD>{escaped_name}</TD></TR>' \
+                             f'</TABLE>>'
+            attributes.append(f'label={html_label}')
         else:
+            # Fallback for elements with no SVG icon
             if icon:
                 attributes.append(f'label="{icon}{escaped_name}"')
             else:
@@ -303,6 +316,10 @@ class DiagramGenerator:
 
         # 4. Add common attributes
         attributes.append(f'id="{self._sanitize_name(node_name)}"')
+        
+        # 5. Add CSS class for styling
+        if node_type == 'server' or element_type in ['web_server', 'server']:
+            attributes.append(f'class="{node_type}"')
         
         return f'[{", ".join(attributes)}]'
 

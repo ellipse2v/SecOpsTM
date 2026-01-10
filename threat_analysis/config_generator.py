@@ -33,7 +33,9 @@ CONFIG_DATA = {
         "firewall": "/static/resources/icons/firewall.svg",
         "data": "/static/resources/icons/data.svg",
         "router": "/static/resources/icons/routers.svg",
-        "switch": "/static/resources/icons/switch.svg"
+        "switch": "/static/resources/icons/switch.svg",
+        "server": "/static/resources/icons/server.svg",
+        "api_gateway": "/static/resources/icons/api-gateway.svg"
     },
     "DEFAULT_PROPERTIES": {
         "BOUNDARY": {
