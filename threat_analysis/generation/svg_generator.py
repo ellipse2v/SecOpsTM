@@ -53,6 +53,54 @@ class CustomSVGGenerator:
             graph_json = self._generate_graph_json_from_dot(dot_code)
             if not graph_json:
                 return None
+            try:
+                output_path = Path(output_file)
+                debug_dir = output_path.parent / "debug"
+                debug_dir.mkdir(parents=True, exist_ok=True)
+
+                # 1️⃣ Dump DOT
+                dot_path = debug_dir / "graphviz_input.dot"
+                with open(dot_path, "w", encoding="utf-8") as f:
+                    f.write(dot_code)
+
+                logging.info(f"🧪 DOT dumped to {dot_path}")
+
+                # 2️⃣ Dump Graphviz JSON
+                json_path = debug_dir / "graphviz_output.json"
+                result = subprocess.run(
+                    ["dot", "-Tjson"],
+                    input=dot_code,
+                    text=True,
+                    encoding="utf-8",
+                    capture_output=True
+                )
+
+                if result.returncode != 0:
+                    logging.error("❌ Graphviz JSON generation failed")
+                    logging.error(result.stderr)
+                    return None
+
+                with open(json_path, "w", encoding="utf-8") as f:
+                    f.write(result.stdout)
+
+                logging.info(f"🧪 Graphviz JSON dumped to {json_path}")
+
+
+                # 3️⃣ Dump native Graphviz SVG (for visual comparison)
+                native_svg_path = debug_dir / "graphviz_native.svg"
+                subprocess.run(
+                    ["dot", "-Tsvg", "-o", str(native_svg_path)],
+                    input=dot_code,
+                    text=True,
+                    encoding="utf-8",
+                    check=True
+                )
+
+                logging.info(f"🧪 Native Graphviz SVG dumped to {native_svg_path}")
+            except Exception as e:
+                logging.error(f"❌ Error in custom SVG export generation: {e}", exc_info=True)
+                return None    
+           
             svg_content = self._generate_svg(graph_json)
             with open(output_file, 'w', encoding='utf-8') as f:
                 f.write(svg_content)
@@ -76,27 +124,44 @@ class CustomSVGGenerator:
                 logging.error(f"Stderr: {e.stderr}")
             return None
 
-    def _load_image_as_data_uri(self, image_path: str) -> Optional[str]:
-        """Loads an image file and encodes it as a base64 data URI."""
+    def _load_image(self, image_path: str) -> Optional[str]:
+        """
+        Loads an image.
+        - SVG → returned as inline SVG content
+        - PNG/JPG → returned as base64 data URI
+        """
         if image_path in self.image_cache:
             return self.image_cache[image_path]
+
         try:
             p = Path(image_path)
             if not p.exists():
                 logging.warning(f"⚠️ Image file not found: {image_path}")
                 return None
-            
-            mime_map = {'.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg'}
-            mime_type = mime_map.get(p.suffix, 'application/octet-stream')
-            
+
+            if p.suffix.lower() == '.svg':
+                svg_content = p.read_text(encoding='utf-8')
+                self.image_cache[image_path] = svg_content
+                return svg_content
+
+            mime_map = {
+                '.png': 'image/png',
+                '.jpg': 'image/jpeg',
+                '.jpeg': 'image/jpeg'
+            }
+            mime_type = mime_map.get(p.suffix.lower(), 'application/octet-stream')
+
             with open(image_path, 'rb') as f:
                 encoded = base64.b64encode(f.read()).decode()
+
             data_uri = f"data:{mime_type};base64,{encoded}"
             self.image_cache[image_path] = data_uri
             return data_uri
+
         except Exception as e:
             logging.error(f"❌ Error loading image {image_path}: {e}")
             return None
+
 
     def _generate_svg(self, data: Dict) -> str:
         bb = data.get('bb', '0,0,100,100')
@@ -124,39 +189,53 @@ class CustomSVGGenerator:
         return '\n'.join(elements)
 
     def _process_draw_ops(self, ops: List[Dict], style: Dict) -> List[str]:
-        return [self._convert_draw_op_to_svg(op, style) for op in ops if op.get('op') in ['p', 'P', 'e', 'E', 'b', 'B', 't', 'l']]
+        svg = []
+        for op in ops:
+            op_type = op.get('op')
+
+            if op_type == 'c':
+                style['stroke'] = op['color']
+            elif op_type == 'C':
+                style['fill'] = op['color']
+            elif op_type == 'S':
+                style['style'] = op['style']
+            elif op_type == 'F':
+                style['font-size'] = op['size']
+                style['font-family'] = op['face']
+            else:
+                svg_el = self._convert_draw_op_to_svg(op, style)
+                if svg_el:
+                    svg.append(svg_el)
+        return svg
+   
 
     def _generate_node_svg(self, node: Dict) -> List[str]:
+        """
+        Generates SVG for a single node.
+        - Preserves Graphviz text rendering (_ldraw_)
+        - Supports HTML labels with SVG/PNG icons
+        - Avoids double Y-axis flipping
+        """
         elements = [f'  <g id="{self._escape_html(node["name"])}">']
-        
         style = self.default_styles['node'].copy()
-        
-        # Process shape drawing ops, which use absolute coordinates
+
+        # --- Draw node shape ---
         if '_draw_' in node:
             elements.extend(self._update_and_process_ops(node['_draw_'], style))
-        
-        # Handle image, which also needs to be placed using absolute coordinates
-        if node.get('image'):
-            try:
-                xc, yc = map(float, node['pos'].split(','))
-                w, h = float(node['width']) * 72, float(node['height']) * 72
-                uri = self._load_image_as_data_uri(node['image'])
-                if uri:
-                    x_attr = xc - w/2
-                    # The y-coordinate needs to be calculated to place the image correctly
-                    # within the globally y-flipped coordinate system, considering the
-                    # image's own y-inverting transform.
-                    y_attr = -yc - h/2
-                    elements.append(f'    <image transform="scale(1, -1)" href="{uri}" x="{x_attr}" y="{y_attr}" width="{w}" height="{h}" />')
-            except (ValueError, TypeError):
-                logging.warning(f"⚠️ Invalid image attributes for node {node['name']}.")
 
-        # Process label drawing ops, which also use absolute coordinates
+        # --- Extract and render images from HTML label ---
+        if 'label' in node and '<IMG' in node.get('label', '').upper():
+            image_svg = self._extract_image_from_html_label(node)
+            if image_svg:
+                elements.append(image_svg)    
+
+        # --- Render remaining Graphviz text (labels, titles, etc.) ---
         if '_ldraw_' in node:
             elements.extend(self._update_and_process_ops(node['_ldraw_'], style))
-            
+
         elements.append('  </g>')
         return elements
+
 
     def _generate_cluster_svg(self, cluster: Dict) -> List[str]:
         elements = [f'  <g id="{self._escape_html(cluster["name"])}">']
@@ -189,27 +268,110 @@ class CustomSVGGenerator:
         return processed_ops
 
     def _convert_draw_op_to_svg(self, op: Dict, style: Dict) -> str:
+        # Safety guard: Graphviz JSON is not always consistent
+        if not isinstance(op, dict) or 'op' not in op:
+            return ''
+
         op_type = op.get('op')
         attrs_str = self._get_style_attrs(op_type, style)
-        
+
+        # --- Bezier curves (edges) ---
         if op_type in ('b', 'B'):
-            points = op['points']
+            points = op.get('points', [])
+            if len(points) < 2:
+                return ''
             d = f"M {points[0][0]},{points[0][1]} C " + " ".join([f"{p[0]},{p[1]}" for p in points[1:]])
             return f'    <path d="{d}" {attrs_str} />'
+
+        # --- Polygons / polylines ---
         elif op_type in ('p', 'P', 'l'):
-            points = " ".join([f"{p[0]},{p[1]}" for p in op['points']])
-            return f'    <polygon points="{points}" {attrs_str} />' if op_type == 'P' else f'    <polyline points="{points}" {attrs_str} fill="none"/>'
+            points_list = op.get('points', [])
+            if not points_list:
+                return ''
+            points = " ".join([f"{p[0]},{p[1]}" for p in points_list])
+            if op_type == 'P':
+                return f'    <polygon points="{points}" {attrs_str} />'
+            else:
+                return f'    <polyline points="{points}" {attrs_str} fill="none"/>'
+
+        # --- Ellipses ---
         elif op_type in ('e', 'E'):
-            cx, cy, rx, ry = op['rect'][0], op['rect'][1], op['rect'][2], op['rect'][3]
+            rect = op.get('rect')
+            if not rect or len(rect) < 4:
+                return ''
+            cx, cy, rx, ry = rect
             return f'    <ellipse cx="{cx}" cy="{cy}" rx="{rx}" ry="{ry}" {attrs_str} />'
-        elif op_type == 't':
-            x, y = op['pos']
-            anchor = {'left': 'start', 'center': 'middle', 'right': 'end'}.get(op['align'], 'start')
-            text = self._escape_html(op['text'])
-            # The global g transform handles the y-up coordinate system.
-            # No need for an extra flip on the text element.
-            return f'    <text x="{x}" y="{y}" font-family="{style.get("face", "Arial")}" font-size="{style.get("size", 14)}" text-anchor="{anchor}" fill="{style["stroke"]}">{text}</text>'
-        return f"<!-- Unsupported op: {op_type} -->"
+
+        # --- Text ---
+        elif op_type in ('t', 'T'):
+            # Graphviz may use pos, pt or rect
+            if 'pos' in op:
+                x, y = op['pos']
+            elif 'pt' in op:
+                x, y = op['pt']
+            elif 'rect' in op and len(op['rect']) >= 2:
+                x, y = op['rect'][0], op['rect'][1]
+            else:
+                return ''
+            
+            anchor = {'l': 'start', 'c': 'middle', 'r': 'end'}.get(op.get('align'), 'start')
+            text = self._escape_html(op.get('text', ''))
+
+            font_family = style.get("face", "Arial")
+            font_size = style.get("size", 14)
+            fill = style.get("stroke", "#000000")
+
+            return (
+                f'    <text x="{x}" y="{y}" '
+                f'transform="translate({x},{y}) scale(1,-1) translate({-x},{-y})" '
+                f'font-family="{font_family}" '
+                f'font-size="{font_size}" '
+                f'text-anchor="{anchor}" '
+                f'fill="{fill}">{text}</text>'
+            )
+
+        # --- Images ---
+        elif op_type == 'I':
+            # Graphviz may use pos or rect
+            if 'pos' in op:
+                x, y = op['pos']
+            elif 'rect' in op and len(op['rect']) >= 2:
+                x, y = op['rect'][0], op['rect'][1]
+            else:
+                return ''
+
+            if 'size' in op:
+                w, h = op['size']
+            elif 'rect' in op and len(op['rect']) >= 4:
+                w, h = op['rect'][2], op['rect'][3]
+            else:
+                return ''
+
+            src = op.get('name')
+            if not src:
+                return ''
+
+            icon = self._load_image(src)
+            if not icon:
+                return ''
+
+            if icon.lstrip().startswith('<svg'):
+                scale = min(w, h) / 100.0
+                return (
+                    f'    <g transform="translate({x},{y}) scale({scale})">'
+                    f'{icon}'
+                    f'</g>'
+                )
+            else:
+                return (
+                    f'    <image href="{icon}" '
+                    f'x="{x}" y="{y}" '
+                    f'width="{w}" height="{h}" />'
+                )
+
+        return ''
+    
+
 
     def _get_style_attrs(self, op_type: str, style: Dict) -> str:
         is_label = op_type == 't'
@@ -224,3 +386,78 @@ class CustomSVGGenerator:
 
     def _escape_html(self, text: str) -> str:
         return text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+    
+
+    def _extract_image_from_html_label(self, node: Dict) -> Optional[str]:
+        """Extract image path from HTML label and render it as SVG"""
+        import re
+        
+        label = node.get('label', '')
+        # Extract IMG SRC from HTML label
+        match = re.search(r'<IMG\s+SRC="([^"]+)"', label, re.IGNORECASE)
+        if not match:
+            return None
+        
+        image_path = match.group(1)
+        
+        # Get node position
+        pos_str = node.get('pos', '0,0')
+        try:
+            x, y = map(float, pos_str.split(','))
+        except:
+            return None
+        
+        # Load the image
+        image_data = self._load_image(image_path)
+        if not image_data:
+            return None
+        
+        # Icon size (30x30 as specified in HTML label)
+        icon_size = 30
+        
+        if image_data.lstrip().startswith('<'):
+            # SVG inline - strip XML declaration and embed directly
+            svg_clean = re.sub(r'<\?xml[^?]*\?>\s*', '', image_data)
+            svg_clean = re.sub(r'<!DOCTYPE[^>]*>\s*', '', svg_clean)
+            
+            # Extract viewBox or width/height to calculate proper scale
+            viewbox_match = re.search(r'viewBox=["\']([^"\']+)["\']', svg_clean)
+            if viewbox_match:
+                # Parse viewBox: "minX minY width height"
+                parts = viewbox_match.group(1).split()
+                if len(parts) >= 4:
+                    svg_width = float(parts[2])
+                    svg_height = float(parts[3])
+                    scale = icon_size / max(svg_width, svg_height)
+                else:
+                    scale = icon_size / 100
+            else:
+                # Try to extract width/height attributes
+                width_match = re.search(r'width=["\']?(\d+(?:\.\d+)?)', svg_clean)
+                height_match = re.search(r'height=["\']?(\d+(?:\.\d+)?)', svg_clean)
+                if width_match and height_match:
+                    svg_width = float(width_match.group(1))
+                    svg_height = float(height_match.group(1))
+                    scale = icon_size / max(svg_width, svg_height)
+                else:
+                    scale = icon_size / 100
+            
+            # Position: center the icon, compensate for coordinate system flip
+            offset = -icon_size / 2
+            
+            return (
+                f'    <g transform="translate({x},{y}) scale({scale},-{scale}) translate({offset/scale},{offset/scale})">'
+                f'{svg_clean}'
+                f'</g>'
+            )
+        else:
+            # Base64 image - use as data URI
+            icon_x = x - icon_size / 2
+            icon_y = y - icon_size / 2
+            
+            return (
+                f'    <image href="{image_data}" '
+                f'x="{icon_x}" y="{icon_y}" '
+                f'width="{icon_size}" height="{icon_size}" '
+                f'transform="translate({x},{y}) scale(1,-1) translate({-x},{-y})" />'
+            )

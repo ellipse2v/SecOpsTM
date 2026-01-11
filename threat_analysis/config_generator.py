@@ -35,7 +35,11 @@ CONFIG_DATA = {
         "router": "/static/resources/icons/routers.svg",
         "switch": "/static/resources/icons/switch.svg",
         "server": "/static/resources/icons/server.svg",
-        "api_gateway": "/static/resources/icons/api-gateway.svg"
+        "api_gateway": "/static/resources/icons/api-gateway.svg",
+        "app_server": "/static/resources/icons/server.svg",
+        "central_server": "/static/resources/icons/server.svg",
+        "authentication_server": "/static/resources/icons/server.svg",
+        "load_balancer": "/static/resources/icons/load_balancer.svg"
     },
     "DEFAULT_PROPERTIES": {
         "BOUNDARY": {

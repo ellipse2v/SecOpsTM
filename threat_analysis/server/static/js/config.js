@@ -1,5 +1,5 @@
 // Threat Model Configuration - Web UI
-// Generated on: 2026-01-08 22:27:57
+// Generated on: 2026-01-10 14:09:09
 // This file contains configuration for the threat model web interface
 
 const ThreatModelConfig = {
@@ -12,7 +12,11 @@ const ThreatModelConfig = {
         "router": "/static/resources/icons/routers.svg",
         "switch": "/static/resources/icons/switch.svg",
         "server": "/static/resources/icons/server.svg",
-        "api_gateway": "/static/resources/icons/api-gateway.svg"
+        "api_gateway": "/static/resources/icons/api-gateway.svg",
+        "app_server": "/static/resources/icons/server.svg",
+        "central_server": "/static/resources/icons/server.svg",
+        "authentication_server": "/static/resources/icons/server.svg",
+        "load_balancer": "/static/resources/icons/load_balancer.svg"
     },
     "DEFAULT_PROPERTIES": {
         "BOUNDARY": {

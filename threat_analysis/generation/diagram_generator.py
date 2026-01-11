@@ -222,17 +222,18 @@ class DiagramGenerator:
         if isinstance(element, dict):
             element_type = element.get('type')
 
-        # 1. Determine shape, icon, and sizing attributes
+        # 1. Determine shape, icon, layout, and sizing attributes
         shape = 'box'
         icon = ''
-        is_generic_server = (node_type == 'server' and not element_type)
         
-        if is_generic_server:
-            shape = 'box'
-            icon = '🖥️ '
-            attributes.append("width=1.5")
-            attributes.append("height=0.75")
-        elif element_type == 'router':
+        # This set defines which types get the side-by-side "server" layout
+        server_layout_types = {'server', 'web_server', 'api_gateway', 'app_server', 'central_server', 'authentication_server'}
+        
+        # Determine if the side-by-side layout should be used
+        use_server_layout = (element_type in server_layout_types) or \
+                            (node_type == 'server' and not element_type)
+
+        if element_type == 'router':
             shape = 'box'
             icon = '🌐 '
         elif element_type == 'switch':
@@ -250,18 +251,21 @@ class DiagramGenerator:
         elif element_type == 'database':
             shape = 'cylinder'
             icon = '🗄️ '
-        elif element_type == 'web_server' or element_type == 'api_gateway':
+        elif element_type == 'load_balancer':
             shape = 'box'
-            icon = '🌐 ' if element_type == 'web_server' else '🔌 '
-            attributes.append("width=1.5")
-            attributes.append("height=0.75")
+            # The icon is handled by the SVG mapping, no emoji fallback needed here
         elif node_type == 'actor':
             shape = 'circle'
             icon = '👤 '
             attributes.append("fixedsize=true")
             attributes.append("width=0.5")
             attributes.append("height=0.5")
-        
+        elif use_server_layout:
+            shape = 'box'
+            icon = '🖥️ '
+            attributes.append("width=1.5")
+            attributes.append("height=0.75")
+
         attributes.append(f'shape={shape}')
 
         # 2. Set style and color
@@ -294,8 +298,8 @@ class DiagramGenerator:
             filesystem_icon_path = PROJECT_ROOT / 'threat_analysis' / 'server' / 'static' / relative_icon_path
 
         if filesystem_icon_path and filesystem_icon_path.exists():
-            if is_generic_server:
-                # Side-by-side layout for generic servers (centered text is default for TD)
+            if use_server_layout:
+                # Side-by-side layout for server-like elements
                 html_label = f'<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR>' \
                              f'<TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="{filesystem_icon_path}" SCALE="TRUE"/></TD>' \
                              f'<TD>{escaped_name}</TD>' \
@@ -860,10 +864,9 @@ class DiagramGenerator:
     def generate_custom_svg_export(self, dot_code: str, output_file: str) -> Optional[str]:
         """
         Generates SVG using custom SVG generator for export purposes.
-        This method uses SVG icons instead of text icons for better quality.
+        Also dumps DOT and Graphviz JSON for debugging.
         """
         from threat_analysis.generation.svg_generator import CustomSVGGenerator
-        
         try:
             logging.info("🎨 Using custom SVG generator for export")
             generator = CustomSVGGenerator()
@@ -872,6 +875,8 @@ class DiagramGenerator:
             logging.error(f"❌ Error in custom SVG export generation: {e}")
             logging.info("🔄 Falling back to Graphviz for SVG export")
             return self.generate_diagram_from_dot(dot_code, output_file, "svg")
+
+            
 
     def check_graphviz_installation(self) -> bool:
         """Checks if Graphviz is installed"""
