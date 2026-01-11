@@ -43,8 +43,8 @@ class CustomSVGGenerator:
         self.image_cache = {}
         self.default_styles = {
             'graph': {'background': '#ffffff'},
-            'node': {'fill': '#ffffff', 'stroke': '#000000', 'font-family': 'Times-Roman', 'font-size': '14'},
-            'edge': {'stroke': '#000000', 'fill': 'none', 'font-family': 'Times-Roman', 'font-size': '14'}
+            'node': {'fill': '#ffffff', 'stroke': '#000000', 'font-family': 'sans-serif', 'font-size': '14'},
+            'edge': {'stroke': '#000000', 'fill': 'none', 'font-family': 'sans-serif', 'font-size': '14'}
         }
     
     def generate_svg_from_dot(self, dot_code: str, output_file: str) -> Optional[str]:
@@ -79,6 +79,9 @@ class CustomSVGGenerator:
                     logging.error("❌ Graphviz JSON generation failed")
                     logging.error(result.stderr)
                     return None
+                
+                # Update graph_json with the fresh content
+                graph_json = json.loads(result.stdout)
 
                 with open(json_path, "w", encoding="utf-8") as f:
                     f.write(result.stdout)
@@ -214,7 +217,7 @@ class CustomSVGGenerator:
         Generates SVG for a single node.
         - Preserves Graphviz text rendering (_ldraw_)
         - Supports HTML labels with SVG/PNG icons
-        - Avoids double Y-axis flipping
+        - Handles server layout (icon left, text right) as a centered unit
         """
         elements = [f'  <g id="{self._escape_html(node["name"])}">']
         style = self.default_styles['node'].copy()
@@ -223,11 +226,72 @@ class CustomSVGGenerator:
         if '_draw_' in node:
             elements.extend(self._update_and_process_ops(node['_draw_'], style))
 
+        # --- Check if this is a server layout ---
+        label = node.get('label', '')
+        is_server_layout = 'ALIGN="LEFT"' in label.upper()
+        
+        # Get node center position and dimensions
+        pos_str = node.get('pos', '0,0')
+        try:
+            node_x, node_y = map(float, pos_str.split(','))
+        except:
+            node_x, node_y = 0, 0
+        
+        # Get node width (in inches, need to convert to points: 1 inch = 72 points)
+        node_width_inches = float(node.get('width', 1.5))
+        node_width = node_width_inches * 72  # Convert to points
+        
+        # --- Adjust text position BEFORE rendering ---
+        if '_ldraw_' in node:
+            if is_server_layout:
+                # Server layout: calculate spacing based on node width
+                # Icon is 30px wide, we want it at the left edge with some padding
+                # Layout: [padding | icon 30px | spacing | text | padding]
+                # Total available = node_width
+                # Icon should be at: -node_width/2 + padding + icon_width/2
+                # Text should start at: -node_width/2 + padding + icon_width + spacing
+                
+                icon_width = 30
+                padding = 10
+                spacing = 10  # Small gap between icon and text
+                
+                # Text starts at this offset from center
+                text_start_from_center = -node_width/2 + padding + icon_width + spacing
+                
+                for op in node['_ldraw_']:
+                    if op.get('op') in ('t', 'T') and op.get('align') == 'l':
+                        # Get current text position
+                        if 'pt' in op and len(op['pt']) == 2:
+                            current_x = op['pt'][0]
+                            # Calculate offset needed to move text to desired position
+                            offset = text_start_from_center - (current_x - node_x)
+                            op['pt'][0] += offset
+                        elif 'pos' in op and len(op['pos']) == 2:
+                            current_x = op['pos'][0]
+                            offset = text_start_from_center - (current_x - node_x)
+                            op['pos'][0] += offset
+            else:
+                           # Top-and-bottom layout: shift text down 10px to avoid overlapping icon
+            # Only apply for specific shapes: circle (Actor), diamond (Switch), hexagon (Firewall), cylinder (Database)
+                node_shape = node.get('shape', '').lower()
+                shapes_needing_offset = ['circle', 'diamond', 'hexagon', 'cylinder']
+                
+                if node_shape in shapes_needing_offset:
+                    y_offset = 10
+                    
+                    for op in node['_ldraw_']:
+                        if op.get('op') in ('t', 'T'):
+                            # Move text down
+                            if 'pos' in op and len(op['pos']) == 2:
+                                op['pos'][1] -= y_offset
+                            elif 'pt' in op and len(op['pt']) == 2:
+                                op['pt'][1] -= y_offset
+        
         # --- Extract and render images from HTML label ---
-        if 'label' in node and '<IMG' in node.get('label', '').upper():
-            image_svg = self._extract_image_from_html_label(node)
+        if 'label' in node and '<IMG' in label.upper():
+            image_svg = self._extract_image_from_html_label(node, is_server_layout, node_x, node_y)
             if image_svg:
-                elements.append(image_svg)    
+                elements.append(image_svg)
 
         # --- Render remaining Graphviz text (labels, titles, etc.) ---
         if '_ldraw_' in node:
@@ -388,24 +452,16 @@ class CustomSVGGenerator:
         return text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
     
 
-    def _extract_image_from_html_label(self, node: Dict) -> Optional[str]:
-        """Extract image path from HTML label and render it as SVG"""
+    def _extract_image_from_html_label(self, node: Dict, is_server_layout: bool, node_x: float, node_y: float) -> Optional[str]:
+        """Extract image path from HTML label and render it as SVG with proper centering"""
         import re
         
         label = node.get('label', '')
-        # Extract IMG SRC from HTML label
         match = re.search(r'<IMG\s+SRC="([^"]+)"', label, re.IGNORECASE)
         if not match:
             return None
         
         image_path = match.group(1)
-        
-        # Get node position
-        pos_str = node.get('pos', '0,0')
-        try:
-            x, y = map(float, pos_str.split(','))
-        except:
-            return None
         
         # Load the image
         image_data = self._load_image(image_path)
@@ -415,15 +471,18 @@ class CustomSVGGenerator:
         # Icon size (30x30 as specified in HTML label)
         icon_size = 30
         
+        # Get node width for server layout positioning
+        node_width_inches = float(node.get('width', 1.5))
+        node_width = node_width_inches * 72  # Convert to points
+        
         if image_data.lstrip().startswith('<'):
-            # SVG inline - strip XML declaration and embed directly
+            # SVG inline
             svg_clean = re.sub(r'<\?xml[^?]*\?>\s*', '', image_data)
             svg_clean = re.sub(r'<!DOCTYPE[^>]*>\s*', '', svg_clean)
             
-            # Extract viewBox or width/height to calculate proper scale
+            # Calculate scale
             viewbox_match = re.search(r'viewBox=["\']([^"\']+)["\']', svg_clean)
             if viewbox_match:
-                # Parse viewBox: "minX minY width height"
                 parts = viewbox_match.group(1).split()
                 if len(parts) >= 4:
                     svg_width = float(parts[2])
@@ -432,7 +491,6 @@ class CustomSVGGenerator:
                 else:
                     scale = icon_size / 100
             else:
-                # Try to extract width/height attributes
                 width_match = re.search(r'width=["\']?(\d+(?:\.\d+)?)', svg_clean)
                 height_match = re.search(r'height=["\']?(\d+(?:\.\d+)?)', svg_clean)
                 if width_match and height_match:
@@ -442,22 +500,42 @@ class CustomSVGGenerator:
                 else:
                     scale = icon_size / 100
             
-            # Position: center the icon, compensate for coordinate system flip
-            offset = -icon_size / 2
-            
-            return (
-                f'    <g transform="translate({x},{y}) scale({scale},-{scale}) translate({offset/scale},{offset/scale})">'
-                f'{svg_clean}'
-                f'</g>'
-            )
+            if is_server_layout:
+                # Server layout: position icon at left edge with padding
+                padding = 10
+                # Icon center should be at: -node_width/2 + padding + icon_size/2
+                icon_center_offset_x = -node_width/2 + padding + icon_size/2
+                icon_offset_y = -icon_size / 2
+                
+                return (
+                    f'    <g transform="translate({node_x},{node_y}) scale({scale},-{scale}) translate({icon_center_offset_x/scale},{icon_offset_y/scale})">'
+                    f'{svg_clean}'
+                    f'</g>'
+                )
+            else:
+                # Top-and-bottom layout: center the icon
+                offset = -icon_size / 2
+                
+                return (
+                    f'    <g transform="translate({node_x},{node_y}) scale({scale},-{scale}) translate({offset/scale},{offset/scale})">'
+                    f'{svg_clean}'
+                    f'</g>'
+                )
         else:
-            # Base64 image - use as data URI
-            icon_x = x - icon_size / 2
-            icon_y = y - icon_size / 2
+            # Base64 image
+            if is_server_layout:
+                # Server layout: position icon at left edge with padding
+                padding = 10
+                icon_x = node_x - node_width/2 + padding
+                icon_y = node_y - icon_size / 2
+            else:
+                # Top-and-bottom layout: center the icon
+                icon_x = node_x - icon_size / 2
+                icon_y = node_y - icon_size / 2
             
             return (
                 f'    <image href="{image_data}" '
                 f'x="{icon_x}" y="{icon_y}" '
                 f'width="{icon_size}" height="{icon_size}" '
-                f'transform="translate({x},{y}) scale(1,-1) translate({-x},{-y})" />'
+                f'transform="translate({node_x},{node_y}) scale(1,-1) translate({-node_x},{-node_y})" />'
             )

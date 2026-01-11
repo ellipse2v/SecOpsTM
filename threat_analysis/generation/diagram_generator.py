@@ -252,7 +252,7 @@ class DiagramGenerator:
             shape = 'cylinder'
             icon = '🗄️ '
         elif element_type == 'load_balancer':
-            shape = 'box'
+            shape = 'cylinder'
             # The icon is handled by the SVG mapping, no emoji fallback needed here
         elif node_type == 'actor':
             shape = 'circle'
@@ -290,19 +290,17 @@ class DiagramGenerator:
         ICON_MAPPING = CONFIG_DATA["ICON_MAPPING"]
         lookup_key = element_type if element_type else node_type
         icon_relative_path = ICON_MAPPING.get(lookup_key)
-        logging.info(f"ℹ️ icon mapping for '{lookup_key}', path '{icon_relative_path}', icon '{icon}'")
         filesystem_icon_path = None
         if icon_relative_path:
-            # icon_relative_path = "/static/resources/icons/server.svg"
             filesystem_icon_path = PROJECT_ROOT / 'threat_analysis' / 'server' / icon_relative_path.lstrip('/')
 
 
         if filesystem_icon_path and filesystem_icon_path.exists():
             if use_server_layout:
-                # Side-by-side layout for server-like elements
+                # Side-by-side layout with left-aligned text
                 html_label = f'<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR>' \
                              f'<TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="{filesystem_icon_path}" SCALE="TRUE"/></TD>' \
-                             f'<TD>{escaped_name}</TD>' \
+                             f'<TD ALIGN="LEFT">{escaped_name}</TD>' \
                              f'</TR></TABLE>>'
             else:
                 # Top-and-bottom layout for all other elements
@@ -312,15 +310,15 @@ class DiagramGenerator:
                              f'</TABLE>>'
             attributes.append(f'label={html_label}')
         else:
-            # Fallback vers l'emoji si pas d'icône SVG trouvée
+            # Fallback to emoji if no SVG icon is found, using HTML-like label for proper rendering
             if not icon_relative_path:
                 logging.debug(f"ℹ️ No icon mapping for '{lookup_key}', using emoji '{icon}'")
             else:
                 logging.warning(f"⚠️ Icon file not found: {filesystem_icon_path}, using emoji '{icon}'")
     
-            # Fallback for elements with no SVG icon
             if icon:
-                attributes.append(f'label="{icon}{escaped_name}"')
+                # Use HTML-like label for better rendering of icons and text in web GUI
+                attributes.append(f'label=<{icon}<br/>{escaped_name}>')
             else:
                 attributes.append(f'label="{escaped_name}"')
 
