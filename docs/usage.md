@@ -130,14 +130,18 @@ The tool will then use the `CVE2CAPEC` database to map your specified CVEs to CA
     ```
 The new CVE-based threats will appear in the generated report, linked to the corresponding equipment.
 
-## 2. Web-based Graphical User Interface (GUI) Mode (Optional)
+## 2. Web-based User Interface (Server Mode)
 
-Launch the interactive web editor to visualize your threat model in real-time, edit Markdown content, and export various formats directly from your browser.
+For a more interactive experience, the framework provides a web-based UI that runs on a local server. This unified interface gives you access to two distinct modes from a central menu.
 
-1.  **Launch the GUI:**
+1.  **Launch the server:**
     ```bash
-    python -m threat_analysis --gui
+    python -m threat_analysis --server
     ```
-    The console will display the address (e.g., `http://127.0.0.1:5001`) where you can access the GUI in your web browser.
+    The console will display the address (e.g., `http://127.0.0.1:5000`) to open in your web browser.
 
-> **Note:** When using `--gui`, the `--model-file` option can be used to load an initial threat model as a template into the editor. If not provided, the GUI will start with an an empty editor.
+2.  **Choose a Mode from the Menu:**
+    -   **Simple Mode**: An interface to load a Markdown file and see the generated diagram and analysis in real-time. Ideal for quick visualization and reporting on existing models.
+    -   **Graphical Editor**: A full-featured, interactive canvas to build, modify, and analyze threat models from scratch directly in the browser. It includes a toolbar for adding elements, a properties panel for editing, and the ability to generate all artifacts without touching Markdown directly.
+
+> **Note:** When using `--server`, the `--model-file` option can be used to load an initial threat model for the **Simple Mode**. The Graphical Editor starts with a new, empty model.

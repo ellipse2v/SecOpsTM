@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Threat Model Tool</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        h1 {
+            font-size: 2.5em;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .menu {
+            display: flex;
+            gap: 20px;
+        }
+        .card {
+            background-color: #f8f9fa;
+            border: 1px solid #d1d5da;
+            border-radius: 8px;
+            padding: 25px;
+            width: 220px;
+            text-decoration: none;
+            color: inherit;
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        .card h2 {
+            font-size: 1.5em;
+            margin-top: 0;
+            color: #2c974b;
+        }
+        .card p {
+            font-size: 0.9em;
+            color: #555;
+            min-height: 50px;
+        }
+        .tooltip {
+            visibility: hidden;
+            width: 200px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 110%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.8em;
+        }
+        .tooltip::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #555 transparent transparent transparent;
+        }
+        .card:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Threat Model Tool</h1>
+        <div class="menu">
+            <a href="/simple" class="card">
+                <h2>Simple Mode</h2>
+                <p>Load and view a threat model from a Markdown file.</p>
+                <span class="tooltip">A simple interface to load a threat model file and view the generated diagram and report.</span>
+            </a>
+            <a href="/graphical" class="card">
+                <h2>Graphical Editor</h2>
+                <p>Interactively create and edit a threat model in your browser.</p>
+                <span class="tooltip">An advanced, interactive editor to create, modify, and analyze threat models directly in your browser. (Experimental)</span>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

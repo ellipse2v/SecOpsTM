@@ -37,7 +37,7 @@ from threat_analysis.core.model_factory import create_threat_model
 from threat_analysis.iac_plugins import IaCPlugin
 from threat_analysis.generation.report_generator import ReportGenerator
 from threat_analysis.utils import _validate_path_within_project, resolve_path
-from threat_analysis.server.server import run_gui, run_full_gui
+from threat_analysis.server.server import run_server
 from threat_analysis.core.model_validator import ModelValidator
 from threat_analysis.core.cve_service import CVEService
 
@@ -353,11 +353,10 @@ class CustomArgumentParser:
             help="Path to the threat model Markdown file.",
         )
         self.parser.add_argument(
-            "--gui", action="store_true", help="Launch the web-based GUI editor."
+            "--server", action="store_true", help="Launch the unified web server with menu."
         )
-        self.parser.add_argument(
-            "--full-gui", action="store_true", help="Launch the full web-based GUI editor."
-        )
+
+
         self.parser.add_argument(
             "--project",
             type=str,
@@ -554,21 +553,12 @@ if __name__ == "__main__":
     # Reconstruct sys.argv for PyTM
     sys.argv = [sys.argv[0]] + remaining_argv
 
-    if args.gui:
+    if args.server: # Use the new --server argument
         try:
-            run_gui(args.model_file)
+            run_server(args.model_file)
         except ImportError:
             logging.error(
-                "❌ Flask is not installed. Please install it to use the GUI: "
-                "pip install Flask"
-            )
-            sys.exit(1)
-    elif args.full_gui:
-        try:
-            run_full_gui(args.model_file)
-        except ImportError:
-            logging.error(
-                "❌ Flask is not installed. Please install it to use the GUI: "
+                "❌ Flask is not installed. Please install it to use the web server: "
                 "pip install Flask"
             )
             sys.exit(1)

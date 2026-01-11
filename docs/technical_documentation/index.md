@@ -83,8 +83,7 @@ This section provides a comprehensive breakdown of each component of the SecOpsT
 The execution of the framework begins in `__main__.py`. This script is responsible for:
 -   **Argument Parsing**: It uses a `CustomArgumentParser` to handle command-line arguments. This includes standard arguments like `--model-file`, `--gui`, `--project`, and `--navigator`, but it also dynamically loads IaC plugins from the `iac_plugins` directory and adds corresponding arguments for them (e.g., `--ansible-path`).
 -   **Mode Selection**: It determines the execution mode based on the arguments:
-    -   `--gui`: Launches the Flask web server via `server.run_gui()`.
-    -   `--full-gui`: Launches the Flask web server with the full GUI via `server.run_full_gui()`.
+    -   `--server`: Launches the unified Flask web server, which provides a menu to select between the simple viewer and the full graphical editor.
     -   `--project`: Initiates a hierarchical project analysis via `report_generator.generate_project_reports()`.
     -   `--<iac-plugin>-path`: Triggers the IaC import workflow.
     -   Default: Proceeds with a standard single-file analysis.

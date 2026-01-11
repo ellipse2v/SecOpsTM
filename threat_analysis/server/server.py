@@ -125,9 +125,11 @@ def get_model_name(markdown_content: str) -> str:
     return "Untitled Model"
 
 
-def run_gui(model_filepath: str = None):
+def run_server(model_filepath: str = None):
     """
-    This function is the main entry point for the simple web server.
+    This function is the main entry point for the web server.
+    It launches the Flask application on a single port and serves a menu
+    to choose between the simple and graphical modes.
     """
     global initial_markdown_content
     if model_filepath and os.path.exists(model_filepath):
@@ -144,42 +146,9 @@ def run_gui(model_filepath: str = None):
         logging.info("No initial threat model file provided or found. Starting with a default empty model.")
 
     print(
-        "\n🚀 Starting Threat Model GUI. Open your browser to: http://127.0.0.1:5000/\n"
+        "\n🚀 Starting Threat Model Server. Open your browser to: http://127.0.0.1:5000/\n"
     )
     app.run(debug=os.environ.get('FLASK_DEBUG', 'false').lower() == 'true', port=5000)
-
-
-def run_full_gui(model_filepath: str = None):
-    """
-    This function is the main entry point for the web server.
-    """
-    global initial_markdown_content
-    if model_filepath and os.path.exists(model_filepath):
-        try:
-            with open(model_filepath, "r", encoding="utf-8") as f:
-                initial_markdown_content = f.read()
-            logging.info(f"Loaded initial threat model from {model_filepath}")
-        except Exception as e:
-            logging.error(
-                f"Error loading initial model from {model_filepath}: {e}"
-            )
-            initial_markdown_content = DEFAULT_EMPTY_MARKDOWN
-            logging.info(
-                "Loaded initial threat model from a temporary model due to "
-                "file loading error."
-            )
-    else:
-        initial_markdown_content = DEFAULT_EMPTY_MARKDOWN
-        logging.info(
-            "No initial threat model file provided or found. "
-            "Starting with a default empty model."
-        )
-
-    print(
-        "\n🚀 Starting Threat Model Full GUI. Open your browser to: "
-        "http://127.0.0.1:5001/full\n"
-    )
-    app.run(debug=os.environ.get('FLASK_DEBUG', 'false').lower() == 'true', port=5001)
 
 
 @app.route('/static/<path:filename>')
@@ -188,22 +157,26 @@ def serve_static(filename):
     return send_from_directory(app.static_folder, filename)
 
 @app.route("/")
-def simple_gui():
+def index():
+    """Serves the main menu."""
+    return render_template("index.html")
+
+@app.route("/simple")
+def simple_mode():
     """Serves the simple web interface."""
     model_name = get_model_name(initial_markdown_content)
     encoded_markdown = base64.b64encode(initial_markdown_content.encode('utf-8')).decode('utf-8')
     return render_template(
-        "web_interface.html",
+        "simple_mode.html",
         initial_markdown=encoded_markdown,
         model_name=model_name
     )
 
 
-@app.route("/full")
-def full_gui():
+@app.route("/graphical")
+def graphical_editor():
     """Serves the main web interface."""
-    # icon_map_json no longer needed as config.js is used directly
-    return render_template("full_gui.html")
+    return render_template("graphical_editor.html")
 
 
 
