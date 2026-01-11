@@ -363,9 +363,9 @@ class ThreatModelService:
 
             self.element_positions = self._extract_element_positions(threat_model)
             dot_code = self.diagram_generator._generate_manual_dot(threat_model)
-            logging.info(
-                f"Generated DOT code (first 500 chars): \n{dot_code[:500]}..."
-            )
+            #logging.info(
+            #    f"Generated DOT code (first 500 chars): \n{dot_code[:500]}..."
+            #)
             if not dot_code:
                 raise RuntimeError("Failed to generate DOT code from model")
 

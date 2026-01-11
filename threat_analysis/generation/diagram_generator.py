@@ -288,14 +288,14 @@ class DiagramGenerator:
         
         # 3. Handle icon and label generation
         ICON_MAPPING = CONFIG_DATA["ICON_MAPPING"]
-        ICON_MAP = {key: value.replace('/static/', '') for key, value in ICON_MAPPING.items()}
-        
         lookup_key = element_type if element_type else node_type
-        relative_icon_path = ICON_MAP.get(lookup_key)
-
+        icon_relative_path = ICON_MAPPING.get(lookup_key)
+        logging.info(f"ℹ️ icon mapping for '{lookup_key}', path '{icon_relative_path}', icon '{icon}'")
         filesystem_icon_path = None
-        if relative_icon_path:
-            filesystem_icon_path = PROJECT_ROOT / 'threat_analysis' / 'server' / 'static' / relative_icon_path
+        if icon_relative_path:
+            # icon_relative_path = "/static/resources/icons/server.svg"
+            filesystem_icon_path = PROJECT_ROOT / 'threat_analysis' / 'server' / icon_relative_path.lstrip('/')
+
 
         if filesystem_icon_path and filesystem_icon_path.exists():
             if use_server_layout:
@@ -312,6 +312,12 @@ class DiagramGenerator:
                              f'</TABLE>>'
             attributes.append(f'label={html_label}')
         else:
+            # Fallback vers l'emoji si pas d'icône SVG trouvée
+            if not icon_relative_path:
+                logging.debug(f"ℹ️ No icon mapping for '{lookup_key}', using emoji '{icon}'")
+            else:
+                logging.warning(f"⚠️ Icon file not found: {filesystem_icon_path}, using emoji '{icon}'")
+    
             # Fallback for elements with no SVG icon
             if icon:
                 attributes.append(f'label="{icon}{escaped_name}"')
@@ -320,10 +326,6 @@ class DiagramGenerator:
 
         # 4. Add common attributes
         attributes.append(f'id="{self._sanitize_name(node_name)}"')
-        
-        # 5. Add CSS class for styling
-        if node_type == 'server' or element_type in ['web_server', 'server']:
-            attributes.append(f'class="{node_type}"')
         
         return f'[{", ".join(attributes)}]'
 

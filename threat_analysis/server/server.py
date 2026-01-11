@@ -215,10 +215,10 @@ def update_diagram():
     """
     logging.info("Entering update_diagram function.")
     markdown_content = request.json.get("markdown", "")
-    logging.info(
-        f"Received markdown content for update (first 500 chars): "
-        f"\n{markdown_content[:500]}..."
-    )
+    #logging.info(
+    #    f"Received markdown content for update (first 500 chars): "
+    #    f"\n{markdown_content[:500]}..."
+    #)
     if not markdown_content:
         return jsonify({"error": "Markdown content is empty"}), 400
 
