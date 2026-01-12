@@ -23,6 +23,7 @@ from io import BytesIO
 import json
 from pathlib import Path
 import datetime
+import subprocess
 
 # Hardcoded configuration values (previously from config.py)
 TIMESTAMP = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -70,41 +71,95 @@ class ThreatModelService:
         self.stix_generator = None 
         self.element_positions = {}
 
-    def _extract_element_positions(self, threat_model):
-        positions = {
-            "boundaries": {},
-            "actors": {},
-            "servers": {},
-            "dataflows": {}
-        }
-        for boundary_name, boundary_info in threat_model.boundaries.items():
-            positions["boundaries"][boundary_name] = {
-                "x": 0,
-                "y": 0,
-                "width": 0,
-                "height": 0
+    def _generate_positions_from_graphviz(self, threat_model):
+        """
+        Generates element positions by running Graphviz and extracting layout
+        information, ensuring original names are used as keys.
+        """
+        logging.info("Generating layout positions using Graphviz...")
+        
+        # 1. Create maps from original names to types and sanitized names
+        name_to_type = {}
+        sanitized_to_original_name = {}
+        
+        all_elements = (
+            list(threat_model.boundaries.items()) +
+            threat_model.actors +
+            threat_model.servers
+        )
+        
+        for item in all_elements:
+            # Handle different structures (dict for actors/servers, tuple for boundaries)
+            original_name = item[0] if isinstance(item, tuple) else self._get_element_name(item)
+            item_type = "boundaries" if isinstance(item, tuple) else ("actors" if item.get('type') == 'actor' else "servers")
+
+            if original_name not in name_to_type:
+                name_to_type[original_name] = item_type
+                sanitized_name = self.diagram_generator._sanitize_name(original_name)
+                sanitized_to_original_name[sanitized_name] = original_name
+
+        # 2. Run Graphviz to get JSON with layout
+        try:
+            dot_code = self.diagram_generator._generate_manual_dot(threat_model)
+            if not dot_code:
+                logging.error("Failed to generate DOT code for position calculation.")
+                return {}
+
+            result = subprocess.run(
+                ['dot', '-Tjson'],
+                input=dot_code, text=True, encoding='utf-8',
+                capture_output=True, check=True
+            )
+            graph_json = json.loads(result.stdout)
+            
+        except Exception as e:
+            logging.error(f"Error running Graphviz for position generation: {e}")
+            return {}
+
+        # 3. Process JSON and build final positions dict with original names
+        positions = { "boundaries": {}, "actors": {}, "servers": {}, "data": {}, "dataflows": {} }
+        bb = graph_json.get('bb', '0,0,0,0').split(',')
+        graph_height = float(bb[3]) if len(bb) == 4 else 0
+
+        # Combine nodes and clusters for processing
+        graph_elements = graph_json.get('objects', [])
+        if '_subgraph_maps' in graph_json:
+             graph_elements.extend(graph_json['_subgraph_maps'])
+
+        for element in graph_elements:
+            sanitized_name = element.get('name')
+            # For clusters, name is like 'cluster_...' but label is the original name
+            if sanitized_name and sanitized_name.startswith('cluster_'):
+                sanitized_name = self.diagram_generator._sanitize_name(element.get('label', ''))
+            
+            if not sanitized_name:
+                continue
+
+            original_name = sanitized_to_original_name.get(sanitized_name)
+            if not original_name:
+                continue
+
+            element_type = name_to_type.get(original_name)
+            if not element_type:
+                continue
+            
+            pos_str = element.get('pos', '0,0').split(',')
+            x, y = float(pos_str[0]), float(pos_str[1])
+            
+            # Flip the Y coordinate based on graph height
+            y = graph_height - y
+
+            width = float(element.get('width', 0)) * 72 # Inches to points
+            height = float(element.get('height', 0)) * 72 # Inches to points
+            
+            positions[element_type][original_name] = {
+                "x": x - (width / 2),
+                "y": y - (height / 2),
+                "width": width,
+                "height": height
             }
-        for actor_info in threat_model.actors:
-            actor_name = actor_info.get('name', 'Unknown')
-            positions["actors"][actor_name] = {
-                "x": 0,
-                "y": 0,
-                "boundary": actor_info.get('boundary_name', None)
-            }
-        for server_info in threat_model.servers:
-            server_name = server_info.get('name', 'Unknown')
-            positions["servers"][server_name] = {
-                "x": 0,
-                "y": 0,
-                "boundary": server_info.get('boundary_name', None)
-            }
-        for dataflow in threat_model.dataflows:
-            dataflow_name = dataflow.name
-            positions["dataflows"][dataflow_name] = {
-                "source": self._get_element_name(dataflow.source),
-                "target": self._get_element_name(dataflow.sink),
-                "points": []
-            }
+        
+        logging.info("Successfully generated positions from Graphviz layout.")
         return positions
 
     def _get_element_name(self, element):
@@ -161,7 +216,7 @@ class ThreatModelService:
         if positions_data:
             element_positions = positions_data
         else:
-            # Fallback to extract positions if no positions_data provided (e.g., non-GUI save)
+            # Fallback to generate positions from Graphviz if no positions_data provided
             threat_model = create_threat_model(
                 markdown_content=markdown_content,
                 model_name="SavedThreatModel",
@@ -170,7 +225,7 @@ class ThreatModelService:
                 validate=True
             )
             if threat_model:
-                element_positions = self._extract_element_positions(threat_model)
+                element_positions = self._generate_positions_from_graphviz(threat_model)
         
         metadata = {
             "version": version,
@@ -297,11 +352,15 @@ class ThreatModelService:
         for name, data_obj in threat_model.data_objects.items():
             d_id = str(id(data_obj))
             element_to_id[data_obj] = d_id
+            
+            classification_obj = getattr(data_obj, 'classification', 'public')
+            classification_val = classification_obj.name.lower() if hasattr(classification_obj, 'name') else str(classification_obj)
+
             model_json["data"].append({
                 "id": d_id,
                 "name": name,
                 "description": getattr(data_obj, 'description', ''),
-                "classification": getattr(data_obj, 'classification', 'public'),
+                "classification": classification_val,
             })
 
         for df in threat_model.dataflows:
@@ -361,7 +420,7 @@ class ThreatModelService:
                     "validation_errors": errors
                 }
 
-            self.element_positions = self._extract_element_positions(threat_model)
+            self.element_positions = self._generate_positions_from_graphviz(threat_model)
             dot_code = self.diagram_generator._generate_manual_dot(threat_model)
             #logging.info(
             #    f"Generated DOT code (first 500 chars): \n{dot_code[:500]}..."

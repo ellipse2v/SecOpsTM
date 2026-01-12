@@ -446,17 +446,26 @@
             }
         }
 
-        function saveMarkdown() {
+        async function saveMarkdown() {
             const markdownContent = editor.getValue();
-            const blob = new Blob([markdownContent], { type: 'text/markdown' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'threat_model.md';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            try {
+                const response = await fetch('/api/save_project', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ markdown: markdownContent }),
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    alert('Project saved successfully!\nFiles saved in: ' + result.message);
+                } else {
+                    alert('Save failed: ' + (result.error || 'Unknown server error'));
+                }
+            } catch (error) {
+                console.error('Save project error:', error);
+                alert('An error occurred while saving the project.');
+            }
         }
 
         async function exportFile(format) {

@@ -631,7 +631,7 @@ def generate_all():
     try:
         data = request.get_json()
         markdown_content = data.get('markdown', '')
-        model_name = data.get('model_name', 'threat_model')
+        model_name = get_model_name(markdown_content)
         positions_data = data.get('positions', None)
         
         if not markdown_content:
@@ -675,6 +675,47 @@ def generate_all():
     except Exception as e:
         logging.error(f"Error during complete generation: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/save_project", methods=["POST"])
+def save_project():
+    """
+    Saves the threat model markdown and its metadata (with calculated positions).
+    This is a lightweight version of 'generate_all' for saving work in progress.
+    """
+    try:
+        data = request.get_json()
+        markdown_content = data.get('markdown', '')
+        model_name = get_model_name(markdown_content)
+        
+        if not markdown_content:
+            return jsonify({"error": "Missing markdown content"}), 400
+        
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_model_name = re.sub(r'[^a-zA-Z0-9_]', '_', model_name)
+        
+        # Unlike generate_all, save to a consistent folder if it exists, or create one.
+        project_dir = os.path.join(config.OUTPUT_BASE_DIR, safe_model_name)
+        os.makedirs(project_dir, exist_ok=True)
+        
+        model_filename = f"{safe_model_name}_{timestamp}.md"
+        model_path = os.path.join(project_dir, model_filename)
+        
+        # This will save the .md and create the _metadata.json with positions
+        metadata_path = threat_model_service.save_model_with_metadata(
+            markdown_content, model_path, positions_data=None # Pass None to trigger Graphviz layout
+        )
+        
+        return jsonify({
+            "success": True,
+            "message": f"Project saved successfully in {project_dir}",
+            "model_path": model_path,
+            "metadata_path": metadata_path,
+        })
+    except Exception as e:
+        logging.error(f"Error during project save: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route("/api/check_version_compatibility", methods=["POST"])
 def check_version_compatibility():

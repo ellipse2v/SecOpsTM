@@ -481,6 +481,34 @@
                             stage.height(graphContainer.offsetHeight);
                         }).observe(graphContainer);
 
+            // Enable Panning and Zooming
+            stage.draggable(true);
+            stage.on('wheel', (e) => {
+                e.evt.preventDefault();
+                const scaleBy = 1.1;
+                const oldScale = stage.scaleX();
+                const pointer = stage.getPointerPosition();
+
+                const mousePointTo = {
+                    x: (pointer.x - stage.x()) / oldScale,
+                    y: (pointer.y - stage.y()) / oldScale,
+                };
+
+                let direction = e.evt.deltaY > 0 ? -1 : 1;
+
+                const newScale = direction > 0 ? oldScale * scaleBy : oldScale / scaleBy;
+
+                stage.scale({ x: newScale, y: newScale });
+
+                const newPos = {
+                    x: pointer.x - mousePointTo.x * newScale,
+                    y: pointer.y - mousePointTo.y * newScale,
+                };
+                stage.position(newPos);
+            });
+
+
+
 
 
             // Konva Transformer initialization
@@ -1997,6 +2025,15 @@
                 });
             }
 
+            function sanitizeName(name) {
+                if (!name) return "unnamed";
+                let sanitized = name.replace(/[^a-zA-Z0-9_]/g, '_');
+                if (sanitized && /^\d/.test(sanitized)) {
+                    sanitized = '_' + sanitized;
+                }
+                return sanitized || "unnamed";
+            }
+            
             function drawGraphFromJSON(modelData, positions) {
                 layer.destroyChildren(); // Clear previous content
                 tr.nodes([]);
@@ -2036,7 +2073,9 @@
                         pos_category = stereotype.toLowerCase() + 's'; // Fallback
                     }
 
-                    const pos = positions?.[pos_category]?.[item.name.toLowerCase()] || { x: 50, y: 50 };
+                    // Use sanitized and lowercased name for position lookup
+                    const lookupName = sanitizeName(item.name).toLowerCase();
+                    const pos = positions?.[pos_category]?.[lookupName] || { x: 50, y: 50 };
                     const node = addNode(stereotype, item.name, pos.x, pos.y, pos.width, pos.height);
                     idMap[item.id] = node;
                     nodes.push(node);
@@ -2079,17 +2118,28 @@
                 layer.draw();
             }
 
+            function sanitizeName(name) {
+                if (!name) return "unnamed";
+                // Convert to string in case it's not, then replace invalid chars
+                let sanitized = String(name).replace(/[^a-zA-Z0-9_]/g, '_');
+                if (sanitized && /^\d/.test(sanitized)) {
+                    sanitized = '_' + sanitized;
+                }
+                return sanitized || "unnamed";
+            }
+
             function repopulateGraph(markdown, metadata) {
                 console.log("repopulateGraph called with metadata:", JSON.stringify(metadata, null, 2));
                 
-                // New logic: Convert position keys to lowercase if metadata exists
                 let processedPositions = null;
                 if (metadata && metadata.positions) {
                     processedPositions = {};
                     for (const category in metadata.positions) {
                         processedPositions[category] = {};
                         for (const name in metadata.positions[category]) {
-                            processedPositions[category][name.toLowerCase()] = metadata.positions[category][name];
+                            // Sanitize and lowercase the key to ensure consistency across all model sources
+                            const lookupName = sanitizeName(name).toLowerCase();
+                            processedPositions[category][lookupName] = metadata.positions[category][name];
                         }
                     }
                 }
@@ -2105,7 +2155,8 @@
                         alert(`Error converting model: ${data.error}`);
                         return;
                     }
-                    drawGraphFromJSON(data.model_json, processedPositions); // Use processedPositions
+                    // Pass the consistently processed positions to the drawing function
+                    drawGraphFromJSON(data.model_json, processedPositions);
                 })
                 .catch(error => {
                     console.error('Error converting model:', error);
