@@ -49,6 +49,7 @@ from threat_analysis.generation.attack_flow_generator import AttackFlowGenerator
 from threat_analysis.core.model_validator import ModelValidator
 from pathlib import Path
 from threat_analysis.core.cve_service import CVEService
+from threat_analysis.generation.graphviz_to_json_metadata import GraphvizToJsonMetadataConverter
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -73,95 +74,38 @@ class ThreatModelService:
 
     def _generate_positions_from_graphviz(self, threat_model):
         """
-        Generates element positions by running Graphviz and extracting layout
-        information, ensuring original names are used as keys.
+        Generates element positions by using the Graphviz JSON output.
         """
-        logging.info("Generating layout positions using Graphviz...")
-        
-        # 1. Create maps from original names to types and sanitized names
-        name_to_type = {}
-        sanitized_to_original_name = {}
-        
-        all_elements = (
-            list(threat_model.boundaries.items()) +
-            threat_model.actors +
-            threat_model.servers
-        )
-        
-        for item in all_elements:
-            # Handle different structures (dict for actors/servers, tuple for boundaries)
-            original_name = item[0] if isinstance(item, tuple) else self._get_element_name(item)
-            item_type = "boundaries" if isinstance(item, tuple) else ("actors" if item.get('type') == 'actor' else "servers")
+        print("--- [DEBUG V5] ENTERING _generate_positions_from_graphviz ---")
+        logging.info("Generating layout positions using Graphviz JSON...")
 
-            if original_name not in name_to_type:
-                name_to_type[original_name] = item_type
-                sanitized_name = self.diagram_generator._sanitize_name(original_name)
-                sanitized_to_original_name[sanitized_name] = original_name
-
-        # 2. Run Graphviz to get JSON with layout
         try:
             dot_code = self.diagram_generator._generate_manual_dot(threat_model)
             if not dot_code:
-                logging.error("Failed to generate DOT code for position calculation.")
                 return {}
 
             result = subprocess.run(
-                ['dot', '-Tjson'],
-                input=dot_code, text=True, encoding='utf-8',
-                capture_output=True, check=True
+                ["dot", "-Tjson"],
+                input=dot_code,
+                text=True,
+                encoding="utf-8",
+                capture_output=True,
+                check=True
             )
-            graph_json = json.loads(result.stdout)
+            graphviz_json = json.loads(result.stdout)
+
+            converter = GraphvizToJsonMetadataConverter()
+            positions = converter.convert(graphviz_json, threat_model)
             
-        except Exception as e:
-            logging.error(f"Error running Graphviz for position generation: {e}")
+            logging.info("Successfully generated positions from Graphviz JSON.")
+            return positions
+
+        except (subprocess.CalledProcessError, json.JSONDecodeError, Exception) as e:
+            logging.error(f"An unexpected error occurred in _generate_positions_from_graphviz: {e}", exc_info=True)
+            if isinstance(e, subprocess.CalledProcessError):
+                logging.error(f"Stderr: {e.stderr}")
             return {}
-
-        # 3. Process JSON and build final positions dict with original names
-        positions = { "boundaries": {}, "actors": {}, "servers": {}, "data": {}, "dataflows": {} }
-        bb = graph_json.get('bb', '0,0,0,0').split(',')
-        graph_height = float(bb[3]) if len(bb) == 4 else 0
-
-        # Combine nodes and clusters for processing
-        graph_elements = graph_json.get('objects', [])
-        if '_subgraph_maps' in graph_json:
-             graph_elements.extend(graph_json['_subgraph_maps'])
-
-        for element in graph_elements:
-            sanitized_name = element.get('name')
-            # For clusters, name is like 'cluster_...' but label is the original name
-            if sanitized_name and sanitized_name.startswith('cluster_'):
-                sanitized_name = self.diagram_generator._sanitize_name(element.get('label', ''))
             
-            if not sanitized_name:
-                continue
-
-            original_name = sanitized_to_original_name.get(sanitized_name)
-            if not original_name:
-                continue
-
-            element_type = name_to_type.get(original_name)
-            if not element_type:
-                continue
-            
-            pos_str = element.get('pos', '0,0').split(',')
-            x, y = float(pos_str[0]), float(pos_str[1])
-            
-            # Flip the Y coordinate based on graph height
-            y = graph_height - y
-
-            width = float(element.get('width', 0)) * 72 # Inches to points
-            height = float(element.get('height', 0)) * 72 # Inches to points
-            
-            positions[element_type][original_name] = {
-                "x": x - (width / 2),
-                "y": y - (height / 2),
-                "width": width,
-                "height": height
-            }
-        
-        logging.info("Successfully generated positions from Graphviz layout.")
-        return positions
-
     def _get_element_name(self, element):
         if hasattr(element, 'name'):
             return element.name
@@ -366,15 +310,15 @@ class ThreatModelService:
         for df in threat_model.dataflows:
             df_id = str(id(df))
             
-            from_id = element_to_id.get(df.source)
-            to_id = element_to_id.get(df.sink)
+            from_name = getattr(df.source, 'name', None)
+            to_name = getattr(df.sink, 'name', None)
 
-            if from_id and to_id:
+            if from_name and to_name:
                 model_json["dataflows"].append({
                     "id": df_id,
                     "name": df.name,
-                    "from": from_id,
-                    "to": to_id,
+                    "from": from_name,
+                    "to": to_name,
                     "protocol": df.protocol,
                     "description": getattr(df, 'description', ''),
                     "isEncrypted": getattr(df, 'is_encrypted', False),

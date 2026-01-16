@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Threat Model Tool</title>
+    <link rel="stylesheet" href="/static/css/dark_mode.css">
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -13,6 +14,7 @@
             align-items: center;
             height: 100vh;
             margin: 0;
+            transition: background-color 0.3s, color 0.3s;
         }
         .container {
             text-align: center;
@@ -20,6 +22,7 @@
             padding: 40px;
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            position: relative;
         }
         h1 {
             font-size: 2.5em;
@@ -86,10 +89,57 @@
             visibility: visible;
             opacity: 1;
         }
+        .dark-mode-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #eee;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            width: 44px;
+            height: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            padding: 2px;
+            transition: background-color 0.3s;
+        }
+        .dark-mode-toggle-indicator {
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            transition: transform 0.3s;
+        }
+        body.dark-mode .container {
+            background-color: #1e1e1e;
+        }
+        body.dark-mode h1 {
+            color: #e0e0e0;
+        }
+        body.dark-mode .card {
+            background-color: #2a2a2a;
+            border-color: #333;
+        }
+        body.dark-mode .card p {
+            color: #aaa;
+        }
+        body.dark-mode .dark-mode-toggle {
+            background: #333;
+            border-color: #555;
+        }
+        body.dark-mode .dark-mode-toggle-indicator {
+            transform: translateX(20px);
+            background: #555;
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <div class="dark-mode-toggle" id="darkModeToggle">
+            <div class="dark-mode-toggle-indicator"></div>
+        </div>
         <h1>Threat Model Tool</h1>
         <div class="menu">
             <a href="/simple" class="card">
@@ -104,5 +154,33 @@
             </a>
         </div>
     </div>
+    <script>
+        (function() {
+            const toggle = document.getElementById('darkModeToggle');
+            const body = document.body;
+
+            const applyTheme = (theme) => {
+                if (theme === 'dark') {
+                    body.classList.add('dark-mode');
+                } else {
+                    body.classList.remove('dark-mode');
+                }
+            };
+
+            toggle.addEventListener('click', () => {
+                if (body.classList.contains('dark-mode')) {
+                    localStorage.setItem('theme', 'light');
+                    applyTheme('light');
+                } else {
+                    localStorage.setItem('theme', 'dark');
+                    applyTheme('dark');
+                }
+            });
+
+            // Apply theme on initial load
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(savedTheme);
+        })();
+    </script>
 </body>
 </html>

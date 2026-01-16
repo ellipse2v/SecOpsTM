@@ -6,6 +6,7 @@
     <title>Threat Model Editor</title>
     <link rel="stylesheet" href="/static/css/codemirror.min.css">
     <link rel="stylesheet" href="/static/css/theme/material.min.css">
+    <link rel="stylesheet" href="/static/css/dark_mode.css">
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -15,6 +16,11 @@
             display: flex;
             flex-direction: column;
             height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        body.dark-mode {
+            background-color: #1a1a1a;
+            color: #e0e0e0;
         }
         .header {
             background-color: #ffffff;
@@ -25,10 +31,26 @@
             justify-content: space-between;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             flex-shrink: 0;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+        body.dark-mode .header {
+            background-color: #2a2a2a;
+            border-bottom-color: #444;
         }
         .header h1 {
             font-size: 1.5em;
             margin: 0;
+            transition: color 0.3s;
+        }
+        body.dark-mode .header h1 {
+            color: #e0e0e0;
+        }
+        .header h1 span {
+            color: #555;
+            transition: color 0.3s;
+        }
+        body.dark-mode .header h1 span {
+            color: #aaa;
         }
         .button-group button {
             background-color: #2c974b;
@@ -50,6 +72,37 @@
             display: flex;
             align-items: center;
             gap: 5px;
+        }
+        
+        /* Dark mode toggle */
+        .dark-mode-toggle {
+            background: #eee;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            width: 44px;
+            height: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            padding: 2px;
+            transition: background-color 0.3s;
+            margin-left: 10px;
+        }
+        body.dark-mode .dark-mode-toggle {
+            background: #333;
+            border-color: #555;
+        }
+        .dark-mode-toggle-indicator {
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            transition: transform 0.3s, background-color 0.3s;
+        }
+        body.dark-mode .dark-mode-toggle-indicator {
+            transform: translateX(20px);
+            background: #555;
         }
         
         /* Dropdown menu styles */
@@ -86,6 +139,11 @@
             border-radius: 4px;
             overflow: hidden;
             padding: 4px 0;
+            transition: background-color 0.3s;
+        }
+        body.dark-mode .dropdown-content {
+            background-color: #2a2a2a;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.5);
         }
         
         .dropdown-content button {
@@ -101,11 +159,19 @@
             margin: 0;
             text-align: left;
             font-size: 13px;
+            transition: background-color 0.2s, color 0.3s;
+        }
+        body.dark-mode .dropdown-content button {
+            color: #e0e0e0;
         }
         
         .dropdown-content button:hover {
             background-color: #e0f2f1;
             color: #2c974b;
+        }
+        body.dark-mode .dropdown-content button:hover {
+            background-color: #3a3a3a;
+            color: #4CAF50;
         }
         
         .dropdown:hover .dropdown-content {
@@ -122,6 +188,10 @@
             height: 28px;
             background-color: #ddd;
             margin: 0 8px;
+            transition: background-color 0.3s;
+        }
+        body.dark-mode .menu-separator {
+            background-color: #555;
         }
         .error-message {
             color: #d8000c;
@@ -131,6 +201,12 @@
             margin: 10px;
             border-radius: 5px;
             display: none; /* Hidden by default */
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        }
+        body.dark-mode .error-message {
+            color: #ff6b6b;
+            background-color: #3a1a1a;
+            border-color: #ff6b6b;
         }
         .container {
             display: flex;
@@ -145,6 +221,10 @@
             background-color: #eee;
             background-repeat: no-repeat;
             background-position: 50%;
+            transition: background-color 0.3s;
+        }
+        body.dark-mode .gutter {
+            background-color: #333;
         }
         .gutter.gutter-horizontal {
             background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxl79uz5T5Gj5WBGjma8+fABAF0pIxXTG4ToAAAAAElFTkSuQmCC');
@@ -158,6 +238,10 @@
         .editor-pane {
             background-color: #ffffff;
             position: relative; /* Needed for positioning the drop overlay */
+            transition: background-color 0.3s;
+        }
+        body.dark-mode .editor-pane {
+            background-color: #1e1e1e;
         }
         .drop-overlay {
             position: absolute;
@@ -179,6 +263,11 @@
             opacity: 0; /* Hidden by default */
             transition: opacity 0.3s ease;
         }
+        body.dark-mode .drop-overlay {
+            background-color: rgba(33, 150, 243, 0.3);
+            border-color: #2196F3;
+            color: #2196F3;
+        }
         .drop-overlay.drag-over {
             opacity: 1; /* Visible when dragging over */
         }
@@ -189,6 +278,10 @@
             border-radius: 6px;
             font-family: "Courier New", Courier, monospace;
             font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        body.dark-mode .CodeMirror {
+            border-color: #444;
         }
         .preview-container {
             display: flex;
@@ -202,6 +295,11 @@
             overflow: hidden;
             height: 70%;
             position: relative; /* For positioning custom controls */
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+        body.dark-mode #svg-container {
+            background-color: #2a2a2a;
+            border-color: #444;
         }
         #svg-wrapper {
             width: 100%;
@@ -231,11 +329,19 @@
             font-weight: bold;
             cursor: pointer;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            transition: background-color 0.2s, box-shadow 0.2s;
+            transition: background-color 0.2s, box-shadow 0.2s, border-color 0.3s;
+        }
+        body.dark-mode #zoom-controls button {
+            background-color: #3a3a3a;
+            border-color: #555;
+            color: #e0e0e0;
         }
         #zoom-controls button:hover {
             background-color: #f0f0f0;
             box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+        }
+        body.dark-mode #zoom-controls button:hover {
+            background-color: #4a4a4a;
         }
         #legend-container {
             flex-shrink: 0;
@@ -261,11 +367,15 @@
             margin-bottom: 3px;
             padding: 1px 0;
             font-size: 9px;
+            transition: background-color 0.2s;
         }
         .legend-item:hover {
             background-color: rgba(0, 122, 204, 0.1);
             border-radius: 2px;
             padding: 1px 2px;
+        }
+        body.dark-mode .legend-item:hover {
+            background-color: rgba(33, 150, 243, 0.2);
         }
         .svg-element-hidden {
             display: none !important;
@@ -279,14 +389,14 @@
 <body>
 
     <div class="header">
-        <h1>Threat Model Editor <span style="font-size: 0.6em; color: #555;">- {{ model_name }}</span></h1>
+        <h1>Threat Model Editor <span style="font-size: 0.6em;">- {{ model_name }}</span></h1>
         <div class="menu-bar">
             <div class="dropdown">
                 <button class="dropbtn">📁 File</button>
                 <div class="dropdown-content">
                     <button onclick="document.getElementById('loadFileInput').click()">📥 Load Model (.md)</button>
                     <input type="file" id="loadFileInput" accept=".md" style="display: none;" onchange="loadMarkdownFile(event)">
-                    <button onclick="saveMarkdown()">💾 Save Model (.md)</button>
+                    <button onclick="saveProjectToServer()">💾 Save Project to Server</button>
                 </div>
             </div>
             <div class="menu-separator"></div>
@@ -301,6 +411,9 @@
                     <button onclick="exportAllFiles()">🗃️ Export All (ZIP)</button>
                     <button onclick="exportNavigatorAndStixButton()">🔍 Export ATT&CK Navigator & STIX</button>
                 </div>
+            </div>
+            <div class="dark-mode-toggle" id="darkModeToggle">
+                <div class="dark-mode-toggle-indicator"></div>
             </div>
         </div>
     </div>
@@ -333,6 +446,34 @@
         let debounceTimer;
         let panZoomInstance;
         let protocolVisibilityState = {}; // Stores { 'protocol_name': 'hidden' / 'visible' }
+
+        // Dark mode functionality
+        (function() {
+            const toggle = document.getElementById('darkModeToggle');
+            const body = document.body;
+
+            const applyTheme = (theme) => {
+                if (theme === 'dark') {
+                    body.classList.add('dark-mode');
+                } else {
+                    body.classList.remove('dark-mode');
+                }
+            };
+
+            toggle.addEventListener('click', () => {
+                if (body.classList.contains('dark-mode')) {
+                    localStorage.setItem('theme', 'light');
+                    applyTheme('light');
+                } else {
+                    localStorage.setItem('theme', 'dark');
+                    applyTheme('dark');
+                }
+            });
+
+            // Apply theme on initial load
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(savedTheme);
+        })();
 
         // Initialize CodeMirror
         const editor = CodeMirror.fromTextArea(document.getElementById('markdown-editor'), {
@@ -446,7 +587,7 @@
             }
         }
 
-        async function saveMarkdown() {
+        async function saveProjectToServer() {
             const markdownContent = editor.getValue();
             try {
                 const response = await fetch('/api/save_project', {
