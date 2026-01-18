@@ -1,3 +1,18 @@
+/*
+ * Copyright 2025 ellipse2v
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 // threat_analysis/server/static/js/ConnectionManager.js
 
 class ConnectionManager {
@@ -15,10 +30,10 @@ class ConnectionManager {
     setupEventHandlers() {
         this.stage.on('mousemove', () => this.handleMouseMove());
         this.stage.on('mouseup', () => this.handleMouseUp());
-        // this.stage.on('dragmove', () => this.updateAllConnections()); // Removed, KonvaManager handles this now
         window.addEventListener('keydown', (e) => this.handleKeyDown(e));
         window.addEventListener('itemSelected', (e) => this.handleItemSelected(e));
         window.addEventListener('selectionCleared', () => this.handleSelectionCleared());
+        window.addEventListener('nodeDragMove', () => this.updateAllConnections());
     }
 
     handleItemSelected(e) {
@@ -26,7 +41,6 @@ class ConnectionManager {
         if (item instanceof Connection) {
             this.selectConnection(item);
         } else {
-            // If a node is selected, ensure connection selection is cleared
             this.clearConnectionSelection();
         }
     }
@@ -49,22 +63,43 @@ class ConnectionManager {
         const pos = this.stage.getPointerPosition();
         if (!pos) return;
 
-        const fromPos = this.activeConnection.fromNode.getAbsolutePosition();
+        // Get the starting port's absolute position
+        const portAbsPos = this.activeConnection.clickedPort.getAbsolutePosition();
+        
         this.activeConnection.arrow.points([
-            fromPos.x,
-            fromPos.y,
+            portAbsPos.x,
+            portAbsPos.y,
             pos.x,
             pos.y
         ]);
 
         const intersected = this.stage.getIntersection(pos);
-        const targetNode = intersected ? intersected.getParent() : null;
+        let targetNode = null;
+        
+        // Check if we intersected with a node (not the stage, not a port, not the source node)
+        if (intersected) {
+            let current = intersected;
+            // Traverse up to find the parent group
+            while (current && !current.isNode) {
+                current = current.getParent();
+            }
+            if (current && current.isNode && current !== this.activeConnection.fromNode) {
+                targetNode = current;
+            }
+        }
 
+        // Clear all glows first
         this.nodes.forEach(n => this.setGlow(n, false));
-        if (targetNode && targetNode.isNode && targetNode !== this.activeConnection.fromNode) {
+        
+        // Show glow and ports on hover
+        if (targetNode) {
             this.hoverNode = targetNode;
             this.setGlow(this.hoverNode, true);
+            this.hoverNode.showPorts(true);
         } else {
+            if (this.hoverNode) {
+                this.hoverNode.showPorts(false);
+            }
             this.hoverNode = null;
         }
         this.layer.batchDraw();
@@ -74,34 +109,49 @@ class ConnectionManager {
         if (!this.activeConnection) return;
         if (this.hoverNode) {
             this.activeConnection.attach(this.hoverNode);
+            this.hoverNode.showPorts(false);
         } else {
             this.activeConnection.destroy();
         }
-        this.nodes.forEach(n => this.setGlow(n, false));
+        this.nodes.forEach(n => {
+            this.setGlow(n, false);
+            n.showPorts(false);
+        });
         this.activeConnection = null;
         this.hoverNode = null;
         this.layer.draw();
     }
 
     handleKeyDown(e) {
-        if (e.key === 'Delete' && this.selectedConnection) {
+        if ((e.key === 'Delete' || e.key === 'Backspace') && this.selectedConnection) {
             this.selectedConnection.destroy();
             this.selectedConnection = null;
             this.layer.draw();
-            window.dispatchEvent(new CustomEvent('selectionCleared')); // Notify properties panel
+            window.dispatchEvent(new CustomEvent('selectionCleared'));
         }
     }
 
     updateAllConnections() {
         this.connections.forEach(c => c.update());
+        this.layer.batchDraw();
     }
 
-    startConnection(n) {
-        this.activeConnection = new Connection(n, this);
+    startConnection(n, clickedPort) {
+        if (!clickedPort) {
+        clickedPort = {
+            getAbsolutePosition: () => {
+                return {
+                    x: n.getAbsolutePosition().x + n.width() / 2,
+                    y: n.getAbsolutePosition().y + n.height() / 2
+                };
+            }
+        };
+    }
+        this.activeConnection = new Connection(n, this, clickedPort);
         const uniqueName = this.findUniqueDataflowName('New Dataflow');
         this.activeConnection.properties.name = uniqueName;
         this.activeConnection.setLabel(uniqueName);
-        return this.activeConnection; // Return the new connection
+        return this.activeConnection;
     }
     
     setGlow(node, on) {
@@ -130,13 +180,13 @@ class ConnectionManager {
     }
 
     selectConnection(c) {
-        this.clearConnectionSelection(); // Clear any previous connection selection
+        this.clearConnectionSelection();
 
         this.selectedConnection = c;
         c.arrow.stroke('#1976d2');
         c.arrow.strokeWidth(3);
         this.layer.draw();
-        // window.dispatchEvent(new CustomEvent('itemSelected', { detail: { item: c } })); // Removed to prevent infinite loop
+        window.dispatchEvent(new CustomEvent('itemSelected', { detail: { item: c } }));
     }
 
     findUniqueDataflowName(baseName) {
@@ -161,11 +211,12 @@ class ConnectionManager {
 }
 
 class Connection {
-    constructor(fromNode, manager) {
+    constructor(fromNode, manager, clickedPort) {
         this.fromNode = fromNode;
         this.toNode = null;
         this.offsetIndex = 0;
         this.manager = manager;
+        this.clickedPort = clickedPort;
         this.properties = {
             name: 'New Dataflow',
             protocol: 'TCP',
@@ -177,17 +228,24 @@ class Connection {
         };
         this.labelText = this.properties.name;
 
+        // Get the initial port position
+        const portAbsPos = clickedPort.getAbsolutePosition();
+
         this.arrow = new Konva.Arrow({
+            points: [portAbsPos.x, portAbsPos.y, portAbsPos.x, portAbsPos.y],
             stroke: '#000',
             fill: '#000',
             strokeWidth: 2,
             pointerLength: 10,
-            pointerWidth: 10
+            pointerWidth: 10,
+            name: 'connectionArrow'
         });
 
         this.hit = new Konva.Line({
+            points: [portAbsPos.x, portAbsPos.y, portAbsPos.x, portAbsPos.y],
             stroke: 'transparent',
-            strokeWidth: 12
+            strokeWidth: 12,
+            name: 'connectionHit'
         });
 
         this.label = new Konva.Text({
@@ -195,7 +253,8 @@ class Connection {
             fontSize: 12,
             fill: '#000',
             padding: 2,
-            background: '#fff'
+            background: '#fff',
+            name: 'connectionLabel'
         });
 
         [this.arrow, this.hit, this.label].forEach(obj => {
@@ -210,7 +269,10 @@ class Connection {
     }
 
     update() {
-        if (!this.toNode) return;
+        if (!this.toNode) {
+            // Temporary connection - already handled by handleMouseMove
+            return;
+        }
 
         const toCenter = {
             x: this.toNode.getAbsolutePosition().x + this.toNode.width() / 2,

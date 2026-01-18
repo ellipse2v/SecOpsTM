@@ -142,16 +142,28 @@
             color: #e0e0e0;
         }
         .toolbar-button { 
-            display: block; width: 100%; margin-bottom: 10px;
+            display: flex; /* For icon alignment */
+            align-items: center;
+            width: 100%; margin-bottom: 10px;
             padding: 10px; box-sizing: border-box; cursor: pointer;
-            text-align: left; background-color: #fff; border: 1px solid #ccc;
+            background-color: #fff; border: 1px solid #ccc;
             border-radius: 5px; font-size: 14px;
             transition: background-color 0.2s, color 0.3s, border-color 0.3s;
+        }
+        .toolbar-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            filter: invert(0); /* Default to no invert for light mode */
+            transition: filter 0.3s;
         }
         body.dark-mode .toolbar-button {
             background-color: #2a2a2a;
             border-color: #555;
             color: #e0e0e0;
+        }
+        body.dark-mode .toolbar-icon {
+            filter: invert(1);
         }
         .toolbar-button:hover { 
             background-color: #f0f0f0;

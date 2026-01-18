@@ -1,3 +1,18 @@
+/*
+ * Copyright 2025 ellipse2v
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 // threat_analysis/server/static/js/KonvaManager.js
 
 class KonvaManager {
@@ -43,7 +58,6 @@ class KonvaManager {
             this.stage.height(this.container.offsetHeight);
         }).observe(this.container);
 
-        // this.stage.draggable(true); // Disable Konva's built-in dragging
         this.stage.on('mousedown', (e) => this.handleMouseDown(e));
         this.stage.on('mousemove', (e) => this.handleMouseMove(e));
         this.stage.on('mouseup', () => this.handleMouseUp());
@@ -55,7 +69,6 @@ class KonvaManager {
     }
 
     handleMouseDown(e) {
-        // Only start panning if clicking on empty stage with left mouse button
         if (e.target === this.stage && e.evt.button === 0) {
             this.isPanning = true;
             this.lastPointerPosition = this.stage.getPointerPosition();
@@ -74,9 +87,6 @@ class KonvaManager {
             this.stage.position({ x: newX, y: newY });
             this.lastPointerPosition = currentPointerPosition;
             this.layer.batchDraw();
-            if (this.connectionManager) {
-                this.connectionManager.updateAllConnections();
-            }
         }
     }
 
@@ -120,8 +130,16 @@ class KonvaManager {
             return;
         }
 
+        // Check if we clicked on a connection element
+        const targetName = e.target.name();
+        if (targetName === 'connectionArrow' || targetName === 'connectionHit' || targetName === 'connectionLabel') {
+            // Connection clicked - the click handler on the connection itself will handle selection
+            this.transformer.nodes([]); // Clear node selection
+            return;
+        }
+
         // If we clicked on a shape that is not selectable, clear selection
-        if (!e.target.hasName('shape') && !e.target.hasName('connectionLabel')) {
+        if (!e.target.hasName('shape')) {
             this.transformer.nodes([]);
             window.dispatchEvent(new CustomEvent('selectionCleared'));
             return;
@@ -142,9 +160,6 @@ class KonvaManager {
                 }
                 selectedItem = group;
             }
-        } else if (e.target.hasName('connectionLabel')) {
-            this.connectionManager.selectConnection(e.target.getParent());
-            return; // Exit after direct selection to prevent further event dispatch
         }
         
         window.dispatchEvent(new CustomEvent('itemSelected', { detail: { item: selectedItem } }));
@@ -184,9 +199,10 @@ class KonvaManager {
                     this.transformer.nodes([]);
                     this.layer.draw();
                     window.dispatchEvent(new CustomEvent('selectionCleared'));
-                    window.dispatchEvent(new CustomEvent('nodeDeleted')); // Or with node ID
+                    window.dispatchEvent(new CustomEvent('nodeDeleted'));
                 }
             }
+            // Note: Connection deletion is handled in ConnectionManager
         }
     }
 

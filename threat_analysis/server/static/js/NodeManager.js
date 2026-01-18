@@ -1,3 +1,18 @@
+/*
+ * Copyright 2025 ellipse2v
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 // threat_analysis/server/static/js/NodeManager.js
 
 class NodeManager {
@@ -7,15 +22,36 @@ class NodeManager {
         this.nodes = [];
     }
 
-    addNode(type, name, x, y, newWidth, newHeight) {
+    addNode(type, name, x, y, newWidth, newHeight, incomingProps) {
         const config = ThreatModelConfig;
         const dimensions = config.ELEMENT_DIMENSIONS[type] || { width: 120, height: 80 };
         const colors = config.COLOR_SCHEMES[type] || config.COLOR_SCHEMES.DEFAULT;
         const defaultProps = config.DEFAULT_PROPERTIES[type] || {};
+
+        // Base properties from defaults
+        const baseProperties = {
+            name: name || defaultProps.name || 'New Element',
+            description: defaultProps.description || '',
+            os: defaultProps.os || '',
+            stereotype: type,
+            isFilled: defaultProps.isFilled !== undefined ? defaultProps.isFilled : (type === 'BOUNDARY' ? false : true),
+            isTrusted: defaultProps.isTrusted !== undefined ? defaultProps.isTrusted : (type === 'BOUNDARY' ? false : true),
+            lineStyle: defaultProps.lineStyle || 'solid',
+            format: defaultProps.format || '',
+            credentialsLife: defaultProps.credentialsLife || '',
+            classification: defaultProps.classification || 'public',
+            confidentiality: defaultProps.confidentiality || 'medium',
+            integrity: defaultProps.integrity || 'medium',
+            availability: defaultProps.availability || 'medium',
+            color: defaultProps.color || colors.fill,
+        };
+        
+        // Merge incoming properties
+        const properties = { ...baseProperties, ...incomingProps };
         
         const width = newWidth || dimensions.width || (type === 'BOUNDARY' ? 300 : 120);
         const height = newHeight || dimensions.height || (type === 'BOUNDARY' ? 200 : 80);
-        const fill = colors.fill;
+        const fill = properties.color;
         const stroke = colors.stroke;
         const textColor = colors.text;
         const iconPath = ThreatModelConfig.ICON_MAPPING[type.toLowerCase().replace('_', '')];
@@ -282,23 +318,6 @@ class NodeManager {
         this.layer.add(group);
         this.layer.draw();
 
-        const properties = {
-            name: name || defaultProps.name || 'New Element',
-            description: defaultProps.description || '',
-            os: defaultProps.os || '',
-            stereotype: type,
-            isFilled: defaultProps.isFilled !== undefined ? defaultProps.isFilled : (type === 'BOUNDARY' ? false : true),
-            isTrusted: defaultProps.isTrusted !== undefined ? defaultProps.isTrusted : (type === 'BOUNDARY' ? false : true),
-            lineStyle: defaultProps.lineStyle || 'solid',
-            format: defaultProps.format || '',
-            credentialsLife: defaultProps.credentialsLife || '',
-            classification: defaultProps.classification || 'public',
-            confidentiality: defaultProps.confidentiality || 'medium',
-            integrity: defaultProps.integrity || 'medium',
-            availability: defaultProps.availability || 'medium',
-            color: fill,
-        };
-
         group.setAttr('threatModelProperties', properties);
         
         if (properties.isFilled) {
@@ -308,7 +327,11 @@ class NodeManager {
         }
         
         if (type === 'BOUNDARY') {
-            shape.stroke(properties.isTrusted ? '#adb5bd' : 'red');
+            if (properties.isFilled) {
+                shape.stroke(properties.isTrusted ? '#adb5bd' : 'red');
+            } else {
+                shape.stroke(properties.color);
+            }
             shape.strokeWidth(properties.isTrusted ? 2 : 1);
         } else {
             shape.stroke(properties.color);
@@ -318,7 +341,8 @@ class NodeManager {
             e.cancelBubble = true;
             this.tr.nodes([group]);
             this.tr.enabledAnchors([]);
-            // updatePropertiesPanel(group);
+            window.dispatchEvent(new CustomEvent('itemSelected', { detail: { item: group } }));
+
         });
 
         group.on('transform', () => {
@@ -362,7 +386,7 @@ class NodeManager {
             
             port.on('mousedown', (e) => {
                 e.cancelBubble = true;
-                const event = new CustomEvent('portClicked', { detail: { group: group } });
+                const event = new CustomEvent('portClicked', { detail: { group: group, port: port } });
                 window.dispatchEvent(event);
             });
             
@@ -375,10 +399,36 @@ class NodeManager {
         group.on('mouseenter', () => group.showPorts(true));
         group.on('mouseleave', () => group.showPorts(false));
         
-        
+        group.on('dragmove', () => {
+            this.layer.batchDraw(); // Redraw the layer during node drag
+            window.dispatchEvent(new CustomEvent('nodeDragMove', { detail: { node: group } }));
+        });
+
         this.nodes.push(group);
         return group;
     }
+
+    findUniqueName(baseName) {
+        const existingNames = new Set();
+        this.layer.find('Group').forEach(group => {
+                    if (group.id() && group.getAttr('threatModelProperties')) {
+                        existingNames.add(group.getAttr('threatModelProperties').name);
+                    }
+                });
+
+                if (!existingNames.has(baseName)) {
+                    return baseName;
+                }
+
+                let i = 1;
+                while (true) {
+                    const newName = `${baseName} ${i}`;
+                    if (!existingNames.has(newName)) {
+                        return newName;
+                    }
+                    i++;
+                }
+            }
 
     getNodesPositions() {
         const positions = { actors: {}, servers: {}, data: {}, boundaries: {} };

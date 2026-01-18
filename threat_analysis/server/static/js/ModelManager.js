@@ -1,3 +1,18 @@
+/*
+ * Copyright 2025 ellipse2v
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 // threat_analysis/server/static/js/ModelManager.js
 
 class ModelManager {
@@ -211,7 +226,7 @@ class ModelManager {
         
         (modelData.boundaries || []).forEach(b => {
             const pos = getPosition('boundary', b.name);
-            const node = this.nodeManager.addNode('BOUNDARY', b.name, pos.x, pos.y, pos.width, pos.height);
+            const node = this.nodeManager.addNode('BOUNDARY', b.name, pos.x, pos.y, pos.width, pos.height, b.properties);
             idToNameMap[b.name] = node.id();
         });
 
@@ -227,7 +242,7 @@ class ModelManager {
                     elementType = type.slice(0, -1);
                 }
                 const pos = getPosition(elementType, el.name);
-                const node = this.nodeManager.addNode(stereotype, el.name, pos.x, pos.y, pos.width, pos.height);
+                const node = this.nodeManager.addNode(stereotype, el.name, pos.x, pos.y, pos.width, pos.height, el.properties);
                 idToNameMap[el.name] = node.id();
             });
         });
@@ -236,7 +251,10 @@ class ModelManager {
             const fromNode = this.konvaManager.getLayer().findOne('#' + idToNameMap[df.from]);
             const toNode = this.konvaManager.getLayer().findOne('#' + idToNameMap[df.to]);
             if (fromNode && toNode) {
-                const conn = this.connectionManager.startConnection(fromNode);
+                //const conn = this.connectionManager.startConnection(fromNode);
+                const dummyPort = new Konva.Circle({ x: 0, y: 0, radius: 0, visible: false });
+                fromNode.add(dummyPort);
+                const conn = this.connectionManager.startConnection(fromNode, dummyPort);
                 conn.attach(toNode);
                 if (df.properties) {
                     Object.assign(conn.properties, df.properties);
@@ -256,7 +274,7 @@ class ModelManager {
     sanitizeName(name) {
         if (!name) return "unnamed";
         let sanitized = name.replace(/[^a-zA-Z0-9_]/g, '_');
-        if (sanitized && /^\d/.test(sanitized)) {
+        if (sanitized && /^U/.test(sanitized)) {
             sanitized = '_' + sanitized;
         }
         return sanitized || "unnamed";
