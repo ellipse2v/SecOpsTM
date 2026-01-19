@@ -14,38 +14,27 @@
  * limitations under the License.
  */
 document.addEventListener('DOMContentLoaded', () => {
-    // Dark mode functionality
-    (function() {
-        const toggle = document.getElementById('darkModeToggle');
-        const body = document.body;
+    const toggle = document.getElementById('darkModeToggle');
+    const body = document.body;
 
-        if (toggle) {
-            const applyTheme = (theme) => {
-                if (theme === 'dark') {
-                    body.classList.add('dark-mode');
-                } else {
-                    body.classList.remove('dark-mode');
-                }
-            };
+    if (!toggle) {
+        return;
+    }
 
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            applyTheme(savedTheme);
-
-
-            document.addEventListener('DOMContentLoaded', () => {
-            const toggle = document.getElementById('darkModeToggle');
-            if (toggle) {
-                toggle.addEventListener('click', () => {
-                    if (document.body.classList.contains('dark-mode')) {
-                        localStorage.setItem('theme', 'light');
-                        applyTheme('light');
-                    } else {
-                        localStorage.setItem('theme', 'dark');
-                        applyTheme('dark');
-                    }
-                });
+    const applyTheme = (theme) => {
+        if (theme === 'dark') {
+            body.classList.add('dark-mode');
+        } else {
+            body.classList.remove('dark-mode');
         }
+    };
+
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    applyTheme(savedTheme);
+
+    toggle.addEventListener('click', () => {
+        const currentTheme = body.classList.contains('dark-mode') ? 'light' : 'dark';
+        localStorage.setItem('theme', currentTheme);
+        applyTheme(currentTheme);
     });
-        }
-    })();
 });

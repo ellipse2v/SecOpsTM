@@ -22,10 +22,10 @@ document.addEventListener('DOMContentLoaded', () => {
     konvaManager.setConnectionManager(connectionManager); // Set reference after instantiation
     const propertiesPanelManager = new PropertiesPanelManager(konvaManager.getLayer(), connectionManager);
     const toolbarManager = new ToolbarManager(nodeManager, konvaManager.getTransformer(), propertiesPanelManager);
-    const threatModelGenerator = new ThreatModelGenerator(konvaManager.getLayer(), connectionManager.connections, nodeManager);
-    const exportManager = new ExportManager(threatModelGenerator.analysisResultContainer, () => threatModelGenerator.getThreatModelJSON(), threatModelGenerator.convertJsonToMarkdown);
-    const modelManager = new ModelManager(nodeManager, connectionManager, konvaManager);
     const uiManager = new UIManager(konvaManager.getStage());
+    const threatModelGenerator = new ThreatModelGenerator(konvaManager.getLayer(), connectionManager.connections, nodeManager, uiManager);
+    const exportManager = new ExportManager(threatModelGenerator.analysisResultContainer, () => threatModelGenerator.getThreatModelJSON(), threatModelGenerator.convertJsonToMarkdown, uiManager);
+    const modelManager = new ModelManager(nodeManager, connectionManager, konvaManager);
 
     exportManager.initialize('export-btn', 'export-menu');
 

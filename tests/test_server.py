@@ -26,7 +26,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Now we can import the app
-from threat_analysis.server.server import app, run_gui, DEFAULT_EMPTY_MARKDOWN, threat_model_service
+from threat_analysis.server.server import app, run_server, DEFAULT_EMPTY_MARKDOWN, threat_model_service
 
 @pytest.fixture
 def client():
@@ -36,10 +36,10 @@ def client():
         yield client
 
 def test_index_route(client):
-    """Test the main route that serves the web interface."""
+    """Test the main route that serves the menu."""
     response = client.get('/')
     assert response.status_code == 200
-    assert b'Threat Model Editor' in response.data
+    assert b'Threat Model Tool' in response.data
 
 def test_update_api_success(client):
     """Test the /api/update endpoint with valid markdown."""
@@ -127,38 +127,37 @@ def test_export_api_missing_data(client):
 
 
 
-def test_run_gui_with_no_model_file(client):
-    """Test that run_gui starts with DEFAULT_EMPTY_MARKDOWN if no model file is provided."""
+def test_run_server_with_no_model_file(client):
+    """Test that run_server starts with DEFAULT_EMPTY_MARKDOWN if no model file is provided."""
     with patch('os.path.exists', return_value=False): # Simulate file not found
         with patch('threat_analysis.server.server.app.run'): # Prevent Flask from actually running
-            with patch('threat_analysis.server.server.render_template') as mock_render_template:
-                run_gui(model_filepath=None)
-                # After run_gui, the global initial_markdown_content should be set
-                # We then make a request to the index route to get the rendered HTML
-                client.get('/') # This will call the real index route, which calls render_template
-                mock_render_template.assert_called_once_with('web_interface.html', initial_markdown=base64.b64encode(DEFAULT_EMPTY_MARKDOWN.encode('utf-8')).decode('utf-8'), model_name='New Model')
+            run_server(model_filepath=None)
+            # After run_server, the global initial_markdown_content should be set
+            # We then make a request to the simple route to get the rendered HTML
+            response = client.get('/simple')
+            assert response.status_code == 200
+            assert b'Threat Model Editor' in response.data
 
-def test_run_gui_with_non_existent_model_file(client):
-    """Test that run_gui starts with DEFAULT_EMPTY_MARKDOWN if a non-existent model file is provided."""
+def test_run_server_with_non_existent_model_file(client):
+    """Test that run_server starts with DEFAULT_EMPTY_MARKDOWN if a non-existent model file is provided."""
     with patch('os.path.exists', return_value=False): # Simulate file not found
         with patch('threat_analysis.server.server.app.run'): # Prevent Flask from actually running
-            with patch('threat_analysis.server.server.render_template') as mock_render_template:
-                run_gui(model_filepath='/non/existent/path/to/model.md')
-                client.get('/') # This will call the real index route, which calls render_template
-                mock_render_template.assert_called_once_with('web_interface.html', initial_markdown=base64.b64encode(DEFAULT_EMPTY_MARKDOWN.encode('utf-8')).decode('utf-8'), model_name='New Model')
+            run_server(model_filepath='/non/existent/path/to/model.md')
+            response = client.get('/simple')
+            assert response.status_code == 200
+            assert b'Threat Model Editor' in response.data
 
-def test_run_gui_with_existing_model_file(client):
-    """Test that run_gui loads content from an existing model file."""
+def test_run_server_with_existing_model_file(client):
+    """Test that run_server loads content from an existing model file."""
     mock_file_content = "# Threat Model: Test Model\n## Description\nA test model."
     with patch('os.path.exists', return_value=True):
         with patch('builtins.open', mock_open(read_data=mock_file_content)) as mock_file:
             with patch('threat_analysis.server.server.app.run'):
-                with patch('threat_analysis.server.server.render_template') as mock_render_template:
-                    run_gui(model_filepath='/path/to/existing/model.md')
-                    client.get('/')
-                    expected_encoded_markdown = base64.b64encode(mock_file_content.encode('utf-8')).decode('utf-8')
-                    mock_render_template.assert_called_once_with('web_interface.html', initial_markdown=expected_encoded_markdown, model_name='Test Model')
-                    mock_file.assert_called_once_with('/path/to/existing/model.md', "r", encoding="utf-8")
+                run_server(model_filepath='/path/to/existing/model.md')
+                response = client.get('/simple')
+                assert response.status_code == 200
+                assert b'Test Model' in response.data
+                mock_file.assert_called_once_with('/path/to/existing/model.md', "r", encoding="utf-8")
 
 def test_export_all_api_success(client):
     """Test the /api/export_all endpoint for successful ZIP file generation."""
@@ -206,4 +205,216 @@ A simple example system.
 ## Dataflows
 - **Request**: from="External User", to="Web Server", protocol="HTTPS"
 """
+
+
+
+def test_save_model_success(client):
+    """Test the /api/save_model endpoint for successful model saving."""
+    with patch('threat_analysis.server.server.threat_model_service.save_model_with_metadata') as mock_save:
+        mock_save.return_value = "path/to/metadata.json"
+        payload = {
+            'markdown': '# Test',
+            'model_name': 'MyModel',
+            'positions': {'actors': {}}
+        }
+        response = client.post('/api/save_model', data=json.dumps(payload), content_type='application/json')
+        assert response.status_code == 200
+        json_data = response.get_json()
+        assert json_data['success'] is True
+        assert 'Model and metadata saved successfully' in json_data['message']
+        mock_save.assert_called_once()
+
+def test_save_model_missing_markdown(client):
+    """Test the /api/save_model endpoint with missing markdown."""
+    payload = {'model_name': 'MyModel'}
+    response = client.post('/api/save_model', data=json.dumps(payload), content_type='application/json')
+    assert response.status_code == 400
+    assert 'Missing markdown content' in response.get_json()['error']
+
+def test_graphical_update_success(client):
+    """Test the /api/graphical_update endpoint with valid JSON data."""
+    with patch('threat_analysis.server.server.convert_json_to_markdown') as mock_convert, \
+         patch('threat_analysis.server.server.threat_model_service.update_diagram_logic') as mock_update:
+        
+        mock_convert.return_value = "# Converted Markdown"
+        mock_update.return_value = {"diagram_html": "<html></html>"}
+        
+        payload = {'actors': [{'id': '1', 'name': 'User'}]}
+        response = client.post('/api/graphical_update', data=json.dumps(payload), content_type='application/json')
+
+        assert response.status_code == 200
+        mock_convert.assert_called_once_with(payload)
+        mock_update.assert_called_once_with("# Converted Markdown")
+        assert 'diagram_html' in response.get_json()
+
+def test_graphical_update_empty_json(client):
+    """Test the /api/graphical_update endpoint with empty JSON data."""
+    response = client.post('/api/graphical_update', data=json.dumps({}), content_type='application/json')
+    assert response.status_code == 400
+    assert 'JSON data is empty' in response.get_json()['error']
+
+def test_list_models_success(client):
+    """Test the /api/models endpoint."""
+    with patch('glob.iglob') as mock_glob:
+        mock_glob.return_value = ['output/model_one.md', 'output/sub/model_two.md']
+        response = client.get('/api/models')
+        assert response.status_code == 200
+        json_data = response.get_json()
+        assert json_data['success'] is True
+        assert len(json_data['models']) == 2
+
+def test_load_model_success(client, tmp_path):
+    """Test the /api/load_model endpoint with a valid model path."""
+    # Create a dummy structure that the endpoint expects
+    output_dir = tmp_path / "output"
+    output_dir.mkdir()
+    model_file = output_dir / "my_model.md"
+    model_file.write_text("# Model Content")
+    
+    with patch('threat_analysis.server.server.config.OUTPUT_BASE_DIR', str(output_dir)):
+        payload = {'model_path': str(model_file)}
+        response = client.post('/api/load_model', data=json.dumps(payload), content_type='application/json')
+        
+        assert response.status_code == 200
+        json_data = response.get_json()
+        assert json_data['success'] is True
+        assert json_data['markdown_content'] == '# Model Content'
+
+def test_load_model_not_found(client, tmp_path):
+    """Test the /api/load_model endpoint with a non-existent model."""
+    output_dir = tmp_path / "output"
+    output_dir.mkdir()
+
+    with patch('threat_analysis.server.server.config.OUTPUT_BASE_DIR', str(output_dir)):
+        payload = {'model_path': str(output_dir / 'not_found.md')}
+        response = client.post('/api/load_model', data=json.dumps(payload), content_type='application/json')
+        assert response.status_code == 404
+        assert 'Model file not found' in response.get_json()['error']
+
+def test_markdown_to_json_success(client):
+    """Test the /api/markdown_to_json endpoint."""
+    with patch('threat_analysis.server.server.threat_model_service.markdown_to_json_for_gui') as mock_converter:
+        mock_converter.return_value = {'actors': [{'name': 'User'}]}
+        payload = {'markdown': '# Test'}
+        response = client.post('/api/markdown_to_json', data=json.dumps(payload), content_type='application/json')
+        assert response.status_code == 200
+        json_data = response.get_json()
+        assert json_data['success'] is True
+        assert 'model_json' in json_data
+        mock_converter.assert_called_once_with('# Test')
+
+def test_markdown_to_json_missing_markdown(client):
+    """Test the /api/markdown_to_json endpoint with missing markdown."""
+    payload = {}
+    response = client.post('/api/markdown_to_json', data=json.dumps(payload), content_type='application/json')
+    assert response.status_code == 400
+    assert 'Missing markdown content' in response.get_json()['error']
+
+def test_generate_all_success(client):
+    """Test the /api/generate_all endpoint."""
+    with patch('threat_analysis.server.server.threat_model_service.generate_full_project_export') as mock_generate, \
+         patch('threat_analysis.server.server.threat_model_service.save_model_with_metadata') as mock_save, \
+         patch('os.makedirs'), \
+         patch('os.path.join', side_effect=lambda *args: "/".join(map(str, args))):
+        
+        mock_generate.return_value = {
+            "reports": {"html": "path/to/report.html"},
+            "diagrams": {"svg": "path/to/diagram.svg"}
+        }
+        mock_save.return_value = "path/to/metadata.json"
+        
+        payload = {'markdown': '# Test', 'model_name': 'MyModel'}
+        response = client.post('/api/generate_all', data=json.dumps(payload), content_type='application/json')
+        
+        assert response.status_code == 200
+        json_data = response.get_json()
+        assert json_data['success'] is True
+        mock_generate.assert_called_once()
+        mock_save.assert_called_once()
+
+def test_export_navigator_stix_success(client):
+    """Test the /api/export_navigator_stix endpoint."""
+    with patch('threat_analysis.server.server.threat_model_service.export_navigator_stix_logic') as mock_export:
+        mock_export.return_value = (BytesIO(b"zip_content"), "timestamp")
+        with patch('threat_analysis.server.server.send_file') as mock_send:
+            mock_send.return_value = MagicMock(status_code=200)
+            payload = {'markdown': '# Test'}
+            response = client.post('/api/export_navigator_stix', data=json.dumps(payload), content_type='application/json')
+            assert response.status_code == 200
+            mock_export.assert_called_once()
+            mock_send.assert_called_once()
+
+def test_export_attack_flow_success(client):
+    """Test the /api/export_attack_flow endpoint."""
+    with patch('threat_analysis.server.server.convert_json_to_markdown') as mock_convert, \
+         patch('threat_analysis.server.server.threat_model_service.export_attack_flow_logic') as mock_export:
+        mock_convert.return_value = "# Markdown"
+        mock_export.return_value = (BytesIO(b"zip_content"), "timestamp")
+        with patch('threat_analysis.server.server.send_file') as mock_send:
+            mock_send.return_value = MagicMock(status_code=200)
+            payload = {'some': 'data'}
+            response = client.post('/api/export_attack_flow', data=json.dumps(payload), content_type='application/json')
+            assert response.status_code == 200
+            mock_export.assert_called_once()
+            mock_send.assert_called_once()
+
+def test_export_attack_flow_no_flows(client):
+    """Test the /api/export_attack_flow endpoint when no flows are generated."""
+    with patch('threat_analysis.server.server.convert_json_to_markdown'), \
+         patch('threat_analysis.server.server.threat_model_service.export_attack_flow_logic', return_value=(None, None)):
+        payload = {'some': 'data'}
+        response = client.post('/api/export_attack_flow', data=json.dumps(payload), content_type='application/json')
+        assert response.status_code == 404
+        assert 'No attack flows were generated' in response.get_json()['error']
+
+def test_export_metadata_success(client):
+    """Test the /api/export_metadata endpoint."""
+    with patch('threat_analysis.server.server.threat_model_service.get_element_positions') as mock_get_pos:
+        mock_get_pos.return_value = {"actors": {"User": {"x": 10}}}
+        response = client.post('/api/export_metadata') # Changed to POST
+        assert response.status_code == 200
+        assert response.mimetype == 'application/json'
+        assert 'element_positions.json' in response.headers['Content-Disposition']
+        assert b'"User"' in response.data
+
+def test_update_api_generic_exception(client):
+    """Test the /api/update endpoint with a generic exception."""
+    with patch('threat_analysis.server.server.threat_model_service.update_diagram_logic') as mock_update:
+        mock_update.side_effect = Exception("A wild error appeared")
+        payload = {'markdown': '# Test'}
+        response = client.post('/api/update', data=json.dumps(payload), content_type='application/json')
+        assert response.status_code == 500
+        assert 'An unexpected error occurred' in response.get_json()['error']
+
+def test_run_server_with_file_read_error(client):
+    """Test run_server when reading an existing file fails."""
+    with patch('os.path.exists', return_value=True), \
+         patch('builtins.open', side_effect=IOError("read error")):
+        with patch('threat_analysis.server.server.app.run'):
+            run_server(model_filepath='/path/to/existing/model.md')
+            response = client.get('/simple')
+            assert response.status_code == 200
+            assert b'Threat Model Editor' in response.data
+
+def test_check_version_compatibility_success(client):
+    """Test the /api/check_version_compatibility endpoint."""
+    with patch('threat_analysis.server.server.threat_model_service.check_version_compatibility') as mock_check, \
+         patch('os.path.exists', return_value=True):
+        mock_check.return_value = True
+        payload = {'model_path': 'path/m.md', 'metadata_path': 'path/m.json'}
+        with patch('threat_analysis.server.server.config.OUTPUT_BASE_DIR', 'path'):
+            response = client.post('/api/check_version_compatibility', data=json.dumps(payload), content_type='application/json')
+            assert response.status_code == 200
+            assert response.get_json()['compatible'] is True
+
+def test_load_metadata_success(client):
+    """Test the /api/load_metadata endpoint."""
+    with patch('os.path.exists', return_value=True), \
+         patch('builtins.open', mock_open(read_data='{"version": "1.0"}')) as mock_file, \
+         patch('threat_analysis.server.server.config.OUTPUT_BASE_DIR', 'output'):
+        with patch('os.path.abspath', side_effect=lambda x: x):
+            payload = {'metadata_path': 'output/meta.json'}
+            response = client.post('/api/load_metadata', data=json.dumps(payload), content_type='application/json')
+            assert response.status_code == 200
+            assert response.get_json()['metadata']['version'] == "1.0"
 

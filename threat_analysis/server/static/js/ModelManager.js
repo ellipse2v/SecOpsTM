@@ -167,7 +167,13 @@ class ModelManager {
 
     repopulateGraph(markdown, metadata) {
         // Clear existing graph
-        this.konvaManager.getLayer().destroyChildren();
+        const layer = this.konvaManager.getLayer();
+        const children = layer.getChildren();
+        children.forEach(child => {
+            if (child !== this.konvaManager.transformer) {
+                child.destroy();
+            }
+        });
         this.konvaManager.transformer.nodes([]);
         this.nodeManager.nodes = [];
         this.connectionManager.connections.forEach(conn => conn.destroy());
@@ -226,7 +232,7 @@ class ModelManager {
         
         (modelData.boundaries || []).forEach(b => {
             const pos = getPosition('boundary', b.name);
-            const node = this.nodeManager.addNode('BOUNDARY', b.name, pos.x, pos.y, pos.width, pos.height, b.properties);
+            const node = this.nodeManager.addNode('BOUNDARY', b.name, pos.x, pos.y, pos.width, pos.height, b);
             idToNameMap[b.name] = node.id();
         });
 
@@ -242,7 +248,7 @@ class ModelManager {
                     elementType = type.slice(0, -1);
                 }
                 const pos = getPosition(elementType, el.name);
-                const node = this.nodeManager.addNode(stereotype, el.name, pos.x, pos.y, pos.width, pos.height, el.properties);
+                const node = this.nodeManager.addNode(stereotype, el.name, pos.x, pos.y, pos.width, pos.height, el);
                 idToNameMap[el.name] = node.id();
             });
         });

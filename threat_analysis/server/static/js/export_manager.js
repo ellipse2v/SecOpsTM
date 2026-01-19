@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 class ExportManager {
-    constructor(analysisResultContainer, threatModelJSON, convertJsonToMarkdown) {
+    constructor(analysisResultContainer, threatModelJSON, convertJsonToMarkdown, uiManager) {
         this.analysisResultContainer = analysisResultContainer;
         this.threatModelJSON = threatModelJSON;
         this.convertJsonToMarkdown = convertJsonToMarkdown;
+        this.uiManager = uiManager;
         this.exportMenu = null;
         this.exportButton = null;
     }
@@ -49,6 +50,10 @@ class ExportManager {
 
     exportModel(format) {
         this.hideMenu();
+
+        if (this.uiManager) {
+            this.uiManager.switchToTab('analysis');
+        }
 
         const markdown_content = this.convertJsonToMarkdown(this.threatModelJSON);
 

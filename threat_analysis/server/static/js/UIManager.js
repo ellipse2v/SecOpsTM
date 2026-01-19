@@ -23,11 +23,21 @@ class UIManager {
     setupTabs() {
         document.querySelectorAll('.tab-button').forEach(button => {
             button.addEventListener('click', () => {
-                document.querySelectorAll('.tab-button, .tab-content').forEach(el => el.classList.remove('active'));
-                button.classList.add('active');
-                document.getElementById(button.dataset.tab).classList.add('active');
+                this.switchToTab(button.dataset.tab);
             });
         });
+    }
+
+    switchToTab(tabId) {
+        document.querySelectorAll('.tab-button, .tab-content').forEach(el => el.classList.remove('active'));
+        const button = document.querySelector(`.tab-button[data-tab='${tabId}']`);
+        if (button) {
+            button.classList.add('active');
+            const tabContent = document.getElementById(tabId);
+            if (tabContent) {
+                tabContent.classList.add('active');
+            }
+        }
     }
 
     setupBackgroundColor() {

@@ -16,10 +16,11 @@
 // threat_analysis/server/static/js/ThreatModelGenerator.js
 
 class ThreatModelGenerator {
-    constructor(layer, connections, nodeManager) {
+    constructor(layer, connections, nodeManager, uiManager) {
         this.layer = layer;
         this.connections = connections;
         this.nodeManager = nodeManager; // Store nodeManager
+        this.uiManager = uiManager;
         this.analysisResultContainer = document.getElementById('analysis-result-container');
         document.getElementById('analyze-btn').addEventListener('click', () => this.generate());
         this.threatModelJSON = {};
@@ -30,6 +31,9 @@ class ThreatModelGenerator {
     }
 
     generate() {
+        if (this.uiManager) {
+            this.uiManager.switchToTab('analysis');
+        }
         try {
             console.log('Generate button clicked');
             
@@ -185,7 +189,19 @@ class ThreatModelGenerator {
             for (const prop_key of props_to_include) {
                 const prop_value = item_properties[prop_key];
                 if (prop_value !== undefined && prop_value !== null && prop_value !== '') {
-                    props.push(`${prop_key}="${prop_value}"`);
+                    let value_str;
+                    if (typeof prop_value === 'boolean') {
+                        value_str = prop_value ? 'True' : 'False';
+                        props.push(`${prop_key}=${value_str}`);
+                    } else {
+                        value_str = String(prop_value);
+                        // Use quotes only if the value contains spaces or other special characters
+                        if (value_str.includes(' ') || value_str.includes(',') || value_str.includes('=')) {
+                            props.push(`${prop_key}="${value_str}"`);
+                        } else {
+                            props.push(`${prop_key}=${value_str}`);
+                        }
+                    }
                 }
             }
             return props.join(', ');
@@ -193,7 +209,7 @@ class ThreatModelGenerator {
 
         markdown_lines.push("\n## Boundaries");
         for (const boundary of boundaries) {
-            const props_str = _format_properties(boundary.properties, ['description', 'isTrusted', 'lineStyle']);
+            const props_str = _format_properties(boundary.properties, ['description', 'isTrusted', 'lineStyle', 'color', 'isFilled']);
             markdown_lines.push(`- **${boundary.name}**: ${props_str}`);
         }
 

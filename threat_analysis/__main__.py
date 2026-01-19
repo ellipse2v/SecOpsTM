@@ -527,7 +527,7 @@ class ColoredFormatter(logging.Formatter):
 if __name__ == "__main__":
     # Create a logger
     logger = logging.getLogger()
-    logger.setLevel(logging.INFO) # Set default level
+    logger.setLevel(logging.DEBUG) # Set default level
 
     # Remove all existing handlers from the root logger
     for handler in logger.handlers[:]:

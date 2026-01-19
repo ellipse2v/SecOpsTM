@@ -128,8 +128,10 @@ class ModelParser:
             name = match.group(1).strip()
             params_str = match.group(2).strip()
             boundary_kwargs = self._parse_key_value_params(params_str)
+            logging.debug(f"Parsed boundary kwargs for '{name}': {boundary_kwargs}")
             if 'color' not in boundary_kwargs:
                 boundary_kwargs['color'] = 'lightgray'
+                logging.debug(f"Color not found for '{name}', defaulting to lightgray.")
             parent_obj = None
             while boundary_stack and boundary_stack[-1][1] >= indentation:
                 boundary_stack.pop()
@@ -173,6 +175,7 @@ class ModelParser:
         Parses a key=value parameter string and returns a dictionary.
         Handles quoted strings, booleans, numbers, hex colors, and unquoted strings.
         """
+        logging.debug(f"Parsing params: '{params_str}'")
         params = {}
         # This regex matches key=value pairs, where value can be quoted or unquoted (including hex colors)
         param_pattern = re.compile(
@@ -203,6 +206,8 @@ class ModelParser:
             else:
                 continue
 
+            logging.debug(f"Found match: key='{key}', quoted='{value_quoted}', unquoted='{value_unquoted}' -> final_value='{value}'")
+
             # Normalize keys to handle case variations
             if key.lower() == 'istrusted':
                 key = 'isTrusted'
@@ -210,6 +215,7 @@ class ModelParser:
                 key = 'isFilled'
 
             params[key] = value
+        logging.debug(f"Parsed params: {params}")
         return params
 
     def _parse_data(self, line: str):

@@ -48,8 +48,17 @@ class NodeManager {
         
         // Merge incoming properties
         const properties = { ...baseProperties, ...incomingProps };
+
+        const PADDING = 10;
+        const tempText = new Konva.Text({ text: name, fontSize: 12, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' });
+        const measuredWidth = tempText.width();
+    
+        let width = newWidth || dimensions.width || (type === 'BOUNDARY' ? 300 : 120);
         
-        const width = newWidth || dimensions.width || (type === 'BOUNDARY' ? 300 : 120);
+        if (!newWidth && (measuredWidth + PADDING * 2) > width) {
+            width = measuredWidth + PADDING * 2;
+        }
+        
         const height = newHeight || dimensions.height || (type === 'BOUNDARY' ? 200 : 80);
         const fill = properties.color;
         const stroke = colors.stroke;
@@ -68,7 +77,6 @@ class NodeManager {
 
         let shape;
         let text;
-        const PADDING = 10;
         const TEXT_HEIGHT = 12;
 
         const isNetworkDevice = ['FIREWALL', 'SWITCH', 'ROUTER'].includes(type);
@@ -328,12 +336,19 @@ class NodeManager {
         
         if (type === 'BOUNDARY') {
             if (properties.isFilled) {
-                shape.stroke(properties.isTrusted ? '#adb5bd' : 'red');
+                shape.fill(properties.color);
             } else {
-                shape.stroke(properties.color);
+                shape.fill('transparent');
+            }
+
+            if (properties.isTrusted) {
+                shape.stroke('red');
+            } else {
+                shape.stroke(properties.color || '#adb5bd'); // Use color, fallback to default
             }
             shape.strokeWidth(properties.isTrusted ? 2 : 1);
         } else {
+            shape.fill(properties.color);
             shape.stroke(properties.color);
         }
 
@@ -356,6 +371,12 @@ class NodeManager {
                 iconNode.scaleX(1 / group.scaleX());
                 iconNode.scaleY(1 / group.scaleY());
             }
+
+            // Inverse scale for ports to keep them the same size
+            group.find('.port').forEach(port => {
+                port.scaleX(1 / group.scaleX());
+                port.scaleY(1 / group.scaleY());
+            });
         });
 
         const ports = [];

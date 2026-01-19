@@ -257,6 +257,7 @@ class ThreatModelService:
                 "description": b_info.get('description', ''),
                 "isTrusted": b_info.get('isTrusted', False),
                 "lineStyle": b_info.get('line_style', 'solid'),
+                "color": b_info.get('color', 'lightgray'),
             })
 
         for actor_info in threat_model.actors:
