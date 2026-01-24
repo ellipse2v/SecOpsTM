@@ -78,6 +78,16 @@ class NodeManager {
             width: width,
             height: height,
         });
+
+        if (type === 'FIREWALL') {
+            const iconSize = 64;
+            group.setAttr('hitFunc', function(context) {
+                context.beginPath();
+                context.rect(0, 0, iconSize, this.height());
+                context.closePath();
+                context.fillStrokeShape(this);
+            });
+        }
         
         group.isNode = true;
 
@@ -89,13 +99,15 @@ class NodeManager {
             case 'ACTOR': {
                 const radiusX = width / 2;
                 const radiusY = height / 2;
-                shape = new Konva.Ellipse({
-                    x: width / 2, y: height / 2, radiusX: radiusX, radiusY: radiusY,
+                const radius = Math.min(width, height) / 2;
+                shape = new Konva.Circle({
+                    x: width / 2, y: height / 2, radius: radius,
                     fill: fill, stroke: fill, strokeWidth: 2, name: 'shape',
                 });
                 text = new Konva.Text({
                     x: 0, y: height + PADDING / 2, text: name, fontSize: TEXT_HEIGHT, fill: textColor,
                     width: width, align: 'center', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', name: 'label',
+                    listening: false,
                 });
                 if (iconPath) {
                     Konva.Image.fromURL(iconPath, (image) => {
@@ -118,6 +130,7 @@ class NodeManager {
                 text = new Konva.Text({
                     x: 0, y: iconSize + 5, text: name, fontSize: TEXT_HEIGHT, fill: textColor,
                     width: width, align: 'center', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', name: 'label',
+                    listening: false,
                 });
                 if (iconPath) {
                     Konva.Image.fromURL(iconPath, (image) => {
@@ -154,6 +167,7 @@ class NodeManager {
                     align: 'center',
                     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
                     name: 'label',
+                    listening: false,
                 });
                 if (iconPath) {
                     Konva.Image.fromURL(iconPath, (image) => {
@@ -223,6 +237,7 @@ class NodeManager {
                     align: 'center',
                     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
                     name: 'label',
+                    listening: false,
                 });
                 
                 if (iconPath) {
@@ -250,6 +265,7 @@ class NodeManager {
                     x: PADDING, y: (height - TEXT_HEIGHT) / 2, text: name, fontSize: TEXT_HEIGHT, fill: textColor,
                     width: width - 2 * PADDING, align: 'center', verticalAlign: 'middle',
                     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', name: 'label',
+                    listening: false,
                 });
                 if (iconPath) {
                     Konva.Image.fromURL(iconPath, (image) => {
@@ -271,6 +287,7 @@ class NodeManager {
                 text = new Konva.Text({
                     x: 0, y: height + PADDING, text: name, fontSize: TEXT_HEIGHT, fill: textColor,
                     width: width, align: 'left', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', name: 'label',
+                    listening: false,
                 });
                 break;
             }
@@ -283,6 +300,7 @@ class NodeManager {
                     x: PADDING, y: (height - TEXT_HEIGHT) / 2, text: name, fontSize: TEXT_HEIGHT, fill: textColor,
                     width: width - 2 * PADDING, align: 'center', verticalAlign: 'middle',
                     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', name: 'label',
+                    listening: false,
                 });
                 if (iconPath && type !== 'ACTOR') {
                     Konva.Image.fromURL(iconPath, (image) => {
@@ -339,11 +357,25 @@ class NodeManager {
         }
 
         group.on('click', (e) => {
+            console.log('NodeManager: node clicked', group.id(), group.name());
             e.cancelBubble = true;
             this.tr.nodes([group]);
+            this.tr.moveToTop();
             this.tr.enabledAnchors([]);
+            this.layer.draw();
             window.dispatchEvent(new CustomEvent('itemSelected', { detail: { item: group } }));
+        });
 
+        group.on('dblclick dbltap', (e) => {
+            console.log('NodeManager: node dblclicked', group.id(), group.name());
+            e.cancelBubble = true;
+            this.tr.nodes([group]);
+            this.tr.moveToTop();
+            this.tr.enabledAnchors(['top-left', 'top-right', 'bottom-left', 'bottom-right']);
+            this.tr.rotateEnabled(false);
+            this.tr.borderEnabled(true);
+            this.layer.draw();
+            window.dispatchEvent(new CustomEvent('itemSelected', { detail: { item: group } }));
         });
 
         group.on('transform', () => {
@@ -443,7 +475,7 @@ class NodeManager {
             const type = node.name();
             const props = node.getAttr('threatModelProperties');
             const name = props.name;
-            const sanitizedName = this.sanitizeName(name).toLowerCase();
+            const sanitizedName = this.sanitizeName(name);
             const rect = node.findOne('.shape').getClientRect();
 
             const pos = { x: node.x(), y: node.y(), width: rect.width, height: rect.height };

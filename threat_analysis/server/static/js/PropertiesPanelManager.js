@@ -150,6 +150,14 @@ class PropertiesPanelManager {
             this.colorInput.value = props.color || '#000000';
 
             this.dataInput.value = props.data || '';
+            // If the value doesn't exist in the dropdown, add it as a temporary option
+            if (props.data && !Array.from(this.dataInput.options).some(opt => opt.value === props.data)) {
+                const opt = document.createElement('option');
+                opt.value = props.data;
+                opt.textContent = props.data;
+                this.dataInput.appendChild(opt);
+                this.dataInput.value = props.data;
+            }
 
             this.lineStyleInput.value = props.line_style || 'solid';
 

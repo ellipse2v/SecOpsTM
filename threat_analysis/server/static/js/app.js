@@ -24,10 +24,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const toolbarManager = new ToolbarManager(nodeManager, konvaManager.getTransformer(), propertiesPanelManager);
     const uiManager = new UIManager(konvaManager.getStage());
     const modelManager = new ModelManager(nodeManager, connectionManager, konvaManager);
+    window.modelManager = modelManager; // Make it global for event handlers
     const threatModelGenerator = new ThreatModelGenerator(konvaManager.getLayer(), connectionManager.connections, nodeManager, uiManager, modelManager);
-    const exportManager = new ExportManager(threatModelGenerator.analysisResultContainer, () => threatModelGenerator.getThreatModelJSON(), threatModelGenerator.convertJsonToMarkdown, uiManager);
+    const exportManager = new ExportManager(threatModelGenerator.analysisResultContainer, () => threatModelGenerator.getThreatModelJSON(), threatModelGenerator.convertJsonToMarkdown.bind(threatModelGenerator), uiManager);
 
     exportManager.initialize('export-btn', 'export-menu');
+
+    // Make exportModel available globally for HTML onclick handlers
+    window.exportModel = (format) => exportManager.exportModel(format);
 
     window.addEventListener('portClicked', (e) => {
         connectionManager.startConnection(e.detail.group, e.detail.port);

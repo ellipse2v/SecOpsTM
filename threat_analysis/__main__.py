@@ -40,6 +40,7 @@ from threat_analysis.utils import _validate_path_within_project, resolve_path
 from threat_analysis.server.server import run_server
 from threat_analysis.core.model_validator import ModelValidator
 from threat_analysis.core.cve_service import CVEService
+from threat_analysis import config
 
 
 # Add project root to sys.path
@@ -355,6 +356,13 @@ class CustomArgumentParser:
         self.parser.add_argument(
             "--server", action="store_true", help="Launch the unified web server with menu."
         )
+        self.parser.add_argument(
+            "--log-level",
+            type=str,
+            default=None,
+            choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+            help="Set the logging level (e.g., DEBUG, INFO, WARNING). Overrides the config file setting.",
+        )
 
 
         self.parser.add_argument(
@@ -525,30 +533,33 @@ class ColoredFormatter(logging.Formatter):
 
 # --- Main entry point ---
 if __name__ == "__main__":
-    # Create a logger
-    logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG) # Set default level
-
-    # Remove all existing handlers from the root logger
-    for handler in logger.handlers[:]:
-        logger.removeHandler(handler)
-
-    # Create a console handler
-    console_handler = logging.StreamHandler()
-
-    # Create and set the custom formatter
-    formatter = ColoredFormatter("%(asctime)s - %(levelname)s - %(message)s")
-    console_handler.setFormatter(formatter)
-
-    # Add the handler to the logger
-    logger.addHandler(console_handler)
-
-    # Prevent basicConfig from adding another handler if it's called elsewhere
-    logger.propagate = False
-
+    # --- Argument Parsing ---
     loaded_iac_plugins = load_iac_plugins()
     custom_parser = CustomArgumentParser(loaded_iac_plugins)
     args, remaining_argv = custom_parser.parse_args()
+
+    # --- Logger Configuration ---
+    logger = logging.getLogger()
+    
+    # Determine log level
+    log_level_str = args.log_level if args.log_level else config.LOG_LEVEL
+    numeric_level = getattr(logging, log_level_str.upper(), None)
+    if not isinstance(numeric_level, int):
+        logging.warning(f"Invalid log level: {log_level_str}. Defaulting to INFO.")
+        numeric_level = logging.INFO
+        
+    logger.setLevel(numeric_level)
+
+    # Remove all existing handlers
+    for handler in logger.handlers[:]:
+        logger.removeHandler(handler)
+
+    # Create and configure console handler
+    console_handler = logging.StreamHandler()
+    formatter = ColoredFormatter("%(asctime)s - %(levelname)s - %(message)s")
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+    logger.propagate = False
 
     # Reconstruct sys.argv for PyTM
     sys.argv = [sys.argv[0]] + remaining_argv

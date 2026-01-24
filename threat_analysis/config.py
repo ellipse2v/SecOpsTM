@@ -15,10 +15,11 @@
 """
 Centralized configuration for the Threat Analysis Framework.
 """
-
 from pathlib import Path
 from datetime import datetime
 
+# --- Logging ---
+LOG_LEVEL = "INFO"
 # --- Model Defaults ---
 DEFAULT_MODEL_FILEPATH = Path("threatModel_Template/threat_model.md")
 BASE_PROTOCOL_STYLES_FILEPATH = Path("threatModel_Template/base_protocol_styles.md")

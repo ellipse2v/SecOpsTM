@@ -242,9 +242,7 @@ class DiagramGenerator:
         elif element_type == 'firewall':
             shape = 'hexagon'
             icon = '🔥 '
-            attributes.append("fixedsize=true")
-            attributes.append("width=0.5")
-            attributes.append("height=0.5")
+            attributes.append("fixedsize=shape")
         elif element_type == 'database':
             shape = 'cylinder'
             icon = '🗄️ '
@@ -254,9 +252,7 @@ class DiagramGenerator:
         elif node_type == 'actor':
             shape = 'circle'
             icon = '👤 '
-            attributes.append("fixedsize=true")
-            attributes.append("width=0.5")
-            attributes.append("height=0.5")
+            attributes.append("fixedsize=shape")
         elif use_server_layout:
             shape = 'box'
             icon = '🖥️ '

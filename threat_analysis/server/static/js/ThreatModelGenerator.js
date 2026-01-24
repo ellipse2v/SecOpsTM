@@ -28,7 +28,89 @@ class ThreatModelGenerator {
     }
 
     getThreatModelJSON() {
+        this.threatModelJSON = this.collectModelData();
         return this.threatModelJSON;
+    }
+
+    collectModelData() {
+        const elements = [];
+        const boundaries = [];
+        const actors = [];
+        const servers = [];
+        
+        this.layer.find('Group').forEach(group => {
+            if (group.id() && group.getAttr('threatModelProperties')) {
+                const props = group.getAttr('threatModelProperties');
+                const elementType = props.stereotype || group.name();
+                
+                const shape = group.findOne('.shape');
+                const rect = shape.getClientRect();
+                const element = {
+                    id: group.id(),
+                    name: props.name,
+                    type: elementType,
+                    x: group.x(),
+                    y: group.y(),
+                    width: rect.width,
+                    height: rect.height,
+                    properties: props
+                };
+                
+                elements.push(element);
+                
+                const upperType = elementType.toUpperCase();
+                if (upperType === 'BOUNDARY') { boundaries.push(element); }
+                else if (upperType === 'ACTOR') { actors.push(element); }
+                else { servers.push(element); } // Default to server for any other element with properties
+            }
+        });
+        
+        const connectionsData = (this.connections || []).map(conn => {
+            if (!conn.toNode) return null;
+            return {
+                from: conn.fromNode.id(),
+                to: conn.toNode.id(),
+                type: 'connection',
+                label: conn.labelText,
+                properties: conn.properties
+            };
+        }).filter(Boolean);
+        
+        [...actors, ...servers].forEach(element => {
+            const group_center = { x: element.x + element.width / 2, y: element.y + element.height / 2 };
+            let parent_boundary = null;
+            let smallest_area = Infinity;
+
+            boundaries.forEach(boundary => {
+                const bx = boundary.x;
+                const by = boundary.y;
+                const bw = boundary.width;
+                const bh = boundary.height;
+                if (group_center.x > bx && group_center.x < bx + bw &&
+                    group_center.y > by && group_center.y < by + bh) {
+                    const area = bw * bh;
+                    if (area < smallest_area) {
+                        smallest_area = area;
+                        parent_boundary = boundary;
+                    }
+                }
+            });
+            if (parent_boundary) {
+                element.parentId = parent_boundary.id;
+            }
+        });
+
+        return {
+            boundaries: boundaries,
+            actors: actors,
+            servers: servers,
+            data: Object.entries(this.modelManager.dataDictionary).map(([name, props]) => ({
+                name: name,
+                properties: props
+            })),
+            elements: elements,
+            connections: connectionsData
+        };
     }
 
     generate() {
@@ -38,87 +120,24 @@ class ThreatModelGenerator {
         try {
             console.log('Generate button clicked');
             
-            const elements = [];
-            const boundaries = [];
-            const actors = [];
-            const servers = [];
-            const dataElements = [];
+            this.threatModelJSON = this.collectModelData();
             
-            this.layer.find('Group').forEach(group => {
-                if (group.id() && group.getAttr('threatModelProperties')) {
-                    const props = group.getAttr('threatModelProperties');
-                    const elementType = props.stereotype || group.name();
-                    
-                    const shape = group.findOne('.shape');
-                    const rect = shape.getClientRect();
-                    const element = {
-                        id: group.id(),
-                        name: props.name,
-                        type: elementType,
-                        x: group.x(),
-                        y: group.y(),
-                        width: rect.width,
-                        height: rect.height,
-                        properties: props
-                    };
-                    
-                    elements.push(element);
-                    
-                    if (elementType === 'BOUNDARY') { boundaries.push(element); }
-                    else if (elementType === 'ACTOR') { actors.push(element); }
-                    else if (elementType === 'DATA') { dataElements.push(element); }
-                    else if (['SERVER', 'WEB_SERVER', 'DATABASE', 'FIREWALL', 'ROUTER', 'SWITCH', 'API_GATEWAY'].includes(elementType)) { servers.push(element); }
-                }
-            });
-            
-            const connectionsData = this.connections.map(conn => {
-                if (!conn.toNode) return null;
-                return { 
-                    from: conn.fromNode.id(), 
-                    to: conn.toNode.id(), 
-                    type: 'connection', 
-                    label: conn.labelText,
-                    properties: conn.properties
-                };
-            }).filter(Boolean);
-            
+            // Generate debug info for the UI
             let debug_info = '<h3>Boundary-Element Overlap Debugging:</h3><table border="1"><tr><th>Element</th><th>Center (x,y)</th><th>Boundary</th><th>Bounds (x,y,w,h)</th><th>Contained?</th></tr>';
-            [...actors, ...servers, ...dataElements].forEach(element => {
+            [...this.threatModelJSON.actors, ...this.threatModelJSON.servers, ...this.threatModelJSON.data].forEach(element => {
                 const group_center = { x: element.x + element.width / 2, y: element.y + element.height / 2 };
-                let parent_boundary = null;
-                let smallest_area = Infinity;
-
-                boundaries.forEach(boundary => {
+                
+                this.threatModelJSON.boundaries.forEach(boundary => {
                     const bx = boundary.x;
                     const by = boundary.y;
                     const bw = boundary.width;
                     const bh = boundary.height;
-                    let contained = false;
-                    if (group_center.x > bx && group_center.x < bx + bw &&
-                        group_center.y > by && group_center.y < by + bh) {
-                        contained = true;
-                        const area = bw * bh;
-                        if (area < smallest_area) {
-                            smallest_area = area;
-                            parent_boundary = boundary;
-                        }
-                    }
+                    let contained = (group_center.x > bx && group_center.x < bx + bw &&
+                                    group_center.y > by && group_center.y < by + bh);
                     debug_info += `<tr><td>${element.name}</td><td>(${group_center.x.toFixed(2)}, ${group_center.y.toFixed(2)})</td><td>${boundary.name}</td><td>(${bx.toFixed(2)}, ${by.toFixed(2)}, ${bw.toFixed(2)}, ${bh.toFixed(2)})</td><td>${contained}</td></tr>`;
                 });
-                if (parent_boundary) {
-                    element.parentId = parent_boundary.id;
-                }
             });
             debug_info += '</table>';
-
-            this.threatModelJSON = {
-                boundaries: boundaries,
-                actors: actors,
-                servers: servers,
-                data: dataElements,
-                elements: elements,
-                connections: connectionsData
-            };
             
             const markdownContent = this.convertJsonToMarkdown(this.threatModelJSON);
             const modelName = this.getModelName(markdownContent);
@@ -245,10 +264,13 @@ class ThreatModelGenerator {
 
         markdown_lines.push("\n## Dataflows");
         for (const conn of (data.connections || [])) {
-            const from_name = (data.elements.find(e => e.id === conn.from) || {}).name;
-            const to_name = (data.elements.find(e => e.id === conn.to) || {}).name;
+            const from_element = (data.elements || []).find(e => e.id === conn.from);
+            const to_element = (data.elements || []).find(e => e.id === conn.to);
+            const from_name = from_element ? from_element.name : "Unknown Source";
+            const to_name = to_element ? to_element.name : "Unknown Sink";
+            
             const props_str = conn.properties ? _format_properties(conn.properties, ['protocol', 'isEncrypted', 'isAuthenticated', 'description', 'color', 'line_style', 'data']) : '';
-            markdown_lines.push(`- **${(conn.properties || {}).name || conn.label}**: from="${from_name}", to="${to_name}", ${props_str}`);
+            markdown_lines.push(`- **${(conn.properties || {}).name || conn.label || 'Unnamed Dataflow'}**: from="${from_name}", to="${to_name}", ${props_str}`);
         }
 
         return markdown_lines.join('\n');

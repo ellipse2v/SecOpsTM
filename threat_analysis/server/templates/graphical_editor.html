@@ -72,6 +72,8 @@
             <button class="toolbar-button" id="add-firewall"><img src="/static/resources/icons/firewall.svg" alt="Firewall" class="toolbar-icon"> Firewall</button>
             <button class="toolbar-button" id="add-router"><img src="/static/resources/icons/routers.svg" alt="Router" class="toolbar-icon"> Router</button>
             <button class="toolbar-button" id="add-switch"><img src="/static/resources/icons/switch.svg" alt="Switch" class="toolbar-icon"> Switch</button>
+            <div class="toolbar-separator"></div>
+            <button class="toolbar-button" id="add-data"><img src="/static/resources/icons/data.svg" alt="Data" class="toolbar-icon"> Add Data</button>
         </div>
         <div id="graph-container"></div>
         <div id="properties-panel" style="width: 350px;">
@@ -126,7 +128,7 @@
                     </div>
                     <div class="prop-group" id="prop-data-group" style="display: none;">
                         <label for="prop-data">Data:</label>
-                        <input type="text" id="prop-data" />
+                        <select id="prop-data"></select>
                     </div>
                     <div class="prop-group" id="prop-is-filled-group">
                         <label for="prop-is-filled">Is Filled:</label>
@@ -212,6 +214,45 @@
             <button id="refresh-models-btn">Refresh</button>
             <button id="open-from-computer-btn">Open from computer</button>
             <input type="file" id="file-input" multiple accept=".md,.json" style="display: none;">
+        </div>
+    </div>
+
+    <div id="data-manager-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="close-data-modal">&times;</span>
+            <h2>Manage Data Dictionary</h2>
+            <div id="data-list-container" style="max-height: 300px; overflow-y: auto; margin-bottom: 20px; border: 1px solid #ccc; padding: 10px;">
+                <!-- Data items will be listed here -->
+            </div>
+            <h3>Add/Edit Data Item</h3>
+            <div class="prop-group">
+                <label for="data-name">Name:</label>
+                <input type="text" id="data-name" placeholder="e.g. Web Traffic">
+            </div>
+            <div class="prop-group">
+                <label for="data-description">Description:</label>
+                <input type="text" id="data-description">
+            </div>
+            <div class="prop-group">
+                <label for="data-classification">Classification:</label>
+                <select id="data-classification">
+                    <option value="public">Public</option>
+                    <option value="restricted">Restricted</option>
+                    <option value="confidential">Confidential</option>
+                    <option value="secret">Secret</option>
+                    <option value="top-secret">Top Secret</option>
+                </select>
+            </div>
+            <div class="prop-group">
+                <label for="data-format">Format:</label>
+                <input type="text" id="data-format">
+            </div>
+            <div class="prop-group">
+                <label for="data-credentials-life">Credentials Life:</label>
+                <input type="text" id="data-credentials-life">
+            </div>
+            <button id="save-data-item-btn">Save Item</button>
+            <button id="new-data-item-btn">Clear Form</button>
         </div>
     </div>
 </body>

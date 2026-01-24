@@ -55,7 +55,8 @@ class ExportManager {
             this.uiManager.switchToTab('analysis');
         }
 
-        const markdown_content = this.convertJsonToMarkdown(this.threatModelJSON);
+        const data = typeof this.threatModelJSON === 'function' ? this.threatModelJSON() : this.threatModelJSON;
+        const markdown_content = this.convertJsonToMarkdown(data);
 
         this.analysisResultContainer.innerHTML = 
             '<div style="text-align: center; padding: 20px;">' +

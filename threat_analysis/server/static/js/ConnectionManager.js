@@ -39,7 +39,9 @@ class ConnectionManager {
     handleItemSelected(e) {
         const item = e.detail.item;
         if (item instanceof Connection) {
-            this.selectConnection(item);
+            if (this.selectedConnection !== item) {
+                this.selectConnection(item, false); // false to avoid redispatching
+            }
         } else {
             this.clearConnectionSelection();
         }
@@ -189,14 +191,16 @@ class ConnectionManager {
         });
     }
 
-    selectConnection(c) {
+    selectConnection(c, dispatchEvent = true) {
         this.clearConnectionSelection();
 
         this.selectedConnection = c;
         c.arrow.stroke('#1976d2');
         c.arrow.strokeWidth(3);
         this.layer.draw();
-        window.dispatchEvent(new CustomEvent('itemSelected', { detail: { item: c } }));
+        if (dispatchEvent) {
+            window.dispatchEvent(new CustomEvent('itemSelected', { detail: { item: c } }));
+        }
     }
 
     findUniqueDataflowName(baseName) {
@@ -429,8 +433,7 @@ class Connection {
         }
         
         if (group.name() === 'ACTOR') {
-            const radiusX = shape.radiusX() * group.scaleX();
-            const radiusY = shape.radiusY() * group.scaleY();
+            const radius = shape.radius() * group.scaleX();
             const center = {
                 x: pos.x + (shape.x() * group.scaleX()),
                 y: pos.y + (shape.y() * group.scaleY())
@@ -438,8 +441,8 @@ class Connection {
             
             const angle = Math.atan2(targetPoint.y - center.y, targetPoint.x - center.x);
             return {
-                x: center.x + radiusX * Math.cos(angle),
-                y: center.y + radiusY * Math.sin(angle)
+                x: center.x + radius * Math.cos(angle),
+                y: center.y + radius * Math.sin(angle)
             };
         }
 

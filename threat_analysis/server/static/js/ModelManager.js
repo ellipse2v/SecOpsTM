@@ -28,11 +28,47 @@ class ModelManager {
         this.openFromComputerBtn = document.getElementById('open-from-computer-btn');
         this.fileInput = document.getElementById('file-input');
         this.protocolStyles = {};
+        this.dataDictionary = {};
+
+        this.dataModal = document.getElementById('data-manager-modal');
+        this.dataListContainer = document.getElementById('data-list-container');
+        this.saveDataItemBtn = document.getElementById('save-data-item-btn');
+        this.newDataItemBtn = document.getElementById('new-data-item-btn');
+        this.closeDataModalBtn = document.getElementById('close-data-modal');
 
         this.setupEventHandlers();
+        this.loadDataDictionary();
     }
 
     setupEventHandlers() {
+        if (this.closeDataModalBtn) {
+            this.closeDataModalBtn.onclick = () => {
+                this.dataModal.style.display = 'none';
+            };
+        }
+
+        if (this.saveDataItemBtn) {
+            this.saveDataItemBtn.onclick = () => {
+                const nameInput = document.getElementById('data-name');
+                const name = nameInput.value.trim();
+                if (!name) return;
+
+                this.dataDictionary[name] = {
+                    description: document.getElementById('data-description').value,
+                    classification: document.getElementById('data-classification').value,
+                    format: document.getElementById('data-format').value,
+                    credentialsLife: document.getElementById('data-credentials-life').value
+                };
+                this.renderDataList();
+                this.updateDataflowDropdowns();
+            };
+        }
+
+        if (this.newDataItemBtn) {
+            this.newDataItemBtn.onclick = () => {
+                this.clearDataForm();
+            };
+        }
         this.openModelBtn.onclick = () => {
             this.openModelModal.style.display = 'block';
             this.fetchModels();
@@ -171,6 +207,7 @@ class ModelManager {
 
     repopulateGraph(markdown, metadata) {
         this.parseProtocolStyles(markdown);
+        this.parseDataDictionaryFromMarkdown(markdown);
         // Clear existing graph
         const layer = this.konvaManager.getLayer();
         const children = layer.getChildren();
@@ -185,7 +222,7 @@ class ModelManager {
         this.nodeManager.nodes = [];
         
         [...this.connectionManager.connections].forEach(conn => conn.destroy());
-        this.connectionManager.connections = [];
+        this.connectionManager.connections.length = 0; // Clear the array instead of replacing it
 
         this.konvaManager.getLayer().draw();
 
@@ -198,8 +235,10 @@ class ModelManager {
                 for (const category in metadata.positions) {
                     processedPositions[category] = {};
                     for (const name in metadata.positions[category]) {
-                        const lookupName = this.sanitizeName(name).toLowerCase();
+                        const lookupName = this.sanitizeName(name);
                         processedPositions[category][lookupName] = metadata.positions[category][name];
+                        // Also store lowercase version for robust lookup
+                        processedPositions[category][lookupName.toLowerCase()] = metadata.positions[category][name];
                     }
                 }
             }
@@ -232,11 +271,17 @@ class ModelManager {
             } else if (type.toLowerCase() === 'data') {
                 searchKey = 'data';
             }
-            const sanitizedName = this.sanitizeName(name).toLowerCase();
+            const sanitizedName = this.sanitizeName(name);
             
-            if (positions && positions[searchKey] && positions[searchKey][sanitizedName]) {
-                const pos = positions[searchKey][sanitizedName];
-                return pos;
+            if (positions && positions[searchKey]) {
+                // Try exact match first
+                if (positions[searchKey][sanitizedName]) {
+                    return positions[searchKey][sanitizedName];
+                }
+                // Try case-insensitive match
+                if (positions[searchKey][sanitizedName.toLowerCase()]) {
+                    return positions[searchKey][sanitizedName.toLowerCase()];
+                }
             }
             return { x: 50, y: 50, width: null, height: null };
         };
@@ -253,13 +298,8 @@ class ModelManager {
             (modelData[type] || []).forEach(el => {
                 let stereotype;
                 let elementType;
-                if (type === 'data') {
-                    stereotype = 'DATA';
-                    elementType = 'data';
-                } else {
-                    stereotype = el.stereotype || type.slice(0, -1).toUpperCase();
-                    elementType = type.slice(0, -1);
-                }
+                stereotype = el.stereotype || type.slice(0, -1).toUpperCase();
+                elementType = type.slice(0, -1);
                 const pos = getPosition(elementType, el.name);
                 const node = this.nodeManager.addNode(stereotype, el.name, pos.x, pos.y, pos.width, pos.height, el);
                 idToNameMap[el.name] = node.id();
@@ -328,6 +368,36 @@ class ModelManager {
             });
         }
     }
+
+    parseDataDictionaryFromMarkdown(markdown) {
+        if (!markdown) return;
+        const dataSection = markdown.match(/## Data\n([\s\S]*?)(?=\n##|$)/);
+        if (dataSection) {
+            const lines = dataSection[1].split('\n');
+            lines.forEach(line => {
+                if (line.startsWith('- **')) {
+                    const match = line.match(/- \*\*(.*?)\*\*: (.*)/);
+                    if (match) {
+                        const name = match[1].trim();
+                        const propsStr = match[2].trim();
+                        const props = {};
+                        // Simple regex to match key="value" or key=value
+                        const propMatches = propsStr.matchAll(/(\w+)=["']?([^"',]+)["']?/g);
+                        for (const propMatch of propMatches) {
+                            props[propMatch[1]] = propMatch[2];
+                        }
+                        this.dataDictionary[name] = {
+                            description: props.description || "",
+                            classification: props.classification || "public",
+                            format: props.format || "",
+                            credentialsLife: props.credentialsLife || ""
+                        };
+                    }
+                }
+            });
+            this.updateDataflowDropdowns();
+        }
+    }
     
     repopulateGraphFromMetadata(metadata) {
         // Create nodes
@@ -362,5 +432,94 @@ class ModelManager {
         
         this.connectionManager.activeConnection = null;
         this.konvaManager.getLayer().draw();
+    }
+
+    loadDataDictionary() {
+        fetch('/api/data_dictionary')
+            .then(response => response.text())
+            .then(xmlString => {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlString, "text/xml");
+                const dataNodes = xmlDoc.getElementsByTagName("Data");
+                
+                for (let i = 0; i < dataNodes.length; i++) {
+                    const node = dataNodes[i];
+                    const name = node.getAttribute("name");
+                    this.dataDictionary[name] = {
+                        description: node.getAttribute("description") || "",
+                        classification: node.getAttribute("classification") || "public",
+                        format: node.getAttribute("format") || "",
+                        credentialsLife: node.getAttribute("credentialsLife") || ""
+                    };
+                }
+                this.updateDataflowDropdowns();
+            })
+            .catch(error => console.error('Error loading data dictionary:', error));
+    }
+
+    renderDataList() {
+        if (!this.dataListContainer) return;
+        this.dataListContainer.innerHTML = '';
+        Object.keys(this.dataDictionary).sort().forEach(name => {
+            const item = this.dataDictionary[name];
+            const div = document.createElement('div');
+            div.className = 'model-list-item';
+            div.style.display = 'flex';
+            div.style.justifyContent = 'space-between';
+            div.style.alignItems = 'center';
+            div.innerHTML = `
+                <span><strong>${name}</strong> (${item.classification})</span>
+                <div>
+                    <button class="export-btn" style="padding: 4px 8px; margin: 0 2px;" onclick="window.modelManager.editDataItem('${name}')">Edit</button>
+                    <button class="export-btn" style="padding: 4px 8px; margin: 0 2px; background-color: #f44336;" onclick="window.modelManager.deleteDataItem('${name}')">Delete</button>
+                </div>
+            `;
+            this.dataListContainer.appendChild(div);
+        });
+    }
+
+    editDataItem(name) {
+        const item = this.dataDictionary[name];
+        document.getElementById('data-name').value = name;
+        document.getElementById('data-description').value = item.description;
+        document.getElementById('data-classification').value = item.classification;
+        document.getElementById('data-format').value = item.format;
+        document.getElementById('data-credentials-life').value = item.credentialsLife;
+    }
+
+    deleteDataItem(name) {
+        if (confirm(`Delete ${name}?`)) {
+            delete this.dataDictionary[name];
+            this.renderDataList();
+            this.updateDataflowDropdowns();
+        }
+    }
+
+    clearDataForm() {
+        document.getElementById('data-name').value = '';
+        document.getElementById('data-description').value = '';
+        document.getElementById('data-classification').value = 'public';
+        document.getElementById('data-format').value = '';
+        document.getElementById('data-credentials-life').value = '';
+    }
+
+    updateDataflowDropdowns() {
+        const dataSelect = document.getElementById('prop-data');
+        if (!dataSelect) return;
+
+        const currentValue = dataSelect.value;
+        dataSelect.innerHTML = '<option value="">-- No Data --</option>';
+        Object.keys(this.dataDictionary).sort().forEach(name => {
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            dataSelect.appendChild(option);
+        });
+        dataSelect.value = currentValue;
+    }
+
+    openDataManager() {
+        this.renderDataList();
+        this.dataModal.style.display = 'block';
     }
 }

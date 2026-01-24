@@ -156,6 +156,14 @@ def serve_static(filename):
     """Serve static files from the static directory."""
     return send_from_directory(app.static_folder, filename)
 
+@app.route('/api/data_dictionary')
+def get_data_dictionary():
+    """Serves the data dictionary XML file."""
+    xml_path = os.path.join(project_root, 'threat_analysis', 'external_data', 'data_dictionary.xml')
+    if os.path.exists(xml_path):
+        return send_file(xml_path, mimetype='application/xml')
+    return jsonify({"error": "Data dictionary not found"}), 404
+
 @app.route("/")
 def index():
     """Serves the main menu."""
@@ -580,6 +588,13 @@ def markdown_to_json():
         })
     except Exception as e:
         logging.error(f"Error during markdown to json conversion: {e}", exc_info=True)
+        # Also log the markdown content that caused the error
+        try:
+            data = request.get_json()
+            markdown_content = data.get('markdown', '')
+            logging.error(f"Problematic markdown content:\n{markdown_content}")
+        except Exception as log_e:
+            logging.error(f"Could not log markdown content: {log_e}")
         return jsonify({"error": str(e)}), 500
 
 

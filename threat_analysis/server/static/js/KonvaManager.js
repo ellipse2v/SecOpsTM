@@ -125,8 +125,8 @@ class KonvaManager {
             return;
         }
 
-        // Do nothing if clicked on transformer
-        if (e.target.getParent() && e.target.getParent().className === 'Transformer') {
+        // Do nothing if clicked on transformer or its handles
+        if (e.target.findAncestor(n => n.getClassName() === 'Transformer') || e.target.getClassName() === 'Transformer') {
             return;
         }
 
@@ -138,44 +138,48 @@ class KonvaManager {
             return;
         }
 
-        // If we clicked on a shape that is not selectable, clear selection
-        if (!e.target.hasName('shape')) {
+        // Find the group (node) if we clicked on a shape or anything inside it
+        let group = e.target.hasName('shape') ? e.target.getParent() : e.target.findAncestor(n => n.getClassName() === 'Group' && (n.isNode || n.getAttr('isNode')));
+        
+        // Check if it's really a node group (should have isNode property set in NodeManager)
+        if (group && (group.isNode || group.getAttr('isNode'))) {
+            const selectedNodes = this.transformer.nodes();
+            if (selectedNodes.length !== 1 || selectedNodes[0].id() !== group.id()) {
+                this.transformer.nodes([group]);
+                this.transformer.moveToTop();
+            }
+            window.dispatchEvent(new CustomEvent('itemSelected', { detail: { item: group } }));
+        } else {
+            // If we clicked on something else that is not the stage,
+            // but not a node or connection, clear selection
             this.transformer.nodes([]);
             window.dispatchEvent(new CustomEvent('selectionCleared'));
-            return;
         }
-
-        let selectedItem = null;
-        if (e.target.hasName('shape')) {
-            const group = e.target.getParent();
-            if (group && group.id()) {
-                // If multiple nodes are selected, deselect others and select only the clicked one
-                const selectedNodes = this.transformer.nodes();
-                if (selectedNodes.length > 1) {
-                    this.transformer.nodes([group]);
-                } else if (selectedNodes.length === 1 && selectedNodes[0].id() !== group.id()) {
-                    this.transformer.nodes([group]);
-                } else if (selectedNodes.length === 0) {
-                    this.transformer.nodes([group]);
-                }
-                selectedItem = group;
-            }
-        }
-        
-        window.dispatchEvent(new CustomEvent('itemSelected', { detail: { item: selectedItem } }));
     }
 
     handleDblClick(e) {
-        if (e.target.hasName('shape')) {
-            const group = e.target.getParent();
-            if (group && group.id()) {
-                this.transformer.nodes([group]);
-                this.transformer.enabledAnchors(['top-left', 'top-right', 'bottom-left', 'bottom-right']);
-                this.transformer.rotateEnabled(false);
-                this.transformer.borderEnabled(true);
-                this.layer.draw();
-                window.dispatchEvent(new CustomEvent('itemSelected', { detail: { item: group } }));
+        console.log('KonvaManager: handleDblClick', e.target.getClassName(), e.target.name());
+        let group = e.target.hasName('shape') ? e.target.getParent() : e.target.findAncestor(n => n.getClassName() === 'Group' && (n.isNode || n.getAttr('isNode')));
+        
+        // If we double-clicked on the transformer itself, use its attached node
+        if (!group && (e.target.findAncestor(n => n.getClassName() === 'Transformer') || e.target.getClassName() === 'Transformer')) {
+            const attachedNodes = this.transformer.nodes();
+            if (attachedNodes.length > 0) {
+                group = attachedNodes[0];
             }
+        }
+
+        if (group && group.id()) {
+            console.log('KonvaManager: found group to dblclick', group.id());
+            this.transformer.nodes([group]);
+            this.transformer.moveToTop();
+            this.transformer.enabledAnchors(['top-left', 'top-right', 'bottom-left', 'bottom-right']);
+            this.transformer.rotateEnabled(false);
+            this.transformer.borderEnabled(true);
+            this.layer.draw();
+            window.dispatchEvent(new CustomEvent('itemSelected', { detail: { item: group } }));
+        } else {
+            console.log('KonvaManager: no group found for dblclick');
         }
     }
 
