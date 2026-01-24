@@ -43,7 +43,7 @@ def test_validator_with_valid_model(sample_threat_model):
     # Add a valid dataflow
     user = sample_threat_model.get_element_by_name("User")
     webserver = sample_threat_model.get_element_by_name("WebServer")
-    sample_threat_model.add_dataflow(user, webserver, "Valid Flow", "HTTPS")
+    sample_threat_model.add_dataflow(user, webserver, "Valid Flow", protocol="HTTPS")
 
     validator = ModelValidator(sample_threat_model)
     assert not validator.validate()

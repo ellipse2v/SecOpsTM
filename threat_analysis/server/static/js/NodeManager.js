@@ -23,12 +23,14 @@ class NodeManager {
     }
 
     addNode(type, name, x, y, newWidth, newHeight, incomingProps) {
+        if (type) {
+            type = type.toUpperCase();
+        }
         const config = ThreatModelConfig;
         const dimensions = config.ELEMENT_DIMENSIONS[type] || { width: 120, height: 80 };
         const colors = config.COLOR_SCHEMES[type] || config.COLOR_SCHEMES.DEFAULT;
         const defaultProps = config.DEFAULT_PROPERTIES[type] || {};
 
-        // Base properties from defaults
         const baseProperties = {
             name: name || defaultProps.name || 'New Element',
             description: defaultProps.description || '',
@@ -42,12 +44,14 @@ class NodeManager {
             classification: defaultProps.classification || 'public',
             confidentiality: defaultProps.confidentiality || 'medium',
             integrity: defaultProps.integrity || 'medium',
-            availability: defaultProps.availability || 'medium',
-            color: defaultProps.color || colors.fill,
+            availability: defaultProps.availability || 'medium'
         };
         
-        // Merge incoming properties
         const properties = { ...baseProperties, ...incomingProps };
+
+        if (!properties.color) {
+            properties.color = defaultProps.color || colors.fill;
+        }
 
         const PADDING = 10;
         const tempText = new Konva.Text({ text: name, fontSize: 12, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' });
@@ -71,6 +75,8 @@ class NodeManager {
             draggable: true,
             name: type,
             id: 'id_' + Math.random().toString(36).substr(2, 9),
+            width: width,
+            height: height,
         });
         
         group.isNode = true;
@@ -79,244 +85,216 @@ class NodeManager {
         let text;
         const TEXT_HEIGHT = 12;
 
-        const isNetworkDevice = ['FIREWALL', 'SWITCH', 'ROUTER'].includes(type);
-        
-        if (type === 'ACTOR') {
-            const radiusX = width / 2;
-            const radiusY = height / 2;
-            
-            shape = new Konva.Ellipse({
-                x: width / 2,
-                y: height / 2,
-                radiusX: radiusX,
-                radiusY: radiusY,
-                fill: fill,
-                stroke: fill,
-                strokeWidth: 2,
-                name: 'shape',
-            });
-            
-            text = new Konva.Text({
-                x: 0,
-                y: height + PADDING / 2,
-                text: name,
-                fontSize: TEXT_HEIGHT,
-                fill: textColor,
-                width: width,
-                align: 'center',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-                name: 'label',
-            });
-            
-            if (iconPath) {
-                Konva.Image.fromURL(iconPath, (image) => {
-                    image.setAttrs({
-                        x: (width - 48) / 2,
-                        y: (height - 48) / 2,
-                        width: 48,
-                        height: 48,
-                        listening: false,
-                        name: 'image',
-                    });
-                    group.add(image);
-                    this.layer.draw();
+        switch (type) {
+            case 'ACTOR': {
+                const radiusX = width / 2;
+                const radiusY = height / 2;
+                shape = new Konva.Ellipse({
+                    x: width / 2, y: height / 2, radiusX: radiusX, radiusY: radiusY,
+                    fill: fill, stroke: fill, strokeWidth: 2, name: 'shape',
                 });
+                text = new Konva.Text({
+                    x: 0, y: height + PADDING / 2, text: name, fontSize: TEXT_HEIGHT, fill: textColor,
+                    width: width, align: 'center', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', name: 'label',
+                });
+                if (iconPath) {
+                    Konva.Image.fromURL(iconPath, (image) => {
+                        image.setAttrs({
+                            x: (width - 48) / 2, y: (height - 48) / 2, width: 48, height: 48,
+                            listening: false, name: 'image',
+                        });
+                        group.add(image);
+                        this.layer.draw();
+                    });
+                }
+                break;
             }
-        } else if (isNetworkDevice) {
-            const iconSize = type === 'SWITCH' ? 59 : 64;
-            
-            if (type === 'FIREWALL') {
+            case 'FIREWALL': {
+                const iconSize = 64;
                 shape = new Konva.RegularPolygon({
-                    x: width / 2,
-                    y: iconSize / 2,
-                    sides: 6,
-                    radius: iconSize / 2,
-                    fill: fill,
-                    stroke: fill,
-                    strokeWidth: 2,
-                    name: 'shape',
+                    x: width / 2, y: iconSize / 2, sides: 6, radius: iconSize / 2,
+                    fill: fill, stroke: fill, strokeWidth: 2, name: 'shape',
                 });
-            } else {
-                const shapeSize = type === 'SWITCH' ? iconSize + 5 : iconSize;
+                text = new Konva.Text({
+                    x: 0, y: iconSize + 5, text: name, fontSize: TEXT_HEIGHT, fill: textColor,
+                    width: width, align: 'center', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', name: 'label',
+                });
+                if (iconPath) {
+                    Konva.Image.fromURL(iconPath, (image) => {
+                        image.setAttrs({
+                            x: (width - iconSize) / 2, y: 0, width: iconSize, height: iconSize,
+                            listening: false, name: 'image',
+                        });
+                        group.add(image);
+                        this.layer.draw();
+                    });
+                }
+                break;
+            }
+            case 'ROUTER':
+            case 'SWITCH': {
+                const iconSize = type === 'SWITCH' ? 59 : 64;
                 shape = new Konva.Rect({
-                    x: (width - shapeSize) / 2,
-                    y: (iconSize - shapeSize) / 2,
-                    width: shapeSize,
-                    height: shapeSize,
+                    x: 0,
+                    y: 0,
+                    width: width,
+                    height: height,
                     fill: fill,
                     stroke: fill,
                     strokeWidth: 2,
                     name: 'shape',
                 });
-            }
-            
-            text = new Konva.Text({
-                x: 0,
-                y: iconSize + 5,
-                text: name,
-                fontSize: TEXT_HEIGHT,
-                fill: textColor,
-                width: width,
-                align: 'center',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-                name: 'label',
-            });
-            
-            if (iconPath) {
-                Konva.Image.fromURL(iconPath, (image) => {
-                    image.setAttrs({
-                        x: (width - iconSize) / 2,
-                        y: 0,
-                        width: iconSize,
-                        height: iconSize,
-                        listening: false,
-                        name: 'image',
-                    });
-                    group.add(image);
-                    this.layer.draw();
+                text = new Konva.Text({
+                    x: 0,
+                    y: height + 5,
+                    text: name,
+                    fontSize: TEXT_HEIGHT,
+                    fill: textColor,
+                    width: width,
+                    align: 'center',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+                    name: 'label',
                 });
-            }
-        } else if (type === 'DATABASE') {
-            const iconSize = 64;
-            const shapeHeight = 80;
-            
-            shape = new Konva.Rect({
-                x: 0,
-                y: 0,
-                width: width,
-                height: shapeHeight,
-                fill: fill,
-                stroke: fill,
-                strokeWidth: 2,
-                name: 'shape',
-            });
-            
-            text = new Konva.Text({
-                x: PADDING,
-                y: shapeHeight + 5,
-                text: name,
-                fontSize: TEXT_HEIGHT,
-                fill: textColor,
-                width: width - 2 * PADDING,
-                align: 'center',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-                name: 'label',
-            });
-            
-            if (iconPath) {
-                Konva.Image.fromURL(iconPath, (image) => {
-                    image.setAttrs({
-                        x: (width - iconSize) / 2,
-                        y: (shapeHeight - iconSize) / 2,
-                        width: iconSize,
-                        height: iconSize,
-                        listening: false,
-                        name: 'icon',
+                if (iconPath) {
+                    Konva.Image.fromURL(iconPath, (image) => {
+                        image.setAttrs({
+                            x: (width - iconSize) / 2,
+                            y: (height - iconSize) / 2,
+                            width: iconSize,
+                            height: iconSize,
+                            listening: false,
+                            name: 'image',
+                        });
+                        group.add(image);
+                        this.layer.draw();
                     });
-                    group.add(image);
-                    this.layer.draw();
-                });
+                }
+                break;
             }
-        } else if (type === 'WEB_SERVER') {
-            shape = new Konva.Rect({
-                x: 0,
-                y: 0,
-                width: width,
-                height: height,
-                fill: fill,
-                stroke: fill,
-                strokeWidth: 2,
-                name: 'shape',
-            });
-            
-            text = new Konva.Text({
-                x: PADDING,
-                y: (height - TEXT_HEIGHT) / 2,
-                text: name,
-                fontSize: TEXT_HEIGHT,
-                fill: textColor,
-                width: width - 2 * PADDING,
-                align: 'center',
-                verticalAlign: 'middle',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-                name: 'label',
-            });
-            
-            if (iconPath) {
-                Konva.Image.fromURL(iconPath, (image) => {
-                    image.setAttrs({
-                        x: width - 32,
-                        y: height - 32,
-                        width: 24,
-                        height: 24,
-                        listening: false,
-                        name: 'icon',
-                    });
-                    group.add(image);
-                    this.layer.draw();
+            case 'DATABASE': {
+                const iconSize = 48;
+                shape = new Konva.Shape({
+                    sceneFunc: function (context, shape) {
+                        const w = width;
+                        const h = height;
+                        const x = 0;
+                        const y = 0;
+                        const ellipseH = h * 0.2; // Height of the ellipse top/bottom
+
+                        // Top ellipse
+                        context.beginPath();
+                        context.save();
+                        context.scale(1, 0.5);
+                        context.arc(x + w / 2, (y + ellipseH / 2) / 0.5, w / 2, 0, 2 * Math.PI);
+                        context.restore();
+                        context.fillStrokeShape(shape);
+
+                        // Cylinder body
+                        context.beginPath();
+                        context.rect(x, y + ellipseH / 2, w, h - ellipseH);
+                        context.fillStrokeShape(shape);
+                        
+                        // Bottom ellipse
+                        context.beginPath();
+                        context.save();
+                        context.scale(1, 0.5);
+                        context.arc(x + w / 2, (y + h - ellipseH / 2) / 0.5, w / 2, 0, 2 * Math.PI);
+                        context.restore();
+                        context.fillStrokeShape(shape);
+                    },
+                    width: width,
+                    height: height,
+                    name: 'shape',
+                    fill: fill,
+                    stroke: stroke,
+                    strokeWidth: 2,
                 });
+                
+                group.scaleX(0.5);
+                group.scaleY(0.5);
+
+                text = new Konva.Text({
+                    x: PADDING,
+                    y: height / 2 - TEXT_HEIGHT / 2,
+                    text: name,
+                    fontSize: TEXT_HEIGHT * 2,
+                    fill: textColor,
+                    width: width - 2 * PADDING,
+                    align: 'center',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+                    name: 'label',
+                });
+                
+                if (iconPath) {
+                    Konva.Image.fromURL(iconPath, (image) => {
+                        image.setAttrs({
+                            x: (width - iconSize) / 2,
+                            y: (height - iconSize) / 2,
+                            width: iconSize,
+                            height: iconSize,
+                            listening: false,
+                            name: 'image',
+                        });
+                        group.add(image);
+                        this.layer.draw();
+                    });
+                }
+                break;
             }
-        } else if (type === 'BOUNDARY') {
-            shape = new Konva.Rect({
-                x: 0,
-                y: 0,
-                width: width,
-                height: height,
-                fill: fill,
-                stroke: fill,
-                strokeWidth: 2,
-                name: 'shape',
-            });
-            
-            text = new Konva.Text({
-                x: 0,
-                y: height + PADDING,
-                text: name,
-                fontSize: TEXT_HEIGHT,
-                fill: textColor,
-                width: width,
-                align: 'left',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-                name: 'label',
-            });
-        } else {
-            shape = new Konva.Rect({
-                x: 0,
-                y: 0,
-                width: width,
-                height: height,
-                fill: fill,
-                stroke: fill,
-                strokeWidth: 2,
-                name: 'shape',
-            });
-            
-            text = new Konva.Text({
-                x: PADDING,
-                y: (height - TEXT_HEIGHT) / 2,
-                text: name,
-                fontSize: TEXT_HEIGHT,
-                fill: textColor,
-                width: width - 2 * PADDING,
-                align: 'center',
-                verticalAlign: 'middle',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-                name: 'label',
-            });
-            
-            if (iconPath && type !== 'ACTOR') {
-                Konva.Image.fromURL(iconPath, (image) => {
-                    image.setAttrs({
-                        x: width - 32,
-                        y: height - 32,
-                        width: 24,
-                        height: 24,
-                        listening: false,
-                        name: 'icon',
-                    });
-                    group.add(image);
-                    this.layer.draw();
+            case 'WEB_SERVER': {
+                shape = new Konva.Rect({
+                    x: 0, y: 0, width: width, height: height,
+                    fill: fill, stroke: fill, strokeWidth: 2, name: 'shape',
                 });
+                text = new Konva.Text({
+                    x: PADDING, y: (height - TEXT_HEIGHT) / 2, text: name, fontSize: TEXT_HEIGHT, fill: textColor,
+                    width: width - 2 * PADDING, align: 'center', verticalAlign: 'middle',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', name: 'label',
+                });
+                if (iconPath) {
+                    Konva.Image.fromURL(iconPath, (image) => {
+                        image.setAttrs({
+                            x: width - 32, y: height - 32, width: 24, height: 24,
+                            listening: false, name: 'icon',
+                        });
+                        group.add(image);
+                        this.layer.draw();
+                    });
+                }
+                break;
+            }
+            case 'BOUNDARY': {
+                shape = new Konva.Rect({
+                    x: 0, y: 0, width: width, height: height,
+                    fill: fill, stroke: fill, strokeWidth: 2, name: 'shape', cornerRadius: 10,
+                });
+                text = new Konva.Text({
+                    x: 0, y: height + PADDING, text: name, fontSize: TEXT_HEIGHT, fill: textColor,
+                    width: width, align: 'left', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', name: 'label',
+                });
+                break;
+            }
+            default: {
+                shape = new Konva.Rect({
+                    x: 0, y: 0, width: width, height: height,
+                    fill: fill, stroke: fill, strokeWidth: 2, name: 'shape',
+                });
+                text = new Konva.Text({
+                    x: PADDING, y: (height - TEXT_HEIGHT) / 2, text: name, fontSize: TEXT_HEIGHT, fill: textColor,
+                    width: width - 2 * PADDING, align: 'center', verticalAlign: 'middle',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', name: 'label',
+                });
+                if (iconPath && type !== 'ACTOR') {
+                    Konva.Image.fromURL(iconPath, (image) => {
+                        image.setAttrs({
+                            x: width - 32, y: height - 32, width: 24, height: 24,
+                            listening: false, name: 'icon',
+                        });
+                        group.add(image);
+                        this.layer.draw();
+                    });
+                }
+                break;
             }
         }
         
@@ -347,6 +325,14 @@ class NodeManager {
                 shape.stroke(properties.color || '#adb5bd'); // Use color, fallback to default
             }
             shape.strokeWidth(properties.isTrusted ? 2 : 1);
+
+            if (properties.lineStyle === 'dashed') {
+                shape.dash([10, 5]);
+            } else if (properties.lineStyle === 'dotted') {
+                shape.dash([2, 5]);
+            } else {
+                shape.dash([]); // Solid
+            }
         } else {
             shape.fill(properties.color);
             shape.stroke(properties.color);

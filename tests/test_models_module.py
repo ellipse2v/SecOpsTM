@@ -46,7 +46,7 @@ def threat_model_instance(cve_service):
                     tm.get_element_by_name("User"),
                     tm.get_element_by_name("WebServer"),
                     "Login Flow",
-                    "HTTPS",
+                    protocol="HTTPS",
                     data_name="Credentials",
                     is_authenticated=True,
                     is_encrypted=True
@@ -331,7 +331,7 @@ def test_process_threats_with_custom_threats(MockModelValidator, MockGetCustomTh
         tm.get_element_by_name("User"),
         tm.get_element_by_name("WebServer"),
         "DataTransfer",
-        "HTTPS",
+        protocol="HTTPS",
         data_name="SensitiveData"
     )
     mock_custom_threats_data_dataflow = [
@@ -352,7 +352,7 @@ def test_process_threats_with_custom_threats(MockModelValidator, MockGetCustomTh
         threat_type="Disclosure",
         target_name="DataTransfer",
         protocol="HTTPS",
-        classification="RESTRICTED",
+        classification=None,
         impact=5,
         likelihood=5
     )

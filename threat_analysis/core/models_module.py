@@ -167,11 +167,11 @@ class ThreatModel:
         logging.debug(f"DEBUG: Data object added with name: '{name}'") # New debug log
         return data_obj
 
-    def add_dataflow(self, from_element: Any, to_element: Any, name :str,
-            protocol: str, data_name: Optional[str] = None,
-            is_authenticated: bool = False,
-            is_encrypted: bool = False) -> Dataflow:
-        """Adds a dataflow to the model"""
+    def add_dataflow(self, from_element: Any, to_element: Any, name :str, **kwargs) -> Dataflow:
+        """Adds a dataflow to the model with additional properties."""
+        protocol = kwargs.get('protocol')
+        data_name = kwargs.get('data')
+        
         data_objects = []
         if data_name:
             data_object = self.data_objects.get(data_name.lower())
@@ -184,11 +184,25 @@ class ThreatModel:
             from_element,
             to_element,
             name,
-            protocol=protocol,
-            data=data_objects,  # Always pass a list
-            is_authenticated=is_authenticated,
-            is_encrypted=is_encrypted
+            protocol=kwargs.get('protocol'),
+            data=data_objects,
+            is_authenticated=kwargs.get('is_authenticated', False),
+            is_encrypted=kwargs.get('is_encrypted', False)
         )
+
+        # Create a copy to avoid modifying the original dict if it's used elsewhere
+        remaining_kwargs = kwargs.copy()
+        
+        # Remove keys that were handled by the constructor
+        remaining_kwargs.pop('protocol', None)
+        remaining_kwargs.pop('data', None)
+        remaining_kwargs.pop('is_authenticated', None)
+        remaining_kwargs.pop('is_encrypted', None)
+
+        # Attach all other kwargs as attributes to the dataflow object
+        for key, value in remaining_kwargs.items():
+            setattr(dataflow, key, value)
+            
         self.dataflows.append(dataflow)
         self._elements_by_name[name.lower()] = dataflow # Add dataflow to elements by name
         return dataflow

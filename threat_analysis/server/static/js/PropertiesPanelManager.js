@@ -89,7 +89,7 @@ class PropertiesPanelManager {
 
         this.isTrustedInput.addEventListener('change', (evt) => this.updateCellProperty('isTrusted', evt.target.checked));
 
-        this.lineStyleInput.addEventListener('change', (evt) => this.updateCellProperty('lineStyle', evt.target.value));
+        this.lineStyleInput.addEventListener('change', (evt) => this.updateCellProperty('line_style', evt.target.value));
 
         this.formatInput.addEventListener('input', (evt) => this.updateCellProperty('format', evt.target.value));
 
@@ -151,6 +151,8 @@ class PropertiesPanelManager {
 
             this.dataInput.value = props.data || '';
 
+            this.lineStyleInput.value = props.line_style || 'solid';
+
 
 
             document.getElementById('prop-os-group').style.display = 'none';
@@ -161,7 +163,7 @@ class PropertiesPanelManager {
 
             document.getElementById('prop-is-trusted-group').style.display = 'none';
 
-            document.getElementById('prop-line-style-group').style.display = 'none';
+            document.getElementById('prop-line-style-group').style.display = 'block';
 
             document.getElementById('prop-format-group').style.display = 'none';
 
@@ -284,21 +286,16 @@ class PropertiesPanelManager {
 
 
         if (this.selectedItem instanceof Connection) {
-
             this.selectedItem.properties[key] = value;
 
-            if (key === 'name') {
-
-                this.selectedItem.setLabel(value);
-
-            } else if (key === 'color') {
-
-                this.selectedItem.arrow.stroke(value);
-
-                this.selectedItem.arrow.fill(value);
-
+            if (key === "name" || key === "data" || key === "isEncrypted" || key === "isAuthenticated") {
+                this.selectedItem.updateLabel();
+            } else if (key === "color" || key === "line_style" || key === "protocol") {
+                this.selectedItem.updateStyle();
+                if (key === "protocol" || key === "color") {
+                    this.connectionManager.updateAllConnectionsWithProtocol(this.selectedItem.properties.protocol);
+                }
             }
-
             this.selectedItem.manager.layer.draw();
 
         } else if (this.selectedItem.getAttr('threatModelProperties')) {

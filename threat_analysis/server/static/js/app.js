@@ -23,9 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const propertiesPanelManager = new PropertiesPanelManager(konvaManager.getLayer(), connectionManager);
     const toolbarManager = new ToolbarManager(nodeManager, konvaManager.getTransformer(), propertiesPanelManager);
     const uiManager = new UIManager(konvaManager.getStage());
-    const threatModelGenerator = new ThreatModelGenerator(konvaManager.getLayer(), connectionManager.connections, nodeManager, uiManager);
-    const exportManager = new ExportManager(threatModelGenerator.analysisResultContainer, () => threatModelGenerator.getThreatModelJSON(), threatModelGenerator.convertJsonToMarkdown, uiManager);
     const modelManager = new ModelManager(nodeManager, connectionManager, konvaManager);
+    const threatModelGenerator = new ThreatModelGenerator(konvaManager.getLayer(), connectionManager.connections, nodeManager, uiManager, modelManager);
+    const exportManager = new ExportManager(threatModelGenerator.analysisResultContainer, () => threatModelGenerator.getThreatModelJSON(), threatModelGenerator.convertJsonToMarkdown, uiManager);
 
     exportManager.initialize('export-btn', 'export-menu');
 

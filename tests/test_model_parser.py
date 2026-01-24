@@ -153,7 +153,7 @@ def test_parse_dataflow_missing_data_object(model_parser, threat_model):
         dataflow = threat_model.dataflows[0]
         assert dataflow.name == "FlowWithMissingData"
         assert not dataflow.data # Data list should be empty
-        mock_warn.assert_called_once_with("⚠️ Warning: Data object 'nonexistentdata' not found for dataflow 'FlowWithMissingData'.")
+        mock_warn.assert_called_once_with("⚠️ Warning: Data object 'NonExistentData' not found for dataflow 'FlowWithMissingData'.")
 
 def test_parse_dataflow_malformed(model_parser, threat_model):
     with patch('logging.warning') as mock_warn:
@@ -273,7 +273,7 @@ def test_apply_custom_threats_dataflows_new(mock_get_custom_threats, threat_mode
         threat_model.get_element_by_name("User"),
         threat_model.get_element_by_name("WebServer"),
         "SecureSensitiveDataFlow",
-        "HTTPS",
+        protocol="HTTPS",
         data_name="SensitiveData",
         is_encrypted=True
     )
@@ -309,7 +309,7 @@ def test_apply_custom_threats_dataflows_new(mock_get_custom_threats, threat_mode
         threat_model_no_match.get_element_by_name("User2"),
         threat_model_no_match.get_element_by_name("WebServer2"),
         "InsecureNonSensitiveDataFlow",
-        "HTTP",
+        protocol="HTTP",
         data_name="NonSensitiveData",
         is_encrypted=False
     )

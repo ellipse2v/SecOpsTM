@@ -237,11 +237,8 @@ class DiagramGenerator:
             shape = 'box'
             icon = '🌐 '
         elif element_type == 'switch':
-            shape = 'diamond'
+            shape = 'box'
             icon = '🔀 '
-            attributes.append("fixedsize=true")
-            attributes.append("width=0.5")
-            attributes.append("height=0.5")
         elif element_type == 'firewall':
             shape = 'hexagon'
             icon = '🔥 '
@@ -281,10 +278,9 @@ class DiagramGenerator:
         if final_fillcolor:
             attributes.append(f'fillcolor="{final_fillcolor}"')
 
-        if color and fillcolor and color != fillcolor:
-            attributes.append(f'color="{color}"')
-        elif color and not fillcolor:
-            attributes.append(f'color="{color}"')
+        if color:
+            if not fillcolor or color != fillcolor:
+                attributes.append(f'color="{color}"')
         
         # 3. Handle icon and label generation
         ICON_MAPPING = CONFIG_DATA["ICON_MAPPING"]
@@ -657,18 +653,24 @@ class DiagramGenerator:
                     escaped_dest = self._escape_label(dest_name)
                     protocol = getattr(df, 'protocol', None)
 
-                    label_parts = [self._escape_label(df.name)] if hasattr(df, 'name') and df.name else []
+                    label_parts = [df.name] if hasattr(df, 'name') and df.name else []
                     if protocol:
-                        label_parts.append(f"Protocol: {self._escape_label(protocol)}")
+                        label_parts.append(f"Protocol: {protocol}")
                     data_info = self._extract_data_info(df)
                     if data_info:
-                        label_parts.append(self._escape_label(data_info))
+                        label_parts.append(data_info)
                     if getattr(df, 'isEncrypted', False) or getattr(df, 'is_encrypted', False):
                         label_parts.append("🔒 Encrypted")
                     if getattr(df, 'authenticatedWith', False) or getattr(df, 'is_authenticated', False):
                         label_parts.append("🔐 Authenticated")
 
-                    label = "\n".join(label_parts) if label_parts else "Data Flow"
+                    if label_parts:
+                        escaped_parts = [html.escape(part) for part in label_parts]
+                        label_str = "<BR/>".join(escaped_parts)
+                        edge_attributes += f', label=<{label_str}>'
+                        label = ""  # Set original label to empty to allow override
+                    else:
+                        label = "Data Flow"
                     
                     if lhead:
                         edge_attributes += f", {lhead}"

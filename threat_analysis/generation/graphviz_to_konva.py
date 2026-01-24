@@ -16,7 +16,7 @@ class GraphvizToKonvaConverter:
     def __init__(self):
         self.svg_ns = {'svg': 'http://www.w3.org/2000/svg'}
         
-    def extract_metadata_from_svg(self, svg_path: Path) -> Dict:
+    def extract_metadata_from_svg(self, svg_path: Path) -> Optional[Dict]:
         """
         Extrait les métadonnées d'un SVG Graphviz pour les rendre 
         compatibles avec Konva
@@ -103,7 +103,7 @@ class GraphvizToKonvaConverter:
             styles = self._extract_node_styles(shape_element)
             
             # Déterminer le type de nœud à partir de l'ID ou des classes
-            node_type = self._determine_node_type(node_id, label)
+            node_type = self._determine_node_type(node_id, label or '')
             
             return {
                 'id': node_id,
@@ -123,20 +123,20 @@ class GraphvizToKonvaConverter:
             return None
     
     def _extract_edge_metadata(self, g: ET.Element) -> Optional[Dict]:
-        """Extrait les métadonnées d'une arête"""
+        """Extract edge metadata from SVG group element"""
         try:
             edge_id = g.get('id', '')
             title = g.find('.//svg:title', self.svg_ns)
             
-            # Parser le titre pour obtenir source et destination
-            # Format typique: "source->destination"
+            # Parse title to get source and destination
+            # Typical format: "source->destination"
             source, dest = '', ''
-            if title is not None and '->' in title.text:
+            if title is not None and title.text and '->' in title.text:
                 parts = title.text.split('->')
                 source = parts[0].strip()
                 dest = parts[1].strip()
             
-            # Extraire le chemin de l'arête
+            # Extract edge path
             path = g.find('.//svg:path', self.svg_ns)
             if path is None:
                 return None
@@ -144,14 +144,39 @@ class GraphvizToKonvaConverter:
             path_data = path.get('d', '')
             points = self._parse_path_to_points(path_data)
             
-            # Extraire le label
-            text_element = g.find('.//svg:text', self.svg_ns)
-            label = self._extract_text_content(text_element) if text_element is not None else ''
+            # Extract ALL <text> elements with their attributes
+            text_elements = g.findall('.//svg:text', self.svg_ns)
+            labels_data = []
+            label_lines = []
             
-            # Extraire les styles
+            all_lines = []
+            for text_element in text_elements:
+                # Get all text parts from the <text> element and its children (<tspan>)
+                lines = [t.strip() for t in text_element.itertext() if t.strip()]
+                if lines:
+                    all_lines.extend(lines)
+                    
+                    # Also populate labels_data with the best possible coordinates
+                    base_y = float(text_element.get('y', 0))
+                    # crude font size based line height approx
+                    line_height = float(text_element.get('font-size', 8.0))
+                    
+                    for i, line in enumerate(lines):
+                         labels_data.append({
+                            'text': line,
+                            'x': float(text_element.get('x', 0)),
+                            'y': base_y + i * line_height,
+                            'font_family': text_element.get('font-family', 'Times,serif'),
+                            'font_size': float(text_element.get('font-size', 7.0)),
+                            'text_anchor': text_element.get('text-anchor', 'middle')
+                        })
+
+            label = '\n'.join(all_lines) if all_lines else ''
+
+            # Extract styles
             styles = self._extract_edge_styles(path)
             
-            # Extraire le protocole depuis le label ou les classes
+            # Extract protocol from label or classes
             protocol = self._extract_protocol(label, g.get('class', ''))
             
             return {
@@ -160,12 +185,13 @@ class GraphvizToKonvaConverter:
                 'destination': dest,
                 'points': points,
                 'label': label,
+                'labels': labels_data,  # New detailed labels
                 'protocol': protocol,
                 'styles': styles
             }
             
         except Exception as e:
-            logging.warning(f"Erreur extraction arête: {e}")
+            logging.warning(f"Error extracting edge: {e}")
             return None
     
     def _extract_boundary_metadata(self, g: ET.Element) -> Optional[Dict]:
@@ -332,17 +358,19 @@ class GraphvizToKonvaConverter:
         """Extrait le contenu textuel complet"""
         if text_element is None:
             return ''
-        
+
         text_parts = []
-        if text_element.text:
-            text_parts.append(text_element.text)
         
-        # Gérer les tspan pour le texte multiligne
+        # Process top-level text element
+        if text_element.text and text_element.text.strip():
+            text_parts.append(text_element.text.strip())
+
+        # Process tspan elements for multi-line text
         for tspan in text_element.findall('.//svg:tspan', self.svg_ns):
-            if tspan.text:
-                text_parts.append(tspan.text)
+            if tspan.text and tspan.text.strip():
+                text_parts.append(tspan.text.strip())
         
-        return ' '.join(text_parts).strip()
+        return ' '.join(text_parts)
     
     def _extract_node_styles(self, element: ET.Element) -> Dict:
         """Extrait les styles d'un nœud"""

@@ -33,7 +33,7 @@ class ConnectionManager {
         window.addEventListener('keydown', (e) => this.handleKeyDown(e));
         window.addEventListener('itemSelected', (e) => this.handleItemSelected(e));
         window.addEventListener('selectionCleared', () => this.handleSelectionCleared());
-        window.addEventListener('nodeDragMove', () => this.updateAllConnections());
+        window.addEventListener('nodeDragMove', (e) => this.updateConnectionsForNode(e.detail.node));
     }
 
     handleItemSelected(e) {
@@ -43,6 +43,15 @@ class ConnectionManager {
         } else {
             this.clearConnectionSelection();
         }
+    }
+
+    updateConnectionsForNode(node) {
+        this.connections.forEach(c => {
+            if (c.fromNode === node || c.toNode === node) {
+                c.update();
+            }
+        });
+        this.layer.batchDraw();
     }
 
     handleSelectionCleared() {
@@ -63,14 +72,20 @@ class ConnectionManager {
         const pos = this.stage.getPointerPosition();
         if (!pos) return;
 
-        // Get the starting port's absolute position
-        const portAbsPos = this.activeConnection.clickedPort.getAbsolutePosition();
+        // Obtenir la position relative au layer
+        const layerPos = this.layer.getRelativePointerPosition();
+        
+        // Obtenir la position du port de départ
+        const fromNode = this.activeConnection.fromNode;
+        const fromPos = fromNode.position();
+        const portX = fromPos.x + fromNode.width() / 2;
+        const portY = fromPos.y + fromNode.height() / 2;
         
         this.activeConnection.arrow.points([
-            portAbsPos.x,
-            portAbsPos.y,
-            pos.x,
-            pos.y
+            portX,
+            portY,
+            layerPos.x,
+            layerPos.y
         ]);
 
         const intersected = this.stage.getIntersection(pos);
@@ -131,11 +146,6 @@ class ConnectionManager {
         }
     }
 
-    updateAllConnections() {
-        this.connections.forEach(c => c.update());
-        this.layer.batchDraw();
-    }
-
     startConnection(n, clickedPort) {
         if (!clickedPort) {
         clickedPort = {
@@ -150,7 +160,7 @@ class ConnectionManager {
         this.activeConnection = new Connection(n, this, clickedPort);
         const uniqueName = this.findUniqueDataflowName('New Dataflow');
         this.activeConnection.properties.name = uniqueName;
-        this.activeConnection.setLabel(uniqueName);
+        this.activeConnection.updateLabel();
         return this.activeConnection;
     }
     
@@ -208,10 +218,18 @@ class ConnectionManager {
             i++;
         }
     }
+    updateAllConnectionsWithProtocol(protocol) {
+        this.connections.forEach(connection => {
+            if (connection.properties.protocol === protocol) {
+                connection.updateStyle();
+            }
+        });
+        this.layer.batchDraw();
+    }
 }
 
 class Connection {
-    constructor(fromNode, manager, clickedPort) {
+    constructor(fromNode, manager, clickedPort, edgeData = null) {
         this.fromNode = fromNode;
         this.toNode = null;
         this.offsetIndex = 0;
@@ -224,17 +242,20 @@ class Connection {
             isAuthenticated: false,
             description: '',
             color: '#000000',
+            line_style: 'solid',
             data: ''
         };
         this.labelText = this.properties.name;
+        this.labelObjects = []; // To hold all label-related konva objects
+        this.labelPositionManuallySet = false;
 
         // Get the initial port position
         const portAbsPos = clickedPort.getAbsolutePosition();
 
         this.arrow = new Konva.Arrow({
             points: [portAbsPos.x, portAbsPos.y, portAbsPos.x, portAbsPos.y],
-            stroke: '#000',
-            fill: '#000',
+            stroke: this.properties.color,
+            fill: this.properties.color,
             strokeWidth: 2,
             pointerLength: 10,
             pointerWidth: 10,
@@ -248,21 +269,51 @@ class Connection {
             name: 'connectionHit'
         });
 
-        this.label = new Konva.Text({
-            text: this.labelText,
-            fontSize: 12,
-            fill: '#000',
-            padding: 2,
-            background: '#fff',
-            name: 'connectionLabel'
-        });
+        if (edgeData && edgeData.labels) {
+            this.labelGroup = new Konva.Group({ draggable: true });
+            this.labelGroup.on('dragend', () => { this.labelPositionManuallySet = true; });
+            this.manager.layer.add(this.labelGroup);
+            this.labelObjects.push(this.labelGroup);
 
-        [this.arrow, this.hit, this.label].forEach(obj => {
+            edgeData.labels.forEach(labelData => {
+                const text = new Konva.Text({
+                    x: labelData.x,
+                    y: labelData.y,
+                    text: labelData.text,
+                    fontSize: labelData.font_size || 7,
+                    fontFamily: labelData.font_family || 'Times,serif',
+                    fill: '#000',
+                    textAlign: labelData.text_anchor === 'middle' ? 'center' : 'left'
+                });
+                 // Adjust x for text anchor
+                if (labelData.text_anchor === 'middle') {
+                    text.offsetX(text.width() / 2);
+                }
+                this.labelGroup.add(text);
+            });
+
+        } else {
+            this.label = new Konva.Text({
+                text: this.labelText,
+                fontSize: 7,
+                fill: '#000',
+                padding: 2,
+                name: 'connectionLabel',
+                draggable: true
+            });
+            this.label.on('dragend', () => { this.labelPositionManuallySet = true; });
+            this.labelObjects.push(this.label);
+            this.manager.layer.add(this.label);
+        }
+
+        [this.arrow, this.hit, ...this.labelObjects].forEach(obj => {
             obj.on('click', (e) => {
                 e.cancelBubble = true;
                 this.manager.selectConnection(this);
             });
-            this.manager.layer.add(obj);
+             if (obj.getParent() !== this.manager.layer && obj !== this.labelGroup) {
+                this.manager.layer.add(obj);
+            }
         });
 
         this.manager.connections.push(this);
@@ -274,13 +325,16 @@ class Connection {
             return;
         }
 
+        const toPos = this.toNode.position();
         const toCenter = {
-            x: this.toNode.getAbsolutePosition().x + this.toNode.width() / 2,
-            y: this.toNode.getAbsolutePosition().y + this.toNode.height() / 2
+            x: toPos.x + (this.toNode.width() * this.toNode.scaleX()) / 2,
+            y: toPos.y + (this.toNode.height() * this.toNode.scaleY()) / 2
         };
+        
+        const fromPos = this.fromNode.position();
         const fromCenter = {
-            x: this.fromNode.getAbsolutePosition().x + this.fromNode.width() / 2,
-            y: this.fromNode.getAbsolutePosition().y + this.fromNode.height() / 2
+            x: fromPos.x + (this.fromNode.width() * this.fromNode.scaleX()) / 2,
+            y: fromPos.y + (this.fromNode.height() * this.fromNode.scaleY()) / 2
         };
 
         const p1 = this.getAnchor(this.fromNode, toCenter);
@@ -301,11 +355,15 @@ class Connection {
         this.arrow.points([a.x, a.y, b.x, b.y]);
         this.hit.points([a.x, a.y, b.x, b.y]);
 
-        this.label.position({
-            x: (a.x + b.x) / 2,
-            y: (a.y + b.y) / 2
-        });
+        if ((this.label || this.labelGroup) && !this.labelPositionManuallySet) {
+            const labelNode = this.label || this.labelGroup;
+            labelNode.position({
+                x: (a.x + b.x) / 2,
+                y: (a.y + b.y) / 2
+            });
+        }
     }
+
 
     attach(node) {
         this.toNode = node;
@@ -313,14 +371,45 @@ class Connection {
         this.update();
     }
     
-    setLabel(text) {
-        this.labelText = text;
-        this.label.text(text);
+    updateStyle() {
+        this.arrow.stroke(this.properties.color);
+        this.arrow.fill(this.properties.color);
+
+        switch (this.properties.line_style) {
+            case 'dashed':
+                this.arrow.dash([10, 5]);
+                break;
+            case 'dotted':
+                this.arrow.dash([2, 5]);
+                break;
+            case 'solid':
+            default:
+                this.arrow.dash([]);
+                break;
+        }
+        this.manager.layer.batchDraw();
+    }
+    
+    updateLabel() {
+        const props = this.properties;
+        let labelText = props.name;
+        const attributes = [];
+        if (props.protocol) attributes.push(props.protocol);
+        if (props.data) attributes.push(`data: ${props.data}`);
+        if (props.isEncrypted) attributes.push("encrypted");
+        if (props.isAuthenticated) attributes.push("authenticated");
+
+        if (attributes.length > 0) {
+            labelText += `\n${attributes.join("\n")}`;
+        }
+        
+        this.labelText = labelText;
+        this.label.text(labelText);
         this.manager.layer.draw();
     }
 
     destroy() {
-        [this.arrow, this.hit, this.label].forEach(obj => obj.destroy());
+        [this.arrow, this.hit, ...this.labelObjects].forEach(obj => obj.destroy());
         const index = this.manager.connections.indexOf(this);
         if (index !== -1) {
             this.manager.connections.splice(index, 1);
@@ -332,19 +421,19 @@ class Connection {
 
     getAnchor(node, targetPoint) {
         const group = node;
-        const absPos = group.getAbsolutePosition();
+        const pos = group.position();
         const shape = group.findOne('.shape');
         
         if (!shape) {
-            return { x: absPos.x, y: absPos.y };
+            return { x: pos.x, y: pos.y };
         }
         
         if (group.name() === 'ACTOR') {
-            const radiusX = shape.radiusX();
-            const radiusY = shape.radiusY();
+            const radiusX = shape.radiusX() * group.scaleX();
+            const radiusY = shape.radiusY() * group.scaleY();
             const center = {
-                x: absPos.x + shape.x(),
-                y: absPos.y + shape.y()
+                x: pos.x + (shape.x() * group.scaleX()),
+                y: pos.y + (shape.y() * group.scaleY())
             };
             
             const angle = Math.atan2(targetPoint.y - center.y, targetPoint.x - center.x);
@@ -354,13 +443,12 @@ class Connection {
             };
         }
 
-        const shapeAbsPos = shape.getAbsolutePosition();
-        const w = shape.width();
-        const h = shape.height();
+        const w = shape.width() * group.scaleX();
+        const h = shape.height() * group.scaleY();
         
         const center = {
-            x: shapeAbsPos.x + w / 2,
-            y: shapeAbsPos.y + h / 2,
+            x: pos.x + (shape.x() * group.scaleX()) + w / 2,
+            y: pos.y + (shape.y() * group.scaleY()) + h / 2,
         };
 
         const dx = targetPoint.x - center.x;

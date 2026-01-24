@@ -256,6 +256,7 @@ class ThreatModelService:
                 "parentId": parent_id,
                 "description": b_info.get('description', ''),
                 "isTrusted": b_info.get('isTrusted', False),
+                "isFilled": b_info.get('isFilled', False),
                 "lineStyle": b_info.get('line_style', 'solid'),
                 "color": b_info.get('color', 'lightgray'),
             })
@@ -315,15 +316,33 @@ class ThreatModelService:
             to_name = getattr(df.sink, 'name', None)
 
             if from_name and to_name:
+                data_name = ""
+                # df.data is a list of Data objects. We'll take the name of the first one for the GUI.
+                if hasattr(df, 'data') and df.data:
+                    try:
+                        # A DataSet is iterable, not subscriptable.
+                        first_data_obj = next(iter(df.data))
+                        if hasattr(first_data_obj, 'name'):
+                            data_name = first_data_obj.name
+                    except StopIteration:
+                        # DataSet is empty
+                        pass
+                
+                properties = {
+                    "name": df.name,
+                    "protocol": getattr(df, 'protocol', None),
+                    "description": getattr(df, 'description', ''),
+                    "color": getattr(df, 'color', '#000000'),
+                    "data": data_name,
+                    "isEncrypted": getattr(df, 'is_encrypted', False) or getattr(df, 'isEncrypted', False),
+                    "isAuthenticated": getattr(df, 'is_authenticated', False) or getattr(df, 'authenticatedWith', False),
+                }
+
                 model_json["dataflows"].append({
                     "id": df_id,
-                    "name": df.name,
                     "from": from_name,
                     "to": to_name,
-                    "protocol": df.protocol,
-                    "description": getattr(df, 'description', ''),
-                    "isEncrypted": getattr(df, 'is_encrypted', False),
-                    "isAuthenticated": getattr(df, 'is_authenticated', False),
+                    "properties": properties
                 })
 
         return model_json

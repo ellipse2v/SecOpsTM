@@ -16,11 +16,12 @@
 // threat_analysis/server/static/js/ThreatModelGenerator.js
 
 class ThreatModelGenerator {
-    constructor(layer, connections, nodeManager, uiManager) {
+    constructor(layer, connections, nodeManager, uiManager, modelManager) {
         this.layer = layer;
         this.connections = connections;
         this.nodeManager = nodeManager; // Store nodeManager
         this.uiManager = uiManager;
+        this.modelManager = modelManager;
         this.analysisResultContainer = document.getElementById('analysis-result-container');
         document.getElementById('analyze-btn').addEventListener('click', () => this.generate());
         this.threatModelJSON = {};
@@ -235,11 +236,18 @@ class ThreatModelGenerator {
             markdown_lines.push(`- **${data_item.name}**: ${props_str}`);
         }
         
+        markdown_lines.push("\n## Protocol Styles");
+        for (const protocol in this.modelManager.protocolStyles) {
+            const styles = this.modelManager.protocolStyles[protocol];
+            const styles_str = Object.entries(styles).map(([key, value]) => `${key}=${value}`).join(', ');
+            markdown_lines.push(`- **${protocol}**: ${styles_str}`);
+        }
+
         markdown_lines.push("\n## Dataflows");
         for (const conn of (data.connections || [])) {
             const from_name = (data.elements.find(e => e.id === conn.from) || {}).name;
             const to_name = (data.elements.find(e => e.id === conn.to) || {}).name;
-            const props_str = conn.properties ? _format_properties(conn.properties, ['protocol', 'isEncrypted', 'isAuthenticated', 'description', 'color', 'data']) : '';
+            const props_str = conn.properties ? _format_properties(conn.properties, ['protocol', 'isEncrypted', 'isAuthenticated', 'description', 'color', 'line_style', 'data']) : '';
             markdown_lines.push(`- **${(conn.properties || {}).name || conn.label}**: from="${from_name}", to="${to_name}", ${props_str}`);
         }
 

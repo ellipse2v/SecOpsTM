@@ -27,6 +27,7 @@ class ModelManager {
         this.refreshModelsBtn = document.getElementById('refresh-models-btn');
         this.openFromComputerBtn = document.getElementById('open-from-computer-btn');
         this.fileInput = document.getElementById('file-input');
+        this.protocolStyles = {};
 
         this.setupEventHandlers();
     }
@@ -114,6 +115,9 @@ class ModelManager {
             }
         };
         markdownReader.readAsText(markdownFile);
+        
+        // Reset file input to allow selecting the same file again
+        this.fileInput.value = null;
     }
 
     fetchModels() {
@@ -166,49 +170,58 @@ class ModelManager {
     }
 
     repopulateGraph(markdown, metadata) {
+        this.parseProtocolStyles(markdown);
         // Clear existing graph
         const layer = this.konvaManager.getLayer();
         const children = layer.getChildren();
-        children.forEach(child => {
+        for (let i = children.length - 1; i >= 0; i--) {
+            const child = children[i];
             if (child !== this.konvaManager.transformer) {
                 child.destroy();
             }
-        });
-        this.konvaManager.transformer.nodes([]);
-        this.nodeManager.nodes = [];
-        this.connectionManager.connections.forEach(conn => conn.destroy());
-        this.connectionManager.connections = [];
-        this.konvaManager.getLayer().draw();
-
-        let processedPositions = null;
-        if (metadata && metadata.positions) {
-            processedPositions = {};
-            for (const category in metadata.positions) {
-                processedPositions[category] = {};
-                for (const name in metadata.positions[category]) {
-                    const lookupName = this.sanitizeName(name).toLowerCase();
-                    processedPositions[category][lookupName] = metadata.positions[category][name];
-                }
-            }
         }
 
-        fetch('/api/markdown_to_json', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ markdown: markdown })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                alert(`Error converting model: ${data.error}`);
-                return;
+        this.konvaManager.transformer.nodes([]);
+        this.nodeManager.nodes = [];
+        
+        [...this.connectionManager.connections].forEach(conn => conn.destroy());
+        this.connectionManager.connections = [];
+
+        this.konvaManager.getLayer().draw();
+
+        if (metadata && metadata.nodes && metadata.edges) {
+            this.repopulateGraphFromMetadata(metadata);
+        } else {
+            let processedPositions = null;
+            if (metadata && metadata.positions) {
+                processedPositions = {};
+                for (const category in metadata.positions) {
+                    processedPositions[category] = {};
+                    for (const name in metadata.positions[category]) {
+                        const lookupName = this.sanitizeName(name).toLowerCase();
+                        processedPositions[category][lookupName] = metadata.positions[category][name];
+                    }
+                }
             }
-            this.drawGraphFromJSON(data.model_json, processedPositions);
-        })
-        .catch(error => {
-            console.error('Error converting model:', error);
-            alert('Failed to convert model.');
-        });
+
+            fetch('/api/markdown_to_json', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ markdown: markdown })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(`Error converting model: ${data.error}`);
+                    return;
+                }
+                this.drawGraphFromJSON(data.model_json, processedPositions);
+            })
+            .catch(error => {
+                console.error('Error converting model:', error);
+                alert('Failed to convert model.');
+            });
+        }
     }
 
     drawGraphFromJSON(modelData, positions) {
@@ -236,7 +249,7 @@ class ModelManager {
             idToNameMap[b.name] = node.id();
         });
 
-        ['actors', 'servers', 'data'].forEach(type => {
+        ['actors', 'servers'].forEach(type => {
             (modelData[type] || []).forEach(el => {
                 let stereotype;
                 let elementType;
@@ -264,11 +277,17 @@ class ModelManager {
                 conn.attach(toNode);
                 if (df.properties) {
                     Object.assign(conn.properties, df.properties);
-                    conn.setLabel(df.properties.name || df.name);
+                    conn.updateLabel();
                     conn.arrow.stroke(df.properties.color || '#000');
                     conn.arrow.fill(df.properties.color || '#000');
+                    if (this.protocolStyles[conn.properties.protocol]) {
+                        const styles = this.protocolStyles[conn.properties.protocol];
+                        conn.properties.color = styles.color || conn.properties.color;
+                        conn.properties.line_style = styles.line_style || conn.properties.line_style;
+                        conn.updateStyle();
+                    }
                 } else {
-                    conn.setLabel(df.name);
+                    conn.updateLabel();
                 }
             }
         });
@@ -284,5 +303,64 @@ class ModelManager {
             sanitized = '_' + sanitized;
         }
         return sanitized || "unnamed";
+    }
+
+    parseProtocolStyles(markdown) {
+        this.protocolStyles = {};
+        if (!markdown) return;
+        const protocolStylesSection = markdown.match(/## Protocol Styles\n([\s\S]*?)(?=\n##|$)/);
+        if (protocolStylesSection) {
+            const lines = protocolStylesSection[1].split('\n');
+            lines.forEach(line => {
+                if (line.startsWith('- **')) {
+                    const match = line.match(/- \*\*(.*?)\*\*: (.*)/);
+                    if (match) {
+                        const protocol = match[1].trim();
+                        const styles = match[2].trim().split(', ');
+                        const styleObj = {};
+                        styles.forEach(style => {
+                            const [key, value] = style.split('=');
+                            styleObj[key.trim()] = value.trim();
+                        });
+                        this.protocolStyles[protocol] = styleObj;
+                    }
+                }
+            });
+        }
+    }
+    
+    repopulateGraphFromMetadata(metadata) {
+        // Create nodes
+        (metadata.nodes || []).forEach(nodeData => {
+            this.nodeManager.addNode(nodeData.type.toUpperCase(), nodeData.name, nodeData.x, nodeData.y, nodeData.width, nodeData.height, nodeData);
+        });
+
+        // Create connections
+        (metadata.edges || []).forEach(edgeData => {
+            const fromNode = this.nodeManager.nodes.find(n => n.getAttr('threatModelProperties').name === edgeData.source);
+            const toNode = this.nodeManager.nodes.find(n => n.getAttr('threatModelProperties').name === edgeData.destination);
+            
+            if (fromNode && toNode) {
+                const dummyPort = new Konva.Circle({ x: 0, y: 0, radius: 0, visible: false });
+                fromNode.add(dummyPort);
+                const conn = this.connectionManager.startConnection(fromNode, dummyPort, edgeData);
+                conn.attach(toNode);
+                
+                if (edgeData.styles) {
+                    conn.arrow.stroke(edgeData.styles.stroke || '#000');
+                    conn.arrow.fill(edgeData.styles.stroke || '#000');
+                }
+
+                if (this.protocolStyles[conn.properties.protocol]) {
+                    const styles = this.protocolStyles[conn.properties.protocol];
+                    conn.properties.color = styles.color || conn.properties.color;
+                    conn.properties.line_style = styles.line_style || conn.properties.line_style;
+                    conn.updateStyle();
+                }
+            }
+        });
+        
+        this.connectionManager.activeConnection = null;
+        this.konvaManager.getLayer().draw();
     }
 }

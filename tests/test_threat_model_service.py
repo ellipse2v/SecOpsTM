@@ -95,16 +95,16 @@ def test_export_files_logic_failed_threat_model_creation(mock_create_threat_mode
     with pytest.raises(RuntimeError, match="Failed to create or validate threat model"):
         service.export_files_logic("some markdown", "svg")
 
-@patch('threat_analysis.server.threat_model_service.DiagramGenerator.generate_diagram_from_dot', return_value=None)
+@patch('threat_analysis.server.threat_model_service.DiagramGenerator.generate_custom_svg_export', return_value=None)
 @patch('threat_analysis.server.threat_model_service.create_threat_model', return_value=MagicMock())
-def test_export_files_logic_failed_svg_generation(mock_create_threat_model, mock_generate_diagram_from_dot, service):
+def test_export_files_logic_failed_svg_generation(mock_create_threat_model, mock_generate_custom_svg_export, service):
     with pytest.raises(RuntimeError, match="Failed to generate SVG file"):
         service.export_files_logic("some markdown", "svg")
 
-@patch('threat_analysis.server.threat_model_service.DiagramGenerator.generate_diagram_from_dot', return_value="/tmp/test.svg")
+@patch('threat_analysis.server.threat_model_service.DiagramGenerator.generate_custom_svg_export', return_value="/tmp/test.svg")
 @patch('threat_analysis.server.threat_model_service.DiagramGenerator._generate_manual_dot', return_value="dot code")
 @patch('threat_analysis.server.threat_model_service.create_threat_model', return_value=MagicMock())
-def test_export_files_logic_svg_success(mock_create_threat_model, mock_generate_manual_dot, mock_generate_diagram_from_dot, service):
+def test_export_files_logic_svg_success(mock_create_threat_model, mock_generate_manual_dot, mock_generate_custom_svg_export, service):
     output_path, output_filename = service.export_files_logic("some markdown", "svg")
     assert output_filename == "diagram.svg"
     assert output_path.endswith("diagram.svg")
