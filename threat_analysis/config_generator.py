@@ -39,7 +39,8 @@ CONFIG_DATA = {
         "app_server": "/static/resources/icons/server.svg",
         "central_server": "/static/resources/icons/server.svg",
         "authentication_server": "/static/resources/icons/server.svg",
-        "load_balancer": "/static/resources/icons/load_balancer.svg"
+        "load_balancer": "/static/resources/icons/load_balancer.svg",
+        "dmz": "/static/resources/icons/dmz.svg"
     },
     "DEFAULT_PROPERTIES": {
         "BOUNDARY": {

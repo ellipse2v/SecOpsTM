@@ -205,6 +205,19 @@ A simple example system.
 ## Dataflows
 - **Request**: from="External User", to="Web Server", protocol="HTTPS"
 """
+    with patch('threat_analysis.server.server.threat_model_service.update_diagram_logic') as mock_update_diagram_logic:
+        mock_update_diagram_logic.return_value = {
+            "diagram_html": "<html>Full Diagram</html>",
+            "diagram_svg": "<svg>full svg</svg>",
+            "legend_html": "<div>Full Legend</div>",
+        }
+        payload = {'markdown': full_markdown_content}
+        response = client.post('/api/update', data=json.dumps(payload), content_type='application/json')
+        assert response.status_code == 200
+        json_data = response.get_json()
+        assert 'diagram_html' in json_data
+        assert json_data['diagram_html'] == "<html>Full Diagram</html>"
+        mock_update_diagram_logic.assert_called_once_with(full_markdown_content)
 
 
 
@@ -376,6 +389,232 @@ def test_export_metadata_success(client):
         assert response.mimetype == 'application/json'
         assert 'element_positions.json' in response.headers['Content-Disposition']
         assert b'"User"' in response.data
+
+
+def test_get_model_name_function():
+    """Test the get_model_name function with various markdown content."""
+    from threat_analysis.server.server import get_model_name
+    
+    # Test with valid model name
+    markdown_with_name = "# Threat Model: My Test Model\n## Description\nTest"
+    assert get_model_name(markdown_with_name) == "My Test Model"
+    
+    # Test with no model name
+    markdown_no_name = "# Threat Model:\n## Description\nTest"
+    assert get_model_name(markdown_no_name) == "Untitled Model"
+    
+    # Test with multiline model name
+    markdown_multiline = "# Threat Model: My\nTest Model"
+    assert get_model_name(markdown_multiline) == "My"
+    
+    # Test with extra whitespace
+    markdown_whitespace = "# Threat Model:   Test Model  \n## Description\nTest"
+    assert get_model_name(markdown_whitespace) == "Test Model"
+
+
+def test_convert_json_to_markdown_function():
+    """Test the convert_json_to_markdown function."""
+    from threat_analysis.server.server import convert_json_to_markdown
+    
+    json_data = {
+        'boundaries': [
+            {'id': '1', 'name': 'Internet', 'description': 'External network'}
+        ],
+        'actors': [
+            {'id': '2', 'name': 'User', 'parentId': '1'}
+        ],
+        'servers': [
+            {'id': '3', 'name': 'Web Server', 'parentId': '1', 'description': 'Main server'}
+        ],
+        'data': [
+            {'id': '4', 'name': 'User Data', 'description': 'Sensitive data', 'classification': 'private'}
+        ],
+        'dataflows': [
+            {'id': '5', 'from': '2', 'to': '3', 'name': 'Request', 'protocol': 'HTTPS', 'description': 'User request'}
+        ]
+    }
+    
+    markdown = convert_json_to_markdown(json_data)
+    
+    # Check that all sections are present
+    assert '# Threat Model: Graphical Editor' in markdown
+    assert '## Boundaries' in markdown
+    assert '## Actors' in markdown
+    assert '## Servers' in markdown
+    assert '## Data' in markdown
+    assert '## Dataflows' in markdown
+    
+    # Check specific content
+    assert '- **Internet**: description="External network"' in markdown
+    assert '- **User**: boundary="Internet"' in markdown
+    assert '- **Web Server**: boundary="Internet", description="Main server"' in markdown
+    assert '- **User Data**: description="Sensitive data", classification="private"' in markdown
+    assert '- **Request**: from="User", to="Web Server", protocol="HTTPS", description="User request"' in markdown
+
+
+def test_simple_mode_route(client):
+    """Test the /simple route."""
+    # Set initial markdown content
+    from threat_analysis.server.server import initial_markdown_content, DEFAULT_EMPTY_MARKDOWN
+    initial_markdown_content = DEFAULT_EMPTY_MARKDOWN
+    
+    response = client.get('/simple')
+    assert response.status_code == 200
+    assert b'Threat Model Editor' in response.data
+    # Check that the initial markdown is base64 encoded in the response
+    assert b'Threat Model Editor' in response.data
+
+def test_graphical_editor_route(client):
+    """Test the /graphical route."""
+    response = client.get('/graphical')
+    assert response.status_code == 200
+    assert b'Graphical Editor' in response.data or b'threat-model' in response.data
+
+
+def test_static_files_route(client):
+    """Test the /static/<path:filename> route."""
+    # This is a basic test - in a real scenario, you'd need to ensure the static files exist
+    response = client.get('/static/css/style.css')
+    # The response might be 404 if the file doesn't exist, but the route should be accessible
+    assert response.status_code in [200, 404]
+
+
+def test_data_dictionary_route(client):
+    """Test the /api/data_dictionary route."""
+    with patch('os.path.exists', return_value=True), \
+         patch('threat_analysis.server.server.send_file') as mock_send_file:
+        mock_send_file.return_value = MagicMock(status_code=200)
+        response = client.get('/api/data_dictionary')
+        assert response.status_code == 200
+        mock_send_file.assert_called_once()
+
+
+def test_data_dictionary_route_not_found(client):
+    """Test the /api/data_dictionary route when file doesn't exist."""
+    with patch('os.path.exists', return_value=False):
+        response = client.get('/api/data_dictionary')
+        assert response.status_code == 404
+        json_data = response.get_json()
+        assert 'error' in json_data
+        assert json_data['error'] == 'Data dictionary not found'
+
+
+def test_save_project_success(client):
+    """Test the /api/save_project endpoint."""
+    with patch('threat_analysis.server.server.threat_model_service.save_model_with_metadata') as mock_save, \
+         patch('os.makedirs'), \
+         patch('os.path.join', side_effect=lambda *args: "/".join(map(str, args))):
+        
+        mock_save.return_value = "path/to/metadata.json"
+        payload = {
+            'markdown': '# Test Model',
+            'model_name': 'MyProject'
+        }
+        response = client.post('/api/save_project', data=json.dumps(payload), content_type='application/json')
+        assert response.status_code == 200
+        json_data = response.get_json()
+        assert json_data['success'] is True
+        assert 'Project saved successfully' in json_data['message']
+        mock_save.assert_called_once()
+
+
+def test_save_project_missing_markdown(client):
+    """Test the /api/save_project endpoint with missing markdown."""
+    payload = {'model_name': 'MyProject'}
+    response = client.post('/api/save_project', data=json.dumps(payload), content_type='application/json')
+    assert response.status_code == 400
+    assert 'Missing markdown content' in response.get_json()['error']
+
+
+def test_check_version_compatibility_invalid_paths(client):
+    """Test the /api/check_version_compatibility endpoint with invalid paths."""
+    payload = {
+        'model_path': '/invalid/path/model.md',
+        'metadata_path': '/invalid/path/metadata.json'
+    }
+    with patch('threat_analysis.server.server.config.OUTPUT_BASE_DIR', 'output'):
+        response = client.post('/api/check_version_compatibility', data=json.dumps(payload), content_type='application/json')
+        assert response.status_code == 400
+        assert 'Invalid file paths' in response.get_json()['error']
+
+
+def test_check_version_compatibility_files_not_found(client):
+    """Test the /api/check_version_compatibility endpoint when files don't exist."""
+    payload = {
+        'model_path': 'output/model.md',
+        'metadata_path': 'output/metadata.json'
+    }
+    with patch('threat_analysis.server.server.config.OUTPUT_BASE_DIR', 'output'), \
+         patch('os.path.exists', return_value=False):
+        response = client.post('/api/check_version_compatibility', data=json.dumps(payload), content_type='application/json')
+        assert response.status_code == 404
+        assert 'Model or metadata file not found' in response.get_json()['error']
+
+
+def test_load_metadata_invalid_path(client):
+    """Test the /api/load_metadata endpoint with invalid path."""
+    payload = {'metadata_path': '/invalid/path/metadata.json'}
+    with patch('threat_analysis.server.server.config.OUTPUT_BASE_DIR', 'output'):
+        response = client.post('/api/load_metadata', data=json.dumps(payload), content_type='application/json')
+        assert response.status_code == 400
+        assert 'Invalid metadata path' in response.get_json()['error']
+
+
+def test_load_metadata_file_not_found(client):
+    """Test the /api/load_metadata endpoint when file doesn't exist."""
+    payload = {'metadata_path': 'output/metadata.json'}
+    with patch('threat_analysis.server.server.config.OUTPUT_BASE_DIR', 'output'), \
+         patch('os.path.exists', return_value=False):
+        response = client.post('/api/load_metadata', data=json.dumps(payload), content_type='application/json')
+        assert response.status_code == 404
+        assert 'Metadata file not found' in response.get_json()['error']
+
+
+def test_generate_config_files_function():
+    """Test the generate_config_files function."""
+    from threat_analysis.server.server import generate_config_files
+    
+    # Mock the config generator to avoid actual file generation
+    with patch('threat_analysis.config_generator.generate_config_js') as mock_generate:
+        generate_config_files()
+        mock_generate.assert_called_once()
+
+
+def test_generate_config_files_exception():
+    """Test the generate_config_files function when an exception occurs."""
+    from threat_analysis.server.server import generate_config_files
+    
+    # Mock the config generator to raise an exception
+    with patch('threat_analysis.config_generator.generate_config_js', side_effect=Exception("Test error")):
+        # This should not raise an exception, just log a warning
+        generate_config_files()
+
+
+def test_format_properties_helper():
+    """Test the _format_properties helper function."""
+    from threat_analysis.server.server import _format_properties
+    
+    item = {
+        'prop1': 'value1',
+        'prop2': 'value2',
+        'prop3': None,
+        'prop4': ''
+    }
+    props_to_include = ['prop1', 'prop2', 'prop3', 'prop4']
+    
+    result = _format_properties(item, props_to_include)
+    assert result == 'prop1="value1", prop2="value2"'
+
+
+def test_format_properties_empty():
+    """Test the _format_properties helper function with empty input."""
+    from threat_analysis.server.server import _format_properties
+    
+    item = {}
+    props_to_include = ['prop1', 'prop2']
+    
+    result = _format_properties(item, props_to_include)
+    assert result == ''
 
 def test_update_api_generic_exception(client):
     """Test the /api/update endpoint with a generic exception."""

@@ -239,6 +239,11 @@ class ModelManager {
                         processedPositions[category][lookupName] = metadata.positions[category][name];
                         // Also store lowercase version for robust lookup
                         processedPositions[category][lookupName.toLowerCase()] = metadata.positions[category][name];
+                        // Also store capitalized version for robust lookup
+                        if (lookupName.length > 0) {
+                            const capitalized = lookupName.charAt(0).toUpperCase() + lookupName.slice(1);
+                            processedPositions[category][capitalized] = metadata.positions[category][name];
+                        }
                     }
                 }
             }
@@ -281,6 +286,11 @@ class ModelManager {
                 // Try case-insensitive match
                 if (positions[searchKey][sanitizedName.toLowerCase()]) {
                     return positions[searchKey][sanitizedName.toLowerCase()];
+                }
+                // Try capitalized match
+                const capitalized = sanitizedName.charAt(0).toUpperCase() + sanitizedName.slice(1);
+                if (positions[searchKey][capitalized]) {
+                    return positions[searchKey][capitalized];
                 }
             }
             return { x: 50, y: 50, width: null, height: null };
@@ -338,8 +348,8 @@ class ModelManager {
 
     sanitizeName(name) {
         if (!name) return "unnamed";
-        let sanitized = name.replace(/[^a-zA-Z0-9_]/g, '_');
-        if (sanitized && /^U/.test(sanitized)) {
+        let sanitized = name.replace(/[^a-zA-Z0-9_ ]/g, '_');
+        if (sanitized && /^\d/.test(sanitized)) {
             sanitized = '_' + sanitized;
         }
         return sanitized || "unnamed";

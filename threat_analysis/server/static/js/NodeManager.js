@@ -105,10 +105,12 @@ class NodeManager {
                     fill: fill, stroke: fill, strokeWidth: 2, name: 'shape',
                 });
                 text = new Konva.Text({
-                    x: 0, y: height + PADDING / 2, text: name, fontSize: TEXT_HEIGHT, fill: textColor,
-                    width: width, align: 'center', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', name: 'label',
+                    x: width / 2, y: height + PADDING / 2, text: name, fontSize: TEXT_HEIGHT, fill: textColor,
+                    align: 'center', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', name: 'label',
                     listening: false,
+                    wrap: 'none'
                 });
+                text.offsetX(text.width() / 2);
                 if (iconPath) {
                     Konva.Image.fromURL(iconPath, (image) => {
                         image.setAttrs({
@@ -128,10 +130,12 @@ class NodeManager {
                     fill: fill, stroke: fill, strokeWidth: 2, name: 'shape',
                 });
                 text = new Konva.Text({
-                    x: 0, y: iconSize + 5, text: name, fontSize: TEXT_HEIGHT, fill: textColor,
-                    width: width, align: 'center', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', name: 'label',
+                    x: width / 2, y: iconSize + 5, text: name, fontSize: TEXT_HEIGHT, fill: textColor,
+                    align: 'center', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', name: 'label',
                     listening: false,
+                    wrap: 'none'
                 });
+                text.offsetX(text.width() / 2);
                 if (iconPath) {
                     Konva.Image.fromURL(iconPath, (image) => {
                         image.setAttrs({
@@ -158,17 +162,18 @@ class NodeManager {
                     name: 'shape',
                 });
                 text = new Konva.Text({
-                    x: 0,
+                    x: width / 2,
                     y: height + 5,
                     text: name,
                     fontSize: TEXT_HEIGHT,
                     fill: textColor,
-                    width: width,
                     align: 'center',
                     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
                     name: 'label',
                     listening: false,
+                    wrap: 'none'
                 });
+                text.offsetX(text.width() / 2);
                 if (iconPath) {
                     Konva.Image.fromURL(iconPath, (image) => {
                         image.setAttrs({
@@ -286,8 +291,9 @@ class NodeManager {
                 });
                 text = new Konva.Text({
                     x: 0, y: height + PADDING, text: name, fontSize: TEXT_HEIGHT, fill: textColor,
-                    width: width, align: 'left', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', name: 'label',
+                    align: 'left', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', name: 'label',
                     listening: false,
+                    wrap: 'none'
                 });
                 break;
             }
@@ -301,6 +307,7 @@ class NodeManager {
                     width: width - 2 * PADDING, align: 'center', verticalAlign: 'middle',
                     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', name: 'label',
                     listening: false,
+                    wrap: 'none'
                 });
                 if (iconPath && type !== 'ACTOR') {
                     Konva.Image.fromURL(iconPath, (image) => {
@@ -475,19 +482,24 @@ class NodeManager {
             const type = node.name();
             const props = node.getAttr('threatModelProperties');
             const name = props.name;
-            const sanitizedName = this.sanitizeName(name);
+            let sanitizedName = this.sanitizeName(name);
+            // Capitalize first letter for consistency with mode simple
+            if (sanitizedName.length > 0) {
+                sanitizedName = sanitizedName.charAt(0).toUpperCase() + sanitizedName.slice(1);
+            }
             const rect = node.findOne('.shape').getClientRect();
 
             const pos = { x: node.x(), y: node.y(), width: rect.width, height: rect.height };
 
             if (type === 'ACTOR') {
                 positions.actors[sanitizedName] = pos;
-            } else if (['SERVER', 'WEB_SERVER', 'DATABASE', 'FIREWALL', 'ROUTER', 'SWITCH', 'API_GATEWAY'].includes(type)) {
-                positions.servers[sanitizedName] = pos;
             } else if (type === 'DATA') {
                 positions.data[sanitizedName] = pos;
             } else if (type === 'BOUNDARY') {
                 positions.boundaries[sanitizedName] = pos;
+            } else {
+                // Default to servers for all other types (app_server, load_balancer, etc.)
+                positions.servers[sanitizedName] = pos;
             }
         });
         return positions;
@@ -495,7 +507,7 @@ class NodeManager {
 
     sanitizeName(name) {
         if (!name) return "unnamed";
-        let sanitized = name.replace(/[^a-zA-Z0-9_]/g, '_');
+        let sanitized = name.replace(/[^a-zA-Z0-9_ ]/g, '_');
         if (sanitized && /^\d/.test(sanitized)) {
             sanitized = '_' + sanitized;
         }

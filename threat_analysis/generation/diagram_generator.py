@@ -63,21 +63,33 @@ class DiagramGenerator:
             return None
 
     def generate_diagram_from_dot(self, dot_code: str, output_file: str, format: str = "svg") -> Optional[str]:
-        """Generates a diagram from a DOT string using Graphviz."""
+        """Generates a diagram from a DOT string."""
         if format not in self.supported_formats:
             logging.error(f"❌ Unsupported format: {format}. Supported formats: {self.supported_formats}")
             return None
-            
+
         if not self.check_graphviz_installation():
             logging.error("❌ Graphviz not found!")
             logging.warning(self.get_installation_instructions())
             return None
-            
+
+        # Use the custom SVG generator for SVG format
+        if format == "svg":
+            from threat_analysis.generation.svg_generator import CustomSVGGenerator
+            try:
+                logging.info("🎨 Using custom SVG generator for export")
+                generator = CustomSVGGenerator()
+                return generator.generate_svg_from_dot(dot_code, output_file)
+            except Exception as e:
+                logging.error(f"❌ Error in custom SVG export generation: {e}")
+                logging.info("🔄 Falling back to Graphviz for SVG export")
+                # Fallback to standard dot command below
+
+        # Standard dot command for other formats or as a fallback for SVG
         try:
             output_path_obj = Path(output_file)
             output_path_obj.parent.mkdir(parents=True, exist_ok=True)
             output_path = str(output_path_obj.with_suffix(f'.{format}'))
-
             cleaned_dot = self._clean_dot_code(dot_code)
             
             subprocess.run(
@@ -862,20 +874,10 @@ class DiagramGenerator:
     def generate_custom_svg_export(self, dot_code: str, output_file: str) -> Optional[str]:
         """
         Generates SVG using custom SVG generator for export purposes.
-        Also dumps DOT and Graphviz JSON for debugging.
+        This is a wrapper for generate_diagram_from_dot for backward compatibility.
         """
-        from threat_analysis.generation.svg_generator import CustomSVGGenerator
-        try:
-            logging.info("🎨 Using custom SVG generator for export")
-            generator = CustomSVGGenerator()
-            return generator.generate_svg_from_dot(dot_code, output_file)
-        except Exception as e:
-            logging.error(f"❌ Error in custom SVG export generation: {e}")
-            logging.info("🔄 Falling back to Graphviz for SVG export")
-            return self.generate_diagram_from_dot(dot_code, output_file, "svg")
-
-            
-
+        return self.generate_diagram_from_dot(dot_code, output_file, "svg")
+ 
     def check_graphviz_installation(self) -> bool:
         """Checks if Graphviz is installed"""
         try:

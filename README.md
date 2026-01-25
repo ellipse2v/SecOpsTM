@@ -2,16 +2,31 @@
 
 ## Overview
 
+
+
 This project is a Python-based, end-to-end STRIDE threat modeling and analysis framework with MITRE ATT&CK mapping. It enables you to:
 
-- **Model your system architecture** in Markdown (`threatModel_Template/threat_model.md`), including boundaries, actors, servers, data, and dataflows.
-- **Automatically identify STRIDE threats** for each component and dataflow.
-- **Map threats to MITRE ATT&CK techniques** for actionable, real-world context.
-- **Calculate severity** using customizable base scores, target multipliers, and protocol adjustments.
-- **Generate detailed reports** (HTML, JSON) and **visual diagrams** (DOT, SVG, HTML) with threat highlights.
-- **Generate MITRE ATT&CK Navigator layers** for visualizing identified techniques.
-- **Generate optimized Attack Flow diagrams** for key objectives (Tampering, Spoofing, Information Disclosure, Repudiation).
-- **Extend and customize** all mappings, calculations, and reporting logic.
+
+
+-   **Model your system architecture** in Markdown (`threatModel_Template/threat_model.md`), including boundaries, actors, servers, data, and dataflows.
+
+-   **Automatically identify STRIDE threats** for each component and dataflow.
+
+-   **Map threats to MITRE ATT&CK techniques** for actionable, real-world context.
+
+-   **Calculate severity** using customizable base scores, target multipliers, and protocol adjustments.
+
+-   **Generate detailed reports** (HTML, JSON) and **visual diagrams** (DOT, SVG, HTML) with threat highlights.
+
+-   **Generate MITRE ATT&CK Navigator layers** for visualizing identified techniques.
+
+-   **Generate optimized Attack Flow diagrams** for key objectives (Tampering, Spoofing, Information Disclosure, Repudiation).
+
+-   **Extend and customize** all mappings, calculations, and reporting logic.
+
+-   **Graphical editor (under development)**: A web-based graphical editor is available for interactive threat modeling, but it is currently under active development and may not be fully stable.
+
+
 
 > **Based on [PyTM](https://github.com/OWASP/pytm):** This framework leverages PyTM's modeling primitives and extends them with advanced reporting, MITRE mapping, and diagram generation.
 

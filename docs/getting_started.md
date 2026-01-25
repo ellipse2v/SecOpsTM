@@ -27,3 +27,14 @@
     -   Linux: `sudo apt-get install graphviz`
 
 After installation, restart your terminal or IDE.
+
+## Using the Graphical Editor (Under Development)
+
+A web-based graphical editor is included for interactive threat modeling. This feature is currently under active development and may not be fully stable. You can launch it using:
+
+```bash
+python3 -m threat_analysis --server
+```
+
+Open your browser to `http://127.0.0.1:5000/`.
+

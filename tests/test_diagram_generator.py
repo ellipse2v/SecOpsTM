@@ -381,20 +381,15 @@ def test_generate_dot_file_from_model_returns_content(diagram_generator):
             assert result == dot_content
 
 def test_generate_diagram_from_dot_success(diagram_generator):
-    with patch('subprocess.run') as mock_run, \
-         patch.object(diagram_generator, 'check_graphviz_installation', return_value=True):
-        mock_run.return_value = MagicMock(returncode=0)
-        # We need to mock pathlib.Path's exists method
-        with patch('threat_analysis.generation.diagram_generator.Path') as mock_path_class:
-            mock_path_instance = mock_path_class.return_value
-            # Since we now create the output dir, the mock needs to handle the with_suffix call
-            mock_path_with_suffix = mock_path_instance.with_suffix.return_value
-            mock_path_with_suffix.exists.return_value = True
-
+    with patch.object(diagram_generator, 'check_graphviz_installation', return_value=True):
+        # Mock the SVG generator's generate_svg_from_dot method
+        with patch('threat_analysis.generation.svg_generator.CustomSVGGenerator.generate_svg_from_dot') as mock_svg_gen:
+            mock_svg_gen.return_value = "output.svg"
+            
             result = diagram_generator.generate_diagram_from_dot("digraph G {}", "output.svg", "svg")
-            mock_run.assert_called_once()
+            mock_svg_gen.assert_called_once()
             # The result should be the path to the output file
-            assert result == str(mock_path_with_suffix)
+            assert result == "output.svg"
 
 def test_generate_diagram_from_dot_unsupported_format(diagram_generator):
     result = diagram_generator.generate_diagram_from_dot("digraph G {}", "output", "unsupported")

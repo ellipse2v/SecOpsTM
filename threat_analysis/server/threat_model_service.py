@@ -517,8 +517,8 @@ class ThreatModelService:
         svg_filename = "tm_diagram.svg"
         svg_filepath = os.path.join(export_path, svg_filename)
         # Use custom SVG generator for better quality in full export
-        self.diagram_generator.generate_custom_svg_export(
-            dot_code, svg_filepath
+        self.diagram_generator.generate_diagram_from_dot(
+            dot_code, svg_filepath, format="svg"
         )
 
         html_diagram_filename = "tm_diagram.html"

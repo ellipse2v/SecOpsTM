@@ -6,11 +6,23 @@ This documentation is designed to provide you with everything you need to know t
 
 ## Table of Contents
 
-- [Getting Started](getting_started.md)
-- [Usage](usage.md)
-- [Features](features.md)
-- [Examples](examples.md)
-- [Extensibility](extensibility.md)
-- [Technical Documentation](technical_documentation/index.md)
-- [Roadmap](Roadmap.md)
+
+
+-   [Getting Started](getting_started.md)
+
+-   [Usage](usage.md)
+
+-   [Features](features.md)
+
+-   [Examples](examples.md)
+
+-   [Extensibility](extensibility.md)
+
+-   [Technical Documentation](technical_documentation/index.md)
+
+-   [Roadmap](Roadmap.md)
+
+-   **Note:** The graphical editor feature is currently under active development and may not be fully stable.
+
+
 
