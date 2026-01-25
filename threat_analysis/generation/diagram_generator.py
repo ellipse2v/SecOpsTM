@@ -16,9 +16,12 @@
 Enhanced Diagram generation module with protocol styles and boundary attributes support
 """
 import html # Added line
+import os
 import subprocess
 import re
 import logging
+import json
+import datetime
 import xml.etree.ElementTree as ET
 from urllib.parse import urlparse # Added line
 from typing import Dict, List, Optional
@@ -331,6 +334,58 @@ class DiagramGenerator:
         
         return f'[{", ".join(attributes)}]'
 
+    def generate_metadata(self, threat_model, markdown_content: str, output_path: str) -> Optional[str]:
+        """
+        Generates a metadata file for the graphical editor.
+        """
+        from threat_analysis.generation.graphviz_to_json_metadata import GraphvizToJsonMetadataConverter
+        
+        logging.info(f"📍 Generating metadata for graphical editor: {output_path}")
+        
+        try:
+            dot_code = self._generate_manual_dot(threat_model)
+            if not dot_code:
+                logging.error("❌ Failed to generate DOT code for metadata.")
+                return None
+
+            result = subprocess.run(
+                [self.dot_executable, "-Tjson"],
+                input=dot_code,
+                text=True,
+                encoding="utf-8",
+                capture_output=True,
+                check=True
+            )
+            graphviz_json = json.loads(result.stdout)
+
+            converter = GraphvizToJsonMetadataConverter()
+            element_positions = converter.convert(graphviz_json, threat_model)
+            
+            version = "1.0"
+            last_updated = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            version_id = f"{version}-{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
+            
+            metadata = {
+                "version": version,
+                "version_id": version_id,
+                "last_updated": last_updated,
+                "model_file": os.path.basename(output_path),
+                "positions": element_positions
+            }
+            
+            metadata_path = str(output_path).replace('.md', '_metadata.json')
+            if metadata_path == str(output_path): # safety check if it's not .md
+                 metadata_path = str(output_path) + "_metadata.json"
+
+            with open(metadata_path, 'w', encoding="utf-8") as f:
+                json.dump(metadata, f, indent=2)
+                
+            logging.info(f"✅ Metadata generated: {metadata_path}")
+            return metadata_path
+
+        except Exception as e:
+            logging.error(f"❌ Error generating metadata: {e}")
+            return None
 
     def add_links_to_svg(self, svg_content: str, threat_model: ThreatModel) -> str:
         """

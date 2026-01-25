@@ -440,9 +440,17 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
 
     if not iac_plugin_used:
         # If no IaC plugin was used, read from the specified model file
-        base_model_filepath = _validate_path_within_project(args.model_file)
-        with open(base_model_filepath, "r", encoding="utf-8") as f:
+        original_model_path = _validate_path_within_project(args.model_file)
+        with open(original_model_path, "r", encoding="utf-8") as f:
             markdown_content_for_analysis = f.read()
+        
+        # Ensure the output directory exists
+        os.makedirs(config.OUTPUT_BASE_DIR, exist_ok=True)
+        # Copy/Save the model file to the output directory
+        base_model_filepath = config.OUTPUT_BASE_DIR / original_model_path.name
+        with open(base_model_filepath, "w", encoding="utf-8") as f:
+            f.write(markdown_content_for_analysis)
+        logging.info(f"Model file saved to output directory: {base_model_filepath}")
     else:
         # Ensure the output directory exists before writing
         os.makedirs(config.OUTPUT_BASE_DIR, exist_ok=True)
@@ -503,6 +511,13 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
     reports = framework.generate_reports()
     framework.generate_stix_report()
     diagrams = framework.generate_diagrams()
+
+    # Generate metadata for graphical editor
+    framework.diagram_generator.generate_metadata(
+        threat_model=framework.threat_model,
+        markdown_content=framework.markdown_content,
+        output_path=str(base_model_filepath)
+    )
 
     if args.navigator:
         framework.generate_navigator_layer()

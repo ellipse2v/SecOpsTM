@@ -378,10 +378,10 @@ class ReportGenerator:
         model_name = model_path.stem
 
         try:
-            if threat_model is None:
-                with open(model_path, "r", encoding="utf-8") as f:
-                    markdown_content = f.read()
+            with open(model_path, "r", encoding="utf-8") as f:
+                markdown_content = f.read()
 
+            if threat_model is None:
                 threat_model = create_threat_model(
                     markdown_content=markdown_content,
                     model_name=model_name,
@@ -400,6 +400,14 @@ class ReportGenerator:
             self.generate_html_report(threat_model, grouped_threats, output_dir / f"{model_name}_threat_report.html")
             self.generate_json_export(threat_model, grouped_threats, output_dir / f"{model_name}.json")
             self.generate_diagram_html(threat_model, output_dir, breadcrumb, project_protocols, project_protocol_styles)
+
+            # Save markdown model and generate metadata for graphical editor
+            md_output_path = output_dir / f"{model_name}.md"
+            with open(md_output_path, "w", encoding="utf-8") as f:
+                f.write(markdown_content)
+            
+            diagram_generator = DiagramGenerator()
+            diagram_generator.generate_metadata(threat_model, markdown_content, str(md_output_path))
 
             try:
                 stix_output_file = output_dir / f"{model_name}_stix_report.json"
