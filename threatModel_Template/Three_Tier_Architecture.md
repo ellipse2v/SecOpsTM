@@ -14,11 +14,11 @@ This threat model describes a classic three-tier web architecture: presentation,
 - **Attacker**: color=red
 
 ## Servers
-- **Client Web Browser**: boundary="Client (Web Browser)", type="client_browser"
-- **Load Balancer**: color=gray, type="load_balancer"
-- **Web Server (Nginx/Apache)**: boundary="Web Server (Presentation Tier)", type="web_server"
-- **Application Server (Tomcat/Node.js/Django)**: boundary="Application Server (Business Logic Tier)", type="app_server"
-- **Database Server (MySQL/PostgreSQL)**: boundary="Database (Data Tier)", type="database"
+- **Client Web Browser**: boundary="Client (Web Browser)", type="client_browser", businessValue=Low
+- **Load Balancer**: color=gray, type="load_balancer", businessValue=Medium
+- **Web Server (Nginx/Apache)**: boundary="Web Server (Presentation Tier)", type="web_server", businessValue=Critical
+- **Application Server (Tomcat/Node.js/Django)**: boundary="Application Server (Business Logic Tier)", type="app_server", businessValue=Medium
+- **Database Server (MySQL/PostgreSQL)**: boundary="Database (Data Tier)", type="database", businessValue=Critical
 
 ## Dataflows
 - **HTTP/S Request**: from="End User", to="Load Balancer", protocol="HTTPS", color=darkgreen

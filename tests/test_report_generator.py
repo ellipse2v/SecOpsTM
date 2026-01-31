@@ -157,7 +157,7 @@ def test_get_all_threats_with_mitre_info_handles_missing_url_friendly_name_sourc
         'capecs': []
     }
 
-    all_detailed_threats = report_generator._get_all_threats_with_mitre_info(grouped_threats)
+    all_detailed_threats = report_generator._get_all_threats_with_mitre_info(grouped_threats, threat_model)
 
     assert len(all_detailed_threats) == 1
     assert 'mitre_techniques' in all_detailed_threats[0]
@@ -172,6 +172,9 @@ def test_d3fend_mitigations_have_descriptions(report_generator):
     Tests that D3FEND mitigations processed for the report include their
     descriptions.
     """
+    threat_model = MagicMock()
+    threat_model.tm.name = "Test Architecture"
+    
     threat_mock = MagicMock(description="Test Threat", stride_category='S', target=MagicMock(data=MagicMock(classification=MagicMock(name='Public'))))
     grouped_threats = {'Spoofing': [(threat_mock, MagicMock(name="Test Target"))]}
 
@@ -196,7 +199,7 @@ def test_d3fend_mitigations_have_descriptions(report_generator):
         'capecs': []
     }
 
-    all_detailed_threats = report_generator._get_all_threats_with_mitre_info(grouped_threats)
+    all_detailed_threats = report_generator._get_all_threats_with_mitre_info(grouped_threats, threat_model)
 
     assert len(all_detailed_threats) == 1
     mitre_techniques = all_detailed_threats[0]['mitre_techniques']

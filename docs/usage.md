@@ -14,7 +14,7 @@ This framework is designed to be used in a "Threat Model as Code" workflow. This
 
 Use the CLI mode for automated threat analysis, report generation, and diagram creation. This is ideal for integration into CI/CD pipelines or batch processing.
 
-1.  **Edit `threatModel_Template/threat_model.md`** to describe your architecture.
+1.  **Learn how to define your threat model in Markdown** by reading the [Defining Your Threat Model](defining_threat_models.md) guide.
 2.  **Run the analysis:**
     ```bash
     python -m threat_analysis --model-file threatModel_Template/threat_model.md --navigator

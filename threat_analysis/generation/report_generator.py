@@ -73,11 +73,13 @@ class ReportGenerator:
         stride_distribution = threat_model.mitre_analysis_results.get('stride_distribution', {})
 
         if all_detailed_threats is None:
-            all_detailed_threats = self._get_all_threats_with_mitre_info(grouped_threats)
+            all_detailed_threats = self._get_all_threats_with_mitre_info(grouped_threats, threat_model)
         
         self.all_detailed_threats = all_detailed_threats
         summary_stats = self.generate_summary_stats(all_detailed_threats)
         stride_categories = sorted(list(set(threat['stride_category'] for threat in all_detailed_threats)))
+        
+        unique_business_values = self._get_all_business_values(threat_model)
 
         template = self.env.get_template('report_template.html')
         html = template.render(
@@ -89,6 +91,7 @@ class ReportGenerator:
             summary_stats=summary_stats,
             all_threats=all_detailed_threats,
             stride_categories=stride_categories,
+            unique_business_values=unique_business_values,
             severity_calculation_note=self.severity_calculator.get_calculation_explanation(),
             implemented_mitigation_ids=self.implemented_mitigations
         )
@@ -114,7 +117,7 @@ class ReportGenerator:
                 "LOW": "4.0-5.9",
                 "INFORMATIONAL": "1.0-3.9"
             },
-            "detailed_threats": self._export_detailed_threats(grouped_threats)
+            "detailed_threats": self._export_detailed_threats(grouped_threats, threat_model)
         }
 
         with open(output_file, "w", encoding="utf-8") as f:
@@ -127,7 +130,7 @@ class ReportGenerator:
         """Generates a STIX export of the analysis data"""
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        all_detailed_threats = self._get_all_threats_with_mitre_info(grouped_threats)
+        all_detailed_threats = self._get_all_threats_with_mitre_info(grouped_threats, threat_model)
 
         stix_generator = StixGenerator(threat_model, all_detailed_threats)
         stix_bundle = stix_generator.generate_stix_bundle()
@@ -148,10 +151,10 @@ class ReportGenerator:
             return True
         except Exception as e:
             return False
-    def _export_detailed_threats(self, grouped_threats: Dict[str, List]) -> List[Dict[str, Any]]:
-        return self._get_all_threats_with_mitre_info(grouped_threats)
+    def _export_detailed_threats(self, grouped_threats: Dict[str, List], threat_model: ThreatModel) -> List[Dict[str, Any]]:
+        return self._get_all_threats_with_mitre_info(grouped_threats, threat_model)
 
-    def _get_all_threats_with_mitre_info(self, grouped_threats: Dict[str, List]) -> List[Dict[str, Any]]:
+    def _get_all_threats_with_mitre_info(self, grouped_threats: Dict[str, List], threat_model: ThreatModel) -> List[Dict[str, Any]]:
         """Gathers detailed information for all threats, including MITRE ATT&CK mapping and severity."""
         all_detailed_threats = []
         
@@ -172,6 +175,29 @@ class ReportGenerator:
                 threat_impact = getattr(threat, 'impact', None)
                 threat_likelihood = getattr(threat, 'likelihood', None)
 
+                # Get business_value of the target
+                business_value = None
+                # Check if target is a pytm object (Actor, Server, Boundary)
+                if hasattr(target, 'name'):
+                    # Search in threat_model's stored components
+                    # Actors
+                    for actor_data in threat_model.actors:
+                        if actor_data.get('object') == target:
+                            business_value = actor_data.get('business_value')
+                            break
+                    # Servers
+                    if not business_value:
+                        for server_data in threat_model.servers:
+                            if server_data.get('object') == target:
+                                business_value = server_data.get('business_value')
+                                break
+                    # Boundaries
+                    if not business_value:
+                        for boundary_data in threat_model.boundaries.values():
+                            if boundary_data.get('boundary') == target:
+                                business_value = boundary_data.get('business_value')
+                                break
+                
                 severity_info = self.severity_calculator.get_severity_info(stride_category, target_name, classification=data_classification, impact=threat_impact, likelihood=threat_likelihood)
                 
                 threat_dict = {
@@ -211,7 +237,8 @@ class ReportGenerator:
                     "mitre_techniques": mitre_techniques,
                     "stride_category": stride_category,
                     "capecs": capecs,
-                    "cve": sorted(list(cve_ids_for_threat))
+                    "cve": sorted(list(cve_ids_for_threat)),
+                    "business_value": business_value
                 })
         return all_detailed_threats
 
@@ -236,6 +263,20 @@ class ReportGenerator:
             "severity_distribution": severity_distribution
         }
 
+    def _get_all_business_values(self, threat_model: ThreatModel) -> List[str]:
+        """Collects all unique business values from boundaries, actors, and servers."""
+        business_values = set()
+        for boundary_data in threat_model.boundaries.values():
+            if boundary_data.get('business_value'):
+                business_values.add(str(boundary_data['business_value']))
+        for actor_data in threat_model.actors:
+            if actor_data.get('business_value'):
+                business_values.add(str(actor_data['business_value']))
+        for server_data in threat_model.servers:
+            if server_data.get('business_value'):
+                business_values.add(str(server_data['business_value']))
+        return sorted(list(business_values))
+
     def generate_global_project_report(self, all_models: List[ThreatModel], output_dir: Path):
         """Generates a single global report for all models in the project."""
         all_threats_details = []
@@ -244,7 +285,7 @@ class ReportGenerator:
 
         for model in all_models:
             grouped_threats = model.grouped_threats
-            threats_details = self._get_all_threats_with_mitre_info(grouped_threats)
+            threats_details = self._get_all_threats_with_mitre_info(grouped_threats, model)
             all_threats_details.extend(threats_details)
 
             total_threats_analyzed += model.mitre_analysis_results.get('total_threats', 0)

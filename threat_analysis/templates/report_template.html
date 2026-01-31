@@ -618,7 +618,20 @@
             </div>
         </div>
         {% else %}
-        <h2>🔍 Detailed Threat Analysis</h2>
+        <div style="display: flex; align-items: center; gap: 1rem; margin-top: 2rem;">
+            <h2>🔍 Detailed Threat Analysis</h2>
+            {% if unique_business_values %}
+            <div style="flex-grow: 1; text-align: right;">
+                <label for="businessValueFilter" style="font-weight: 500; color: var(--text-secondary);">Filter by Business Value:</label>
+                <select id="businessValueFilter" onchange="filterThreats()">
+                    <option value="all">All</option>
+                    {% for value in unique_business_values %}
+                    <option value="{{ value }}">{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+        </div>
         <div class="tabs">
             {% for category in stride_categories %}
             <button class="tab-button {% if loop.first %}active{% endif %}" onclick="openTab(event, '{{ category }}')">{{ category }}</button>
@@ -633,6 +646,7 @@
                         <tr>
                             <th>#</th>
                             <th>Target</th>
+                            <th>Business Value</th>
                             <th>Description</th>
                             <th>CVEs</th>
                             <th>Severity</th>
@@ -650,6 +664,7 @@
                         <tr>
                             <td><div class="row-number">{{ loop.index }}</div></td>
                             <td>{{ threat.target }}</td>
+                            <td>{{ threat.business_value if threat.business_value else 'N/A' }}</td>
                             <td>{{ threat.description }}</td>
                             <td>
                                 <div class="scrollable-cell">
@@ -811,7 +826,40 @@
             document.getElementById(tabName).style.display = "block";
             document.getElementById(tabName).classList.add("active");
             evt.currentTarget.classList.add("active");
+            filterThreats(); // Apply filter when tab changes
         }
+
+        function filterThreats() {
+            var selectedBusinessValue = document.getElementById("businessValueFilter").value;
+            var tables = document.querySelectorAll(".tab-content.active table tbody");
+
+            tables.forEach(function(tbody) {
+                var rows = tbody.getElementsByTagName("tr");
+                for (var i = 0; i < rows.length; i++) {
+                    var row = rows[i];
+                    var businessValueCell = row.cells[2]; // Assuming 'Business Value' is the 3rd column (index 2)
+                    
+                    if (businessValueCell) {
+                        var rowBusinessValue = businessValueCell.textContent.trim();
+                        if (selectedBusinessValue === "all" || rowBusinessValue === selectedBusinessValue) {
+                            row.style.display = "";
+                        } else {
+                            row.style.display = "none";
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize filter when page loads
+        document.addEventListener('DOMContentLoaded', (event) => {
+            // Check if there are any tabs, if so, the openTab function will call filterThreats
+            // If no tabs (e.g., all threats in one view), call filterThreats directly
+            var activeTab = document.querySelector(".tab-button.active");
+            if (!activeTab && document.getElementById("businessValueFilter")) {
+                 filterThreats();
+            }
+        });
     </script>
 </body>
 </html>

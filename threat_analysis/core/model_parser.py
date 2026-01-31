@@ -132,13 +132,18 @@ class ModelParser:
             if 'color' not in boundary_kwargs:
                 boundary_kwargs['color'] = 'lightgray'
                 logging.debug(f"Color not found for '{name}', defaulting to lightgray.")
+            
+            # Extract businessValue if present
+            business_value = boundary_kwargs.pop('businessValue', None)
+
             parent_obj = None
             while boundary_stack and boundary_stack[-1][1] >= indentation:
                 boundary_stack.pop()
             if boundary_stack:
                 parent_name = boundary_stack[-1][0]
                 parent_obj = self.threat_model.boundaries.get(parent_name, {}).get('boundary')
-            self.threat_model.add_boundary(name, parent_boundary_obj=parent_obj, **boundary_kwargs)
+            
+            self.threat_model.add_boundary(name, parent_boundary_obj=parent_obj, business_value=business_value, **boundary_kwargs)
             boundary_stack.append((name, indentation))
 
     def _parse_actor(self, line: str):
@@ -149,8 +154,12 @@ class ModelParser:
             actor_name = match.group(1).strip()
             params_str = match.group(2).strip()
             actor_kwargs = self._parse_key_value_params(params_str)
+            
             boundary_name = actor_kwargs.pop('boundary', None)
-            self.threat_model.add_actor(actor_name, boundary_name=boundary_name, **actor_kwargs)
+            # Extract businessValue if present
+            business_value = actor_kwargs.pop('businessValue', None)
+
+            self.threat_model.add_actor(actor_name, boundary_name=boundary_name, business_value=business_value, **actor_kwargs)
         else:
             logging.warning(f"⚠️ Warning: Malformed actor line: {line}")
 
@@ -165,8 +174,11 @@ class ModelParser:
             # Parse all key=value parameters
             server_kwargs = self._parse_key_value_params(params_str)
             boundary_name = server_kwargs.pop('boundary', None)
-            self.threat_model.add_server(name, boundary_name=boundary_name, **server_kwargs)
-            logging.info(f"   - Added Server: {name} (Boundary: {boundary_name}, Props: {server_kwargs})")
+            # Extract businessValue if present
+            business_value = server_kwargs.pop('businessValue', None)
+
+            self.threat_model.add_server(name, boundary_name=boundary_name, business_value=business_value, **server_kwargs)
+            logging.info(f"   - Added Server: {name} (Boundary: {boundary_name}, Props: {server_kwargs}, Business Value: {business_value})")
         else:
             logging.warning(f"⚠️ Warning: Malformed server line: {line}")
             

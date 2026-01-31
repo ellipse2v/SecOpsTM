@@ -90,13 +90,14 @@ class ThreatModel:
             raise ValueError("A CVEService instance must be provided to ThreatModel.")
         self.cve_service = cve_service
 
-    def add_boundary(self, name: str, color: str = "lightgray", parent_boundary_obj: Optional[Boundary] = None, **kwargs) -> Boundary:
+    def add_boundary(self, name: str, color: str = "lightgray", parent_boundary_obj: Optional[Boundary] = None, business_value: Optional[str] = None, **kwargs) -> Boundary:
         """Adds a boundary to the model with additional properties, including an optional parent.
 
         Args:
             name (str): The name of the boundary.
             color (str, optional): The color of the boundary. Defaults to "lightgray".
             parent_boundary_obj (Optional[Boundary], optional): The parent Boundary object. Defaults to None.
+            business_value (Optional[str], optional): The business value of the boundary. Defaults to None.
             **kwargs: Additional properties for the boundary.
 
         Returns:
@@ -120,14 +121,14 @@ class ThreatModel:
             boundary.inBoundary = parent_boundary_obj
 
         # Store boundary with all properties including color and any additional kwargs
-        boundary_props = {"boundary": boundary, "color": color}
+        boundary_props = {"boundary": boundary, "color": color, "business_value": business_value}
         boundary_props.update(kwargs)  # Add any additional properties like isTrusted, isFilled
 
         self.boundaries[name.lower()] = boundary_props
         self._elements_by_name[name.lower()] = boundary
         return boundary
 
-    def add_actor(self, name: str, boundary_name: Optional[str] = None, **kwargs) -> Actor:
+    def add_actor(self, name: str, boundary_name: Optional[str] = None, business_value: Optional[str] = None, **kwargs) -> Actor:
         """Adds an actor to the model"""
         actor = Actor(name)
         boundary_obj = None
@@ -135,13 +136,13 @@ class ThreatModel:
             boundary_obj = self.boundaries[boundary_name.lower()]["boundary"]
         if boundary_obj:
             actor.inBoundary = boundary_obj
-        actor_props = {'name': name, 'object': actor, 'boundary': boundary_obj}
+        actor_props = {'name': name, 'object': actor, 'boundary': boundary_obj, 'business_value': business_value}
         actor_props.update(kwargs)
         self.actors.append(actor_props)
         self._elements_by_name[name.lower()] = actor
         return actor
 
-    def add_server(self, name: str, boundary_name: Optional[str] = None, **kwargs) -> Server:
+    def add_server(self, name: str, boundary_name: Optional[str] = None, business_value: Optional[str] = None, **kwargs) -> Server:
         """Adds a server to the model with optional color and is_filled attributes."""
         boundary_obj = None
         if boundary_name and boundary_name.lower() in self.boundaries:
@@ -150,7 +151,7 @@ class ThreatModel:
         server = Server(name)
         if boundary_obj:
             server.inBoundary = boundary_obj
-        server_props = {'name': name, 'object': server, 'boundary': boundary_obj}
+        server_props = {'name': name, 'object': server, 'boundary': boundary_obj, 'business_value': business_value}
         server_props.update(kwargs)
         self.servers.append(server_props)
         self._elements_by_name[name.lower()] = server
