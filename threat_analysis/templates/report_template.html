@@ -620,17 +620,33 @@
         {% else %}
         <div style="display: flex; align-items: center; gap: 1rem; margin-top: 2rem;">
             <h2>🔍 Detailed Threat Analysis</h2>
-            {% if unique_business_values %}
-            <div style="flex-grow: 1; text-align: right;">
-                <label for="businessValueFilter" style="font-weight: 500; color: var(--text-secondary);">Filter by Business Value:</label>
-                <select id="businessValueFilter" onchange="filterThreats()">
-                    <option value="all">All</option>
-                    {% for value in unique_business_values %}
-                    <option value="{{ value }}">{{ value }}</option>
-                    {% endfor %}
-                </select>
+            <div style="flex-grow: 1; text-align: right; display: flex; gap: 1.5rem; justify-content: flex-end;">
+                {% if unique_targets %}
+                <div>
+                    <label for="targetFilter" style="font-weight: 500; color: var(--text-secondary);">Filter by Target:</label>
+                    <select id="targetFilter" onchange="filterThreats()">
+                        <option value="all">All</option>
+                        {% for value in unique_targets %}
+                        <option value="{{ value }}">{{ value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                {% if unique_business_values or all_threats %}
+                <div>
+                    <label for="businessValueFilter" style="font-weight: 500; color: var(--text-secondary);">Filter by Business Value:</label>
+                    <select id="businessValueFilter" onchange="filterThreats()">
+                        <option value="all">All</option>
+                        {% for value in unique_business_values %}
+                        <option value="{{ value }}">{{ value }}</option>
+                        {% endfor %}
+                        {% if 'N/A' not in unique_business_values and all_threats %}
+                        <option value="N/A">N/A</option>
+                        {% endif %}
+                    </select>
+                </div>
+                {% endif %}
             </div>
-            {% endif %}
         </div>
         <div class="tabs">
             {% for category in stride_categories %}
@@ -830,22 +846,42 @@
         }
 
         function filterThreats() {
-            var selectedBusinessValue = document.getElementById("businessValueFilter").value;
+            var businessValueFilter = document.getElementById("businessValueFilter");
+            var targetFilter = document.getElementById("targetFilter");
+
+            var selectedBusinessValue = businessValueFilter ? businessValueFilter.value : 'all';
+            var selectedTarget = targetFilter ? targetFilter.value : 'all';
+
             var tables = document.querySelectorAll(".tab-content.active table tbody");
 
             tables.forEach(function(tbody) {
                 var rows = tbody.getElementsByTagName("tr");
                 for (var i = 0; i < rows.length; i++) {
                     var row = rows[i];
-                    var businessValueCell = row.cells[2]; // Assuming 'Business Value' is the 3rd column (index 2)
                     
+                    var targetCell = row.cells[1]; // 'Target' is the 2nd column (index 1)
+                    var businessValueCell = row.cells[2]; // 'Business Value' is the 3rd column (index 2)
+                    
+                    var targetMatch = true;
+                    if (targetCell) {
+                        var rowTarget = targetCell.textContent.trim();
+                        if (selectedTarget !== "all" && rowTarget !== selectedTarget) {
+                            targetMatch = false;
+                        }
+                    }
+
+                    var businessValueMatch = true;
                     if (businessValueCell) {
                         var rowBusinessValue = businessValueCell.textContent.trim();
-                        if (selectedBusinessValue === "all" || rowBusinessValue === selectedBusinessValue) {
-                            row.style.display = "";
-                        } else {
-                            row.style.display = "none";
+                        if (selectedBusinessValue !== "all" && rowBusinessValue !== selectedBusinessValue) {
+                            businessValueMatch = false;
                         }
+                    }
+
+                    if (targetMatch && businessValueMatch) {
+                        row.style.display = "";
+                    } else {
+                        row.style.display = "none";
                     }
                 }
             });

@@ -46,6 +46,15 @@ class CustomSVGGenerator:
             'node': {'fill': '#ffffff', 'stroke': '#000000', 'font-family': 'sans-serif', 'font-size': '14'},
             'edge': {'stroke': '#000000', 'fill': 'none', 'font-family': 'sans-serif', 'font-size': '14'}
         }
+
+    def _sanitize_name(self, name: str) -> str:
+        """Sanitizes a name for use as an ID."""
+        if not name:
+            return "unnamed"
+        sanitized = re.sub(r'[^a-zA-Z0-9_]', '_', str(name))
+        if sanitized and sanitized[0].isdigit():
+            sanitized = f"_{sanitized}"
+        return sanitized or "unnamed"
     
     def generate_svg_from_dot(self, dot_code: str, output_file: str) -> Optional[str]:
         """Generate SVG from DOT code using a JSON-based custom SVG generator"""
@@ -219,7 +228,8 @@ class CustomSVGGenerator:
         - Supports HTML labels with SVG/PNG icons
         - Handles server layout (icon left, text right) as a centered unit
         """
-        elements = [f'  <g id="{self._escape_html(node["name"])}">']
+        sanitized_id = self._sanitize_name(node["name"])
+        elements = [f'  <g id="{sanitized_id}">']
         style = self.default_styles['node'].copy()
 
         # --- Draw node shape ---

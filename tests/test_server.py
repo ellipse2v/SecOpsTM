@@ -148,15 +148,16 @@ def test_run_server_with_non_existent_model_file(client):
             assert b'Threat Model Editor' in response.data
 
 def test_run_server_with_existing_model_file(client):
-    """Test that run_server loads content from an existing model file."""
+    """Test that run_server loads content from an existing model file and the encoded markdown is present in the response."""
     mock_file_content = "# Threat Model: Test Model\n## Description\nA test model."
+    expected_encoded_markdown = base64.b64encode(mock_file_content.encode('utf-8')).decode('utf-8')
     with patch('os.path.exists', return_value=True):
         with patch('builtins.open', mock_open(read_data=mock_file_content)) as mock_file:
             with patch('threat_analysis.server.server.app.run'):
                 run_server(model_filepath='/path/to/existing/model.md')
                 response = client.get('/simple')
                 assert response.status_code == 200
-                assert b'Test Model' in response.data
+                assert expected_encoded_markdown.encode('utf-8') in response.data
                 mock_file.assert_called_once_with('/path/to/existing/model.md', "r", encoding="utf-8")
 
 def test_export_all_api_success(client):

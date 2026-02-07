@@ -80,6 +80,9 @@ class ReportGenerator:
         stride_categories = sorted(list(set(threat['stride_category'] for threat in all_detailed_threats)))
         
         unique_business_values = self._get_all_business_values(threat_model)
+        
+        EXCLUDE_TARGETS = ["Unspecified →", "Unspecified", "→"]
+        unique_targets = sorted(list(set(threat['target'] for threat in all_detailed_threats if threat.get('target') and threat.get('target') not in EXCLUDE_TARGETS)))
 
         template = self.env.get_template('report_template.html')
         html = template.render(
@@ -92,6 +95,7 @@ class ReportGenerator:
             all_threats=all_detailed_threats,
             stride_categories=stride_categories,
             unique_business_values=unique_business_values,
+            unique_targets=unique_targets,
             severity_calculation_note=self.severity_calculator.get_calculation_explanation(),
             implemented_mitigation_ids=self.implemented_mitigations
         )
@@ -354,8 +358,9 @@ class ReportGenerator:
         all_processed_models = []
         self._recursively_generate_reports(
             model_path=main_model_path,
+            project_path=project_path,
             output_dir=output_dir,
-            breadcrumb=[(project_path.name, "main_diagram.html")],
+            breadcrumb=[(main_threat_model.tm.name, f"{main_model_path.stem}_diagram.html")],
             project_protocols=project_protocols,
             project_protocol_styles=project_protocol_styles,
             all_project_models=all_processed_models,
@@ -412,7 +417,7 @@ class ReportGenerator:
 
         return project_protocols, project_protocol_styles
 
-    def _recursively_generate_reports(self, model_path: Path, output_dir: Path, breadcrumb: List[tuple[str, str]], project_protocols: set, project_protocol_styles: dict, all_project_models: List[ThreatModel], threat_model: Optional[ThreatModel] = None):
+    def _recursively_generate_reports(self, model_path: Path, project_path: Path, output_dir: Path, breadcrumb: List[tuple[str, str]], project_protocols: set, project_protocol_styles: dict, all_project_models: List[ThreatModel], threat_model: Optional[ThreatModel] = None):
         """
         Recursively generates reports for each model in the project.
         """
@@ -479,17 +484,33 @@ class ReportGenerator:
             for server in threat_model.servers:
                 if 'submodel' in server:
                     submodel_path_str = server['submodel']
-                    submodel_path = _validate_path_within_project(str(model_path.parent / submodel_path_str))
+                    submodel_path = _validate_path_within_project(str(model_path.parent / submodel_path_str), base_dir=project_path)
 
                     if submodel_path.is_file():
-                        sub_dir_name = submodel_path.parent.name
-                        sub_output_dir = output_dir / sub_dir_name
-                        sub_output_dir.mkdir(exist_ok=True)
+                        submodel_relative_parent = Path(submodel_path_str).parent
+                        sub_output_dir = output_dir / submodel_relative_parent
+                        sub_output_dir.mkdir(parents=True, exist_ok=True)
 
-                        new_breadcrumb = breadcrumb + [(sub_dir_name, f"{submodel_path.stem}_diagram.html")]
+                        sub_model_display_name = submodel_relative_parent.name if str(submodel_relative_parent) != '.' else submodel_path.stem
+                        
+                        # Create a relative link for the breadcrumb, ensuring it's relative to the project output root.
+                        current_model_breadcrumb_path = Path(breadcrumb[-1][1])
+                        current_model_dir = current_model_breadcrumb_path.parent
+                        
+                        submodel_rel_path = Path(submodel_path_str)
+                        
+                        # Combine the current model's directory with the submodel's relative path
+                        # and then replace the filename to get the correct diagram link.
+                        new_link_path_obj = (current_model_dir / submodel_rel_path).with_name(f"{submodel_rel_path.stem}_diagram.html")
+                        
+                        # Normalize the path to handle cases like "." or ".." and ensure forward slashes
+                        breadcrumb_link = Path(os.path.normpath(str(new_link_path_obj))).as_posix()
+
+                        new_breadcrumb = breadcrumb + [(sub_model_display_name, breadcrumb_link)]
 
                         self._recursively_generate_reports(
                             model_path=submodel_path,
+                            project_path=project_path,
                             output_dir=sub_output_dir,
                             breadcrumb=new_breadcrumb,
                             project_protocols=project_protocols,
@@ -525,9 +546,27 @@ class ReportGenerator:
 
         template = self.env.get_template('navigable_diagram_template.html')
 
+        # Before rendering, calculate the correct relative paths for the breadcrumb.
+        # The 'breadcrumb' variable contains links relative to the project output root.
+        # We need to convert them to be relative to the current file's location.
+        processed_breadcrumb = []
+        if breadcrumb:
+            # The path of the HTML file we are currently generating, relative to the project output root.
+            current_html_path_str = breadcrumb[-1][1]
+            current_html_dir = Path(current_html_path_str).parent
+
+            for name, link_target_str in breadcrumb:
+                # link_target_str is relative to the project output root.
+                # We need to make it relative to the current HTML file's directory.
+                relative_link = os.path.relpath(link_target_str, start=current_html_dir).replace('\\', '/')
+                processed_breadcrumb.append((name, relative_link))
+
         parent_link = None
-        if len(breadcrumb) > 1:
-            parent_link = f"../{breadcrumb[-2][1]}"
+        if len(processed_breadcrumb) > 1:
+            parent_link = processed_breadcrumb[-2][1]
+
+        current_diagram_path = Path(breadcrumb[-1][1]) if breadcrumb else Path()
+        current_dir_depth = len(current_diagram_path.parent.parts)
 
         legend_html = diagram_generator._generate_legend_html(
             threat_model,
@@ -538,9 +577,10 @@ class ReportGenerator:
         html = template.render(
             title=f"Diagram - {model_name}",
             svg_content=svg_content,
-            breadcrumb=breadcrumb,
+            breadcrumb=processed_breadcrumb,
             parent_link=parent_link,
-            legend_html=legend_html
+            legend_html=legend_html,
+            current_dir_depth=current_dir_depth # Pass the depth to the template
         )
 
         diagram_html_path = output_dir / f"{model_name}_diagram.html"

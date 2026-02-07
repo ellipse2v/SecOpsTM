@@ -93,7 +93,7 @@ def test_single_level_project(mock_validate, project_test_env):
 
         sub_content = sub_html_new.read_text()
         assert 'href="../main_diagram.html"' in sub_content
-        assert '<a href="../main_diagram.html">test_project</a>' in sub_content
+        assert '<a href="../main_diagram.html">main</a>' in sub_content
         assert '<a href="model_diagram.html">sub_A</a>' in sub_content
 
 @patch('threat_analysis.generation.diagram_generator.DiagramGenerator.add_links_to_svg')
@@ -159,7 +159,7 @@ def test_nested_project_and_dataflows(mock_validate, mock_generate_diagram, mock
 
     db_content = db_html.read_text()
     assert 'href="../model_diagram.html"' in db_content
-    assert '<a href="../../main_diagram.html">test_project</a>' in db_content
+    assert '<a href="../../main_diagram.html">main</a>' in db_content
     assert '<a href="../model_diagram.html">backend</a>' in db_content
     assert '<a href="model_diagram.html">database</a>' in db_content
 

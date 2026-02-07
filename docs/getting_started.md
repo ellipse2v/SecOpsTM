@@ -28,13 +28,17 @@
 
 After installation, restart your terminal or IDE.
 
-## Using the Graphical Editor (Under Development)
+## Using the Web Interface (Server Mode)
 
-A web-based graphical editor is included for interactive threat modeling. This feature is currently under active development and may not be fully stable. You can launch it using:
+The framework includes a web-based interface for interactive threat modeling, accessible from a central menu.
 
-```bash
-python3 -m threat_analysis --server
-```
+1.  **Launch the server:**
+    ```bash
+    python3 -m threat_analysis --server
+    ```
 
-Open your browser to `http://127.0.0.1:5000/`.
+2.  **Open your browser** to the address shown in the console (usually `http://127.0.0.1:5000/`).
 
+3.  **Choose a mode:**
+    -   **Simple Mode**: Ideal for quick visualization and editing of threat models written in Markdown. It features a live preview and now supports multi-file projects through a tabbed interface, allowing you to edit a main model and its sub-models together.
+    -   **Graphical Editor**: A visual, drag-and-drop canvas for building threat models from scratch without writing Markdown. This mode is under active development.

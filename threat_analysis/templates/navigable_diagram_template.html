@@ -173,9 +173,7 @@
 
         <div class="breadcrumb">
             {% for name, link in breadcrumb %}
-                {% set levels_up = (breadcrumb|length - 1) - loop.index0 %}
-                {% set prefix = '../' * levels_up %}
-                <a href="{{ prefix }}{{ link }}">{{ name }}</a>{% if not loop.last %} &gt; {% endif %}
+                <a href="{{ link }}">{{ name }}</a>{% if not loop.last %} &gt; {% endif %}
             {% endfor %}
         </div>
 
@@ -187,7 +185,7 @@
         </div>
     </div>
 
-    <script src="{{ '../' * (breadcrumb|length - 1) }}static/js/svg-pan-zoom.min.js"></script>
+    <script src="{{ '../' * current_dir_depth }}static/js/svg-pan-zoom.min.js"></script>
     <script>
         function toggleLegend() {
             const legend = document.getElementById('legend');

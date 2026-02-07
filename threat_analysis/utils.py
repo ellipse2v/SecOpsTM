@@ -42,10 +42,20 @@ def _validate_path_within_project(input_path: str, base_dir: Path = PROJECT_ROOT
     """
     path_obj = Path(input_path)
     if not path_obj.exists():
-        raise ValueError(f"Path does not exist: {input_path}")
+        listing = []
+        for root, dirs, files in os.walk(base_dir):
+            level = str(Path(root).relative_to(base_dir)).count(os.sep) if Path(root) != base_dir else 0
+            indent = ' ' * 4 * level
+            listing.append(f'{indent}{os.path.basename(root)}/')
+            subindent = ' ' * 4 * (level + 1)
+            for f in files:
+                listing.append(f'{subindent}{f}')
+        dir_listing = "\n".join(listing)
+        raise ValueError(f"Path does not exist: {input_path}. Project directory structure:\n{dir_listing}")
 
     resolved_path = path_obj.resolve()
-    if not resolved_path.is_relative_to(base_dir):
-        raise ValueError(f"Path is outside the allowed project directory: {input_path}")
+    base_dir_resolved = base_dir.resolve()
+    if not resolved_path.is_relative_to(base_dir_resolved):
+        raise ValueError(f"Path is outside the allowed project directory: {input_path} (Base: {base_dir_resolved})")
 
-    return resolved_path
+    return path_obj

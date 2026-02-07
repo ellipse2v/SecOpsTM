@@ -648,6 +648,7 @@ def generate_all():
         markdown_content = data.get('markdown', '')
         model_name = get_model_name(markdown_content)
         positions_data = data.get('positions', None)
+        submodels = data.get('submodels', [])
         
         if not markdown_content:
             return jsonify({"error": "Missing markdown content"}), 400
@@ -670,7 +671,7 @@ def generate_all():
         
         # Generate all reports and diagrams
         result = threat_model_service.generate_full_project_export(
-            markdown_content, generation_dir
+            markdown_content, generation_dir, submodels=submodels
         )
         
         # Create a summary of generated files

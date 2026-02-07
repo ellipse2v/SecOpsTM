@@ -397,18 +397,20 @@ class DiagramGenerator:
         root = ET.fromstring(svg_content)
 
         for server in threat_model.servers:
-            if 'submodel' in server:
+            if isinstance(server, dict) and 'submodel' in server:
                 server_name = server['name']
                 sanitized_name = self._sanitize_name(server_name)
 
                 submodel_path = Path(server['submodel'])
                 # Correctly form the relative path for the link
-                link_href = f"{submodel_path.parent.name}/{submodel_path.stem}_diagram.html"
+                link_href = str(submodel_path.with_name(f"{submodel_path.stem}_diagram.html"))
 
                 # Find the node group for the server
+                node_found = False
                 for g in root.findall(f".//{{http://www.w3.org/2000/svg}}g[@id='{sanitized_name}']"):
+                    node_found = True
                     link = ET.Element('a')
-                    link.set('xlink:href', link_href)
+                    link.set('{http://www.w3.org/1999/xlink}href', link_href)
 
                     # Move all children of g to the new link element
                     for child in list(g):
@@ -416,6 +418,8 @@ class DiagramGenerator:
                         g.remove(child)
 
                     g.append(link)
+                if not node_found:
+                    logging.warning(f"    -> WARNING: No SVG group found for server '{sanitized_name}'. Link not added.")
 
         return ET.tostring(root, encoding='unicode', method='xml')
 

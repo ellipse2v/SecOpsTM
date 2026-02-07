@@ -13,6 +13,6 @@
   - Generate a unified, navigable HTML report for complex projects with multiple nested threat models.
   - Diagrams are interactive, with hover effects (zoom, shadow) on clickable elements.
   - Fully self-contained and works offline, with all necessary assets (like `svg-pan-zoom.js`) included locally.
-- **Real-time Markdown Editing**: Edit your threat model in Markdown with live diagram preview.
+- **Real-time Markdown Editing**: Edit your threat model in Markdown with a live diagram preview. The simple editor mode now supports a tabbed interface for editing multi-file projects (a main model and its sub-models) simultaneously.
 - **Extensible**: All mappings and calculations are modular and easy to override.
 - **PyTM Compatibility**: Supports PyTM's model structure and can be extended with PyTM's features.

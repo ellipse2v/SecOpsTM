@@ -488,93 +488,130 @@ class ThreatModelService:
         else:
             raise ValueError("Invalid export format")
 
-    def generate_full_project_export(self, markdown_content: str, export_path: str):
+    def generate_full_project_export(self, markdown_content: str, export_path: str, submodels: list = None):
         logging.info("Entering generate_full_project_export function.")
         if not markdown_content:
             raise ValueError("Missing markdown content")
 
-        threat_model = create_threat_model(
-            markdown_content=markdown_content,
-            model_name="ExportedThreatModel",
-            model_description="Exported from web interface",
-            cve_service=self.cve_service,
-            validate=True,
-        )
-        if not threat_model:
-            raise RuntimeError("Failed to create or validate threat model")
+        if submodels:
+            logging.info("--- Starting Project-Based Generation (Server Mode) ---")
+            with tempfile.TemporaryDirectory() as tmp_project_dir:
+                project_path = Path(tmp_project_dir)
+                
+                # Write main model file
+                main_md_path = project_path / "main.md"
+                with open(main_md_path, "w", encoding="utf-8") as f:
+                    f.write(markdown_content)
 
-        validator = ModelValidator(threat_model)
-        errors = validator.validate()
-        if errors:
-            raise ValueError("Validation failed: " + ", ".join(errors))
+                # Write all sub-model files
+                for submodel in submodels:
+                    submodel_path_str = submodel.get('path', '').lstrip('./\\')
+                    if not submodel_path_str:
+                        continue
+                    
+                    submodel_path = project_path / submodel_path_str
+                    submodel_path.parent.mkdir(parents=True, exist_ok=True)
+                    with open(submodel_path, "w", encoding="utf-8") as f:
+                        f.write(submodel['content'])
+                
+                self.report_generator.generate_project_reports(project_path, Path(export_path))
 
-        markdown_filename = "threat_model.md"
-        markdown_filepath = os.path.join(export_path, markdown_filename)
-        with open(markdown_filepath, "w", encoding="utf-8") as f:
-            f.write(markdown_content)
+                # Create a summary of generated files for the response
+                generated_files = {}
+                for root, _, files in os.walk(export_path):
+                    for file in files:
+                        file_key = os.path.splitext(file)[0]
+                        generated_files[file_key] = os.path.join(root, file)
+                
+                return {
+                    "reports": generated_files,
+                    "diagrams": {} # Simplified for project view
+                }
 
-        dot_code = self.diagram_generator._generate_manual_dot(threat_model)
-        svg_filename = "tm_diagram.svg"
-        svg_filepath = os.path.join(export_path, svg_filename)
-        # Use custom SVG generator for better quality in full export
-        self.diagram_generator.generate_diagram_from_dot(
-            dot_code, svg_filepath, format="svg"
-        )
+        else:
+            # Single-file generation (unchanged)
+            logging.info("--- Starting Single-File Generation (Server Mode) ---")
+            threat_model = create_threat_model(
+                markdown_content=markdown_content,
+                model_name="ExportedThreatModel",
+                model_description="Exported from web interface",
+                cve_service=self.cve_service,
+                validate=True,
+            )
+            if not threat_model:
+                raise RuntimeError("Failed to create or validate threat model")
 
-        html_diagram_filename = "tm_diagram.html"
-        html_diagram_filepath = os.path.join(
-            export_path, html_diagram_filename
-        )
-        self.diagram_generator._generate_html_with_legend(
-            svg_filepath, html_diagram_filepath, threat_model
-        )
+            validator = ModelValidator(threat_model)
+            errors = validator.validate()
+            if errors:
+                raise ValueError("Validation failed: " + ", ".join(errors))
 
-        grouped_threats = threat_model.process_threats()
-        html_report_filename = "stride_mitre_report.html"
-        html_report_filepath = os.path.join(export_path, html_report_filename)
-        self.report_generator.generate_html_report(
-            threat_model, grouped_threats, html_report_filepath
-        )
+            markdown_filename = "threat_model.md"
+            markdown_filepath = os.path.join(export_path, markdown_filename)
+            with open(markdown_filepath, "w", encoding="utf-8") as f:
+                f.write(markdown_content)
 
-        json_analysis_filename = "mitre_analysis.json"
-        json_analysis_filepath = os.path.join(
-            export_path, json_analysis_filename
-        )
-        self.report_generator.generate_json_export(
-            threat_model, grouped_threats, json_analysis_filepath
-        )
+            dot_code = self.diagram_generator._generate_manual_dot(threat_model)
+            svg_filename = "tm_diagram.svg"
+            svg_filepath = os.path.join(export_path, svg_filename)
+            self.diagram_generator.generate_diagram_from_dot(
+                dot_code, svg_filepath, format="svg"
+            )
 
-        all_detailed_threats = threat_model.get_all_threats_details()
-        navigator_generator = AttackNavigatorGenerator(
-            threat_model_name=threat_model.tm.name,
-            all_detailed_threats=all_detailed_threats
-        )
-        navigator_filename = JSON_NAVIGATOR_FILENAME_TPL.format(timestamp=TIMESTAMP)
-        navigator_filepath = os.path.join(export_path, navigator_filename)
-        navigator_generator.save_layer_to_file(navigator_filepath)
+            html_diagram_filename = "tm_diagram.html"
+            html_diagram_filepath = os.path.join(
+                export_path, html_diagram_filename
+            )
+            self.diagram_generator._generate_html_with_legend(
+                svg_filepath, html_diagram_filepath, threat_model
+            )
 
-        stix_generator_instance = StixGenerator(
-            threat_model=threat_model,
-            all_detailed_threats=all_detailed_threats
-        )
-        stix_bundle = stix_generator_instance.generate_stix_bundle()
-        stix_filename = f"stix_report_{TIMESTAMP}.json"
-        stix_filepath = os.path.join(export_path, stix_filename)
-        with open(stix_filepath, "w", encoding="utf-8") as f:
-            json.dump(stix_bundle, f, indent=4)
+            grouped_threats = threat_model.process_threats()
+            html_report_filename = "stride_mitre_report.html"
+            html_report_filepath = os.path.join(export_path, html_report_filename)
+            self.report_generator.generate_html_report(
+                threat_model, grouped_threats, html_report_filepath
+            )
 
-        return {
-            "reports": {
-                "html": html_report_filepath,
-                "json": json_analysis_filepath,
-                "stix": stix_filepath,
-            },
-            "diagrams": {
-                "svg": svg_filepath,
-                "html": html_diagram_filepath,
-                "navigator": navigator_filepath,
+            json_analysis_filename = "mitre_analysis.json"
+            json_analysis_filepath = os.path.join(
+                export_path, json_analysis_filename
+            )
+            self.report_generator.generate_json_export(
+                threat_model, grouped_threats, json_analysis_filepath
+            )
+
+            all_detailed_threats = threat_model.get_all_threats_details()
+            navigator_generator = AttackNavigatorGenerator(
+                threat_model_name=threat_model.tm.name,
+                all_detailed_threats=all_detailed_threats
+            )
+            navigator_filename = JSON_NAVIGATOR_FILENAME_TPL.format(timestamp=TIMESTAMP)
+            navigator_filepath = os.path.join(export_path, navigator_filename)
+            navigator_generator.save_layer_to_file(navigator_filepath)
+
+            stix_generator_instance = StixGenerator(
+                threat_model=threat_model,
+                all_detailed_threats=all_detailed_threats
+            )
+            stix_bundle = stix_generator_instance.generate_stix_bundle()
+            stix_filename = f"stix_report_{TIMESTAMP}.json"
+            stix_filepath = os.path.join(export_path, stix_filename)
+            with open(stix_filepath, "w", encoding="utf-8") as f:
+                json.dump(stix_bundle, f, indent=4)
+
+            return {
+                "reports": {
+                    "html": html_report_filepath,
+                    "json": json_analysis_filepath,
+                    "stix": stix_filepath,
+                },
+                "diagrams": {
+                    "svg": svg_filepath,
+                    "html": html_diagram_filepath,
+                    "navigator": navigator_filepath,
+                }
             }
-        }
 
     def export_all_files_logic(self, markdown_content: str):
         logging.info("Entering export_all_files_logic function.")
