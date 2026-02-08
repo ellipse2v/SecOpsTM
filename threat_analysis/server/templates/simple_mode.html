@@ -124,9 +124,10 @@
             color: white;
             border: none;
             padding: 8px 16px;
-            border-radius: 4px;
+            border-radius: 6px; /* Consistent with other buttons */
             cursor: pointer;
             font-size: 14px;
+            height: 34px; /* Explicit height for consistency */
             transition: background-color 0.2s;
             display: flex;
             align-items: center;
@@ -460,7 +461,14 @@
                 </div>
             </div>
             <div class="menu-separator"></div>
-            <button onclick="TabManager.addSubmodel()" class="menu-button">➕ Add Sub-model</button>
+            <div class="dropdown">
+                <button class="dropbtn">Submodel</button>
+                <div class="dropdown-content">
+                    <button onclick="TabManager.addSubmodel()">➕ Add Sub-model</button>
+                    <button onclick="TabManager.triggerLoadSubmodel()">📂 Load Sub-model</button>
+                    <input type="file" id="loadSubmodelInput" accept=".md" style="display: none;" onchange="TabManager.loadSubmodel(event)">
+                </div>
+            </div>
             <div class="menu-separator"></div>
             <button onclick="generateAllFiles()" class="menu-button">⚡ Generate All</button>
             <div class="menu-separator"></div>
@@ -652,6 +660,37 @@
                     }
                 });
                 return { mainModelContent, submodels };
+            },
+
+            triggerLoadSubmodel: function() {
+                document.getElementById('loadSubmodelInput').click();
+            },
+
+            loadSubmodel: function(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const content = e.target.result;
+                    const filename = file.name;
+                    const path = `submodel/${filename}`; // Assuming loaded submodels also go under 'submodel/'
+
+                    // Check if a tab with this path already exists
+                    const existingTab = this.editors.find(e => e && e.path === path);
+                    if (existingTab) {
+                        alert(`A tab with the path "${path}" already exists. Switching to it and updating content.`);
+                        const existingIndex = this.editors.indexOf(existingTab);
+                        this.switchTab(existingIndex);
+                        existingTab.editor.setValue(content); // Update content if re-loading
+                        return;
+                    }
+
+                    // Add new tab for the loaded submodel
+                    const newIndex = this.addTab(path, content);
+                    this.switchTab(newIndex);
+                };
+                reader.readAsText(file);
             }
         };
 

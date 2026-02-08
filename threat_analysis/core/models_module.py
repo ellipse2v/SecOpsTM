@@ -121,7 +121,7 @@ class ThreatModel:
             boundary.inBoundary = parent_boundary_obj
 
         # Store boundary with all properties including color and any additional kwargs
-        boundary_props = {"boundary": boundary, "color": color, "business_value": business_value}
+        boundary_props = {"boundary": boundary, "color": color, "business_value": business_value, "original_name": name}
         boundary_props.update(kwargs)  # Add any additional properties like isTrusted, isFilled
 
         self.boundaries[name.lower()] = boundary_props

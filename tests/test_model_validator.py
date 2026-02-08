@@ -121,3 +121,11 @@ def test_validator_with_invalid_flow_between_boundaries(sample_threat_model):
     assert errors
     assert "Dataflow 'Valid Boundary Flow' cannot originate directly from a boundary. The source must be an actor or a server." in errors
     assert "Dataflow 'Valid Boundary Flow' cannot terminate directly at a boundary. The destination must be an actor or a server." in errors
+
+def test_validator_with_unused_boundary(sample_threat_model):
+    """Tests that a model with an unused boundary fails validation."""
+    sample_threat_model.add_boundary("Unused Zone")
+    validator = ModelValidator(sample_threat_model)
+    errors = validator.validate()
+    assert errors
+    assert "Boundary 'Unused Zone' is defined but not used by any actor or server." in errors

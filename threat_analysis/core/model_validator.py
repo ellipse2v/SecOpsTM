@@ -41,6 +41,7 @@ class ModelValidator:
         self._validate_dataflow_references()
         self._validate_element_boundaries()
         self._validate_dataflow_endpoints()
+        self._validate_unused_boundaries()
 
         return self.errors
 
@@ -115,15 +116,41 @@ class ModelValidator:
         """
         boundary_names = {b.lower() for b in self.threat_model.boundaries}
 
-        for actor_info in self.threat_model.actors:
-            boundary_name = actor_info.get('boundary_name')
-            if boundary_name and boundary_name.lower() not in boundary_names:
-                self._add_error(f"Actor '{actor_info['name']}' refers to a non-existent boundary: '{boundary_name}'.")
+        for element_info in self.threat_model.actors:
+            if hasattr(element_info, 'zone'):
+                boundary_name = element_info.zone
+                element_name = element_info.name
+            else:
+                boundary_val = element_info.get('boundary')
+                if isinstance(boundary_val, str):
+                    boundary_name = boundary_val
+                elif isinstance(boundary_val, Boundary):
+                    boundary_name = boundary_val.name
+                else:
+                    boundary_name = element_info.get('boundary_name')
+                
+                element_name = element_info['name']
 
-        for server_info in self.threat_model.servers:
-            boundary_name = server_info.get('boundary_name')
             if boundary_name and boundary_name.lower() not in boundary_names:
-                self._add_error(f"Server '{server_info['name']}' refers to a non-existent boundary: '{boundary_name}'.")
+                self._add_error(f"Actor '{element_name}' refers to a non-existent boundary: '{boundary_name}'.")
+
+        for element_info in self.threat_model.servers:
+            if hasattr(element_info, 'zone'):
+                boundary_name = element_info.zone
+                element_name = element_info.name
+            else:
+                boundary_val = element_info.get('boundary')
+                if isinstance(boundary_val, str):
+                    boundary_name = boundary_val
+                elif isinstance(boundary_val, Boundary):
+                    boundary_name = boundary_val.name
+                else:
+                    boundary_name = element_info.get('boundary_name')
+                
+                element_name = element_info['name']
+
+            if boundary_name and boundary_name.lower() not in boundary_names:
+                self._add_error(f"Server '{element_name}' refers to a non-existent boundary: '{boundary_name}'.")
 
     def _validate_dataflow_endpoints(self):
         """
@@ -134,3 +161,48 @@ class ModelValidator:
                 self._add_error(f"Dataflow '{dataflow.name}' cannot originate directly from a boundary. The source must be an actor or a server.")
             if isinstance(dataflow.sink, Boundary):
                 self._add_error(f"Dataflow '{dataflow.name}' cannot terminate directly at a boundary. The destination must be an actor or a server.")
+
+    def _validate_unused_boundaries(self):
+        """
+        Validates that all boundaries are used by at least one element.
+        """
+        used_boundaries = set()
+        for element_info in self.threat_model.actors:
+            if hasattr(element_info, 'zone'):
+                boundary_name = element_info.zone
+            else:
+                boundary_val = element_info.get('boundary')
+                if isinstance(boundary_val, str):
+                    boundary_name = boundary_val
+                elif isinstance(boundary_val, Boundary):
+                    boundary_name = boundary_val.name
+                else:
+                    boundary_name = element_info.get('boundary_name')
+
+            if boundary_name:
+                used_boundaries.add(boundary_name.lower())
+        
+        for element_info in self.threat_model.servers:
+            if hasattr(element_info, 'zone'):
+                boundary_name = element_info.zone
+            else:
+                boundary_val = element_info.get('boundary')
+                if isinstance(boundary_val, str):
+                    boundary_name = boundary_val
+                elif isinstance(boundary_val, Boundary):
+                    boundary_name = boundary_val.name
+                else:
+                    boundary_name = element_info.get('boundary_name')
+
+            if boundary_name:
+                used_boundaries.add(boundary_name.lower())
+
+        defined_boundaries_map = {
+            b_lower: self.threat_model.boundaries[b_lower].get("original_name", b_lower)
+            for b_lower in self.threat_model.boundaries
+        }
+
+        unused_lower_names = defined_boundaries_map.keys() - used_boundaries
+        for boundary_lower_name in unused_lower_names:
+            original_name = defined_boundaries_map[boundary_lower_name]
+            self._add_error(f"Boundary '{original_name}' is defined but not used by any actor or server.")
