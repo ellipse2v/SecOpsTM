@@ -88,58 +88,70 @@ class ModelParser:
         """
         Helper method to process specific sections of the Markdown content, supporting multi-line definitions.
         """
-        current_section = None
+        current_section = None # Reset current_section for each pass of _process_sections
         boundary_stack: List[Tuple[str, int]] = []
+
+        logging.debug(f"Starting _process_sections pass with parsers: {list(parsers.keys())}")
 
         i = 0
         while i < len(lines):
             line = lines[i]
+            logging.debug(f"Processing line {i}: '{line.strip()}' (current_section: {current_section})")
             if not line.strip():
                 i += 1
                 continue
 
-            # Handle section headers
             if line.strip().startswith("## ") or line.strip().startswith("### "):
                 section_title = line.strip()
+                logging.debug(f"Found potential section header: '{section_title}'")
                 if section_title in parsers:
                     current_section = section_title
                     logging.info(f"⏳ Loading section: {current_section}")
                     boundary_stack = []
                 else:
-                    current_section = None
+                    current_section = None # Header not relevant for this pass
                 i += 1
                 continue
 
-            if current_section and current_section in parsers:
-                # This regex works for any element definition line.
-                match = re.match(r'^\s*- \*\*(?P<name>[^\*:]+)\*\*:\s*(?P<params>.*)', line)
-                if match:
-                    name = match.group('name').strip()
-                    params_str = match.group('params').strip()
-                    
-                    current_indentation = len(line) - len(line.lstrip())
-                    j = i + 1
-                    while j < len(lines):
-                        next_line = lines[j]
-                        next_indentation = len(next_line) - len(next_line.lstrip())
+            # Check if it's a list item under a known section
+            if line.strip().startswith("- "):
+                if current_section and current_section in parsers:
+                    logging.debug(f"Attempting to parse list item under section: {current_section}")
+                    match = re.match(r'^\s*- \*\*(?P<name>[^\*:]+)\*\*:\s*(?P<params>.*)', line)
+                    if match:
+                        name = match.group('name').strip()
+                        params_str = match.group('params').strip()
+                        logging.debug(f"Matched element: name='{name}', params='{params_str}'")
                         
-                        # A line is part of the multi-line block if it's more indented or not a new list item
-                        if next_line.strip() and (next_indentation > current_indentation or not next_line.strip().startswith("- ")):
-                            params_str += "\n" + next_line.strip()
-                            j += 1
-                        else:
-                            break
-                    i = j
+                        current_indentation = len(line) - len(line.lstrip())
+                        j = i + 1
+                        while j < len(lines):
+                            next_line = lines[j]
+                            next_indentation = len(next_line) - len(next_line.lstrip())
+                            
+                            if next_line.strip() and (next_indentation > current_indentation or (not next_line.strip().startswith("- ") and not next_line.strip().startswith("## ") and not next_line.strip().startswith("### "))):
+                                params_str += "\n" + next_line.strip()
+                                j += 1
+                            else:
+                                break
+                        i = j
 
-                    # Call the specific parser with the appropriate arguments
-                    if current_section == "## Boundaries":
-                        parsers[current_section](name, params_str, current_indentation, boundary_stack)
+                        if current_section == "## Boundaries":
+                            parsers[current_section](name, params_str, current_indentation, boundary_stack)
+                        else:
+                            parsers[current_section](name, params_str)
+                        continue # Successfully parsed a list item
                     else:
-                        parsers[current_section](name, params_str)
-                else:
-                    i += 1 # Move to next line if it's not a parsable element
-            else:
+                        logging.debug(f"Line '{line.strip()}' started with '-' but did not match element regex.")
+                # If it's a list item but no relevant section, or no match,
+                # we still need to increment i.
                 i += 1
+                continue
+
+            # If it's neither a header nor a list item, reset current_section
+            current_section = None
+            logging.debug(f"Skipping line '{line.strip()}'. Not a header or relevant list item. Resetting current_section.")
+            i += 1
 
     def _parse_boundary(self, name: str, params_str: str, indentation: int, boundary_stack: List[Tuple[str, int]]):
         """Parses a boundary from a name and a multi-line param string, handling nesting."""

@@ -355,6 +355,10 @@ class ReportGenerator:
         except Exception as e:
             logging.error(f"Failed to create main threat model for project: {e}")
 
+        if main_threat_model is None:
+            logging.error("Main threat model could not be created. Aborting project report generation.")
+            return None
+
         all_processed_models = []
         self._recursively_generate_reports(
             model_path=main_model_path,

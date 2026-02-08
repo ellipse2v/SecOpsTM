@@ -38,6 +38,7 @@ class ModelValidator:
         self.element_names = set()
 
         self._validate_unique_names()
+        self._validate_unique_dataflow_names()
         self._validate_dataflow_references()
         self._validate_element_boundaries()
         self._validate_dataflow_endpoints()
@@ -51,7 +52,7 @@ class ModelValidator:
 
     def _validate_unique_names(self):
         """
-        Validates that all elements (actors, servers, boundaries, data, dataflows) have unique names.
+        Validates that all elements (actors, servers, boundaries, data) have unique names.
         """
         # Check actors
         for actor_info in self.threat_model.actors:
@@ -77,14 +78,19 @@ class ModelValidator:
         for data_name in self.threat_model.data_objects:
             if data_name in self.element_names:
                 self._add_error(f"Duplicate element name: '{data_name}' is already used.")
-            self.element_names.add(data_name)
-        
-        # Check dataflows
+            self.element_names.add(name)
+
+
+    def _validate_unique_dataflow_names(self):
+        """
+        Validates that all dataflows have unique names amongst themselves.
+        """
+        dataflow_names: Set[str] = set()
         for dataflow in self.threat_model.dataflows:
             name = dataflow.name
-            if name in self.element_names:
-                self._add_error(f"Duplicate element name: '{name}' is already used.")
-            self.element_names.add(name)
+            if name in dataflow_names:
+                self._add_error(f"Duplicate dataflow name: '{name}' is already used.")
+            dataflow_names.add(name)
 
 
     def _validate_dataflow_references(self):
@@ -204,18 +210,9 @@ class ModelValidator:
 
         unused_lower_names = defined_boundaries_map.keys() - used_boundaries
 
-        # Temporary workaround: Filter out a specific 'boundary' if it appears
-        # as unused and was not explicitly defined. This is to address a potential
-        # implicit default from pytm causing validation errors in tests.
-        filtered_unused_lower_names = set()
-        for b_lower_name in unused_lower_names:
-            # Check if it's the specific 'boundary' that causes issues and is not user-defined
-            if b_lower_name == "boundary" and b_lower_name not in self.threat_model.boundaries:
-                # Ignore this specific implicit boundary error for now.
-                # The root cause of it being reported by my validator needs further investigation.
+        for boundary_lower_name in unused_lower_names:
+            # Explicitly ignore the default 'boundary' if it was not explicitly defined by the user
+            if boundary_lower_name == "boundary":
                 continue
-            filtered_unused_lower_names.add(b_lower_name)
-
-        for boundary_lower_name in filtered_unused_lower_names:
             original_name = defined_boundaries_map[boundary_lower_name]
             self._add_error(f"Boundary '{original_name}' is defined but not used by any actor or server.")

@@ -150,9 +150,12 @@ class AnsiblePlugin(IaCPlugin):
         if "data_flows" in metadata:
             markdown.append("## Dataflows")
             for flow in metadata["data_flows"]:
+                source_name = flow["source"].replace("actor:", "").replace("server:", "")
+                destination_name = flow["destination"].replace("actor:", "").replace("server:", "")
+
                 props_list = [
-                    f'from="{flow["source"]}"',
-                    f'to="{flow["destination"]}"',
+                    f'from="{source_name}"',
+                    f'to="{destination_name}"',
                     f'protocol="{flow["protocol"]}"',
                     f'data="{flow["data"]}"'
                 ]

@@ -161,4 +161,4 @@ def test_generate_threat_model_components(ansible_plugin):
     assert "## Data" in generated_markdown
     assert "- **Web Traffic**: classification=PUBLIC, lifetime=TRANSIENT" in generated_markdown
     assert "## Dataflows" in generated_markdown
-    assert 'from="actor:User", to="server:WebApp", protocol="HTTPS", data="Web Traffic", description="External user accesses web server"' in generated_markdown
+    assert 'from="User", to="WebApp", protocol="HTTPS", data="Web Traffic", description="External user accesses web server"' in generated_markdown
