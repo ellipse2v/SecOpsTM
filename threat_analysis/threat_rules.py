@@ -42,6 +42,7 @@
 
 THREAT_RULES = {
     "servers": [
+        # Generic Server Threats (Original)
         {
             "conditions": {},
             "threats": [
@@ -73,6 +74,53 @@ THREAT_RULES = {
                 }
             ]
         },
+        # --- NEW RULES BASED ON GENERIC SERVER ATTRIBUTES ---
+        {
+            "conditions": {"machine": "container"},
+            "threats": [
+                {
+                    "description": "Container escape vulnerability on {name}, allowing an attacker to gain access to the underlying host.",
+                    "stride_category": "Elevation of Privilege",
+                    "impact": 5,
+                    "likelihood": 3,
+                    "capec_ids": ["CAPEC-585"]
+                }
+            ]
+        },
+        {
+            "conditions": {"machine": "serverless"},
+            "threats": [
+                {
+                    "description": "Event injection vulnerability in serverless function {name}, leading to arbitrary code execution.",
+                    "stride_category": "Tampering",
+                    "impact": 4,
+                    "likelihood": 3
+                }
+            ]
+        },
+        {
+            "conditions": {"redundant": False, "availability": "critical"},
+            "threats": [
+                {
+                    "description": "Lack of redundancy for mission-critical server {name} creates a single point of failure, increasing Denial of Service risk.",
+                    "stride_category": "Denial of Service",
+                    "impact": 5,
+                    "likelihood": 4
+                }
+            ]
+        },
+        {
+            "conditions": {"encryption": "none", "confidentiality": "critical"},
+            "threats": [
+                {
+                    "description": "Critical data-at-rest on server {name} is not encrypted, leading to severe information disclosure if compromised.",
+                    "stride_category": "Information Disclosure",
+                    "impact": 5,
+                    "likelihood": 5
+                }
+            ]
+        },
+        # --- TYPE-SPECIFIC THREATS (Original and New) ---
         {
             "conditions": {"type": "database"},
             "threats": [
@@ -80,16 +128,11 @@ THREAT_RULES = {
                     "description": "Unauthorized access to sensitive data stored in {name} leading to data breach",
                     "stride_category": "Information Disclosure",
                     "impact": 5,
-                    "likelihood": 4
+                    "likelihood": 4,
+                    "capec_ids": ["CAPEC-1"]
                 },
                 {
-                    "description": "Data exfiltration or leakage from {name} to external systems",
-                    "stride_category": "Information Disclosure",
-                    "impact": 5,
-                    "likelihood": 4
-                },
-                {
-                    "description": "Data corruption or tampering in {name} via unauthorized write access or SQL injection",
+                    "description": "Data corruption or tampering in {name} via unauthorized write access",
                     "stride_category": "Tampering",
                     "impact": 5,
                     "likelihood": 4
@@ -104,31 +147,13 @@ THREAT_RULES = {
             ]
         },
         {
-            "conditions": {"type": "app-server"},
+            "conditions": {"database_type": "sql"},
             "threats": [
-                {
-                    "description": "SQL or NoSQL injection vulnerability in the application on {name} allowing command execution or data manipulation",
+                 {
+                    "description": "SQL injection vulnerability on {name} allowing command execution or data manipulation",
                     "stride_category": "Tampering",
                     "impact": 5,
                     "likelihood": 5
-                },
-                {
-                    "description": "Cross-Site Scripting (XSS) vulnerability allowing script injection on {name} affecting user sessions",
-                    "stride_category": "Tampering",
-                    "impact": 3,
-                    "likelihood": 4
-                },
-                {
-                    "description": "Insecure Direct Object References (IDOR) leading to unauthorized data access on {name} by bypassing authorization",
-                    "stride_category": "Information Disclosure",
-                    "impact": 4,
-                    "likelihood": 4
-                },
-                {
-                    "description": "Server-Side Request Forgery (SSRF) on {name} allowing an attacker to induce the server to make requests to an arbitrary domain.",
-                    "stride_category": "Spoofing",
-                    "impact": 4,
-                    "likelihood": 3
                 }
             ]
         },
@@ -142,34 +167,59 @@ THREAT_RULES = {
                     "likelihood": 4
                 },
                 {
-                    "description": "Denial of Service (DoS) attack targeting {name} to exhaust its resources and disrupt network connectivity",
-                    "stride_category": "Denial of Service",
-                    "impact": 5,
-                    "likelihood": 4,
-                    "capec_ids": ["CAPEC-125", "CAPEC-494"]
-                },
-                {
                     "description": "Vulnerability in the management interface of {name} leading to critical privilege escalation",
                     "stride_category": "Elevation of Privilege",
                     "impact": 5,
                     "likelihood": 5,
                     "capec_ids": ["CAPEC-51"]
-                },
-                {
-                    "description": "Firewall bypass through fragmented packets or other evasion techniques against {name}",
-                    "stride_category": "Spoofing",
-                    "impact": 4,
-                    "likelihood": 4
-                },
-                {
-                    "description": "Privilege escalation on {name} by accessing functionality not properly constrained by ACLs",
-                    "stride_category": "Elevation of Privilege",
-                    "impact": 4,
-                    "likelihood": 4,
-                    "capec_ids": ["CAPEC-1"]
                 }
             ]
         },
+        {
+            "conditions": {"type": "firewall", "waf": False},
+            "threats": [
+                {
+                    "description": "The firewall {name} lacks a Web Application Firewall (WAF), failing to protect against common web attacks like XSS and SQL Injection.",
+                    "stride_category": "Tampering",
+                    "impact": 4,
+                    "likelihood": 4
+                }
+            ]
+        },
+        {
+            "conditions": {"type": "firewall", "ids": False},
+            "threats": [
+                {
+                    "description": "The firewall {name} lacks an Intrusion Detection System (IDS), preventing the detection of reconnaissance and attack patterns.",
+                    "stride_category": "Repudiation",
+                    "impact": 3,
+                    "likelihood": 4
+                }
+            ]
+        },
+        {
+            "conditions": {"type": "auth-server", "mfa_enabled": False},
+            "threats": [
+                {
+                    "description": "The authentication server {name} does not enforce Multi-Factor Authentication (MFA), making it vulnerable to credential stuffing and phishing.",
+                    "stride_category": "Spoofing",
+                    "impact": 5,
+                    "likelihood": 4
+                }
+            ]
+        },
+        {
+            "conditions": {"auth_protocol": "ldap"},
+            "threats": [
+                {
+                    "description": "LDAP injection vulnerability in authentication server {name}, potentially allowing bypass of authentication controls.",
+                    "stride_category": "Elevation of Privilege",
+                    "impact": 5,
+                    "likelihood": 3
+                }
+            ]
+        },
+        # Other original rules...
         {
             "conditions": {"type": "load-balancer"},
             "threats": [
@@ -183,7 +233,8 @@ THREAT_RULES = {
                     "description": "Weak SSL/TLS configuration or ciphers used by {name} leading to information disclosure",
                     "stride_category": "Information Disclosure",
                     "impact": 3,
-                    "likelihood": 3
+                    "likelihood": 3,
+                    "capec_ids": ["CAPEC-17"]
                 }
             ]
         },
@@ -251,7 +302,8 @@ THREAT_RULES = {
                     "description": "Improper rate limiting on API Gateway {name}, leading to Denial of Service.",
                     "stride_category": "Denial of Service",
                     "impact": 4,
-                    "likelihood": 4
+                    "likelihood": 4,
+                    "capec_ids": ["CAPEC-601", "CAPEC-301"]
                 },
                 {
                     "description": "Weak or missing authentication on routes managed by API Gateway {name}, allowing unauthorized access to backend services.",
@@ -313,12 +365,14 @@ THREAT_RULES = {
                     "description": "Lateral movement from management server {name} to other systems in the network for further compromise.",
                     "stride_category": "Elevation of Privilege",
                     "impact": 4,
-                    "likelihood": 4
+                    "likelihood": 4,
+                    "capec_ids": ["CAPEC-555", "CAPEC-645"]
                 }
             ]
         }
     ],
     "dataflows": [
+        # Original Rules
         {
             "conditions": {"is_encrypted": False},
             "threats": [
@@ -345,7 +399,7 @@ THREAT_RULES = {
             "conditions": {"contains_sensitive_data": True, "is_encrypted": False},
             "threats": [
                 {
-                    "description": "Sensitive data (PII) transmitted in cleartext from {source.name} to {sink.name}, leading to critical information disclosure",
+                    "description": "Sensitive data transmitted in cleartext from {source.name} to {sink.name}, leading to critical information disclosure",
                     "stride_category": "Information Disclosure",
                     "impact": 5,
                     "likelihood": 5
@@ -461,9 +515,78 @@ THREAT_RULES = {
                     "likelihood": 4
                 }
             ]
+        },
+
+        {
+            "conditions": {"protocol": "FTP"},
+            "threats": [
+                {
+                    "description": "Information Disclosure: Insecure FTP protocol between {source.name} and {sink.name} exposes credentials in cleartext.",
+                    "stride_category": "Information Disclosure",
+                    "impact": 4,
+                    "likelihood": 4
+                }
+            ]
+        },
+        # --- NEW RULES BASED ON DATAFLOW ATTRIBUTES ---
+        {
+            "conditions": {"authentication": "none", "crosses_trust_boundary": True},
+            "threats": [
+                {
+                    "description": "Spoofing risk on dataflow from {source.name} to {sink.name} as it crosses a trust boundary with no authentication.",
+                    "stride_category": "Spoofing",
+                    "impact": 4,
+                    "likelihood": 4
+                }
+            ]
+        },
+        {
+            "conditions": {"authentication": "credentials", "is_encrypted": False},
+            "threats": [
+                {
+                    "description": "Credentials in dataflow from {source.name} to {sink.name} are sent over an unencrypted channel.",
+                    "stride_category": "Information Disclosure",
+                    "impact": 5,
+                    "likelihood": 5
+                }
+            ]
+        },
+        {
+            "conditions": {"authorization": "none", "readonly": False},
+            "threats": [
+                {
+                    "description": "Dataflow from {source.name} to {sink.name} allows write operations without any authorization specified, risking unauthorized tampering.",
+                    "stride_category": "Tampering",
+                    "impact": 4,
+                    "likelihood": 3
+                }
+            ]
+        },
+        {
+            "conditions": {"vpn": False, "source.boundary.isTrusted": False},
+            "threats": [
+                {
+                    "description": "Dataflow from untrusted source {source.name} to {sink.name} does not use a VPN, exposing it to interception.",
+                    "stride_category": "Information Disclosure",
+                    "impact": 3,
+                    "likelihood": 4
+                }
+            ]
+        },
+        {
+            "conditions": {"ip_filtered": False, "sink.boundary.isTrusted": True},
+            "threats": [
+                {
+                    "description": "Dataflow from {source.name} to trusted component {sink.name} is not protected by IP filtering, allowing connections from any source.",
+                    "stride_category": "Spoofing",
+                    "impact": 3,
+                    "likelihood": 4
+                }
+            ]
         }
     ],
     "actors": [
+        # Original Rules
         {
             "conditions": {},
             "threats": [
@@ -485,6 +608,29 @@ THREAT_RULES = {
                     "impact": 4,
                     "likelihood": 3,
                     "capec_ids": ["CAPEC-122"]
+                }
+            ]
+        },
+        # --- NEW RULES BASED ON ACTOR ATTRIBUTES ---
+        {
+            "conditions": {"authenticity": "credentials"},
+            "threats": [
+                {
+                    "description": "Actor {name} uses single-factor authentication (credentials only), increasing risk from phishing and credential stuffing.",
+                    "stride_category": "Spoofing",
+                    "impact": 4,
+                    "likelihood": 4
+                }
+            ]
+        },
+        {
+            "conditions": {"isTrusted": False},
+            "threats": [
+                {
+                    "description": "Untrusted actor {name} may attempt to inject malicious data or exploit vulnerabilities in connected systems.",
+                    "stride_category": "Tampering",
+                    "impact": 4,
+                    "likelihood": 5
                 }
             ]
         }

@@ -77,8 +77,9 @@ def test_parse_boundary_default_color(model_parser, threat_model):
 
 def test_parse_actor(model_parser, threat_model):
     threat_model.add_boundary("Internet")
-    line = "- **User**: boundary=Internet, color=blue, isFilled=True"
-    model_parser._parse_actor(line)
+    name = "User"
+    params_str = "boundary=Internet, color=blue, isFilled=True"
+    model_parser._parse_actor(name, params_str)
     assert len(threat_model.actors) == 1
     actor = threat_model.actors[0]
     assert actor['object'].name == "User"
@@ -88,8 +89,9 @@ def test_parse_actor(model_parser, threat_model):
 
 def test_parse_server(model_parser, threat_model):
     threat_model.add_boundary("Internal Network")
-    line = "- **WebServer**: boundary=\"Internal Network\", color=green, isFilled=False"
-    model_parser._parse_server(line)
+    name = "WebServer"
+    params_str = "boundary=\"Internal Network\", color=green, isFilled=False"
+    model_parser._parse_server(name, params_str)
     assert len(threat_model.servers) == 1
     server_info = threat_model.servers[0]
     server = server_info["object"]
@@ -99,8 +101,9 @@ def test_parse_server(model_parser, threat_model):
     assert server_info["isFilled"] is False
 
 def test_parse_data(model_parser, threat_model):
-    line = "- **CreditCardData**: classification=TOP_SECRET, credentialsLife=LONG"
-    model_parser._parse_data(line)
+    name = "CreditCardData"
+    params_str = "classification=TOP_SECRET, credentialsLife=LONG"
+    model_parser._parse_data(name, params_str)
     assert len(threat_model.data_objects) == 1
     data_obj = threat_model.data_objects["creditcarddata"]
     assert data_obj.name == "CreditCardData"
@@ -109,8 +112,9 @@ def test_parse_data(model_parser, threat_model):
 
 def test_parse_data_unrecognized_enum(model_parser, threat_model):
     with patch('logging.warning') as mock_warn:
-        line = "- **InvalidData**: classification=INVALID_CLASS, credentialsLife=INVALID_LIFE"
-        model_parser._parse_data(line)
+        name = "InvalidData"
+        params_str = "classification=INVALID_CLASS, credentialsLife=INVALID_LIFE"
+        model_parser._parse_data(name, params_str)
         assert len(threat_model.data_objects) == 1
         data_obj = threat_model.data_objects["invaliddata"]
         assert data_obj.name == "InvalidData"
@@ -123,8 +127,9 @@ def test_parse_dataflow(model_parser, threat_model):
     threat_model.add_actor("User", "Default Boundary")
     threat_model.add_server("WebServer", "Default Boundary")
     threat_model.add_data("Credentials")
-    line = "- **LoginFlow**: from=\"User\", to=\"WebServer\", protocol=\"HTTPS\", data=\"Credentials\", is_authenticated=True, is_encrypted=True"
-    model_parser._parse_dataflow(line)
+    name = "LoginFlow"
+    params_str = "from=\"User\", to=\"WebServer\", protocol=\"HTTPS\", data=\"Credentials\", is_authenticated=True, is_encrypted=True"
+    model_parser._parse_dataflow(name, params_str)
     assert len(threat_model.dataflows) == 1
     dataflow = threat_model.dataflows[0]
     assert dataflow.name == "LoginFlow"
@@ -137,8 +142,9 @@ def test_parse_dataflow(model_parser, threat_model):
 
 def test_parse_dataflow_missing_elements(model_parser, threat_model):
     with patch('logging.warning') as mock_warn:
-        line = "- **MissingFlow**: from=\"NonExistent\", to=\"AlsoNonExistent\", protocol=\"HTTP\""
-        model_parser._parse_dataflow(line)
+        name = "MissingFlow"
+        params_str = "from=\"NonExistent\", to=\"AlsoNonExistent\", protocol=\"HTTP\""
+        model_parser._parse_dataflow(name, params_str)
         assert len(threat_model.dataflows) == 0
         mock_warn.assert_called_once()
 
@@ -147,8 +153,9 @@ def test_parse_dataflow_missing_data_object(model_parser, threat_model):
         # Source and sink elements exist, but data object does not
         threat_model.add_actor("User", "Default Boundary")
         threat_model.add_server("WebServer", "Default Boundary")
-        line = "- **FlowWithMissingData**: from=\"User\", to=\"WebServer\", protocol=\"HTTP\", data=\"NonExistentData\""
-        model_parser._parse_dataflow(line)
+        name = "FlowWithMissingData"
+        params_str = "from=\"User\", to=\"WebServer\", protocol=\"HTTP\", data=\"NonExistentData\""
+        model_parser._parse_dataflow(name, params_str)
         assert len(threat_model.dataflows) == 1 # Dataflow should still be added
         dataflow = threat_model.dataflows[0]
         assert dataflow.name == "FlowWithMissingData"
@@ -157,14 +164,21 @@ def test_parse_dataflow_missing_data_object(model_parser, threat_model):
 
 def test_parse_dataflow_malformed(model_parser, threat_model):
     with patch('logging.warning') as mock_warn:
-        line = "- **MalformedFlow**: to=\"MyServer\", protocol=\"TCP\""
-        model_parser._parse_dataflow(line)
+        # The _process_sections already filters out malformed lines
+        # if they don't match the "- **Name**: params" pattern.
+        # This test should now simulate a call to the parser with invalid params_str
+        # or rely on the _process_sections's warning.
+        # For now, let's keep it failing gracefully if _parse_dataflow is called directly.
+        name = "MalformedFlow"
+        params_str = "to=\"MyServer\", protocol=\"TCP\"" # Missing 'from'
+        model_parser._parse_dataflow(name, params_str)
         assert len(threat_model.dataflows) == 0
         mock_warn.assert_called_once()
 
 def test_parse_protocol_style(model_parser, threat_model):
-    line = "- **HTTPS**: color=blue, line_style=dotted, width=2.0"
-    model_parser._parse_protocol_style(line)
+    name = "HTTPS"
+    params_str = "color=blue, line_style=dotted, width=2.0"
+    model_parser._parse_protocol_style(name, params_str)
     styles = threat_model.get_all_protocol_styles()
     assert "HTTPS" in styles
     assert styles["HTTPS"]["color"] == "blue"
@@ -172,29 +186,37 @@ def test_parse_protocol_style(model_parser, threat_model):
     assert styles["HTTPS"]["width"] == 2.0
 
 def test_parse_severity_multiplier(model_parser, threat_model):
-    line = "- **CriticalData**: 2.5"
-    model_parser._parse_severity_multiplier(line)
+    name = "CriticalData"
+    params_str = "2.5"
+    model_parser._parse_severity_multiplier(name, params_str)
     assert threat_model.severity_multipliers["CriticalData"] == 2.5
 
 def test_parse_severity_multiplier_with_comment(model_parser, threat_model):
-    """Tests that commented lines are ignored when parsing severity multipliers."""
-    line = "# - **CommentedMultiplier**: 3.0"
-    model_parser._parse_severity_multiplier(line)
-    assert not threat_model.severity_multipliers
+    """Tests that malformed params_str (like a comment line) passed directly to helper is warned and ignored."""
+    with patch('logging.warning') as mock_warn:
+        name = "CommentedMultiplier"
+        params_str = "# - **CommentedMultiplier**: 3.0" # This params_str is malformed for float()
+        model_parser._parse_severity_multiplier(name, params_str)
+        assert not threat_model.severity_multipliers # Should not add anything
+        mock_warn.assert_called_once() # Should log a warning
 
 def test_parse_custom_mitre(model_parser, threat_model):
-    line = "- **Phishing**: {'tactics':['Initial Access'], 'techniques':[{'id': 'T1566', 'name': 'Phishing'}]}"
-    model_parser._parse_custom_mitre(line)
+    name = "Phishing"
+    params_str = "{'tactics':['Initial Access'], 'techniques':[{'id': 'T1566', 'name': 'Phishing'}]}"
+    model_parser._parse_custom_mitre(name, params_str)
     assert len(threat_model.custom_mitre_mappings) == 1
     mapping = threat_model.custom_mitre_mappings["Phishing"]
     assert mapping['tactics'] == ['Initial Access']
     assert mapping['techniques'] == [{'id': 'T1566', 'name': 'Phishing'}]
 
 def test_parse_custom_mitre_with_comment(model_parser, threat_model):
-    """Tests that commented lines are ignored when parsing custom MITRE mappings."""
-    line = "# - **CommentedMapping**: {'tactics':['Initial Access'], 'techniques':[{'id': 'T1566', 'name': 'Phishing'}]}"
-    model_parser._parse_custom_mitre(line)
-    assert not threat_model.custom_mitre_mappings
+    """Tests that malformed params_str (like a comment line) passed directly to helper is warned and ignored."""
+    with patch('logging.error') as mock_error: # custom mitre logs errors on malformed input
+        name = "CommentedMapping"
+        params_str = "# - **CommentedMapping**: {'tactics':['Initial Access'], 'techniques':[{'id': 'T1566', 'name': 'Phishing'}]}"
+        model_parser._parse_custom_mitre(name, params_str)
+        assert not threat_model.custom_mitre_mappings # Should not add anything
+        mock_error.assert_called_once() # Should log an error
 
 def test_parse_key_value_params(model_parser):
     params_str = 'key1="value one", key2=True, key3=123, key4=#FF00FF, key5=unquoted_string'

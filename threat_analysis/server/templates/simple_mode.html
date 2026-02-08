@@ -502,9 +502,9 @@
             <div id="svg-container">
                 <div id="svg-wrapper"></div>
                 <div id="zoom-controls">
-                    <button onclick="panZoomInstance.zoomIn()">+</button>
-                    <button onclick="panZoomInstance.zoomOut()">-</button>
-                    <button onclick="panZoomInstance.reset()">&#8635;</button>
+                    <button id="zoom-in-btn">+</button>
+                    <button id="zoom-out-btn">-</button>
+                    <button id="zoom-reset-btn">&#8635;</button>
                 </div>
             </div>
             <div id="legend-container"></div>
@@ -747,22 +747,33 @@
 
                 const svgElement = svgWrapper.querySelector('svg');
                 if (svgElement) {
+                    console.log("SVG element found in svgWrapper.", svgElement);
                     const graphGroup = svgElement.querySelector('g.graph');
-                    // Only initialize pan/zoom if the graph has child elements (nodes/edges)
-                    if (graphGroup && graphGroup.children.length > 0) {
-                        panZoomInstance = svgPanZoom(svgElement, {
-                            zoomEnabled: true,
-                            panEnabled: true,
-                            controlIconsEnabled: false,
-                            fit: true,
-                            center: true,
-                            minZoom: 0.1,
-                            maxZoom: 10
-                        });
+                    if (graphGroup) {
+                        console.log("Graph group found inside SVG.", graphGroup);
+                        if (graphGroup.children.length > 0) {
+                            console.log("Graph group has children, initializing svgPanZoom.");
+                            panZoomInstance = svgPanZoom(svgElement, {
+                                zoomEnabled: true,
+                                panEnabled: true,
+                                controlIconsEnabled: false,
+                                fit: true,
+                                center: true,
+                                minZoom: 0.1,
+                                maxZoom: 10
+                            });
+                            console.log("svgPanZoom initialized with instance:", panZoomInstance);
+
+                        } else {
+                            console.log("Graph group has no children. Not initializing svgPanZoom.");
+                            panZoomInstance = null; // Ensure no old instance is lingering
+                        }
                     } else {
-                        panZoomInstance = null; // Ensure no old instance is lingering
+                        console.log("Graph group (g.graph) not found inside SVG. Not initializing svgPanZoom.");
+                        panZoomInstance = null;
                     }
                 } else {
+                    console.log("SVG element not found in svgWrapper. Not initializing svgPanZoom.");
                     panZoomInstance = null;
                 }
             } catch (error) {
@@ -773,6 +784,63 @@
                 panZoomInstance = null;
             }
         }
+
+
+
+        // Helper functions for zoom controls
+        // Helper functions for zoom controls
+        function zoom(factor) {
+            if (panZoomInstance) {
+                console.log(`Attempting to zoom by factor: ${factor}`);
+                panZoomInstance.zoomBy(factor);
+            } else {
+                console.log("panZoomInstance is null, cannot zoom.");
+            }
+        }
+
+        function zoomReset() {
+            if (panZoomInstance) {
+                console.log("Attempting to reset zoom.");
+                panZoomInstance.reset();
+            } else {
+                console.log("panZoomInstance is null, cannot reset zoom.");
+            }
+        }
+
+        // Attach event listeners to zoom buttons globally
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('zoom-in-btn').onclick = () => zoom(1.2);
+            document.getElementById('zoom-out-btn').onclick = () => zoom(0.8);
+            document.getElementById('zoom-reset-btn').onclick = () => zoomReset();
+        });
+
+
+        // Helper functions for zoom controls
+        function zoom(factor) {
+            if (panZoomInstance) {
+                console.log(`Attempting to zoom by factor: ${factor}`);
+                panZoomInstance.zoomBy(factor);
+            } else {
+                console.log("panZoomInstance is null, cannot zoom.");
+            }
+        }
+
+        function zoomReset() {
+            if (panZoomInstance) {
+                console.log("Attempting to reset zoom.");
+                panZoomInstance.reset();
+            } else {
+                console.log("panZoomInstance is null, cannot reset zoom.");
+            }
+        }
+
+        // Attach event listeners to zoom buttons globally
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('zoom-in-btn').onclick = () => zoom(1.2);
+            document.getElementById('zoom-out-btn').onclick = () => zoom(0.8);
+            document.getElementById('zoom-reset-btn').onclick = () => zoomReset();
+        });
+
 
         async function generateAllFiles() {
             const { mainModelContent, submodels } = TabManager.getAllData();

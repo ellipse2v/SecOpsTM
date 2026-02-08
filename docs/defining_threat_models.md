@@ -80,11 +80,14 @@ Boundaries represent trust zones or logical separations within your system. They
 -   Each boundary is defined by a hyphen (`-`), followed by its **name**.
 -   **`color` (optional)**: Assigns a color for visualization in diagrams. You can use standard CSS color names (e.g., `lightblue`, `orange`) or hexadecimal codes.
 -   **`isTrusted` (optional, default: `True`)**: A boolean flag indicating whether the boundary is considered trusted. This is used by the rule-based threat engine to identify threats related to trust boundary violations.
+-   **`type` (optional)**: Defines the nature of the boundary. This can influence threat rules related to specific environments.
+    -   **Examples**: `network-on-prem`, `network-cloud-provider`, `network-cloud-security-group`, `execution-environment`, `container-runtime`.
 
     ```markdown
     ## Boundaries
     - **Client (Web Browser)**: color=lightblue, isTrusted=False
-    - **Internal Network**: color=green, isTrusted=True
+    - **Internal Network**: color=green, isTrusted=True, type=network-on-prem
+    - **Public Cloud Zone**: type=network-cloud-provider, isTrusted=False
     ```
 
 ### Actors (`## Actors`)
@@ -94,11 +97,14 @@ Actors represent entities that interact with your system, both human and automat
 -   Each actor is defined by a hyphen (`-`), followed by its **name**.
 -   **`boundary` (optional)**: Specifies which boundary the actor resides within. If omitted, the actor is considered external to any explicit boundary.
 -   **`color` (optional)**: Assigns a color for visualization.
+-   **`authenticity` (optional, default: `none`)**: Describes the level of authentication required for the actor.
+    -   **Values**: `none`, `credentials` (username/password), `two-factor`, `client-certificate`, `externalized` (e.g., SSO).
+-   **`isTrusted` (optional, default: `False`)**: A boolean flag indicating whether the actor is inherently trusted. This can be used by threat rules, e.g., an untrusted actor with weak authentication poses a higher risk.
 
     ```markdown
     ## Actors
-    - **End User**: boundary="Client (Web Browser)"
-    - **Administrator**: color=blue
+    - **End User**: boundary="Client (Web Browser)", authenticity=credentials, isTrusted=False
+    - **Administrator**: authenticity=two-factor, isTrusted=True
     ```
 
 ### Servers (`## Servers`)
@@ -123,12 +129,51 @@ Servers represent computational resources or applications within your system. Th
         -   `server` (default rectangle, generic server icon if no specific type matches)
     -   If an `svg` icon is not found for a given type, the system falls back to a text-based Unicode character icon.
 -   **`color` (optional)**: Assigns a color for visualization.
+-   **`machine` (optional)**: Describes the execution environment or underlying infrastructure.
+    -   **Values**: `physical`, `virtual`, `container`, `serverless`.
+-   **`encryption` (optional, default: `none`)**: Specifies the encryption status of data-at-rest on the server.
+    -   **Values**: `none`, `transparent`, `data-with-symmetric-shared-key`, `data-with-asymmetric-shared-key`, `data-with-enduser-individual-key`.
+-   **`redundant` (optional, default: `False`)**: A boolean indicating if the server has high availability (e.g., load-balanced, clustered). Influences DoS threats.
+-   **`confidentiality`, `integrity`, `availability` (optional, default: `medium`)**: CIA ratings for the server itself, representing its criticality.
+    -   **Values**: `low`, `medium`, `high`, `critical`.
+-   **`tags` (optional)**: A list of arbitrary tags, useful for marking specific technologies, versions, or organizational labels. E.g., `tags=[apache, nginx, postgresql]`.
+
+#### Server Type Specific Parameters:
+
+-   **For Firewalls (when `type=firewall`):**
+    -   **`waf` (optional, default: `False`)**: Boolean indicating if a Web Application Firewall is enabled.
+    -   **`ids` (optional, default: `False`)**: Boolean indicating if an Intrusion Detection System is enabled.
+    -   **`ips` (optional, default: `False`)**: Boolean indicating if an Intrusion Prevention System is enabled.
+-   **For Databases (when `type=database`):**
+    -   **`database_type` (optional, default: `sql`)**: Specific type of database.
+        -   **Values**: `sql`, `nosql`, `graph`, `timeseries`.
+    -   **`backup_frequency` (optional, default: `none`)**: How often backups are performed.
+        -   **Values**: `none`, `daily`, `weekly`, `monthly`.
+-   **For Load Balancers (when `type=load-balancer`):**
+    -   **`load_balancing_algorithm` (optional, default: `round-robin`)**: The algorithm used for distributing traffic.
+        -   **Values**: `round-robin`, `least-connections`, `ip-hash`.
+    -   **`health_check_enabled` (optional, default: `False`)**: Boolean indicating if health checks are active.
+-   **For Authentication Servers (when `type=auth-server`):**
+    -   **`auth_protocol` (optional, default: `none`)**: The authentication protocol used.
+        -   **Values**: `none`, `ldap`, `saml`, `oauth`, `oidc`.
+    -   **`mfa_enabled` (optional, default: `False`)**: Boolean indicating if Multi-Factor Authentication is enforced.
 
     ```markdown
     ## Servers
-    - **Load Balancer**: type="load_balancer"
-    - **Web Application**: boundary="Monolithic Web Server", type="web_server"
-    - **PostgreSQL DB**: boundary="Database", type="database"
+    - **Perimeter Firewall**: 
+       boundary=DMZ, 
+       type=firewall, 
+       waf=True, ids=True, ips=True, 
+       confidentiality=high, integrity=high, availability=critical
+    - **Product Database**: 
+       boundary="Secure Data Zone", 
+       type=database, 
+       database_type=sql, encryption=data-with-symmetric-shared-key, 
+       redundant=True, confidentiality=critical
+    - **Auth Service**: 
+       boundary="Private App Zone", 
+       type=auth-server, 
+       auth_protocol=oidc, mfa_enabled=True, machine=container
     ```
 
 ### Dataflows (`## Dataflows`)
@@ -141,11 +186,25 @@ Dataflows describe the communication paths and data transfers between actors and
 -   **`protocol` (optional)**: The protocol used for the data transfer (e.g., `HTTPS`, `HTTP`, `SQL`, `SSH`). This is used for both visual styling and by threat rules.
 -   **`color` (optional)**: Assigns a color for visualization.
 -   **`data` (optional)**: A list of `Data Objects` (defined in the `## Data Objects` section) that are transferred over this dataflow. This is critical for identifying information disclosure or tampering threats.
+-   **`authentication` (optional, default: `none`)**: Authentication mechanism for accessing the dataflow.
+    -   **Values**: `none`, `credentials`, `session-id`, `token`, `client-certificate`, `two-factor`, `externalized`.
+-   **`authorization` (optional, default: `none`)**: Authorization mechanism.
+    -   **Values**: `none`, `technical-user`, `enduser-identity-propagation`.
+-   **`vpn` (optional, default: `False`)**: Boolean indicating if the dataflow travels over a VPN.
+-   **`ip_filtered` (optional, default: `False`)**: Boolean indicating if the dataflow is restricted by IP filtering (e.g., firewall rules).
+-   **`readonly` (optional, default: `False`)**: Boolean indicating if the dataflow is read-only (e.g., only GET requests allowed).
+-   **`usage` (optional, default: `business`)**: Purpose of the dataflow.
+    -   **Values**: `business`, `devops`, `management`.
 
     ```markdown
     ## Dataflows
-    - **User Login**: from="End User", to="Web Application", protocol="HTTPS", data=["User Credentials"]
-    - **API Call**: from="Web Application", to="Backend Service", protocol="HTTP", color=orange
+    - **UserToGateway**:
+      from="End User", to="API Gateway", protocol=HTTPS, data="API Request",
+      authentication=token, authorization=enduser-identity-propagation,
+      is_encrypted=True, ip_filtered=False
+    - **DevOpsToCICD**:
+      from="DevOps Engineer", to="CI/CD Server", protocol=SSH,
+      authentication=two-factor, vpn=True, usage=devops
     ```
 
 ### Protocol Styles (`## Protocol Styles`)
@@ -170,11 +229,13 @@ Data Objects represent sensitive data elements that are processed, stored, or tr
 -   **`classification` (optional, default: `Public`)**: The sensitivity level of the data.
     -   **Available `classification` values:** `Public`, `Internal`, `Sensitive`, `Secret`, `Top Secret`.
     -   This classification is used by threat rules to identify threats related to sensitive data handling, especially when crossing trust boundaries or being transmitted insecurely.
+-   **`confidentiality`, `integrity`, `availability` (optional, default: `medium`)**: CIA ratings for the data itself, representing its criticality.
+    -   **Values**: `low`, `medium`, `high`, `critical`.
 
     ```markdown
     ## Data Objects
-    - **User Credentials**: classification=Secret
-    - **Application Logs**: classification=Internal
+    - **User Credentials**: classification=Secret, confidentiality=critical, integrity=high
+    - **Application Logs**: classification=Internal, confidentiality=low, availability=high
     ```
 
 ### Severity Multipliers (`## Severity Multipliers`)

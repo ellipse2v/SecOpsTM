@@ -84,201 +84,192 @@ class ModelParser:
         }
         self._process_sections(lines, relationship_sections)
 
-    def _process_sections(self, lines: List[str], parsers: Dict[str, Callable[[str, int], None]]):
+    def _process_sections(self, lines: List[str], parsers: Dict[str, Callable]):
         """
-        Helper method to process specific sections of the Markdown content.
+        Helper method to process specific sections of the Markdown content, supporting multi-line definitions.
         """
         current_section = None
-        # Stack to keep track of parent boundaries for nested structures
-        boundary_stack: List[Tuple[str, int]] = [] # (boundary_name, indentation_level)
+        boundary_stack: List[Tuple[str, int]] = []
 
-        for line in lines:
-            stripped_line = line.strip()
-            if not stripped_line:
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+            if not line.strip():
+                i += 1
                 continue
 
-            indentation = len(line) - len(line.lstrip())
-
-            if stripped_line.startswith("## ") or stripped_line.startswith("### "):
-                section_title = stripped_line
+            # Handle section headers
+            if line.strip().startswith("## ") or line.strip().startswith("### "):
+                section_title = line.strip()
                 if section_title in parsers:
                     current_section = section_title
                     logging.info(f"⏳ Loading section: {current_section}")
-                    # Reset boundary stack when a new section starts
                     boundary_stack = []
                 else:
                     current_section = None
-                    # Only log ignored sections once per section type
-                    if section_title not in self.section_parsers: # Avoid re-logging already handled sections
-                        logging.info(f"ℹ️ Section ignored: {section_title}")
+                i += 1
                 continue
 
             if current_section and current_section in parsers:
-                if current_section == "## Boundaries":
-                    self._parse_boundary(line, indentation, boundary_stack)
+                # This regex works for any element definition line.
+                match = re.match(r'^\s*- \*\*(?P<name>[^\*:]+)\*\*:\s*(?P<params>.*)', line)
+                if match:
+                    name = match.group('name').strip()
+                    params_str = match.group('params').strip()
+                    
+                    current_indentation = len(line) - len(line.lstrip())
+                    j = i + 1
+                    while j < len(lines):
+                        next_line = lines[j]
+                        next_indentation = len(next_line) - len(next_line.lstrip())
+                        
+                        # A line is part of the multi-line block if it's more indented or not a new list item
+                        if next_line.strip() and (next_indentation > current_indentation or not next_line.strip().startswith("- ")):
+                            params_str += "\n" + next_line.strip()
+                            j += 1
+                        else:
+                            break
+                    i = j
+
+                    # Call the specific parser with the appropriate arguments
+                    if current_section == "## Boundaries":
+                        parsers[current_section](name, params_str, current_indentation, boundary_stack)
+                    else:
+                        parsers[current_section](name, params_str)
                 else:
-                    # For other sections, just pass the stripped line
-                    parsers[current_section](stripped_line)
+                    i += 1 # Move to next line if it's not a parsable element
+            else:
+                i += 1
 
-    def _parse_boundary(self, line: str, indentation: int, boundary_stack: List[Tuple[str, int]]):
-        """Parses a boundary line with format: - **name**: color=value, isTrusted=bool, isFilled=bool"""
-        logging.debug(f"Parsing boundary line: {line.strip()}")
-        match = re.match(r'^- \*\*([^\*:]+)\*\*:\s*(.*)', line.strip())
-        if match:
-            name = match.group(1).strip()
-            params_str = match.group(2).strip()
-            boundary_kwargs = self._parse_key_value_params(params_str)
-            logging.debug(f"Parsed boundary kwargs for '{name}': {boundary_kwargs}")
-            if 'color' not in boundary_kwargs:
-                boundary_kwargs['color'] = 'lightgray'
-                logging.debug(f"Color not found for '{name}', defaulting to lightgray.")
-            
-            # Extract businessValue if present
-            business_value = boundary_kwargs.pop('businessValue', None)
+    def _parse_boundary(self, name: str, params_str: str, indentation: int, boundary_stack: List[Tuple[str, int]]):
+        """Parses a boundary from a name and a multi-line param string, handling nesting."""
+        logging.debug(f"Parsing boundary '{name}' with params: {params_str}")
+        boundary_kwargs = self._parse_key_value_params(params_str)
+        
+        logging.debug(f"Parsed boundary kwargs for '{name}': {boundary_kwargs}")
+        if 'color' not in boundary_kwargs:
+            boundary_kwargs['color'] = 'lightgray'
+            logging.debug(f"Color not found for '{name}', defaulting to lightgray.")
+        
+        business_value = boundary_kwargs.pop('businessValue', None)
 
-            parent_obj = None
-            while boundary_stack and boundary_stack[-1][1] >= indentation:
-                boundary_stack.pop()
-            if boundary_stack:
-                parent_name = boundary_stack[-1][0]
-                parent_obj = self.threat_model.boundaries.get(parent_name, {}).get('boundary')
-            
-            self.threat_model.add_boundary(name, parent_boundary_obj=parent_obj, business_value=business_value, **boundary_kwargs)
-            boundary_stack.append((name, indentation))
+        parent_obj = None
+        while boundary_stack and boundary_stack[-1][1] >= indentation:
+            boundary_stack.pop()
+        if boundary_stack:
+            parent_name = boundary_stack[-1][0].lower() # Parent name should be looked up in lowercase
+            parent_obj = self.threat_model.boundaries.get(parent_name, {}).get('boundary')
+        
+        self.threat_model.add_boundary(name, parent_boundary_obj=parent_obj, business_value=business_value, **boundary_kwargs)
+        boundary_stack.append((name, indentation))
 
-    def _parse_actor(self, line: str):
-        """Parses an actor line with flexible key=value attributes."""
-        logging.debug(f"Parsing actor line: {line}")
-        match = re.match(r'^- \*\*([^\*]+)\*\*:\s*(.*)', line)
-        if match:
-            actor_name = match.group(1).strip()
-            params_str = match.group(2).strip()
-            actor_kwargs = self._parse_key_value_params(params_str)
-            
-            boundary_name = actor_kwargs.pop('boundary', None)
-            # Extract businessValue if present
-            business_value = actor_kwargs.pop('businessValue', None)
+    def _parse_actor(self, name: str, params_str: str):
+        """Parses an actor from a name and a parameter string (can be multi-line)."""
+        logging.debug(f"Parsing actor '{name}' with params: {params_str}")
+        actor_kwargs = self._parse_key_value_params(params_str)
+        
+        boundary_name = actor_kwargs.pop('boundary', None)
+        business_value = actor_kwargs.pop('businessValue', None)
 
-            self.threat_model.add_actor(actor_name, boundary_name=boundary_name, business_value=business_value, **actor_kwargs)
-        else:
-            logging.warning(f"⚠️ Warning: Malformed actor line: {line}")
+        self.threat_model.add_actor(name, boundary_name=boundary_name, business_value=business_value, **actor_kwargs)
 
-    def _parse_server(self, line: str):
-        """Parses a server line with format: - **name**: boundary=value, color=value, isFilled=bool"""
-        logging.debug(f"Parsing server line: {line}")
-        # Match server name and all parameters after colon
-        match = re.match(r'^- \*\*([^\*:]+)\*\*:\s*(.*)', line)
-        if match:
-            name = match.group(1).strip()
-            params_str = match.group(2).strip()
-            # Parse all key=value parameters
-            server_kwargs = self._parse_key_value_params(params_str)
-            boundary_name = server_kwargs.pop('boundary', None)
-            # Extract businessValue if present
-            business_value = server_kwargs.pop('businessValue', None)
+    def _parse_server(self, name: str, params_str: str):
+        """Parses a server from a name and a parameter string (can be multi-line)."""
+        logging.debug(f"Parsing server '{name}' with params: {params_str}")
+        server_kwargs = self._parse_key_value_params(params_str)
+        boundary_name = server_kwargs.pop('boundary', None)
+        business_value = server_kwargs.pop('businessValue', None)
 
-            self.threat_model.add_server(name, boundary_name=boundary_name, business_value=business_value, **server_kwargs)
-            logging.info(f"   - Added Server: {name} (Boundary: {boundary_name}, Props: {server_kwargs}, Business Value: {business_value})")
-        else:
-            logging.warning(f"⚠️ Warning: Malformed server line: {line}")
+        self.threat_model.add_server(name, boundary_name=boundary_name, business_value=business_value, **server_kwargs)
+        logging.info(f"   - Added Server: {name} (Boundary: {boundary_name}, Props: {server_kwargs}, Business Value: {business_value})")
             
     def _parse_key_value_params(self, params_str: str) -> Dict[str, Any]:
         """
-        Parses a key=value parameter string and returns a dictionary.
-        Handles quoted strings, booleans, numbers, hex colors, and unquoted strings.
+        Parses a key=value parameter string (single or multi-line) and returns a dictionary.
+        Handles comments, quoted strings, booleans, numbers, hex colors, lists, and unquoted strings.
         """
         logging.debug(f"Parsing params: '{params_str}'")
         params = {}
-        # This regex matches key=value pairs, where value can be quoted or unquoted (including hex colors)
+        
+        # Remove comments (// to end of line) and then replace newlines with commas
+        cleaned_params_str = re.sub(r'//.*', '', params_str)
+        normalized_params_str = cleaned_params_str.replace('\n', ',').replace('\r', ',')
+
+        # This regex is more advanced to handle lists and avoid splitting inside them.
+        # It matches: key=value pairs where value can be "quoted", [a list], or unquoted.
         param_pattern = re.compile(
-            r'(\w+)\s*=\s*'                # key=
-            r'(?:'                         # non-capturing group for value
-                r'"([^"]*)"'               #   "quoted string"
+            r'([\w_]+)\s*=\s*'  # key= (allow underscore in key)
+            r'('
+                r'"[^"]*"'  # "quoted value"
                 r'|'
-                r'([^,]+)'                  #   unquoted value (anything until comma or end of string)
+                r'\[[^\]]*\]'  # [list value]
+                r'|'
+                r'[^,]+'  # unquoted value
             r')'
         )
-        for m in param_pattern.finditer(params_str):
-            key = m.group(1)
-            value_quoted = m.group(2)
-            value_unquoted = m.group(3)
-            if value_quoted is not None:
-                value = value_quoted
-            elif value_unquoted is not None:
-                # Handle booleans
-                if value_unquoted.lower() == 'true':
+
+        for key, value_str in param_pattern.findall(normalized_params_str):
+            key = key.strip()
+            value_str = value_str.strip()
+            
+            # Process the value
+            if value_str.startswith('"') and value_str.endswith('"'):
+                value = value_str[1:-1]
+            elif value_str.startswith('[') and value_str.endswith(']'):
+                # It's a list, split by comma and strip items
+                value = [item.strip() for item in value_str[1:-1].split(',')]
+            else:
+                # It's a boolean, number, or unquoted string
+                if value_str.lower() == 'true':
                     value = True
-                elif value_unquoted.lower() == 'false':
+                elif value_str.lower() == 'false':
                     value = False
                 else:
                     try:
-                        value = float(value_unquoted)
-                    except ValueError:
-                        value = value_unquoted
-            else:
-                continue
-
-            logging.debug(f"Found match: key='{key}', quoted='{value_quoted}', unquoted='{value_unquoted}' -> final_value='{value}'")
+                        # Use ast.literal_eval for safe evaluation of numbers, etc.
+                        value = ast.literal_eval(value_str)
+                    except (ValueError, SyntaxError):
+                        value = value_str # Keep as string if it fails
 
             # Normalize keys to handle case variations
-            if key.lower() == 'istrusted':
+            if key.lower() in ['istrusted', 'is_trusted']:
                 key = 'isTrusted'
-            elif key.lower() == 'isfilled':
+            elif key.lower() in ['isfilled', 'is_filled']:
                 key = 'isFilled'
+            elif key.lower() in ['businessvalue', 'business_value']:
+                key = 'businessValue'
 
             params[key] = value
+            
         logging.debug(f"Parsed params: {params}")
         return params
 
-    def _parse_data(self, line: str):
-        """Parses a line to define a Data object, extracting all properties."""
-        logging.debug(f"Parsing data line: {line}")
-        # The regex captures the name between ** and the rest of the line as a parameter string
-        match = re.match(r'^- \*\*([^\*]+)\*\*:\s*(.*)', line)
-        if not match:
-            logging.warning(f"⚠️ Warning: Malformed data line: {line}")
-            return
-
-        name = match.group(1).strip()
-        params_str = match.group(2).strip()
-        data_kwargs = self._parse_key_value_params(params_str) # Extract key=value
+    def _parse_data(self, name: str, params_str: str):
+        """Parses a Data object from a name and a parameter string (can be multi-line)."""
+        logging.debug(f"Parsing data '{name}' with params: {params_str}")
+        data_kwargs = self._parse_key_value_params(params_str)
 
         # Convert strings to PyTM enum objects
-        if "classification" in data_kwargs:
+        if "classification" in data_kwargs and isinstance(data_kwargs["classification"], str):
             enum_str = data_kwargs["classification"].upper()
             data_kwargs["classification"] = self.classification_map.get(enum_str, Classification.UNKNOWN)
             if enum_str not in self.classification_map:
                 logging.warning(f"⚠️ Warning: Classification '{enum_str}' not recognized for Data '{name}'. Set to UNKNOWN.")
 
-        if "credentialsLife" in data_kwargs:
+        if "credentialsLife" in data_kwargs and isinstance(data_kwargs["credentialsLife"], str):
             enum_str = data_kwargs["credentialsLife"].upper()
             data_kwargs["credentialsLife"] = self.lifetime_map.get(enum_str, Lifetime.UNKNOWN)
             if enum_str not in self.lifetime_map:
                 logging.warning(f"⚠️ Warning: Lifetime '{enum_str}' not recognized for Data '{name}'. Set to UNKNOWN.")
             
-        # Call add_data by unpacking the properties dictionary
         self.threat_model.add_data(name, **data_kwargs)
         
-        # Create a nice log message
-        params_display = []
-        for key, value in data_kwargs.items():
-            if hasattr(value, 'name'):  # For enum objects
-                params_display.append(f"{key}: {value.name}")
-            else:
-                params_display.append(f"{key}: {value}")
-        
+        params_display = [f"{key}: {value.name if hasattr(value, 'name') else value}" for key, value in data_kwargs.items()]
         logging.info(f"   - Added Data: {name} ({', '.join(params_display)})")
 
-    def _parse_dataflow(self, line: str):
-        """Parses a dataflow line with flexible named arguments."""
-        logging.debug(f"Parsing dataflow line: {line}")
-        name_match = re.match(r'^- \*\*([^\*]+)\*\*:\s*(.*)', line)
-        if not name_match:
-            logging.warning(f"⚠️ Warning: Malformed dataflow line (missing name): {line}")
-            return
-
-        name = name_match.group(1).strip()
-        params_str = name_match.group(2).strip()
+    def _parse_dataflow(self, name: str, params_str: str):
+        """Parses a dataflow from a name and a parameter string (can be multi-line)."""
+        logging.debug(f"Parsing dataflow '{name}' with params: {params_str}")
         params = self._parse_key_value_params(params_str)
 
         from_name_raw = params.pop("from", None)
@@ -288,101 +279,51 @@ class ModelParser:
             logging.warning(f"⚠️ Warning: Dataflow '{name}' is missing mandatory parameters (from, to).")
             return
 
+        # Using an inner function for DRY code
         def find_element(name_raw: str):
-            name_lower = name_raw.lower()
-            if name_lower.startswith("boundary:"):
-                name = name_lower.split(":", 1)[1]
-                return self.threat_model.boundaries.get(name, {}).get('boundary')
-            
-            name = name_lower
-            if name_lower.startswith("actor:"):
-                name = name_lower.split(":", 1)[1]
-            elif name_lower.startswith("server:"):
-                name = name_lower.split(":", 1)[1]
-            
-            return self.threat_model.get_element_by_name(name)
+            if not isinstance(name_raw, str): # Ensure name_raw is a string before calling lower()
+                logging.warning(f"⚠️ Invalid element name for dataflow '{name}': {name_raw} is not a string.")
+                return None
+            return self.threat_model.get_element_by_name(name_raw)
 
         from_elem = find_element(from_name_raw)
         to_elem = find_element(to_name_raw)
 
         if from_elem and to_elem:
-            # Pass the remaining params as kwargs
             self.threat_model.add_dataflow(from_elem, to_elem, name, **params)
             logging.info(f"   - Added Dataflow: {name} ({from_name_raw} -> {to_name_raw}, Props: {params})")
         else:
             logging.warning(f"⚠️ Warning: Elements for dataflow '{name}' not found. From: '{from_name_raw}', To: '{to_name_raw}'.")
             
-    def _parse_protocol_style(self, line: str):
-        """Parses a protocol style line with format: - **protocol**: color=value, line_style=value"""
-        logging.debug(f"Parsing protocol style line: {line}")
-        match = re.match(r'^- \*\*([^\*:]+)\*\*:\s*(.*)', line)
-        if match:
-            protocol_name = match.group(1).strip()
-            params_str = match.group(2).strip()
-            
-            # Parse all key=value parameters
-            style_kwargs = self._parse_key_value_params(params_str)
-            
-            # Call add_protocol_style method if it exists
-            if hasattr(self.threat_model, 'add_protocol_style'):
-                self.threat_model.add_protocol_style(protocol_name, **style_kwargs)
-                
-                # Create a nice log message
-                params_display = []
-                for key, value in style_kwargs.items():
-                    params_display.append(f"{key}: {value}")
-                
-                logging.info(f"   - Added Protocol Style: {protocol_name} ({', '.join(params_display)})")
-            else:
-                logging.info(f"ℹ️ Protocol Style ignored (method not implemented): {protocol_name}")
-        else:
-            logging.warning(f"⚠️ Warning: Malformed protocol style line: {line}")
-
-    def _parse_severity_multiplier(self, line: str):
-        """Parses a severity multiplier line."""
-        logging.debug(f"Parsing severity multiplier line: {line}")
-        if line.strip().startswith('#'):
-            return
-        match = re.match(r'^- \*\*([^\*]+)\*\*:\s*([0-9.]+)', line)
-        if match:
-            element_name = match.group(1).strip()
-            multiplier = float(match.group(2).strip())
-            # Assume there is an add_severity_multiplier method
-            if hasattr(self.threat_model, 'add_severity_multiplier'):
-                self.threat_model.add_severity_multiplier(element_name, multiplier)
-                logging.info(f"   - Added Severity Multiplier: {element_name} = {multiplier}")
-            else:
-                logging.info(f"ℹ️ Severity Multiplier ignored (method not implemented): {element_name} = {multiplier}")
-        else:
-            logging.warning(f"⚠️ Warning: Malformed severity multiplier line: {line}")
-
-    def _parse_custom_mitre(self, line: str):
-        """Parses a custom MITRE mapping line."""
-        logging.debug(f"Parsing custom MITRE mapping line: {line}")
-        if line.strip().startswith('#'):
-            return
-        # Expected format: - **Attack Name**: tactics=["tactic1", "tactic2"], techniques=[{"id": "T1234", "name": "Attack Name"}]
-        match = re.match(r'^- \*\*([^\*]+)\*\*:\s*(.*)', line)
-        if not match:
-            logging.warning(f"⚠️ Warning: Malformed custom MITRE mapping line: {line}")
-            return
-
-        attack_name = match.group(1).strip()
-        params_str = match.group(2).strip()
+    def _parse_protocol_style(self, name: str, params_str: str):
+        """Parses a protocol style from a name and a parameter string (can be multi-line)."""
+        logging.debug(f"Parsing protocol style '{name}' with params: {params_str}")
+        style_kwargs = self._parse_key_value_params(params_str)
         
-        # Parse tactics and techniques arrays using ast.literal_eval
+        self.threat_model.add_protocol_style(name, **style_kwargs)
+        
+        params_display = [f"{key}: {value}" for key, value in style_kwargs.items()]
+        logging.info(f"   - Added Protocol Style: {name} ({', '.join(params_display)})")
+
+    def _parse_severity_multiplier(self, name: str, params_str: str):
+        """Parses a severity multiplier from a name and a value string."""
+        logging.debug(f"Parsing severity multiplier '{name}' with value: {params_str}")
         try:
-            parsed_mapping = ast.literal_eval(params_str)
-            tactics = parsed_mapping.get('tactics', [])
-            techniques = parsed_mapping.get('techniques', [])
-        except (SyntaxError, ValueError) as e:
-            logging.error(f"Error evaluating custom MITRE mapping for '{attack_name}': {e}")
-            tactics = []
-            techniques = []
-        
-        # Call add_custom_mitre_mapping method if it exists
-        if hasattr(self.threat_model, 'add_custom_mitre_mapping'):
-            self.threat_model.add_custom_mitre_mapping(attack_name, tactics, techniques)
-            logging.info(f"   - Added Custom MITRE Mapping: {attack_name} (Tactics: {len(tactics)}, Techniques: {len(techniques)})")
-        else:
-            logging.warning(f"⚠️ Warning: Malformed custom MITRE mapping line: {line}")
+            multiplier = float(params_str)
+            self.threat_model.add_severity_multiplier(name, multiplier)
+            logging.info(f"   - Added Severity Multiplier: {name} = {multiplier}")
+        except (ValueError, TypeError):
+            logging.warning(f"⚠️ Warning: Malformed severity multiplier value for '{name}': {params_str}")
+
+    def _parse_custom_mitre(self, name: str, params_str: str):
+        """Parses a custom MITRE mapping from a name and a parameter string."""
+        logging.debug(f"Parsing custom MITRE mapping '{name}' with params: {params_str}")
+        try:
+            # The params_str should be a string representation of a dictionary literal
+            mapping_dict = ast.literal_eval(params_str)
+            tactics = mapping_dict.get('tactics', [])
+            techniques = mapping_dict.get('techniques', [])
+            self.threat_model.add_custom_mitre_mapping(name, tactics, techniques)
+            logging.info(f"   - Added Custom MITRE Mapping: {name} (Tactics: {len(tactics)}, Techniques: {len(techniques)})")
+        except (SyntaxError, ValueError, AttributeError) as e: # Added AttributeError for safety
+            logging.error(f"Error evaluating custom MITRE mapping for '{name}': {e}")

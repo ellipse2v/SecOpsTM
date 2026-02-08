@@ -38,18 +38,26 @@ def test_unencrypted_dataflow():
 
 def test_sensitive_data_unencrypted():
     """Tests threat for sensitive data on unencrypted channel."""
-    mock_data = MagicMock()
-    mock_data.classification.name = "sensitive"
+    mock_classification = MagicMock()
+    mock_classification.name = "SECRET" # Changed to align with actual enum names like SECRET, TOP_SECRET
     
+    mock_data = MagicMock()
+    mock_data.classification = mock_classification
+    mock_data.name = "MockSensitiveData" # Add name for formatting
+
     mock_flow = MagicMock()
     mock_flow.is_encrypted = False
     mock_flow.data = [mock_data]
+    mock_flow.name = "MockFlow"
+    mock_flow.source = MagicMock(name="MockSource")
+    mock_flow.sink = MagicMock(name="MockSink")
+
     mock_model = create_mock_threat_model(dataflows=[mock_flow])
 
     generator = RuleBasedThreatGenerator(mock_model)
     threats = generator.generate_threats()
 
-    assert any("Sensitive data (PII) transmitted in cleartext" in t["description"] for t in threats)
+    assert any("Sensitive data transmitted in cleartext" in t["description"] for t in threats)
 
 
 def test_unauthenticated_to_database():
