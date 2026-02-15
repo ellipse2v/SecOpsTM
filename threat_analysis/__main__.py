@@ -95,7 +95,7 @@ class SecOpsTMFramework:
             sys.exit(1)  # Exit if model loading fails
 
         self.severity_calculator = SeverityCalculator(
-            markdown_file_path=Path("threatModel_Template/threat_model.md") # Hardcoded path instead of config
+            markdown_file_path=str(Path("threatModel_Template/threat_model.md")) # Hardcoded path instead of config
         )
         self.report_generator = ReportGenerator(
             self.severity_calculator, self.mitre_mapper, # Use the mitre_mapper from the threat_model
@@ -134,7 +134,7 @@ class SecOpsTMFramework:
                 markdown_content=markdown_content,
                 model_name=self.model_name,
                 model_description=self.model_description,
-                cve_service=self.cve_service,
+                cve_service=self.cve_service, # type: ignore
                 validate=True,
             )
         except Exception as e:
@@ -145,7 +145,8 @@ class SecOpsTMFramework:
         """Executes the threat analysis."""
         logging.info("🔬 Starting STRIDE threat analysis...")
 
-        self.grouped_threats = self.threat_model.process_threats()
+        if self.threat_model:
+            self.grouped_threats = self.threat_model.process_threats()
         self.analysis_completed = True
         logging.info("✅ Threat analysis completed.")
         return self.grouped_threats
@@ -168,13 +169,13 @@ class SecOpsTMFramework:
         )
 
         html_report_path = self.report_generator.generate_html_report(
-            self.threat_model, self.grouped_threats, html_output_full_path
+            self.threat_model, self.grouped_threats, Path(html_output_full_path)
         )
         json_report_path = self.report_generator.generate_json_export(
-            self.threat_model, self.grouped_threats, json_output_full_path
+            self.threat_model, self.grouped_threats, Path(json_output_full_path)
         )
         logging.info("✅ Reports generated.")
-        return {"html": html_report_path, "json": json_report_path}
+        return {"html": str(html_report_path), "json": str(json_report_path)}
 
     def generate_stix_report(self) -> Optional[str]:
         """Generates STIX report in the timestamped directory."""
@@ -193,7 +194,7 @@ class SecOpsTMFramework:
         )
 
         logging.info("✅ STIX report generated.")
-        return stix_report_path
+        return str(stix_report_path)
 
     def generate_diagrams(self) -> Dict[str, Optional[str]]:
         """Generates DOT, SVG and HTML diagrams in the timestamped directory."""
@@ -233,7 +234,7 @@ class SecOpsTMFramework:
                 if svg_path:
                     html_path = (
                         self.diagram_generator._generate_html_with_legend(
-                            svg_path, html_output_full_path, self.threat_model
+                            Path(svg_path), Path(html_output_full_path), self.threat_model
                         )
                     )
             except Exception as e:
@@ -241,7 +242,7 @@ class SecOpsTMFramework:
                     f"❌ Error generating diagram from DOT code: {e}"
                 )
 
-        return {"dot": dot_output_full_path, "svg": svg_path, "html": html_path}
+        return {"dot": dot_output_full_path, "svg": svg_path, "html": str(html_path) if html_path else None}
 
     def generate_navigator_layer(self) -> Optional[str]:
         """Generates and saves the ATT&CK Navigator layer."""
@@ -252,7 +253,10 @@ class SecOpsTMFramework:
         logging.info("🗺️ Generating ATT&CK Navigator layer...")
         try:
             # We need all detailed threats, not just grouped ones.
-            all_threats = self.threat_model.get_all_threats_details()
+            if self.threat_model:
+                all_threats = self.threat_model.get_all_threats_details()
+            else:
+                all_threats = []
             
             navigator_generator = AttackNavigatorGenerator(
                 threat_model_name=self.model_name,
@@ -581,7 +585,7 @@ if __name__ == "__main__":
 
     if args.server: # Use the new --server argument
         try:
-            run_server(args.model_file)
+            run_server(model_filepath=args.model_file, project_path=args.project)
         except ImportError:
             logging.error(
                 "❌ Flask is not installed. Please install it to use the web server: "
@@ -621,7 +625,7 @@ if __name__ == "__main__":
             try:
                 all_threats = project_threat_model.get_all_threats_details()
                 navigator_generator = AttackNavigatorGenerator(
-                    threat_model_name=project_threat_model.tm.name,
+                    threat_model_name=str(project_threat_model.tm.name),
                     all_detailed_threats=all_threats
                 )
                 output_filename = f"attack_navigator_all_layer_{project_path.name.replace('example_', '')}_{config.TIMESTAMP}.json"

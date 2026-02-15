@@ -58,7 +58,7 @@ class CustomThreat:
 class ThreatModel:
     """Main class for managing the threat model with MITRE ATT&CK integration"""
 
-    def __init__(self, name: str, description: str = "", cve_service: CVEService = None):
+    def __init__(self, name: str, description: str = "", cve_service: Optional[CVEService] = None):
         self.tm = TM(name)
         self.tm.description = description
         self.boundaries = {}  # Stores Boundary objects and their properties (e.g., color)
@@ -89,6 +89,7 @@ class ThreatModel:
         if not cve_service:
             raise ValueError("A CVEService instance must be provided to ThreatModel.")
         self.cve_service = cve_service
+        self.sub_models = []
 
     def add_boundary(self, name: str, color: str = "lightgray", parent_boundary_obj: Optional[Boundary] = None, business_value: Optional[str] = None, **kwargs) -> Boundary:
         """Adds a boundary to the model with additional properties, including an optional parent.
@@ -107,15 +108,14 @@ class ThreatModel:
 
         # Explicitly set isTrusted on the pytm.Boundary object if provided in kwargs
         if 'isTrusted' in kwargs:
-            boundary.isTrusted = kwargs['isTrusted']
-
         # HACK: Add dummy attributes to Boundary objects to allow them to be
         # used as sources/sinks in Dataflows. The underlying pytm library
         # expects these attributes to exist on dataflow endpoints, which
         # this patch provides.
-        boundary.protocol = ""
-        boundary.port = None
-        boundary.data = None
+            setattr(boundary, 'isTrusted', kwargs.get('isTrusted', False))
+        setattr(boundary, 'protocol', "")
+        setattr(boundary, 'port', None)
+        setattr(boundary, 'data', None)
 
         if parent_boundary_obj:
             boundary.inBoundary = parent_boundary_obj
@@ -331,7 +331,7 @@ class ThreatModel:
                     if hasattr(data_obj, 'classification'):
                         classification = data_obj.classification.name # Get string representation of enum
 
-                custom_threat.severity_info = self.severity_calculator.get_severity_info(
+                custom_threat.severity_info = self.severity_calculator.get_severity_info( # type: ignore
                     threat_type=threat_type,
                     target_name=target_name_for_severity,
                     protocol=protocol,

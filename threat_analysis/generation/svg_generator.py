@@ -188,17 +188,27 @@ class CustomSVGGenerator:
         elements.append(f'<rect fill="{data.get("bgcolor", default_style["background"])}" stroke="none" x="0" y="0" width="{width}" height="{height}"/>')
 
         objects = data.get('objects', [])
+        
+        # Create a mapping from Graphviz internal node names to sanitized names
+        node_id_to_name = {}
+        for obj in objects:
+            if 'name' in obj and not obj.get('name', '').startswith('cluster'):
+                node_id_to_name[obj['name']] = self._sanitize_name(obj.get('label', obj['name']))
+        logging.debug(f"CustomSVGGenerator: node_id_to_name mapping: {node_id_to_name}")
+
         for obj in objects:
             if obj.get('name', '').startswith('cluster'):
                 elements.extend(self._generate_cluster_svg(obj))
         for edge in data.get('edges', []):
-            elements.extend(self._generate_edge_svg(edge))
+            logging.debug(f"CustomSVGGenerator: Processing edge: {edge}")
+            elements.extend(self._generate_edge_svg(edge, node_id_to_name))
         for obj in objects:
             if 'pos' in obj and not obj.get('name', '').startswith('cluster'):
                 elements.extend(self._generate_node_svg(obj))
                 
         elements.extend(['  </g>', '</svg>'])
         return '\n'.join(elements)
+
 
     def _process_draw_ops(self, ops: List[Dict], style: Dict) -> List[str]:
         svg = []
@@ -319,8 +329,20 @@ class CustomSVGGenerator:
         elements.append('  </g>')
         return elements
 
-    def _generate_edge_svg(self, edge: Dict) -> List[str]:
-        name = f"edge_{edge.get('tail','')}_{edge.get('head','')}"
+    def _generate_edge_svg(self, edge: Dict, node_id_to_name: Dict[str, str]) -> List[str]:
+        # Use the mapping to get sanitized node names for head and tail
+        gv_tail = edge.get('tail','')
+        gv_head = edge.get('head','')
+        
+        sanitized_tail_name = node_id_to_name.get(gv_tail, self._sanitize_name(gv_tail))
+        sanitized_head_name = node_id_to_name.get(gv_head, self._sanitize_name(gv_head))
+
+        logging.debug(f"CustomSVGGenerator: _generate_edge_svg: gv_tail={gv_tail}, gv_head={gv_head}, sanitized_tail_name={sanitized_tail_name}, sanitized_head_name={sanitized_head_name}")
+
+        # Construct the edge ID using sanitized names
+        name = f"edge_{sanitized_tail_name}_{sanitized_head_name}"
+        logging.debug(f"CustomSVGGenerator: Final edge ID generated: {name}")
+
         elements = [f'  <g id="{self._escape_html(name)}">']
         style = self.default_styles['edge'].copy()
         for key in ('_draw_', '_hdraw_', '_tdraw_', '_ldraw_'):

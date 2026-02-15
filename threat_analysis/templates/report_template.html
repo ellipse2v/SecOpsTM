@@ -522,6 +522,14 @@
             border: 1px solid #155724;
         }
 
+        .legend-item {
+            cursor: pointer;
+        }
+
+        .hidden-threat {
+            display: none;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 1rem;
@@ -608,6 +616,8 @@
                 * : Indicates a CAPEC or MITRE mapping was manually added to improve relevance.<br>
                 <span class="implemented-legend"></span> : Indicates a mitigation has been implemented (as defined in the implemented mitigations file).
             </p>
+            <div id="legend-items">
+            </div>
         </div>
 
         {% if not all_threats %}
@@ -677,7 +687,7 @@
                     </thead>
                     <tbody>
                         {% for threat in all_threats if threat.stride_category == category %}
-                        <tr>
+                        <tr class="threat-{{ threat.stride_category | lower | replace(' ', '-') }}">
                             <td><div class="row-number">{{ loop.index }}</div></td>
                             <td>{{ threat.target }}</td>
                             <td>{{ threat.business_value if threat.business_value else 'N/A' }}</td>
@@ -896,6 +906,20 @@
                  filterThreats();
             }
         });
+
+        function toggleThreatVisibility(category) {
+            var threats = document.querySelectorAll(`.threat-${category}`);
+            var legendItem = document.querySelector(`.legend-item-${category}`);
+            var isHidden = legendItem.classList.toggle('hidden-legend');
+
+            threats.forEach(function(threat) {
+                if (isHidden) {
+                    threat.classList.add('hidden-threat');
+                } else {
+                    threat.classList.remove('hidden-threat');
+                }
+            });
+        }
     </script>
 </body>
 </html>

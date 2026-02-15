@@ -441,6 +441,37 @@
         .svg-element-hidden {
             display: none !important;
         }
+        /* New styles for highlighting */
+        .highlighted path, .highlighted polygon, .highlighted ellipse, .highlighted text {
+            stroke: yellow !important; /* DEBUG: Bright yellow stroke */
+            stroke-width: 5px !important; /* DEBUG: Very thick stroke */
+            transition: stroke 0.2s ease-in-out, stroke-width 0.2s ease-in-out;
+        }
+        .highlighted { /* Apply opacity to the group */
+            opacity: 1 !important;
+        }
+        .selected path, .selected polygon, .selected ellipse, .selected text {
+            stroke: red !important; /* DEBUG: Bright red stroke */
+            stroke-width: 5px !important; /* DEBUG: Very thick stroke */
+            transition: stroke 0.2s ease-in-out, stroke-width 0.2s ease-in-out, fill 0.2s ease-in-out;
+        }
+        .selected { /* Apply fill and opacity to the group */
+            fill: rgba(255, 0, 0, 0.3) !important; /* DEBUG: Semi-transparent red fill */
+            opacity: 1 !important;
+        }
+        .faded {
+            opacity: 0.2 !important;
+            transition: opacity 0.2s ease-in-out;
+        }
+        /* Specific rules for text within faded elements to remain visible */
+        .faded text {
+            fill: inherit !important; /* Keep original text color */
+            opacity: 1 !important;   /* Keep text opaque */
+        }
+        /* Remove graph-element's conflicting styles - let Graphviz set defaults, then override with !important */
+        .graph-element {
+            /* No conflicting fill/stroke here */
+        }
     </style>
     <script src="/static/js/split.min.js"></script>
     <script src="/static/js/svg-pan-zoom.min.js"></script>
@@ -457,6 +488,7 @@
                 <div class="dropdown-content">
                     <button onclick="document.getElementById('loadFileInput').click()">📥 Load Model (.md)</button>
                     <input type="file" id="loadFileInput" accept=".md" style="display: none;" onchange="loadMarkdownFile(event)">
+                    <button onclick="TabManager.loadProject()">📂 Load Project</button>
                     <button onclick="saveProjectToServer()">💾 Save Project to Server</button>
                 </div>
             </div>
@@ -519,14 +551,124 @@
         const legendContainer = document.getElementById('legend-container');
         const errorMessageDiv = document.getElementById('errorMessage');
         let protocolVisibilityState = {};
+        
+        // Global variables for graph interaction
+        let globalGraphMetadata = null;
+        let currentlySelectedElementId = null;
+
+        // Function to apply highlighting
+        function highlightElement(elementId) {
+            console.log('Clicked element ID:', elementId); // DEBUG
+            // Clear previous highlighting
+            clearHighlighting();
+            currentlySelectedElementId = elementId;
+
+            const svg = svgWrapper.querySelector('svg');
+            if (!svg || !globalGraphMetadata) {
+                console.warn('SVG or globalGraphMetadata not available.'); // DEBUG
+                return;
+            }
+
+            // Target element can be a node or an edge
+            const targetElement = globalGraphMetadata.nodes[elementId] || globalGraphMetadata.edges[elementId];
+            if (!targetElement) {
+                console.warn('Target element not found in globalGraphMetadata for ID:', elementId); // DEBUG
+                return;
+            }
+            console.log('Target element from metadata:', targetElement); // DEBUG
+
+            // Get all visible SVG groups (nodes and edges)
+            const allSvgGroups = svg.querySelectorAll('g[id]');
+
+            // Apply faded class to all elements first
+            allSvgGroups.forEach(g => g.classList.add('faded'));
+
+            // Highlight the selected element
+            const selectedSvgElement = svg.querySelector(`g[id="${CSS.escape(elementId)}"]`);
+            if (selectedSvgElement) {
+                selectedSvgElement.classList.add('selected');
+                selectedSvgElement.classList.remove('faded');
+                console.log('Selected SVG element:', selectedSvgElement); // DEBUG
+            } else {
+                console.warn('Selected SVG element not found in DOM for ID:', elementId); // DEBUG
+            }
+
+            // Highlight connected elements
+            const connectedElements = new Set();
+
+            if (globalGraphMetadata.nodes[elementId]) { // If a node was clicked
+                globalGraphMetadata.nodes[elementId].connections.forEach(edgeId => {
+                    connectedElements.add(edgeId);
+                    const edge = globalGraphMetadata.edges[edgeId];
+                    if (edge) {
+                        connectedElements.add(edge.source);
+                        connectedElements.add(edge.target);
+                    }
+                });
+            } else if (globalGraphMetadata.edges[elementId]) { // If an edge was clicked
+                const edge = globalGraphMetadata.edges[elementId];
+                if (edge) {
+                    connectedElements.add(edge.source);
+                    connectedElements.add(edge.target);
+                }
+            }
+            console.log('Connected elements from metadata:', connectedElements); // DEBUG
+
+            connectedElements.forEach(connId => {
+                const connSvgElement = svg.querySelector(`g[id="${CSS.escape(connId)}"]`);
+                // Special handling for boundary clusters (g[id^="cluster_"])
+                // Graphviz generates nodes *inside* the cluster, so direct highlighting of the cluster g[id]
+                // won't apply to the rect/path that forms the boundary.
+                // We also want to highlight the 'hidden_node' related to boundary as well.
+                if (connId.startsWith('__hidden_node_')) {
+                    const originalBoundaryId = connId.replace('__hidden_node_', '');
+                    const boundaryCluster = svg.querySelector(`g[id="cluster_${CSS.escape(originalBoundaryId)}"]`);
+                     if (boundaryCluster) {
+                        boundaryCluster.classList.add('highlighted');
+                        boundaryCluster.classList.remove('faded');
+                        console.log('Highlighted boundary cluster:', boundaryCluster); // DEBUG
+                    }
+                }
+
+                const connSvgElementActual = svg.querySelector(`g[id="${CSS.escape(connId)}"]`);
+                if (connSvgElementActual) {
+                    connSvgElementActual.classList.add('highlighted');
+                    connSvgElementActual.classList.remove('faded');
+                    console.log('Highlighted connected SVG element:', connSvgElementActual); // DEBUG
+                } else {
+                    console.warn('Connected SVG element not found in DOM for ID:', connId); // DEBUG
+                }
+            });
+        }
+
+        // Function to clear all highlighting
+        function clearHighlighting() {
+            const svg = svgWrapper.querySelector('svg');
+            if (!svg) return;
+
+            const allSvgGroups = svg.querySelectorAll('g[id]');
+            allSvgGroups.forEach(g => {
+                g.classList.remove('selected', 'highlighted', 'faded');
+            });
+            currentlySelectedElementId = null;
+            console.log('Highlighting cleared.'); // DEBUG
+        }
 
         const TabManager = {
             editors: [],
             tabCount: 0,
 
             init: function() {
-                this.addTab('main.md', atob("{{ initial_markdown | e }}"), false);
-                this.switchTab(0);
+                const models = JSON.parse(atob("{{ initial_models | e }}"));
+                if (models.length > 0) {
+                    models.forEach((model, index) => {
+                        this.addTab(model.path, model.content, index !== 0);
+                    });
+                    this.switchTab(0);
+                } else {
+                    this.addTab('main.md', '', false);
+                    this.switchTab(0);
+                }
             },
 
             addTab: function(path, content = '', closable = true) {
@@ -649,10 +791,16 @@
             },
 
             getAllData: function() {
-                const mainModelContent = this.editors[0]?.editor.getValue() || '';
+                const activeEditor = this.getActiveEditor();
+                if (!activeEditor) {
+                    return { mainModelContent: '', submodels: [] };
+                }
+                const mainModelContent = activeEditor.getValue();
                 const submodels = [];
+                // This logic might need adjustment depending on how submodels are identified.
+                // For now, we'll consider all *other* tabs as potential submodels.
                 this.editors.forEach((editorData, index) => {
-                    if (index > 0 && editorData) { // Skip main model
+                    if (editorData && editorData.editor !== activeEditor) {
                         submodels.push({
                             path: editorData.path,
                             content: editorData.editor.getValue()
@@ -691,7 +839,83 @@
                     this.switchTab(newIndex);
                 };
                 reader.readAsText(file);
-            }
+            },
+
+            loadProject: async function() {
+                try {
+                    // Use the File System Access API to open a directory
+                    const dirHandle = await window.showDirectoryPicker();
+                    const models = [];
+
+                    // Recursively read files from the selected directory
+                    async function processDirectory(directoryHandle) {
+                        for await (const entry of directoryHandle.values()) {
+                            if (entry.kind === 'file' && (entry.name.endsWith('.md'))) {
+                                const file = await entry.getFile();
+                                const content = await file.text();
+                                // Create a relative path from the project root
+                                const rootPath = dirHandle.name;
+                                let relativePath = file.name; // Fallback
+                                try {
+                                    // This is a bit of a trick to get a relative path, might not be perfect
+                                    const fullPathParts = await dirHandle.resolve(entry);
+                                    if (fullPathParts) {
+                                       relativePath = fullPathParts.join('/');
+                                    }
+                                } catch(e) { console.warn("Could not resolve file path, using name as fallback.", e); }
+                                
+                                models.push({
+                                    path: relativePath,
+                                    content: content
+                                });
+                            } else if (entry.kind === 'directory') {
+                                await processDirectory(entry);
+                            }
+                        }
+                    }
+
+                    await processDirectory(dirHandle);
+
+                    if (models.length === 0) {
+                        alert('No markdown files (.md) found in the selected directory or its subdirectories.');
+                        return;
+                    }
+
+                    // Clear existing tabs
+                    this.editors.forEach((editorData, index) => {
+                        if (editorData) {
+                            editorData.tabButton.remove();
+                            editorData.tabPane.remove();
+                            this.editors[index] = null;
+                        }
+                    });
+                    this.editors = []; // Reset the array
+                    this.tabCount = 0;
+                    document.getElementById('tab-bar').innerHTML = '';
+                    document.getElementById('tab-content-area').innerHTML = '';
+
+
+                    // Add new tabs for the loaded project
+                    models.forEach((model, index) => {
+                        this.addTab(model.path, model.content, index !== 0 || models.length > 1);
+                    });
+                    
+                    if (models.length > 0) {
+                        this.switchTab(0); // Switch to the first tab
+                    }
+
+                    alert('Project loaded successfully!');
+
+                } catch (error) {
+                    // Handle cases where the user cancels the dialog or API is not supported
+                    if (error.name === 'AbortError') {
+                        console.log('User cancelled the directory selection.');
+                    } else {
+                        console.error('Error loading project:', error);
+                        alert(`Failed to load project: ${error.message}\n\nNote: This feature requires a modern browser that supports the File System Access API.`);
+                    }
+                }
+            },
         };
 
         // Dark mode functionality
@@ -720,10 +944,11 @@
 
             const markdownContent = activeEditor.getValue();
             try {
+                const { mainModelContent, submodels } = TabManager.getAllData();
                 const response = await fetch('/api/update', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ markdown: markdownContent }),
+                    body: JSON.stringify({ markdown: mainModelContent, submodels: submodels }),
                 });
                 if (!response.ok) {
                     const errorData = await response.json();
@@ -732,6 +957,7 @@
                     legendContainer.innerHTML = '';
                     if (panZoomInstance) panZoomInstance.destroy();
                     panZoomInstance = null;
+                    globalGraphMetadata = null; // Clear metadata on error
                     return;
                 }
                 const data = await response.json();
@@ -739,6 +965,7 @@
                 if (panZoomInstance) panZoomInstance.destroy();
                 svgWrapper.innerHTML = data.diagram_svg;
                 legendContainer.innerHTML = data.legend_html;
+                globalGraphMetadata = data.graph_metadata; // Store graph metadata
 
                 const modelNameSpan = document.querySelector('.header h1 span');
                 if (modelNameSpan) modelNameSpan.textContent = `- ${data.model_name}`;
@@ -758,9 +985,31 @@
                         maxZoom: 10
                     });
                     console.log("svgPanZoom initialized with instance:", panZoomInstance);
+
+                    // Add click listeners to SVG elements for highlighting
+                    const allSvgGroups = svgElement.querySelectorAll('g[id]');
+                    allSvgGroups.forEach(g => {
+                        g.addEventListener('click', (e) => {
+                            e.stopPropagation(); // Prevent event from bubbling up to SVG container
+                            highlightElement(g.id);
+                        });
+                        // Add class to ensure fill/stroke can be overridden by CSS
+                        g.classList.add('graph-element');
+                    });
+
+                    // Add click listener to SVG background to clear highlighting
+                    svgElement.addEventListener('click', (e) => {
+                        // Check if the click target is the SVG element itself (background)
+                        // and not a child element (which would have its own listener)
+                        if (e.target === svgElement || e.target.tagName.toLowerCase() === 'rect' && e.target.parentNode === svgElement) {
+                            clearHighlighting();
+                        }
+                    });
+
                 } else {
                     console.log("SVG element not found in svgWrapper. Not initializing svgPanZoom.");
                     panZoomInstance = null;
+                    globalGraphMetadata = null; // Clear metadata if SVG is missing
                 }
             } catch (error) {
                 showErrorMessage(`Failed to fetch preview: ${error.message}`);
@@ -768,6 +1017,7 @@
                 legendContainer.innerHTML = '';
                 if (panZoomInstance) panZoomInstance.destroy();
                 panZoomInstance = null;
+                globalGraphMetadata = null; // Clear metadata on error
             }
         }
 
@@ -905,16 +1155,14 @@
         }
 
         async function exportFile(format) {
-            const activeEditor = TabManager.getActiveEditor();
-            if (!activeEditor) return;
-            const markdownContent = activeEditor.getValue();
+            const { mainModelContent, submodels } = TabManager.getAllData();
             // This function could be interpreted as exporting the active file
             // or the entire project. For now, it exports the active file.
             try {
                 const response = await fetch('/api/export', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ markdown: markdownContent, format: format }),
+                    body: JSON.stringify({ markdown: mainModelContent, submodels: submodels, format: format }),
                 });
                 if (!response.ok) throw new Error((await response.json()).error);
                 const blob = await response.blob();
@@ -955,10 +1203,24 @@
 
         async function exportNavigatorAndStixButton() {
             const { mainModelContent, submodels } = TabManager.getAllData();
-            // This needs a dedicated project-aware backend endpoint.
-            // For now, let's use the export_all logic.
-            alert("Export Navigator & STIX for multi-tab projects is not fully implemented yet. Exporting as ZIP.");
-            await exportAllFiles();
+            try {
+                const response = await fetch('/api/export_navigator_stix', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ markdown: mainModelContent, submodels: submodels }),
+                });
+                if (!response.ok) throw new Error((await response.json()).error);
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = response.headers.get('Content-Disposition')?.split('filename=')[1] || 'navigator_stix_export.zip';
+                a.click();
+                URL.revokeObjectURL(url);
+                a.remove();
+            } catch (error) {
+                alert(`Export Navigator & STIX failed: ${error.message}`);
+            }
         }
 
         function loadMarkdownFile(event) {

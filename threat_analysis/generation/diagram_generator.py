@@ -882,7 +882,7 @@ class DiagramGenerator:
         
         return ''.join(legend_items)
    
-    def _generate_html_with_legend(self, svg_path: Path, html_output_path: Path, threat_model) -> Optional[Path]:
+    def _generate_html_with_legend(self, svg_path: Path, html_output_path: Path, threat_model, graph_metadata: Optional[dict] = None) -> Optional[Path]:
         """Generates HTML file with SVG and positioned legend."""
         try:
             # Read SVG content
@@ -893,7 +893,7 @@ class DiagramGenerator:
             legend_html = self._generate_legend_html(threat_model)
             
             # Create complete HTML
-            html_content = self._create_complete_html(svg_content, legend_html, threat_model)
+            html_content = self._create_complete_html(svg_content, legend_html, threat_model, graph_metadata)
             
             # Write HTML file
             with open(html_output_path, 'w', encoding='utf-8') as f:
@@ -906,14 +906,15 @@ class DiagramGenerator:
             logging.error(f"❌ Error generating HTML with legend: {e}")
             return None   
  
-    def _create_complete_html(self, svg_content: str, legend_html: str, threat_model) -> str:
+    def _create_complete_html(self, svg_content: str, legend_html: str, threat_model, graph_metadata: Optional[dict] = None) -> str:
         """Creates the complete HTML document with SVG and legend."""
         template = self.template_env.get_template("diagram_template.html")
         model_name = threat_model.name if hasattr(threat_model, 'name') else 'Threat Model'
         return template.render(
             title=f"Diagramme de Menaces - {model_name}",
             svg_content=svg_content,
-            legend_html=legend_html
+            legend_html=legend_html,
+            graph_metadata_json=json.dumps(graph_metadata) if graph_metadata else "{}"
         )
 
     def _get_protocol_styles_from_model(self, threat_model) -> Dict[str, Dict]:

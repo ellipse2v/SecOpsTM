@@ -24,6 +24,7 @@ import json
 from pathlib import Path
 import datetime
 import subprocess
+import re
 
 # Hardcoded configuration values (previously from config.py)
 TIMESTAMP = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -347,7 +348,126 @@ class ThreatModelService:
 
         return model_json
 
-    def update_diagram_logic(self, markdown_content: str):
+    def _extract_graph_metadata_for_frontend(self, threat_model) -> dict:
+        """
+        Extracts a simplified graph structure (nodes and edges with their connections)
+        suitable for frontend visualization and interaction.
+        """
+        graph_metadata = {
+            "nodes": {},
+            "edges": {}
+        }
+        
+        # Helper to sanitize names consistently with DiagramGenerator
+        def _sanitize_name_for_id(name: str) -> str:
+            if not name:
+                return "unnamed"
+            sanitized = re.sub(r'[^a-zA-Z0-9_]', '_', str(name))
+            if sanitized and sanitized[0].isdigit():
+                sanitized = f"_{sanitized}"
+            return sanitized or "unnamed"
+
+        # Process nodes (Actors, Servers, Boundaries)
+        # Note: Boundaries are handled as clusters in Graphviz, but also have "hidden nodes"
+        # for connecting edges. The main "node" will be the cluster itself.
+        # We need to ensure we capture actual interactive nodes.
+
+        for name, info in threat_model.boundaries.items():
+            sanitized_name = _sanitize_name_for_id(name)
+            cluster_id = f"cluster_{sanitized_name}" # The actual ID of the cluster group in SVG
+            graph_metadata["nodes"][cluster_id] = {
+                "id": cluster_id,
+                "type": "boundary",
+                "label": name,
+                "connections": [] # Will be populated by edges
+            }
+            # Also add the hidden node for boundary connections. This is what edges connect to.
+            hidden_node_name = f"__hidden_node_{sanitized_name}"
+            graph_metadata["nodes"][hidden_node_name] = {
+                "id": hidden_node_name,
+                "type": "hidden_boundary_node", # Mark as hidden for UI purposes
+                "label": f"Hidden node for {name}",
+                "connections": []
+            }
+        
+        for actor_info in threat_model.actors:
+            name = actor_info['name']
+            sanitized_name = _sanitize_name_for_id(name)
+            graph_metadata["nodes"][sanitized_name] = {
+                "id": sanitized_name,
+                "type": "actor",
+                "label": name,
+                "connections": []
+            }
+
+        for server_info in threat_model.servers:
+            name = server_info['name']
+            sanitized_name = _sanitize_name_for_id(name)
+            graph_metadata["nodes"][sanitized_name] = {
+                "id": sanitized_name,
+                "type": "server",
+                "label": name,
+                "connections": []
+            }
+        
+        # Process dataflows (edges)
+        for df in threat_model.dataflows:
+            source_name = getattr(df.source, 'name', None)
+            sink_name = getattr(df.sink, 'name', None)
+            protocol = getattr(df, 'protocol', None)
+            
+            if not source_name or not sink_name:
+                logging.warning(f"Skipping dataflow with missing source or sink: {df}")
+                continue
+            
+            sanitized_source = _sanitize_name_for_id(source_name)
+            sanitized_sink = _sanitize_name_for_id(sink_name)
+
+            # Check if source/sink are boundaries and adjust to use their hidden nodes
+            is_source_boundary = False
+            for b_name, info in threat_model.boundaries.items():
+                if b_name == source_name:
+                    sanitized_source = f"__hidden_node_{_sanitize_name_for_id(b_name)}"
+                    is_source_boundary = True
+                    break
+
+            is_sink_boundary = False
+            for b_name, info in threat_model.boundaries.items():
+                if b_name == sink_name:
+                    sanitized_sink = f"__hidden_node_{_sanitize_name_for_id(b_name)}"
+                    is_sink_boundary = True
+                    break
+            
+            # Construct the edge ID as it will appear in the SVG
+            edge_id = f"edge_{sanitized_source}_{sanitized_sink}"
+            
+            graph_metadata["edges"][edge_id] = {
+                "id": edge_id,
+                "source": sanitized_source,
+                "target": sanitized_sink,
+                "protocol": protocol,
+                "label": df.name if hasattr(df, 'name') else f"{source_name} to {sink_name}"
+            }
+            
+            # Add connections to nodes (using hidden nodes for boundaries)
+            if sanitized_source in graph_metadata["nodes"]:
+                graph_metadata["nodes"][sanitized_source]["connections"].append(edge_id)
+            if sanitized_sink in graph_metadata["nodes"]:
+                graph_metadata["nodes"][sanitized_sink]["connections"].append(edge_id)
+
+            # If the source or sink was a boundary, also add the connection to the actual boundary cluster
+            if is_source_boundary:
+                actual_boundary_id = _sanitize_name_for_id(source_name)
+                if actual_boundary_id in graph_metadata["nodes"]:
+                    graph_metadata["nodes"][actual_boundary_id]["connections"].append(edge_id)
+            if is_sink_boundary:
+                actual_boundary_id = _sanitize_name_for_id(sink_name)
+                if actual_boundary_id in graph_metadata["nodes"]:
+                    graph_metadata["nodes"][actual_boundary_id]["connections"].append(edge_id)
+        
+        return graph_metadata
+
+    def update_diagram_logic(self, markdown_content: str, submodels: list | None = None):
         logging.info("update_diagram_logic: Starting diagram update.")
         if not markdown_content:
             logging.error("update_diagram_logic: Markdown content is empty.")
@@ -368,6 +488,20 @@ class ThreatModelService:
             )
             if not threat_model:
                 raise RuntimeError("Failed to create threat model")
+            
+            if submodels:
+                for submodel_data in submodels:
+                    sub_path = submodel_data['path']
+                    sub_content = submodel_data['content']
+                    sub_model = create_threat_model(
+                        markdown_content=sub_content,
+                        model_name=os.path.basename(sub_path),
+                        model_description=f"Submodel for {sub_path}",
+                        cve_service=self.cve_service,
+                        validate=False
+                    )
+                    if sub_model:
+                        threat_model.sub_models.append(sub_model)
 
             validator = ModelValidator(threat_model)
             errors = validator.validate()
@@ -412,11 +546,16 @@ class ThreatModelService:
                 svg_content, legend_html, threat_model
             )
             
+            graph_metadata = self._extract_graph_metadata_for_frontend(threat_model)
+            
+            logging.debug(f"Generated graph_metadata for frontend: {json.dumps(graph_metadata, indent=2)}")
+            
             logging.info("update_diagram_logic: Successfully updated diagram.")
             return {
                 "diagram_html": full_html,
                 "diagram_svg": svg_content,
                 "legend_html": legend_html,
+                "graph_metadata": graph_metadata,
             }
 
     def export_files_logic(self, markdown_content: str, export_format: str):
@@ -463,8 +602,9 @@ class ThreatModelService:
             output_path = os.path.join(
                 OUTPUT_BASE_DIR, output_filename
             )
+            graph_metadata = self._extract_graph_metadata_for_frontend(threat_model)
             self.diagram_generator._generate_html_with_legend(
-                svg_path_temp, output_path, threat_model
+                Path(svg_path_temp), Path(output_path), threat_model, graph_metadata
             )
             return output_path, output_filename
         elif export_format == "report":
@@ -474,7 +614,7 @@ class ThreatModelService:
                 OUTPUT_BASE_DIR, output_filename
             )
             self.report_generator.generate_html_report(
-                threat_model, grouped_threats, output_path
+                threat_model, grouped_threats, Path(output_path)
             )
             return output_path, output_filename
         elif export_format == "markdown":
@@ -488,7 +628,7 @@ class ThreatModelService:
         else:
             raise ValueError("Invalid export format")
 
-    def generate_full_project_export(self, markdown_content: str, export_path: str, submodels: list = None):
+    def generate_full_project_export(self, markdown_content: str, export_path: str, submodels: list | None = None):
         logging.info("Entering generate_full_project_export function.")
         if not markdown_content:
             raise ValueError("Missing markdown content")
@@ -563,14 +703,14 @@ class ThreatModelService:
                 export_path, html_diagram_filename
             )
             self.diagram_generator._generate_html_with_legend(
-                svg_filepath, html_diagram_filepath, threat_model
+                Path(svg_filepath), Path(html_diagram_filepath), threat_model
             )
 
             grouped_threats = threat_model.process_threats()
             html_report_filename = "stride_mitre_report.html"
             html_report_filepath = os.path.join(export_path, html_report_filename)
             self.report_generator.generate_html_report(
-                threat_model, grouped_threats, html_report_filepath
+                threat_model, grouped_threats, Path(html_report_filepath)
             )
 
             json_analysis_filename = "mitre_analysis.json"
@@ -578,7 +718,7 @@ class ThreatModelService:
                 export_path, json_analysis_filename
             )
             self.report_generator.generate_json_export(
-                threat_model, grouped_threats, json_analysis_filepath
+                threat_model, grouped_threats, Path(json_analysis_filepath)
             )
 
             all_detailed_threats = threat_model.get_all_threats_details()
@@ -613,7 +753,7 @@ class ThreatModelService:
                 }
             }
 
-    def export_all_files_logic(self, markdown_content: str):
+    def export_all_files_logic(self, markdown_content: str, submodels: list | None = None):
         logging.info("Entering export_all_files_logic function.")
         if not markdown_content:
             raise ValueError("Missing markdown content")
@@ -623,9 +763,9 @@ class ThreatModelService:
         export_path = os.path.join(OUTPUT_BASE_DIR, export_dir_name)
         os.makedirs(export_path, exist_ok=True)
 
-        result = self.generate_full_project_export(markdown_content, export_path)
+        result = self.generate_full_project_export(markdown_content, export_path, submodels=submodels)
 
-        element_positions = self._extract_element_positions(create_threat_model(markdown_content=markdown_content, cve_service=self.cve_service))
+        element_positions = self._extract_element_positions(create_threat_model(markdown_content=markdown_content, model_name="temp", model_description="temp", cve_service=self.cve_service))
         
         version = "1.0"
         version_id = f"{version}-{timestamp.replace('-', '').replace(':', '').replace('_', '')}"
@@ -730,6 +870,7 @@ class ThreatModelService:
                 markdown_content=markdown_content,
                 model_name="ExportedThreatModel",
                 model_description="Exported from web interface",
+                cve_service=self.cve_service,
                 validate=True,
             )
             if not threat_model:
@@ -759,3 +900,45 @@ class ThreatModelService:
             zip_buffer.seek(0)
 
             return zip_buffer, timestamp
+
+    def load_project(self, project_path: str):
+        """
+        Loads all threat models from a project directory.
+        """
+        logging.info(f"Loading project from path: {project_path}")
+        models = []
+        if project_path and os.path.isdir(project_path):
+            model_files = glob.glob(os.path.join(project_path, '**', 'main.md'), recursive=True)
+            model_files.extend(glob.glob(os.path.join(project_path, '**', 'model.md'), recursive=True))
+
+            if not model_files:
+                logging.warning(f"No model files ('main.md' or 'model.md') found in {project_path}")
+                # Optional: return a default empty model if no files are found
+                models.append({
+                    "path": "main.md",
+                    "content": "# Threat Model: New Project\n\n"
+                })
+                return models
+
+            for model_file in model_files:
+                try:
+                    with open(model_file, "r", encoding="utf-8") as f:
+                        content = f.read()
+                        models.append({
+                            "path": os.path.relpath(model_file, project_path),
+                            "content": content
+                        })
+                except Exception as e:
+                    logging.error(f"Error reading model file {model_file}: {e}")
+            
+            logging.info(f"Loaded {len(models)} model(s) from project.")
+
+        else:
+            logging.error(f"Project path not found or not a directory: {project_path}")
+            # Return a default model so the UI doesn't break
+            models.append({
+                "path": "main.md",
+                "content": "# Threat Model: New Project\n\n## Description\nProject path not found. Starting with a blank model."
+            })
+            
+        return models

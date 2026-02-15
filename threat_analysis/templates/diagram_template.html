@@ -117,6 +117,37 @@
         .legend-content {
             padding: 8px;
         }
+        /* New styles for highlighting */
+        .highlighted path, .highlighted polygon, .highlighted ellipse, .highlighted text {
+            stroke: #4CAF50 !important; /* Green stroke for highlighted elements */
+            stroke-width: 2px !important;
+            transition: stroke 0.2s ease-in-out, stroke-width 0.2s ease-in-out;
+        }
+        .highlighted { /* Apply opacity to the group */
+            opacity: 1 !important;
+        }
+        .selected path, .selected polygon, .selected ellipse, .selected text {
+            stroke: #2196F3 !important; /* Blue stroke for selected element */
+            stroke-width: 3px !important;
+            transition: stroke 0.2s ease-in-out, stroke-width 0.2s ease-in-out, fill 0.2s ease-in-out;
+        }
+        .selected { /* Apply fill and opacity to the group */
+            fill: #BBDEFB !important; /* Light blue fill for selected nodes */
+            opacity: 1 !important;
+        }
+        .faded {
+            opacity: 0.2 !important;
+            transition: opacity 0.2s ease-in-out;
+        }
+        /* Specific rules for text within faded elements to remain visible */
+        .faded text {
+            fill: inherit !important; /* Keep original text color */
+            opacity: 1 !important;   /* Keep text opaque */
+        }
+        /* Remove graph-element's conflicting styles - let Graphviz set defaults, then override with !important */
+        .graph-element {
+            /* No conflicting fill/stroke here */
+        }
     </style>
 </head>
 <body>
@@ -145,6 +176,74 @@
     </div>
 
     <script>
+        let panZoomInstance; // Declare panZoomInstance globally
+        let globalGraphMetadata = null;
+        let currentlySelectedElementId = null;
+
+        // Function to apply highlighting
+        function highlightElement(elementId) {
+            // Clear previous highlighting
+            clearHighlighting();
+            currentlySelectedElementId = elementId;
+
+            const svg = document.querySelector('#svg-container svg');
+            if (!svg || !globalGraphMetadata) return;
+
+            const targetElement = globalGraphMetadata.nodes[elementId] || globalGraphMetadata.edges[elementId];
+            if (!targetElement) {
+                return;
+            }
+
+            const allSvgGroups = svg.querySelectorAll('g[id]');
+
+            allSvgGroups.forEach(g => g.classList.add('faded'));
+
+            const selectedSvgElement = svg.querySelector(`g[id="${CSS.escape(elementId)}"]`);
+            if (selectedSvgElement) {
+                selectedSvgElement.classList.add('selected');
+                selectedSvgElement.classList.remove('faded');
+            }
+
+            const connectedElements = new Set();
+
+            if (globalGraphMetadata.nodes[elementId]) {
+                globalGraphMetadata.nodes[elementId].connections.forEach(edgeId => {
+                    connectedElements.add(edgeId);
+                    const edge = globalGraphMetadata.edges[edgeId];
+                    if (edge) {
+                        connectedElements.add(edge.source);
+                        connectedElements.add(edge.target);
+                    }
+                });
+            } else if (globalGraphMetadata.edges[elementId]) {
+                const edge = globalGraphMetadata.edges[elementId];
+                if (edge) {
+                    connectedElements.add(edge.source);
+                    connectedElements.add(edge.target);
+                }
+            }
+
+            connectedElements.forEach(connId => {
+                const connSvgElement = svg.querySelector(`g[id="${CSS.escape(connId)}"]`);
+                if (connSvgElement) {
+                    connSvgElement.classList.add('highlighted');
+                    connSvgElement.classList.remove('faded');
+                }
+            });
+        }
+
+        // Function to clear all highlighting
+        function clearHighlighting() {
+            const svg = document.querySelector('#svg-container svg');
+            if (!svg) return;
+
+            const allSvgGroups = svg.querySelectorAll('g[id]');
+            allSvgGroups.forEach(g => {
+                g.classList.remove('selected', 'highlighted', 'faded');
+            });
+            currentlySelectedElementId = null;
+        }
+
         function toggleLegend() {
             const legend = document.getElementById('legend');
             legend.classList.toggle('hidden');
@@ -152,8 +251,17 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             var svgElement = document.querySelector('#svg-container svg');
+            
+            // Inject graph_metadata from Jinja2 context
+            const rawGraphMetadata = JSON.parse('{{ graph_metadata_json | safe }}');
+            if (Object.keys(rawGraphMetadata).length > 0) {
+                globalGraphMetadata = rawGraphMetadata;
+            } else {
+                console.warn("No graph metadata provided to diagram_template.html");
+            }
+
             if (svgElement) {
-                var panZoom = svgPanZoom(svgElement, {
+                panZoomInstance = svgPanZoom(svgElement, {
                     zoomEnabled: true,
                     controlIconsEnabled: false,
                     fit: true,
@@ -164,13 +272,36 @@
 
                 document.getElementById('zoom-in').addEventListener('click', function(e) {
                     e.preventDefault();
-                    panZoom.zoomIn();
+                    panZoomInstance.zoomIn();
                 });
 
                 document.getElementById('zoom-out').addEventListener('click', function(e) {
                     e.preventDefault();
-                    panZoom.zoomOut();
+                    panZoomInstance.zoomOut();
                 });
+
+                // Attach click listeners to SVG elements for highlighting
+                const allSvgGroups = svgElement.querySelectorAll('g[id]');
+                allSvgGroups.forEach(g => {
+                    g.addEventListener('click', (e) => {
+                        e.stopPropagation(); // Prevent event from bubbling up to SVG container
+                        highlightElement(g.id);
+                    });
+                    // Add class to ensure fill/stroke can be overridden by CSS
+                    g.classList.add('graph-element');
+                });
+
+                // Add click listener to SVG background to clear highlighting
+                const svgContainer = document.getElementById('svg-container');
+                svgContainer.addEventListener('click', (e) => {
+                    // Check if the click target is the SVG element itself or its background rect
+                    if (e.target === svgElement || (e.target.tagName.toLowerCase() === 'rect' && e.target.parentNode === svgElement)) {
+                        clearHighlighting();
+                    }
+                });
+
+            } else {
+                console.warn("SVG element not found for pan/zoom and highlighting initialization.");
             }
         });
     </script>

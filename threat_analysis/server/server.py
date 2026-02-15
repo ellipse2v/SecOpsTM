@@ -125,7 +125,7 @@ def get_model_name(markdown_content: str) -> str:
     return "Untitled Model"
 
 
-def run_server(model_filepath: str = None):
+def run_server(model_filepath: str = None, project_path: str = None):
     """
     This function is the main entry point for the web server.
     It launches the Flask application on a single port and serves a menu
@@ -144,6 +144,9 @@ def run_server(model_filepath: str = None):
     else:
         initial_markdown_content = DEFAULT_EMPTY_MARKDOWN
         logging.info("No initial threat model file provided or found. Starting with a default empty model.")
+    
+    if project_path:
+        app.config['PROJECT_PATH'] = project_path
 
     print(
         "\n🚀 Starting Threat Model Server. Open your browser to: http://127.0.0.1:5000/\n"
@@ -172,12 +175,31 @@ def index():
 @app.route("/simple")
 def simple_mode():
     """Serves the simple web interface."""
-    model_name = get_model_name(initial_markdown_content)
-    encoded_markdown = base64.b64encode(initial_markdown_content.encode('utf-8')).decode('utf-8')
+    project_path = app.config.get('PROJECT_PATH')
+    models = []
+    if project_path and os.path.isdir(project_path):
+        # Logic to load models from project
+        model_files = glob.glob(os.path.join(project_path, '**', 'main.md'), recursive=True)
+        model_files.extend(glob.glob(os.path.join(project_path, '**', 'model.md'), recursive=True))
+        for model_file in model_files:
+            with open(model_file, "r", encoding="utf-8") as f:
+                content = f.read()
+                models.append({
+                    "path": os.path.relpath(model_file, project_path),
+                    "content": content
+                })
+    else:
+        # Fallback for single file or no project
+        models.append({
+            "path": "main.md",
+            "content": initial_markdown_content
+        })
+
+    encoded_models = base64.b64encode(json.dumps(models).encode('utf-8')).decode('utf-8')
+
     return render_template(
         "simple_mode.html",
-        initial_markdown=encoded_markdown,
-        model_name=model_name
+        initial_models=encoded_models
     )
 
 
@@ -813,6 +835,30 @@ def export_metadata():
         return response
     except Exception as e:
         logging.error(f"Error during metadata export: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/load_project", methods=["POST"])
+def load_project():
+    """
+    Loads all threat model files from the configured project directory.
+    """
+    try:
+        project_path = app.config.get('PROJECT_PATH')
+        if not project_path:
+            # Fallback to a default or scan for a project directory if one isn't explicitly set
+            # For now, we'll assume a project must be set on startup.
+            return jsonify({"error": "No project path is configured for the server."}), 404
+
+        models = threat_model_service.load_project(project_path)
+        
+        return jsonify({
+            "success": True,
+            "models": models,
+            "message": f"Project loaded successfully from {project_path}"
+        })
+    except Exception as e:
+        logging.error(f"Error loading project: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 
