@@ -20,6 +20,7 @@ import re
 import datetime
 import json
 import glob
+from typing import Optional
 from flask import Flask, render_template, request, jsonify, send_from_directory, send_file, make_response
 from threat_analysis import config
 from threat_analysis.server.threat_model_service import ThreatModelService
@@ -125,7 +126,7 @@ def get_model_name(markdown_content: str) -> str:
     return "Untitled Model"
 
 
-def run_server(model_filepath: str = None, project_path: str = None):
+def run_server(model_filepath: Optional[str] = None, project_path: Optional[str] = None):
     """
     This function is the main entry point for the web server.
     It launches the Flask application on a single port and serves a menu
@@ -157,7 +158,8 @@ def run_server(model_filepath: str = None, project_path: str = None):
 @app.route('/static/<path:filename>')
 def serve_static(filename):
     """Serve static files from the static directory."""
-    return send_from_directory(app.static_folder, filename)
+    static_folder = app.static_folder or os.path.join(server_dir, "static")
+    return send_from_directory(static_folder, filename)
 
 @app.route('/api/data_dictionary')
 def get_data_dictionary():
@@ -217,16 +219,15 @@ def update_diagram():
     and returns the HTML representation of the diagram.
     """
     logging.info("Entering update_diagram function.")
-    markdown_content = request.json.get("markdown", "")
-    #logging.info(
-    #    f"Received markdown content for update (first 500 chars): "
-    #    f"\n{markdown_content[:500]}..."
-    #)
+    data = request.json
+    markdown_content = data.get("markdown", "")
+    submodels = data.get("submodels", [])
+
     if not markdown_content:
         return jsonify({"error": "Markdown content is empty"}), 400
 
     try:
-        result = threat_model_service.update_diagram_logic(markdown_content)
+        result = threat_model_service.update_diagram_logic(markdown_content, submodels=submodels)
         model_name = get_model_name(markdown_content)
         result["model_name"] = model_name
         return jsonify(result)
@@ -379,7 +380,8 @@ def export_all_files():
     logging.info("Entering export_all_files function.")
 
     try:
-        zip_buffer, timestamp = threat_model_service.export_all_files_logic(markdown_content)
+        submodels = request.json.get("submodels", [])
+        zip_buffer, timestamp = threat_model_service.export_all_files_logic(markdown_content, submodels=submodels)
         return send_file(
             zip_buffer,
             mimetype="application/zip",
@@ -420,21 +422,16 @@ def export_navigator_stix_files():
 
 
     try:
-
-        zip_buffer, timestamp = threat_model_service.export_navigator_stix_logic(markdown_content)
-
+        submodels = request.json.get("submodels", [])
+        zip_buffer, timestamp = threat_model_service.export_navigator_stix_logic(markdown_content, submodels=submodels)
+        if not zip_buffer:
+            return jsonify({"error": "Failed to generate navigator and STIX files."}), 500
         logging.info(f"Generated zip buffer size: {zip_buffer.getbuffer().nbytes} bytes")
-
         return send_file(
-
             zip_buffer,
-
             mimetype="application/zip",
-
             as_attachment=True,
-
             download_name=f"navigator_stix_export_{timestamp}.zip",
-
         )
 
 
@@ -684,14 +681,23 @@ def generate_all():
         generation_dir = os.path.join(config.OUTPUT_BASE_DIR, f"{safe_model_name}_{timestamp}")
         os.makedirs(generation_dir, exist_ok=True)
         
-        # Save the model with metadata
-        model_filename = f"{safe_model_name}.md"
+        # Save the main model file
+        model_filename = "main.md" # Standardize to main.md for clarity
         model_path = os.path.join(generation_dir, model_filename)
-        metadata_path = threat_model_service.save_model_with_metadata(
-            markdown_content, model_path, positions_data
-        )
-        
-        # Generate all reports and diagrams
+        with open(model_path, "w", encoding="utf-8") as f:
+            f.write(markdown_content)
+
+        # Save submodels
+        for submodel in submodels:
+            submodel_path_str = submodel.get('path', '').lstrip('./\\')
+            if not submodel_path_str:
+                continue
+            submodel_path = os.path.join(generation_dir, submodel_path_str)
+            os.makedirs(os.path.dirname(submodel_path), exist_ok=True)
+            with open(submodel_path, "w", encoding="utf-8") as f:
+                f.write(submodel['content'])
+
+        # Generate all reports and diagrams using the main model path
         result = threat_model_service.generate_full_project_export(
             markdown_content, generation_dir, submodels=submodels
         )
@@ -699,7 +705,6 @@ def generate_all():
         # Create a summary of generated files
         generated_files = {
             "model": model_path,
-            "metadata": metadata_path,
             "reports": result.get("reports", {}),
             "diagrams": result.get("diagrams", {})
         }
@@ -860,6 +865,32 @@ def load_project():
     except Exception as e:
         logging.error(f"Error loading project: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/resolve_submodels", methods=["POST"])
+def resolve_submodels():
+    """
+    Resolves sub_model_path references from a main model against a project file structure.
+    """
+    try:
+        data = request.get_json()
+        main_model_content = data.get('main_model_content')
+        project_files = data.get('project_files')
+
+        if not main_model_content or not isinstance(project_files, list):
+            return jsonify({"error": "Missing main_model_content or project_files"}), 400
+
+        # The method is part of the class instance, so `self` is passed implicitly.
+        resolved = threat_model_service.resolve_submodels(main_model_content, project_files)
+        
+        return jsonify({
+            "success": True,
+            "submodels": resolved
+        })
+
+    except Exception as e:
+        logging.error(f"Error resolving submodels: {e}", exc_info=True)
+        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
 
 

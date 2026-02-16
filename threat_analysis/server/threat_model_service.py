@@ -14,6 +14,7 @@
 
 import os
 import logging
+from typing import List, Dict, Any, Optional
 import base64
 import datetime
 import zipfile
@@ -25,6 +26,7 @@ from pathlib import Path
 import datetime
 import subprocess
 import re
+import glob
 
 # Hardcoded configuration values (previously from config.py)
 TIMESTAMP = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -147,7 +149,7 @@ class ThreatModelService:
     def get_element_positions(self):
         return self.element_positions
 
-    def save_model_with_metadata(self, markdown_content: str, output_path: str, positions_data: dict = None):
+    def save_model_with_metadata(self, markdown_content: str, output_path: str, positions_data: Optional[dict] = None):
         version = "1.0"
         last_updated = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         version_id = f"{version}-{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
@@ -301,7 +303,7 @@ class ThreatModelService:
             element_to_id[data_obj] = d_id
             
             classification_obj = getattr(data_obj, 'classification', 'public')
-            classification_val = classification_obj.name.lower() if hasattr(classification_obj, 'name') else str(classification_obj)
+            classification_val = str(getattr(classification_obj, 'name', classification_obj)).lower()
 
             model_json["data"].append({
                 "id": d_id,
@@ -330,7 +332,7 @@ class ThreatModelService:
                         pass
                 
                 properties = {
-                    "name": df.name,
+                    "name": getattr(df, 'name', f"{from_name}_to_{to_name}"),
                     "protocol": getattr(df, 'protocol', None),
                     "description": getattr(df, 'description', ''),
                     "color": getattr(df, 'color', '#000000'),
@@ -439,7 +441,10 @@ class ThreatModelService:
                     break
             
             # Construct the edge ID as it will appear in the SVG
-            edge_id = f"edge_{sanitized_source}_{sanitized_sink}"
+            # Use actual element names for consistency with DiagramGenerator's robust ID generation
+            actual_src_id = _sanitize_name_for_id(source_name)
+            actual_dst_id = _sanitize_name_for_id(sink_name)
+            edge_id = f"edge_{actual_src_id}_{actual_dst_id}"
             
             graph_metadata["edges"][edge_id] = {
                 "id": edge_id,
@@ -723,7 +728,7 @@ class ThreatModelService:
 
             all_detailed_threats = threat_model.get_all_threats_details()
             navigator_generator = AttackNavigatorGenerator(
-                threat_model_name=threat_model.tm.name,
+                threat_model_name=str(threat_model.tm.name),
                 all_detailed_threats=all_detailed_threats
             )
             navigator_filename = JSON_NAVIGATOR_FILENAME_TPL.format(timestamp=TIMESTAMP)
@@ -765,7 +770,8 @@ class ThreatModelService:
 
         result = self.generate_full_project_export(markdown_content, export_path, submodels=submodels)
 
-        element_positions = self._extract_element_positions(create_threat_model(markdown_content=markdown_content, model_name="temp", model_description="temp", cve_service=self.cve_service))
+        threat_model_temp = create_threat_model(markdown_content=markdown_content, model_name="temp", model_description="temp", cve_service=self.cve_service)
+        element_positions = self._generate_positions_from_graphviz(threat_model_temp) if threat_model_temp else {}
         
         version = "1.0"
         version_id = f"{version}-{timestamp.replace('-', '').replace(':', '').replace('_', '')}"
@@ -803,7 +809,7 @@ class ThreatModelService:
 
         return zip_buffer, timestamp
 
-    def export_navigator_stix_logic(self, markdown_content: str):
+    def export_navigator_stix_logic(self, markdown_content: str, submodels: list | None = None):
         logging.info("Entering export_navigator_stix_logic function.")
         if not markdown_content:
             raise ValueError("Missing markdown content")
@@ -823,6 +829,18 @@ class ThreatModelService:
         if not threat_model:
             raise RuntimeError("Failed to create or validate threat model")
 
+        if submodels:
+            for submodel_data in submodels:
+                sub_model = create_threat_model(
+                    markdown_content=submodel_data['content'],
+                    model_name=os.path.basename(submodel_data['path']),
+                    model_description=f"Submodel for {submodel_data['path']}",
+                    cve_service=self.cve_service,
+                    validate=False
+                )
+                if sub_model:
+                    threat_model.sub_models.append(sub_model)
+
         validator = ModelValidator(threat_model)
         errors = validator.validate()
         if errors:
@@ -830,7 +848,7 @@ class ThreatModelService:
 
         all_detailed_threats = threat_model.get_all_threats_details()
         navigator_generator = AttackNavigatorGenerator(
-            threat_model_name=threat_model.tm.name,
+            threat_model_name=str(threat_model.tm.name),
             all_detailed_threats=all_detailed_threats
         )
         navigator_filename = JSON_NAVIGATOR_FILENAME_TPL.format(timestamp=timestamp)
@@ -881,7 +899,7 @@ class ThreatModelService:
 
             attack_flow_generator = AttackFlowGenerator(
                 threats=all_detailed_threats,
-                model_name=threat_model.tm.name
+                model_name=str(threat_model.tm.name)
             )
             attack_flow_generator.generate_and_save_flows(temp_export_dir)
 
@@ -942,3 +960,52 @@ class ThreatModelService:
             })
             
         return models
+
+    def resolve_submodels(self, main_model_content: str, project_files: list[dict]):
+        """
+        Recursively parses a main model for sub_model_path references and resolves them
+        against a provided file list.
+
+        Args:
+            main_model_content: The string content of the main threat model.
+            project_files: A list of dictionaries, where each dict represents a file and has
+                           'path' and 'content' keys.
+
+        Returns:
+            A list of dictionaries for each resolved sub-model, containing 'path' and 'content'.
+        """
+        logging.info("Starting recursive sub-model resolution...")
+        
+        file_map = {file['path'].replace('\\\\', '/'): file['content'] for file in project_files}
+        resolved_submodels = {}  # Use a dict to avoid duplicates, mapping path to content
+        
+        # Regex to find lines like: sub_model_path="path/to/model.md"
+        sub_model_regex = re.compile(r'sub_model_path\s*=\s*"(.*?)"')
+
+        def find_and_resolve(content: str):
+            """Helper function to find paths in content and recurse."""
+            found_paths = sub_model_regex.findall(content)
+            
+            for path in found_paths:
+                # Normalize path separators for consistency
+                normalized_path = os.path.normpath(path).replace('\\\\', '/')
+                
+                # If we haven't processed this sub-model yet
+                if normalized_path not in resolved_submodels:
+                    if normalized_path in file_map:
+                        logging.info(f"Resolved sub-model at path: {normalized_path}")
+                        sub_model_content = file_map[normalized_path]
+                        resolved_submodels[normalized_path] = sub_model_content
+                        
+                        # Recurse: Look for sub-models within this newly found sub-model
+                        find_and_resolve(sub_model_content)
+                    else:
+                        logging.warning(f"Could not find sub-model for path: {normalized_path} in the provided project files.")
+
+        # Start the process with the main model's content
+        find_and_resolve(main_model_content)
+        
+        # Convert the dictionary of resolved models back to a list
+        final_list = [{"path": path, "content": content} for path, content in resolved_submodels.items()]
+        logging.info(f"Finished resolution. Found {len(final_list)} unique sub-models.")
+        return final_list

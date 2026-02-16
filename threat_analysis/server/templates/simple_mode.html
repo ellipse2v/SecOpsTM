@@ -442,23 +442,49 @@
             display: none !important;
         }
         /* New styles for highlighting */
-        .highlighted path, .highlighted polygon, .highlighted ellipse, .highlighted text {
-            stroke: yellow !important; /* DEBUG: Bright yellow stroke */
-            stroke-width: 5px !important; /* DEBUG: Very thick stroke */
-            transition: stroke 0.2s ease-in-out, stroke-width 0.2s ease-in-out;
-        }
-        .highlighted { /* Apply opacity to the group */
+        .highlighted { /* Group-level styling for related elements */
             opacity: 1 !important;
         }
-        .selected path, .selected polygon, .selected ellipse, .selected text {
-            stroke: red !important; /* DEBUG: Bright red stroke */
-            stroke-width: 5px !important; /* DEBUG: Very thick stroke */
-            transition: stroke 0.2s ease-in-out, stroke-width 0.2s ease-in-out, fill 0.2s ease-in-out;
+        /* Style ONLY the shapes of related elements */
+        .highlighted path, .highlighted polygon, .highlighted ellipse {
+            stroke: #007bff !important; /* Bright blue */
+            stroke-width: 3px !important;
+            transition: stroke 0.2s, stroke-width 0.2s;
         }
-        .selected { /* Apply fill and opacity to the group */
-            fill: rgba(255, 0, 0, 0.3) !important; /* DEBUG: Semi-transparent red fill */
+        /* More specific rule for EDGES to ensure they are highlighted */
+        g.edge.highlighted path, g.edge.highlighted polygon {
+            stroke: #007bff !important;
+            stroke-width: 4px !important;
+        }
+
+        /* Ensure text within related elements remains readable */
+        .highlighted text {
+            stroke: none !important;
+            fill: inherit !important;
+        }
+
+        .selected { /* Group-level styling for selected element */
             opacity: 1 !important;
         }
+        /* Style ONLY the shapes of the selected element */
+        .selected path, .selected polygon, .selected ellipse {
+            stroke: red !important;
+            stroke-width: 3px !important;
+            fill: rgba(255, 0, 0, 0.15) !important; /* A more subtle fill */
+            transition: stroke 0.2s, stroke-width 0.2s, fill 0.2s;
+        }
+        /* More specific rule for EDGES to ensure they are highlighted */
+        g.edge.selected path, g.edge.selected polygon {
+            stroke: red !important;
+            stroke-width: 4px !important;
+        }
+        
+        /* Ensure text within the selected element remains perfectly readable */
+        .selected text {
+            stroke: none !important;
+            fill: inherit !important; /* Inherit original text color */
+        }
+        
         .faded {
             opacity: 0.2 !important;
             transition: opacity 0.2s ease-in-out;
@@ -472,6 +498,7 @@
         .graph-element {
             /* No conflicting fill/stroke here */
         }
+
     </style>
     <script src="/static/js/split.min.js"></script>
     <script src="/static/js/svg-pan-zoom.min.js"></script>
@@ -489,6 +516,7 @@
                     <button onclick="document.getElementById('loadFileInput').click()">📥 Load Model (.md)</button>
                     <input type="file" id="loadFileInput" accept=".md" style="display: none;" onchange="loadMarkdownFile(event)">
                     <button onclick="TabManager.loadProject()">📂 Load Project</button>
+                    <button onclick="TabManager.clearAllTabs()">🗑️ Clear All</button>
                     <button onclick="saveProjectToServer()">💾 Save Project to Server</button>
                 </div>
             </div>
@@ -558,6 +586,12 @@
 
         // Function to apply highlighting
         function highlightElement(elementId) {
+            // If the clicked element is already selected, clear highlighting and return.
+            if (currentlySelectedElementId === elementId) {
+                clearHighlighting();
+                return;
+            }
+
             console.log('Clicked element ID:', elementId); // DEBUG
             // Clear previous highlighting
             clearHighlighting();
@@ -595,10 +629,11 @@
 
             // Highlight connected elements
             const connectedElements = new Set();
+            const connectedEdges = new Set();
 
             if (globalGraphMetadata.nodes[elementId]) { // If a node was clicked
                 globalGraphMetadata.nodes[elementId].connections.forEach(edgeId => {
-                    connectedElements.add(edgeId);
+                    connectedEdges.add(edgeId);
                     const edge = globalGraphMetadata.edges[edgeId];
                     if (edge) {
                         connectedElements.add(edge.source);
@@ -610,9 +645,11 @@
                 if (edge) {
                     connectedElements.add(edge.source);
                     connectedElements.add(edge.target);
+                    connectedEdges.add(elementId);
                 }
             }
             console.log('Connected elements from metadata:', connectedElements); // DEBUG
+            console.log('Connected edges from metadata:', connectedEdges); // DEBUG
 
             connectedElements.forEach(connId => {
                 const connSvgElement = svg.querySelector(`g[id="${CSS.escape(connId)}"]`);
@@ -637,6 +674,17 @@
                     console.log('Highlighted connected SVG element:', connSvgElementActual); // DEBUG
                 } else {
                     console.warn('Connected SVG element not found in DOM for ID:', connId); // DEBUG
+                }
+            });
+
+            connectedEdges.forEach(edgeId => {
+                const edgeSvgElement = svg.querySelector(`g[id="${CSS.escape(edgeId)}"]`);
+                if (edgeSvgElement) {
+                    edgeSvgElement.classList.add('highlighted');
+                    edgeSvgElement.classList.remove('faded');
+                    console.log('Highlighted connected SVG edge:', edgeSvgElement); // DEBUG
+                } else {
+                    console.warn('Connected SVG edge not found in DOM for ID:', edgeId); // DEBUG
                 }
             });
         }
@@ -767,19 +815,59 @@
                 updatePreview();
             },
 
-            closeTab: function(tabIndex) {
-                if (!this.editors[tabIndex] || !confirm(`Are you sure you want to close ${this.editors[tabIndex].path}?`)) {
+            closeTab: function(tabIndex, force = false) {
+                if (!this.editors[tabIndex] || (!force && !confirm(`Are you sure you want to close ${this.editors[tabIndex].path}?`))) {
                     return;
                 }
-                const { tabButton, tabPane, editor } = this.editors[tabIndex];
+                const { tabButton, tabPane } = this.editors[tabIndex];
                 tabButton.remove();
                 tabPane.remove();
-                // editor.toTextArea(); // Clean up CodeMirror instance
                 this.editors[tabIndex] = null;
 
-                // Switch to main tab
-                this.switchTab(0);
+                const remainingEditor = this.editors.find(e => e !== null);
+                if (remainingEditor) {
+                    this.switchTab(this.editors.indexOf(remainingEditor));
+                } else {
+                    // All tabs have been closed, properly reset the state
+                    this.tabCount = 0; // Reset counter
+                    this.editors = []; // Clear array
+                    this.addTab('main.md', `# Threat Model: New Model`, false);
+                    this.switchTab(0);
+                    // Explicitly clear the preview as no valid model is active
+                    svgWrapper.innerHTML = '';
+                    legendContainer.innerHTML = '';
+                    if (panZoomInstance) panZoomInstance.destroy();
+                    panZoomInstance = null;
+                    globalGraphMetadata = null;
+                }
             },
+
+           clearAllTabs: function() {
+               if (confirm('Are you sure you want to close all tabs and clear the editor?')) {
+                   // Remove all tab buttons and panes from the DOM
+                   const tabBar = document.getElementById('tab-bar');
+                   const tabContentArea = document.getElementById('tab-content-area');
+                   tabBar.innerHTML = '';
+                   tabContentArea.innerHTML = '';
+
+                   // Clear the editors array and reset tab count
+                   this.editors = [];
+                   this.tabCount = 0;
+
+                   // Add a single, new, empty tab
+                   this.addTab('main.md', '', false);
+                   this.switchTab(0);
+
+                   // Clear the preview pane
+                   document.getElementById('svg-wrapper').innerHTML = '';
+                   document.getElementById('legend-container').innerHTML = '';
+                   if (panZoomInstance) {
+                       panZoomInstance.destroy();
+                       panZoomInstance = null;
+                   }
+                   globalGraphMetadata = null;
+               }
+           },
 
             getActiveEditor: function() {
                 const activeTab = document.querySelector('.tab-button.active');
@@ -990,17 +1078,15 @@
                     const allSvgGroups = svgElement.querySelectorAll('g[id]');
                     allSvgGroups.forEach(g => {
                         g.addEventListener('click', (e) => {
-                            e.stopPropagation(); // Prevent event from bubbling up to SVG container
+                            e.stopPropagation();
                             highlightElement(g.id);
                         });
-                        // Add class to ensure fill/stroke can be overridden by CSS
                         g.classList.add('graph-element');
                     });
 
                     // Add click listener to SVG background to clear highlighting
                     svgElement.addEventListener('click', (e) => {
                         // Check if the click target is the SVG element itself (background)
-                        // and not a child element (which would have its own listener)
                         if (e.target === svgElement || e.target.tagName.toLowerCase() === 'rect' && e.target.parentNode === svgElement) {
                             clearHighlighting();
                         }
@@ -1049,34 +1135,133 @@
 
 
         async function generateAllFiles() {
-            const { mainModelContent, submodels } = TabManager.getAllData();
-            try {
-                const response = await fetch('/api/generate_all', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ markdown: mainModelContent, submodels: submodels }),
-                });
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    try {
-                        const errorData = JSON.parse(errorText);
-                        alert(`Generate All failed: ${errorData.error}`);
-                    } catch (e) {
-                        console.error("Server returned non-JSON error response:", errorText);
-                        alert("Generate All failed: The server returned an unexpected error. Check the browser's developer console for more details.");
+            const { mainModelContent, submodels: openSubmodels } = TabManager.getAllData();
+            let allFiles = TabManager.editors.filter(e => e !== null).map(e => ({
+                path: e.path,
+                content: e.editor.getValue()
+            }));
+
+            const subModelRegex = /sub_model_path\s*=\s*"(.*?)"/g;
+            let contentToCheck = mainModelContent;
+            openSubmodels.forEach(sm => {
+                contentToCheck += '\n' + sm.content;
+            });
+
+            if (subModelRegex.test(contentToCheck)) {
+                subModelRegex.lastIndex = 0; // Reset regex
+
+                const openPaths = new Set(allFiles.map(f => f.path));
+                let hasPotentialUnresolved = false;
+                let match;
+                while ((match = subModelRegex.exec(contentToCheck)) !== null) {
+                    const referencedPath = match[1];
+                    // This is a heuristic. If a path is referenced that isn't already fully known,
+                    // we assume we might need the full project context.
+                    if (!openPaths.has(referencedPath)) {
+                        hasPotentialUnresolved = true;
+                        break;
                     }
-                    return;
                 }
-                const result = await response.json();
-                if (result.success) {
-                    alert(`Success! All files generated in: ${result.generation_dir}`);
-                } else {
-                    alert(`Generate All failed: ${result.error || 'Unknown error'}`);
+
+                if (hasPotentialUnresolved) {
+                    if (confirm("This model appears to reference sub-models that are not open. To ensure a complete generation, please select the project's root directory.")) {
+                        try {
+                            const dirHandle = await window.showDirectoryPicker();
+                            const inMemoryFiles = [];
+                            
+                            async function processDirectory(directoryHandle, currentRelativePath) {
+                                for await (const entry of directoryHandle.values()) {
+                                    const newRelativePath = currentRelativePath ? `${currentRelativePath}/${entry.name}` : entry.name;
+                                    if (entry.kind === 'file' && entry.name.endsWith('.md')) {
+                                        const file = await entry.getFile();
+                                        const content = await file.text();
+                                        inMemoryFiles.push({ path: newRelativePath, content: content });
+                                    } else if (entry.kind === 'directory') {
+                                        await processDirectory(entry, newRelativePath);
+                                    }
+                                }
+                            }
+                            
+                            await processDirectory(dirHandle, '');
+
+                            const tabFilePaths = new Set(allFiles.map(f => f.path));
+                            inMemoryFiles.forEach(memFile => {
+                                if (!tabFilePaths.has(memFile.path)) {
+                                    allFiles.push(memFile);
+                                }
+                            });
+
+                        } catch (error) {
+                            if (error.name === 'AbortError') {
+                                alert("Directory selection cancelled. Proceeding with open tabs only.");
+                            } else {
+                                alert(`Error accessing directory: ${error.message}. Aborting generation.`);
+                                return;
+                            }
+                        }
+                    }
                 }
-            } catch (error) {
-                console.error('Generate All error:', error);
-                alert('An error occurred during generation.');
             }
+
+           try {
+               // Step 1: Resolve all sub-models recursively from the main model
+               const resolveResponse = await fetch('/api/resolve_submodels', {
+                   method: 'POST',
+                   headers: { 'Content-Type': 'application/json' },
+                   body: JSON.stringify({
+                       main_model_content: mainModelContent,
+                       project_files: allFiles
+                   })
+               });
+
+               if (!resolveResponse.ok) {
+                   const errorData = await resolveResponse.json();
+                   throw new Error(`Sub-model resolution failed: ${errorData.error}`);
+               }
+               const resolvedData = await resolveResponse.json();
+               const resolvedSubmodels = resolvedData.submodels || [];
+
+               const finalSubmodels = [...openSubmodels];
+               const openSubmodelPaths = new Set(openSubmodels.map(m => m.path));
+
+               resolvedSubmodels.forEach(resolved => {
+                   if (!openSubmodelPaths.has(resolved.path)) {
+                       finalSubmodels.push(resolved);
+                   }
+               });
+
+               const generateResponse = await fetch('/api/generate_all', {
+                   method: 'POST',
+                   headers: { 'Content-Type': 'application/json' },
+                   body: JSON.stringify({
+                       markdown: mainModelContent,
+                       submodels: finalSubmodels
+                   }),
+               });
+
+               if (!generateResponse.ok) {
+                   const errorText = await generateResponse.text();
+                   try {
+                       const errorData = JSON.parse(errorText);
+                       alert(`Generate All failed: ${errorData.error}`);
+                   } catch (e) {
+                       console.error("Server returned non-JSON error response:", errorText);
+                       alert("Generate All failed: The server returned an unexpected error.");
+                   }
+                   return;
+               }
+
+               const result = await generateResponse.json();
+               if (result.success) {
+                   alert(`Success! All files generated in: ${result.generation_dir}`);
+               } else {
+                   alert(`Generate All failed: ${result.error || 'Unknown error'}`);
+               }
+
+           } catch (error) {
+               console.error('Generate All process error:', error);
+               alert(`An error occurred during the generation process: ${error.message}`);
+           }
         }
 
         function showErrorMessage(message) {
@@ -1100,11 +1285,14 @@
         });
 
         function toggleProtocolVisibility(protocolClass) {
+            const legendItem = document.querySelector(`.legend-item[data-protocol="${protocolClass}"]`);
             // Update the state
             if (protocolVisibilityState[protocolClass] === 'hidden') {
                 protocolVisibilityState[protocolClass] = 'visible';
+                if(legendItem) legendItem.style.opacity = 1;
             } else {
                 protocolVisibilityState[protocolClass] = 'hidden';
+                if(legendItem) legendItem.style.opacity = 0.5;
             }
              console.log(`Toggling ${protocolClass} to ${protocolVisibilityState[protocolClass]}`);
             // Apply the new state
@@ -1116,19 +1304,19 @@
             const svg = svgWrapper.querySelector('svg');
             if (!svg) return;
 
-            for (const protocolClass in protocolVisibilityState) {
-                const elements = svg.querySelectorAll(`.${protocolClass}`);
-                const isHidden = protocolVisibilityState[protocolClass] === 'hidden';
-                
-                console.log(`Applying state for ${protocolClass}: ${isHidden ? 'hidden' : 'visible'}. Found ${elements.length} elements.`);
+            // First, make all elements visible
+            const allElements = svg.querySelectorAll('g');
+            allElements.forEach(el => el.classList.remove('svg-element-hidden'));
 
-                elements.forEach(el => {
-                    if (isHidden) {
+            // Then, hide the ones that should be hidden
+            for (const protocolClass in protocolVisibilityState) {
+                if (protocolVisibilityState[protocolClass] === 'hidden') {
+                    // Try different ways Graphviz might have applied the class
+                    const elementsToHide = svg.querySelectorAll(`g[class*="protocol-${protocolClass}"], .protocol-${protocolClass}`);
+                    elementsToHide.forEach(el => {
                         el.classList.add('svg-element-hidden');
-                    } else {
-                        el.classList.remove('svg-element-hidden');
-                    }
-                });
+                    });
+                }
             }
         }
         

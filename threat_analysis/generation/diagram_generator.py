@@ -41,7 +41,7 @@ class DiagramGenerator:
         self.supported_formats = ["svg", "png", "pdf", "ps"]
         self.template_env = Environment(loader=FileSystemLoader(Path(__file__).parent.parent / "templates"))
     
-    def generate_dot_file_from_model(self, threat_model, output_file: str, project_protocol_styles: dict = None) -> Optional[str]:
+    def generate_dot_file_from_model(self, threat_model, output_file: str, project_protocol_styles: Optional[Dict] = None) -> Optional[str]:
         """
         Generates DOT code from the threat model, saves it to a file,
         and returns the DOT code as a string.
@@ -123,7 +123,7 @@ class DiagramGenerator:
             return None
 
 
-    def _get_edge_attributes_for_protocol(self, threat_model, protocol: Optional[str], project_protocol_styles: dict = None) -> str:
+    def _get_edge_attributes_for_protocol(self, threat_model, protocol: Optional[str], project_protocol_styles: Optional[Dict] = None) -> str:
         """
         Returns DOT edge attributes based on protocol styling.
         It uses project_protocol_styles if provided, otherwise falls back to the threat_model.
@@ -132,7 +132,7 @@ class DiagramGenerator:
             return ""
 
         protocol_style = None
-        if project_protocol_styles:
+        if project_protocol_styles is not None:
             protocol_style = project_protocol_styles.get(protocol)
         elif hasattr(threat_model, 'get_protocol_style'):
             protocol_style = threat_model.get_protocol_style(protocol)
@@ -430,10 +430,12 @@ class DiagramGenerator:
         
         # Handle new actor format (dict)
         if isinstance(element, dict) and 'name' in element:
-            return element['name']
+            return str(element['name'])
         
         if hasattr(element, 'name'):
-            return element.name
+            # Some objects might have name as a property or a string
+            val = getattr(element, 'name')
+            return str(val) if val is not None else None
         
         # If it's a string, return it directly
         if isinstance(element, str):
@@ -551,7 +553,7 @@ class DiagramGenerator:
         
         return False
 
-    def _generate_manual_dot(self, threat_model, project_protocol_styles: dict = None) -> str:
+    def _generate_manual_dot(self, threat_model, project_protocol_styles: Optional[Dict] = None) -> str:
         """Generates DOT code from ThreatModel components using Jinja2 template."""
         template = self.template_env.get_template("threat_model.dot.j2")
 
@@ -625,9 +627,10 @@ class DiagramGenerator:
                 if isinstance(actor_info, dict):
                     actor_boundary_obj = actor_info.get('boundary')
 
-                if actor_boundary_obj == boundary_obj:
+                actor_name = self._get_element_name(actor_info)
+                if actor_boundary_obj == boundary_obj and actor_name:
                     actors_in_boundary.append({
-                        "escaped_name": self._escape_label(self._get_element_name(actor_info)),
+                        "escaped_name": self._escape_label(actor_name),
                         "node_attrs": self._get_node_attributes(actor_info, 'actor')
                     })
 
@@ -638,9 +641,10 @@ class DiagramGenerator:
                 if isinstance(server_info, dict):
                     server_boundary_obj = server_info.get('boundary')
 
-                if server_boundary_obj == boundary_obj:
+                server_name = self._get_element_name(server_info)
+                if server_boundary_obj == boundary_obj and server_name:
                     servers_in_boundary.append({
-                        "escaped_name": self._escape_label(self._get_element_name(server_info)),
+                        "escaped_name": self._escape_label(server_name),
                         "node_attrs": self._get_node_attributes(server_info, 'server')
                     })
         
@@ -679,13 +683,15 @@ class DiagramGenerator:
                 is_in_boundary = True
 
             if not is_in_boundary:
-                nodes_data.append({
-                    "escaped_name": self._escape_label(self._get_element_name(element_info)),
-                    "node_attrs": self._get_node_attributes(element_info, node_type)
-                })
+                el_name = self._get_element_name(element_info)
+                if el_name:
+                    nodes_data.append({
+                        "escaped_name": self._escape_label(el_name),
+                        "node_attrs": self._get_node_attributes(element_info, node_type)
+                    })
         return nodes_data
 
-    def _prepare_dataflows_data(self, threat_model, project_protocol_styles: dict = None) -> List[Dict]:
+    def _prepare_dataflows_data(self, threat_model, project_protocol_styles: Optional[Dict] = None) -> List[Dict]:
         dataflows_data = []
         dataflow_map = {}
         boundary_name_map = {name: info['boundary'] for name, info in threat_model.boundaries.items()}
@@ -745,7 +751,17 @@ class DiagramGenerator:
                         edge_attributes += f", {ltail}"
 
                     protocol_class = self._sanitize_name(protocol) if protocol else ''
-                    class_attribute = f'class="{protocol_class}"' if protocol_class else ''
+                    class_attribute = f'class="protocol-{protocol_class}"' if protocol_class else ''
+                    
+                    # More robust source/sink IDs for edge matching
+                    # We need to use the names BEFORE they are changed to __hidden_node_ for ID consistency
+                    src_name_orig = self._get_element_name(df.source)
+                    dst_name_orig = self._get_element_name(df.sink)
+                    actual_src_id = self._sanitize_name(src_name_orig) if src_name_orig else "unnamed_src"
+                    actual_dst_id = self._sanitize_name(dst_name_orig) if dst_name_orig else "unnamed_dst"
+                    edge_id = f"edge_{actual_src_id}_{actual_dst_id}"
+                    edge_attributes += f', id="{edge_id}"'
+
                     key = (escaped_source, escaped_dest, protocol)
                     dataflow_map[key] = {
                         "label": label,
@@ -780,19 +796,6 @@ class DiagramGenerator:
             })
         return dataflows_data
 
-    def _get_protocol_styles_from_model(self, threat_model) -> Dict[str, Dict]:
-        """
-        Extracts defined protocol styles from the threat model.
-        """
-        try:
-            if hasattr(threat_model, 'get_all_protocol_styles'):
-                return threat_model.get_all_protocol_styles()
-            if hasattr(threat_model, 'protocol_styles'):
-                return threat_model.protocol_styles
-        except Exception as e:
-            logging.warning(f"⚠️ Error extracting protocol styles: {e}")
-        
-        return {}
 
     def _get_used_protocols(self, threat_model) -> set:
         """Extracts all unique protocols used in the dataflows of a given model."""

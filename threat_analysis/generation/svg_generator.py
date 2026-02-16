@@ -333,17 +333,31 @@ class CustomSVGGenerator:
         # Use the mapping to get sanitized node names for head and tail
         gv_tail = edge.get('tail','')
         gv_head = edge.get('head','')
-        
+
         sanitized_tail_name = node_id_to_name.get(gv_tail, self._sanitize_name(gv_tail))
         sanitized_head_name = node_id_to_name.get(gv_head, self._sanitize_name(gv_head))
 
         logging.debug(f"CustomSVGGenerator: _generate_edge_svg: gv_tail={gv_tail}, gv_head={gv_head}, sanitized_tail_name={sanitized_tail_name}, sanitized_head_name={sanitized_head_name}")
 
-        # Construct the edge ID using sanitized names
-        name = f"edge_{sanitized_tail_name}_{sanitized_head_name}"
-        logging.debug(f"CustomSVGGenerator: Final edge ID generated: {name}")
+        # Construct the edge ID using sanitized names as a fallback
+        fallback_name = f"edge_{sanitized_tail_name}_{sanitized_head_name}"
+        name = edge.get('id', fallback_name)
+        logging.debug(f"CustomSVGGenerator: Using edge ID: {name}")
 
-        elements = [f'  <g id="{self._escape_html(name)}">']
+        # Extract protocol from label to create a class for filtering
+        class_attr_parts = ['edge'] # Always add 'edge' class
+        label = edge.get('label', '')
+        # The label can be HTML-like, so we use a regex
+        match = re.search(r'Protocol:\s*(\S+)', label, re.IGNORECASE)
+        if match:
+            protocol = match.group(1)
+            protocol_class = self._sanitize_name(protocol)
+            class_attr_parts.append(f'protocol-{protocol_class}')
+            logging.debug(f"CustomSVGGenerator: Found protocol, adding class: {protocol_class}")
+        
+        class_attr = f' class="{" ".join(class_attr_parts)}"'
+
+        elements = [f'  <g id="{self._escape_html(name)}"{class_attr}>']
         style = self.default_styles['edge'].copy()
         for key in ('_draw_', '_hdraw_', '_tdraw_', '_ldraw_'):
             if key in edge: elements.extend(self._update_and_process_ops(edge[key], style))
