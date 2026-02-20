@@ -9,10 +9,16 @@
   - JSON export for integration or further analysis.
 - **Visual Diagrams**:
   - DOT, SVG, and HTML diagrams with threat highlights.
-- **Navigable Project Reports**:
+- **Interactive, Navigable Project Reports**:
   - Generate a unified, navigable HTML report for complex projects with multiple nested threat models.
-  - Diagrams are interactive, with hover effects (zoom, shadow) on clickable elements.
-  - Fully self-contained and works offline, with all necessary assets (like `svg-pan-zoom.js`) included locally.
-- **Real-time Markdown Editing**: Edit your threat model in Markdown with a live diagram preview. The simple editor mode now supports a tabbed interface for editing multi-file projects (a main model and its sub-models) simultaneously.
+  - Diagrams are fully interactive, not just static images:
+    - **Click to Highlight**: Click on any element (node or connection) to highlight it and its direct relationships. The rest of the diagram fades out to help focus on the selected components.
+    - **Interactive Legend**: Click on a protocol in the legend (e.g., HTTPS) to instantly show or hide all dataflows using that protocol.
+    - **Sub-model Navigation**: Elements that link to sub-model diagrams have a distinct hover effect and are clickable for easy navigation.
+  - Reports are fully self-contained and work offline.
+- **Real-time Interactive Editing**:
+  - The simple server mode (`/simple`) provides a live, interactive diagram preview that updates as you type.
+  - The editor supports a tabbed interface for editing multi-file projects (a main model and its sub-models) simultaneously.
+  - All interactive features, including highlighting and legend filtering, are available in the live preview.
 - **Extensible**: All mappings and calculations are modular and easy to override.
 - **PyTM Compatibility**: Supports PyTM's model structure and can be extended with PyTM's features.

@@ -55,14 +55,14 @@ python -m threat_analysis --model-file threatModel_Template/threat_model.md \
 
 ### 2. Project Mode: Hierarchical Threat Models
 
-The framework excels at handling complex projects with multiple, nested threat models. By structuring your models in directories (e.g., `projects/my_app/main.md`, `projects/my_app/backend/model.md`), you can generate a unified, navigable report.
+The framework excels at handling complex projects with multiple, nested threat models. While you can run project-based analysis from the CLI, the recommended workflow is to use the **Web-based User Interface (Server Mode)**, which provides a more interactive and intuitive experience.
 
-1.  **Organize your project** in the `threatModel_Template/projects/` directory (see examples).
-2.  **Run the analysis on the project folder:**
+1.  **Organize your project** in a directory, with a `main.md` at the root and sub-models in sub-directories (e.g., `my_project/main.md`, `my_project/backend/model.md`).
+2.  **Launch the server with your project path:**
     ```bash
-    python -m threat_analysis --project threatModel_Template/projects/example_2
+    python -m threat_analysis --server --project path/to/your_project
     ```
-3.  **Explore the output:** A fully interactive, cross-linked HTML report will be generated in the `output/` directory. Diagrams for sub-models are placed in corresponding sub-directories, with all links and asset paths adjusted automatically.
+3.  **Use the "Generate All" button** in the web UI. A fully interactive, cross-linked HTML report will be generated in the `output/` directory.
 
 ### 3. Infrastructure as Code (IaC) Integration (Ansible Example)
 
@@ -135,29 +135,39 @@ The new CVE-based threats will appear in the generated report, linked to the cor
 For a more interactive experience, the framework provides a web-based UI that runs on a local server. This unified interface gives you access to two distinct modes from a central menu.
 
 1.  **Launch the server:**
-    ```bash
-    python -m threat_analysis --server
-    ```
+    -   To start with an empty model:
+        ```bash
+        python -m threat_analysis --server
+        ```
+    -   To load a single file:
+        ```bash
+        python -m threat_analysis --server --model-file path/to/your_model.md
+        ```
+    -   **To load an entire project:**
+        ```bash
+        python -m threat_analysis --server --project path/to/your_project
+        ```
     The console will display the address (e.g., `http://127.0.0.1:5000`) to open in your web browser.
 
 2.  **Choose a Mode from the Menu:**
-    -   **Simple Mode**: An interface to load a Markdown file and see the generated diagram and analysis in real-time. It now supports multi-file project editing through a tabbed interface. Ideal for quick visualization and reporting on existing models.
+    -   **Simple Mode**: An interface designed for editing and visualizing threat models described in Markdown. It features a tabbed editor, a live interactive diagram, and full reporting capabilities. When a project is loaded, all model files are automatically opened in separate tabs.
     -   **Graphical Editor**: A full-featured, interactive canvas to build, modify, and analyze threat models from scratch directly in the browser. It includes a toolbar for adding elements, a properties panel for editing, and the ability to generate all artifacts without touching Markdown directly.
 
 ### Working with Projects and Sub-models (Simple Mode)
 
-The Simple Mode has been enhanced with a tabbed interface to support editing a main threat model and its sub-models simultaneously, providing a larger editing area for each file.
+The Simple Mode is optimized for working with complex, multi-file projects.
 
-1.  **Define Your Sub-models**: In your main threat model, define a `server` element and use the `submodel` attribute to link to an external markdown file.
+1.  **Launch the Server with Your Project**: For the best experience, start the server with the `--project` flag pointing to your project's root directory. This will automatically open all `main.md` and `model.md` files in tabs.
+
+2.  **Define Your Sub-models**: In your `main.md` (or any other model file), define a `server` element and use the `submodel` attribute to link to another markdown file using a relative path.
     ```markdown
     ## Servers
     - **Backend Services**: submodel=backend/model.md, boundary="Internal"
     ```
 
-2.  **Add a Sub-model Tab**: Click the **"➕ Add Sub-model"** button in the header. You will be prompted to enter the path for the sub-model. This path **must exactly match** the path you specified in the `submodel` attribute (e.g., `backend/model.md`).
+3.  **Generate the Full Project**: Click the **"Generate All"** button. The system is designed to be robust:
+    -   It gathers the content from all open tabs.
+    -   It intelligently detects if any model references a sub-model that is not currently open.
+    -   If a missing sub-model is found, it will prompt you to select your project's root directory. It then scans this directory to find the missing files and includes them in the generation process.
+    -   This ensures that a complete, unified, and navigable set of reports and diagrams is always generated.
 
-3.  **Edit in Tabs**: A new tab will appear for your sub-model, providing a full-sized editor. You can switch between your `main.md` and any sub-model files by clicking on their respective tabs.
-
-4.  **Generate the Project**: Once you have all your tabs open and edited, click **"Generate All"**. The system will collect the content from all open tabs, reconstruct the project structure in the background, and generate a unified, navigable set of reports and diagrams.
-
-> **Note:** When using `--server`, the `--model-file` option can be used to load an initial threat model for the **Simple Mode**. The Graphical Editor starts with a new, empty model.

@@ -43,14 +43,14 @@ from unittest.mock import mock_open, patch
 
 def test_check_version_compatibility(service):
     # Test with matching versions
-    markdown_content = "# Version: 1.0\n# Version ID: 123"
+    markdown_content = "# Version: 1.0\n# Version ID: 123" # Corrected newline
     metadata_content = '{"version": "1.0", "version_id": "123"}'
     
     # Use side_effect to provide different content for each open call
     mock_file = mock_open()
     mock_file.side_effect = [
-        mock_open(read_data=markdown_content).return_value,
-        mock_open(read_data=metadata_content).return_value
+        mock_open(read_data=markdown_content).return_value, # First open call
+        mock_open(read_data=metadata_content).return_value  # Second open call
     ]
     with patch("builtins.open", mock_file):
         assert service.check_version_compatibility("md.md", "meta.json") is True
@@ -68,16 +68,16 @@ def test_check_version_compatibility(service):
     with patch("builtins.open", side_effect=FileNotFoundError):
         assert service.check_version_compatibility("md.md", "meta.json") is False
 
-@patch("threat_analysis.server.threat_model_service.create_threat_model")
 @patch("builtins.open", new_callable=mock_open)
 @patch("threat_analysis.server.threat_model_service.ThreatModelService._generate_positions_from_graphviz")
-def test_save_model_with_metadata(mock_generate_positions, mock_file, mock_create_tm, service):
+@patch("threat_analysis.server.threat_model_service.create_threat_model") # Added mock for create_threat_model
+def test_save_model_with_metadata(mock_create_tm, mock_generate_positions, mock_file, service): # Corrected function arguments
     # Mock create_threat_model to return a dummy model
     mock_create_tm.return_value = MagicMock()
 
     # Scenario 1: with provided positions
     with patch('datetime.datetime') as mock_dt:
-        mock_dt.now.return_value = datetime(2026, 2, 19, 22, 37, 5)
+        mock_dt.now.return_value = datetime(2026, 2, 19, 22, 37, 5) # Consistent datetime for assertion
         service.save_model_with_metadata("markdown", "out.md", {"pos": 1})
         
         # Check that open was called for md and json files
