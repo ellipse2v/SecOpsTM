@@ -227,7 +227,9 @@ def update_diagram():
         return jsonify({"error": "Markdown content is empty"}), 400
 
     try:
-        result = threat_model_service.update_diagram_logic(markdown_content, submodels=submodels)
+        result = threat_model_service.update_diagram_logic(
+            markdown_content=markdown_content, submodels=submodels
+        )
         model_name = get_model_name(markdown_content)
         result["model_name"] = model_name
         return jsonify(result)
@@ -317,7 +319,9 @@ def graphical_update():
         os.makedirs(config.OUTPUT_BASE_DIR, exist_ok=True)
         
         # Reuse the existing service logic
-        result = threat_model_service.update_diagram_logic(markdown_content)
+        result = threat_model_service.update_diagram_logic(
+            markdown_content=markdown_content
+        )
         model_name = get_model_name(markdown_content)
         result["model_name"] = model_name
         result["output_dir"] = str(config.OUTPUT_BASE_DIR)
@@ -345,7 +349,9 @@ def export_files():
         )
 
     try:
-        output_path, output_filename = threat_model_service.export_files_logic(markdown_content, export_format)
+        output_path, output_filename = threat_model_service.export_files_logic(
+            markdown_content=markdown_content, export_format=export_format
+        )
         absolute_output_directory = os.path.join(project_root, os.path.dirname(output_path))
         
         # Return both the file and the output directory information
@@ -381,7 +387,9 @@ def export_all_files():
 
     try:
         submodels = request.json.get("submodels", [])
-        zip_buffer, timestamp = threat_model_service.export_all_files_logic(markdown_content, submodels=submodels)
+        zip_buffer, timestamp = threat_model_service.export_all_files_logic(
+            markdown_content=markdown_content, submodels=submodels
+        )
         return send_file(
             zip_buffer,
             mimetype="application/zip",

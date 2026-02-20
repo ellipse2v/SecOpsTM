@@ -486,7 +486,7 @@
         }
         
         .faded {
-            opacity: 0.2 !important;
+            opacity: 0.5 !important;
             transition: opacity 0.2s ease-in-out;
         }
         /* Specific rules for text within faded elements to remain visible */
@@ -592,24 +592,20 @@
                 return;
             }
 
-            console.log('Clicked element ID:', elementId); // DEBUG
             // Clear previous highlighting
             clearHighlighting();
             currentlySelectedElementId = elementId;
 
             const svg = svgWrapper.querySelector('svg');
             if (!svg || !globalGraphMetadata) {
-                console.warn('SVG or globalGraphMetadata not available.'); // DEBUG
                 return;
             }
 
             // Target element can be a node or an edge
             const targetElement = globalGraphMetadata.nodes[elementId] || globalGraphMetadata.edges[elementId];
             if (!targetElement) {
-                console.warn('Target element not found in globalGraphMetadata for ID:', elementId); // DEBUG
                 return;
             }
-            console.log('Target element from metadata:', targetElement); // DEBUG
 
             // Get all visible SVG groups (nodes and edges)
             const allSvgGroups = svg.querySelectorAll('g[id]');
@@ -622,9 +618,6 @@
             if (selectedSvgElement) {
                 selectedSvgElement.classList.add('selected');
                 selectedSvgElement.classList.remove('faded');
-                console.log('Selected SVG element:', selectedSvgElement); // DEBUG
-            } else {
-                console.warn('Selected SVG element not found in DOM for ID:', elementId); // DEBUG
             }
 
             // Highlight connected elements
@@ -648,22 +641,15 @@
                     connectedEdges.add(elementId);
                 }
             }
-            console.log('Connected elements from metadata:', connectedElements); // DEBUG
-            console.log('Connected edges from metadata:', connectedEdges); // DEBUG
 
             connectedElements.forEach(connId => {
-                const connSvgElement = svg.querySelector(`g[id="${CSS.escape(connId)}"]`);
                 // Special handling for boundary clusters (g[id^="cluster_"])
-                // Graphviz generates nodes *inside* the cluster, so direct highlighting of the cluster g[id]
-                // won't apply to the rect/path that forms the boundary.
-                // We also want to highlight the 'hidden_node' related to boundary as well.
                 if (connId.startsWith('__hidden_node_')) {
                     const originalBoundaryId = connId.replace('__hidden_node_', '');
                     const boundaryCluster = svg.querySelector(`g[id="cluster_${CSS.escape(originalBoundaryId)}"]`);
                      if (boundaryCluster) {
                         boundaryCluster.classList.add('highlighted');
                         boundaryCluster.classList.remove('faded');
-                        console.log('Highlighted boundary cluster:', boundaryCluster); // DEBUG
                     }
                 }
 
@@ -671,9 +657,6 @@
                 if (connSvgElementActual) {
                     connSvgElementActual.classList.add('highlighted');
                     connSvgElementActual.classList.remove('faded');
-                    console.log('Highlighted connected SVG element:', connSvgElementActual); // DEBUG
-                } else {
-                    console.warn('Connected SVG element not found in DOM for ID:', connId); // DEBUG
                 }
             });
 
@@ -682,9 +665,6 @@
                 if (edgeSvgElement) {
                     edgeSvgElement.classList.add('highlighted');
                     edgeSvgElement.classList.remove('faded');
-                    console.log('Highlighted connected SVG edge:', edgeSvgElement); // DEBUG
-                } else {
-                    console.warn('Connected SVG edge not found in DOM for ID:', edgeId); // DEBUG
                 }
             });
         }
@@ -699,7 +679,6 @@
                 g.classList.remove('selected', 'highlighted', 'faded');
             });
             currentlySelectedElementId = null;
-            console.log('Highlighting cleared.'); // DEBUG
         }
 
         const TabManager = {
@@ -1074,22 +1053,25 @@
                     });
                     console.log("svgPanZoom initialized with instance:", panZoomInstance);
 
-                    // Add click listeners to SVG elements for highlighting
-                    const allSvgGroups = svgElement.querySelectorAll('g[id]');
-                    allSvgGroups.forEach(g => {
-                        g.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            highlightElement(g.id);
-                        });
-                        g.classList.add('graph-element');
-                    });
-
-                    // Add click listener to SVG background to clear highlighting
+                    // Add a single click listener to the SVG container for event delegation
                     svgElement.addEventListener('click', (e) => {
-                        // Check if the click target is the SVG element itself (background)
-                        if (e.target === svgElement || e.target.tagName.toLowerCase() === 'rect' && e.target.parentNode === svgElement) {
+                        // Find the closest parent group that is a graph element
+                        const g = e.target.closest('.graph-element');
+
+                        if (g) {
+                            // A graph element (node or edge) was clicked
+                            e.stopPropagation(); // Stop event from propagating further, just in case
+                            highlightElement(g.id);
+                        } else {
+                            // The background was clicked, clear any highlighting
                             clearHighlighting();
                         }
+                    });
+
+                    // Add graph-element class to all groups with an ID for easy identification by the listener
+                    const allSvgGroups = svgElement.querySelectorAll('g[id]');
+                    allSvgGroups.forEach(g => {
+                        g.classList.add('graph-element');
                     });
 
                 } else {
@@ -1141,76 +1123,97 @@
                 content: e.editor.getValue()
             }));
 
+            function resolvePath(base, relative) {
+                const stack = base.split('/');
+                stack.pop(); // remove filename
+                const parts = relative.split('/');
+                for (let i = 0; i < parts.length; i++) {
+                    if (parts[i] === '.') continue;
+                    if (parts[i] === '..') {
+                        if (stack.length > 0) stack.pop();
+                    } else {
+                        stack.push(parts[i]);
+                    }
+                }
+                return stack.join('/');
+            }
+
+            let hasPotentialUnresolved = false;
+            const openPaths = new Set(allFiles.map(f => f.path));
             const subModelRegex = /sub_model_path\s*=\s*"(.*?)"/g;
-            let contentToCheck = mainModelContent;
-            openSubmodels.forEach(sm => {
-                contentToCheck += '\n' + sm.content;
-            });
 
-            if (subModelRegex.test(contentToCheck)) {
-                subModelRegex.lastIndex = 0; // Reset regex
-
-                const openPaths = new Set(allFiles.map(f => f.path));
-                let hasPotentialUnresolved = false;
+            for (const fileData of allFiles) {
                 let match;
-                while ((match = subModelRegex.exec(contentToCheck)) !== null) {
+                while ((match = subModelRegex.exec(fileData.content)) !== null) {
                     const referencedPath = match[1];
-                    // This is a heuristic. If a path is referenced that isn't already fully known,
-                    // we assume we might need the full project context.
-                    if (!openPaths.has(referencedPath)) {
+                    try {
+                        const resolvedPath = resolvePath(fileData.path, referencedPath);
+                        if (!openPaths.has(resolvedPath)) {
+                            hasPotentialUnresolved = true;
+                            break;
+                        }
+                    } catch (e) {
+                        console.error("Path resolution error:", e);
                         hasPotentialUnresolved = true;
                         break;
                     }
                 }
+                if (hasPotentialUnresolved) break;
+            }
 
-                if (hasPotentialUnresolved) {
-                    if (confirm("This model appears to reference sub-models that are not open. To ensure a complete generation, please select the project's root directory.")) {
-                        try {
-                            const dirHandle = await window.showDirectoryPicker();
-                            const inMemoryFiles = [];
-                            
-                            async function processDirectory(directoryHandle, currentRelativePath) {
-                                for await (const entry of directoryHandle.values()) {
-                                    const newRelativePath = currentRelativePath ? `${currentRelativePath}/${entry.name}` : entry.name;
-                                    if (entry.kind === 'file' && entry.name.endsWith('.md')) {
-                                        const file = await entry.getFile();
-                                        const content = await file.text();
-                                        inMemoryFiles.push({ path: newRelativePath, content: content });
-                                    } else if (entry.kind === 'directory') {
-                                        await processDirectory(entry, newRelativePath);
-                                    }
+            if (hasPotentialUnresolved) {
+                if (confirm("This model appears to reference sub-models that are not open. To ensure a complete generation, please select the project's root directory.")) {
+                    try {
+                        const dirHandle = await window.showDirectoryPicker();
+                        const inMemoryFiles = [];
+                        
+                        async function processDirectory(directoryHandle, currentRelativePath) {
+                            for await (const entry of directoryHandle.values()) {
+                                const newRelativePath = currentRelativePath ? `${currentRelativePath}/${entry.name}` : entry.name;
+                                if (entry.kind === 'file' && entry.name.endsWith('.md')) {
+                                    const file = await entry.getFile();
+                                    const content = await file.text();
+                                    inMemoryFiles.push({ path: newRelativePath, content: content });
+                                } else if (entry.kind === 'directory') {
+                                    await processDirectory(entry, newRelativePath);
                                 }
                             }
-                            
-                            await processDirectory(dirHandle, '');
+                        }
+                        
+                        await processDirectory(dirHandle, '');
 
-                            const tabFilePaths = new Set(allFiles.map(f => f.path));
-                            inMemoryFiles.forEach(memFile => {
-                                if (!tabFilePaths.has(memFile.path)) {
-                                    allFiles.push(memFile);
-                                }
-                            });
-
-                        } catch (error) {
-                            if (error.name === 'AbortError') {
-                                alert("Directory selection cancelled. Proceeding with open tabs only.");
-                            } else {
-                                alert(`Error accessing directory: ${error.message}. Aborting generation.`);
-                                return;
+                        const tabFilePaths = new Set(allFiles.map(f => f.path));
+                        inMemoryFiles.forEach(memFile => {
+                            if (!tabFilePaths.has(memFile.path)) {
+                                allFiles.push(memFile);
                             }
+                        });
+
+                    } catch (error) {
+                        if (error.name === 'AbortError') {
+                            alert("Directory selection cancelled. Proceeding with open tabs only.");
+                        } else {
+                            alert(`Error accessing directory: ${error.message}. Aborting generation.`);
+                            return;
                         }
                     }
                 }
             }
 
            try {
-               // Step 1: Resolve all sub-models recursively from the main model
+               // Ensure `allFiles` contains all models (active tab, other tabs, and picked files).
+               // The main model (active tab content) is sent as 'markdown'.
+               // All other models are sent as 'submodels'.
+               const activeEditorPath = TabManager.getActiveEditor().path;
+               const finalSubmodels = allFiles.filter(fileData => fileData.path !== activeEditorPath);
+
+               // Step 1: Resolve all sub-models recursively from the full set of project files
                const resolveResponse = await fetch('/api/resolve_submodels', {
                    method: 'POST',
                    headers: { 'Content-Type': 'application/json' },
                    body: JSON.stringify({
                        main_model_content: mainModelContent,
-                       project_files: allFiles
+                       project_files: allFiles // Send all collected files for resolution
                    })
                });
 
@@ -1218,24 +1221,15 @@
                    const errorData = await resolveResponse.json();
                    throw new Error(`Sub-model resolution failed: ${errorData.error}`);
                }
-               const resolvedData = await resolveResponse.json();
-               const resolvedSubmodels = resolvedData.submodels || [];
-
-               const finalSubmodels = [...openSubmodels];
-               const openSubmodelPaths = new Set(openSubmodels.map(m => m.path));
-
-               resolvedSubmodels.forEach(resolved => {
-                   if (!openSubmodelPaths.has(resolved.path)) {
-                       finalSubmodels.push(resolved);
-                   }
-               });
+               // We don't need resolvedData from here to filter finalSubmodels, as finalSubmodels already contains them.
+               // The important part is that the server's resolution logic is run with all context.
 
                const generateResponse = await fetch('/api/generate_all', {
                    method: 'POST',
                    headers: { 'Content-Type': 'application/json' },
                    body: JSON.stringify({
-                       markdown: mainModelContent,
-                       submodels: finalSubmodels
+                       markdown: mainModelContent, // Content of the active editor
+                       submodels: finalSubmodels  // All other collected models
                    }),
                });
 

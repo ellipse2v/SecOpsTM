@@ -267,6 +267,118 @@ class ReportGenerator:
             "severity_distribution": severity_distribution
         }
 
+    def _extract_graph_metadata_for_frontend(self, threat_model: ThreatModel) -> dict:
+        """
+        Extracts a simplified graph structure (nodes and edges with their connections)
+        suitable for frontend visualization and interaction.
+        """
+        graph_metadata = {
+            "nodes": {},
+            "edges": {}
+        }
+        
+        def _sanitize_name_for_id(name: str) -> str:
+            if not name:
+                return "unnamed"
+            sanitized = re.sub(r'[^a-zA-Z0-9_]', '_', str(name))
+            if sanitized and sanitized[0].isdigit():
+                sanitized = f"_{sanitized}"
+            return sanitized or "unnamed"
+
+        # Process nodes (Actors, Servers, Boundaries)
+        for name, info in threat_model.boundaries.items():
+            sanitized_name = _sanitize_name_for_id(name)
+            cluster_id = f"cluster_{sanitized_name}" # The actual ID of the cluster group in SVG
+            graph_metadata["nodes"][cluster_id] = {
+                "id": cluster_id,
+                "type": "boundary",
+                "label": name,
+                "connections": [] # Will be populated by edges
+            }
+            # Also add the hidden node for boundary connections. This is what edges connect to.
+            hidden_node_name = f"__hidden_node_{sanitized_name}"
+            graph_metadata["nodes"][hidden_node_name] = {
+                "id": hidden_node_name,
+                "type": "hidden_boundary_node", # Mark as hidden for UI purposes
+                "label": f"Hidden node for {name}",
+                "connections": []
+            }
+        
+        for actor_info in threat_model.actors:
+            name = actor_info['name']
+            sanitized_name = _sanitize_name_for_id(name)
+            graph_metadata["nodes"][sanitized_name] = {
+                "id": sanitized_name,
+                "type": "actor",
+                "label": name,
+                "connections": []
+            }
+
+        for server_info in threat_model.servers:
+            name = server_info['name']
+            sanitized_name = _sanitize_name_for_id(name)
+            graph_metadata["nodes"][sanitized_name] = {
+                "id": sanitized_name,
+                "type": "server",
+                "label": name,
+                "connections": []
+            }
+        
+        # Process dataflows (edges)
+        for df in threat_model.dataflows:
+            source_name = getattr(df.source, 'name', None)
+            sink_name = getattr(df.sink, 'name', None)
+            protocol = getattr(df, 'protocol', None)
+            
+            if not source_name or not sink_name:
+                logging.warning(f"Skipping dataflow with missing source or sink: {df}")
+                continue
+            
+            sanitized_source = _sanitize_name_for_id(source_name)
+            sanitized_sink = _sanitize_name_for_id(sink_name)
+
+            is_source_boundary = False
+            for b_name, info in threat_model.boundaries.items():
+                if b_name == source_name:
+                    sanitized_source = f"__hidden_node_{_sanitize_name_for_id(b_name)}"
+                    is_source_boundary = True
+                    break
+
+            is_sink_boundary = False
+            for b_name, info in threat_model.boundaries.items():
+                if b_name == sink_name:
+                    sanitized_sink = f"__hidden_node_{_sanitize_name_for_id(b_name)}"
+                    is_sink_boundary = True
+                    break
+            
+            actual_src_id = _sanitize_name_for_id(source_name)
+            actual_dst_id = _sanitize_name_for_id(sink_name)
+            edge_id = f"edge_{actual_src_id}_{actual_dst_id}"
+            
+            graph_metadata["edges"][edge_id] = {
+                "id": edge_id,
+                "source": sanitized_source,
+                "target": sanitized_sink,
+                "protocol": protocol,
+                "label": df.name if hasattr(df, 'name') else f"{source_name} to {sink_name}"
+            }
+            
+            if sanitized_source in graph_metadata["nodes"]:
+                graph_metadata["nodes"][sanitized_source]["connections"].append(edge_id)
+            if sanitized_sink in graph_metadata["nodes"]:
+                graph_metadata["nodes"][sanitized_sink]["connections"].append(edge_id)
+
+            if is_source_boundary:
+                actual_boundary_id = _sanitize_name_for_id(source_name)
+                if actual_boundary_id in graph_metadata["nodes"]:
+                    graph_metadata["nodes"][actual_boundary_id]["connections"].append(edge_id)
+            if is_sink_boundary:
+                actual_boundary_id = _sanitize_name_for_id(sink_name)
+                if actual_boundary_id in graph_metadata["nodes"]:
+                    graph_metadata["nodes"][actual_boundary_id]["connections"].append(edge_id)
+        
+        return graph_metadata
+
     def _get_all_business_values(self, threat_model: ThreatModel) -> List[str]:
         """Collects all unique business values from boundaries, actors, and servers."""
         business_values = set()
@@ -488,41 +600,43 @@ class ReportGenerator:
             for server in threat_model.servers:
                 if 'submodel' in server:
                     submodel_path_str = server['submodel']
-                    submodel_path = _validate_path_within_project(str(model_path.parent / submodel_path_str), base_dir=project_path)
+                    try:
+                        submodel_path = _validate_path_within_project(str(model_path.parent / submodel_path_str), base_dir=project_path)
 
-                    if submodel_path.is_file():
-                        submodel_relative_parent = Path(submodel_path_str).parent
-                        sub_output_dir = output_dir / submodel_relative_parent
-                        sub_output_dir.mkdir(parents=True, exist_ok=True)
+                        if submodel_path.is_file():
+                            submodel_relative_parent = Path(submodel_path_str).parent
+                            sub_output_dir = output_dir / submodel_relative_parent
+                            sub_output_dir.mkdir(parents=True, exist_ok=True)
 
-                        sub_model_display_name = submodel_relative_parent.name if str(submodel_relative_parent) != '.' else submodel_path.stem
-                        
-                        # Create a relative link for the breadcrumb, ensuring it's relative to the project output root.
-                        current_model_breadcrumb_path = Path(breadcrumb[-1][1])
-                        current_model_dir = current_model_breadcrumb_path.parent
-                        
-                        submodel_rel_path = Path(submodel_path_str)
-                        
-                        # Combine the current model's directory with the submodel's relative path
-                        # and then replace the filename to get the correct diagram link.
-                        new_link_path_obj = (current_model_dir / submodel_rel_path).with_name(f"{submodel_rel_path.stem}_diagram.html")
-                        
-                        # Normalize the path to handle cases like "." or ".." and ensure forward slashes
-                        breadcrumb_link = Path(os.path.normpath(str(new_link_path_obj))).as_posix()
+                            sub_model_display_name = submodel_relative_parent.name if str(submodel_relative_parent) != '.' else submodel_path.stem
+                            
+                            # Create a relative link for the breadcrumb, ensuring it's relative to the project output root.
+                            current_model_breadcrumb_path = Path(breadcrumb[-1][1])
+                            current_model_dir = current_model_breadcrumb_path.parent
+                            
+                            submodel_rel_path = Path(submodel_path_str)
+                            
+                            # Combine the current model's directory with the submodel's relative path
+                            # and then replace the filename to get the correct diagram link.
+                            new_link_path_obj = (current_model_dir / submodel_rel_path).with_name(f"{submodel_rel_path.stem}_diagram.html")
+                            
+                            # Normalize the path to handle cases like "." or ".." and ensure forward slashes
+                            breadcrumb_link = Path(os.path.normpath(str(new_link_path_obj))).as_posix()
 
-                        new_breadcrumb = breadcrumb + [(sub_model_display_name, breadcrumb_link)]
+                            new_breadcrumb = breadcrumb + [(sub_model_display_name, breadcrumb_link)]
 
-                        self._recursively_generate_reports(
-                            model_path=submodel_path,
-                            project_path=project_path,
-                            output_dir=sub_output_dir,
-                            breadcrumb=new_breadcrumb,
-                            project_protocols=project_protocols,
-                            project_protocol_styles=project_protocol_styles,
-                            all_project_models=all_project_models
-                        )
-                    else:
-                        logging.warning(f"Submodel file not found: {submodel_path}")
+                            self._recursively_generate_reports(
+                                model_path=submodel_path,
+                                project_path=project_path,
+                                output_dir=sub_output_dir,
+                                breadcrumb=new_breadcrumb,
+                                project_protocols=project_protocols,
+                                project_protocol_styles=project_protocol_styles,
+                                all_project_models=all_project_models
+                            )
+                    except ValueError as e:
+                        logging.warning(f"Skipping submodel referenced in '{model_path.name}' because it was not found: {e}")
+                        continue
         except Exception as e:
             logging.error(f"Error processing model at {model_path}: {e}", exc_info=True)
 
@@ -578,13 +692,15 @@ class ReportGenerator:
             project_protocol_styles=project_protocol_styles
         )
 
+        graph_metadata = self._extract_graph_metadata_for_frontend(threat_model)
         html = template.render(
             title=f"Diagram - {model_name}",
             svg_content=svg_content,
             breadcrumb=processed_breadcrumb,
             parent_link=parent_link,
             legend_html=legend_html,
-            current_dir_depth=current_dir_depth # Pass the depth to the template
+            current_dir_depth=current_dir_depth, # Pass the depth to the template
+            graph_metadata_json=json.dumps(graph_metadata)
         )
 
         diagram_html_path = output_dir / f"{model_name}_diagram.html"

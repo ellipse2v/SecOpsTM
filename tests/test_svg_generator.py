@@ -51,7 +51,7 @@ def test_generate_svg_from_dot_success(generator, tmp_path):
     assert '<svg' in svg_content
     assert 'id="a"' in svg_content
     assert 'id="b"' in svg_content
-    assert 'id="edge_0_1"' in svg_content
+    assert 'id="edge_a_b"' in svg_content
 
 def test_generate_svg_from_dot_json_fail(generator, tmp_path):
     """Test failure when dot command fails to generate JSON."""

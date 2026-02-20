@@ -707,8 +707,9 @@ class ThreatModelService:
             html_diagram_filepath = os.path.join(
                 export_path, html_diagram_filename
             )
+            graph_metadata = self._extract_graph_metadata_for_frontend(threat_model)
             self.diagram_generator._generate_html_with_legend(
-                Path(svg_filepath), Path(html_diagram_filepath), threat_model
+                Path(svg_filepath), Path(html_diagram_filepath), threat_model, graph_metadata
             )
 
             grouped_threats = threat_model.process_threats()

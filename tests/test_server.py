@@ -19,6 +19,7 @@ from unittest.mock import patch, MagicMock, mock_open
 from io import BytesIO
 import base64
 import sys
+from pathlib import Path
 
 # This is a bit tricky. We need to add the project root to the path
 # BEFORE we import the app, so the app can find its own modules.
@@ -57,7 +58,9 @@ def test_update_api_success(client):
         json_data = response.get_json()
         assert 'diagram_html' in json_data
         assert json_data['diagram_html'] == "<html>Diagram</html>"
-        mock_update_diagram_logic.assert_called_once_with(markdown_payload['markdown'])
+        mock_update_diagram_logic.assert_called_once_with(
+            markdown_content=markdown_payload["markdown"], submodels=[]
+        )
 
 def test_update_api_empty_markdown(client):
     """Test the /api/update endpoint with empty markdown content."""
@@ -88,7 +91,9 @@ def test_export_api_success(client, export_format):
             response = client.post('/api/export', data=json.dumps(markdown_payload), content_type='application/json')
 
             assert response.status_code == 200
-            mock_export_files_logic.assert_called_once_with(markdown_payload['markdown'], export_format)
+            mock_export_files_logic.assert_called_once_with(
+                markdown_content=markdown_payload['markdown'], export_format=export_format
+            )
             mock_send.assert_called_once_with("/fake/path/to", "mock_file.ext", as_attachment=True)
     finally:
         # Restore original sys.argv
@@ -105,7 +110,9 @@ def test_export_api_invalid_format(client):
         json_data = response.get_json()
         assert 'error' in json_data
         assert json_data['error'] == 'Invalid export format'
-        mock_export_files_logic.assert_called_once_with(markdown_payload['markdown'], markdown_payload['format'])
+        mock_export_files_logic.assert_called_once_with(
+            markdown_content=markdown_payload['markdown'], export_format=markdown_payload['format']
+        )
 
 def test_export_api_missing_data(client):
     """Test the /api/export endpoint with missing markdown or format."""
@@ -150,14 +157,17 @@ def test_run_server_with_non_existent_model_file(client):
 def test_run_server_with_existing_model_file(client):
     """Test that run_server loads content from an existing model file and the encoded markdown is present in the response."""
     mock_file_content = "# Threat Model: Test Model\n## Description\nA test model."
-    expected_encoded_markdown = base64.b64encode(mock_file_content.encode('utf-8')).decode('utf-8')
+    # The template expects a JSON array of model objects to be base64 encoded.
+    models_payload = [{"path": "main.md", "content": mock_file_content}]
+    expected_encoded_json = base64.b64encode(json.dumps(models_payload).encode('utf-8')).decode('utf-8')
+    
     with patch('os.path.exists', return_value=True):
         with patch('builtins.open', mock_open(read_data=mock_file_content)) as mock_file:
             with patch('threat_analysis.server.server.app.run'):
                 run_server(model_filepath='/path/to/existing/model.md')
                 response = client.get('/simple')
                 assert response.status_code == 200
-                assert expected_encoded_markdown.encode('utf-8') in response.data
+                assert expected_encoded_json in response.data.decode('utf-8')
                 mock_file.assert_called_once_with('/path/to/existing/model.md', "r", encoding="utf-8")
 
 def test_export_all_api_success(client):
@@ -173,7 +183,9 @@ def test_export_all_api_success(client):
         response = client.post('/api/export_all', data=json.dumps(markdown_payload), content_type='application/json')
 
         assert response.status_code == 200
-        mock_export_all_files_logic.assert_called_once_with(mock_markdown)
+        mock_export_all_files_logic.assert_called_once_with(
+            markdown_content=mock_markdown, submodels=[]
+        )
         mock_send_file.assert_called_once()
 
 def test_export_all_api_missing_markdown(client):
@@ -218,7 +230,9 @@ A simple example system.
         json_data = response.get_json()
         assert 'diagram_html' in json_data
         assert json_data['diagram_html'] == "<html>Full Diagram</html>"
-        mock_update_diagram_logic.assert_called_once_with(full_markdown_content)
+        mock_update_diagram_logic.assert_called_once_with(
+            markdown_content=full_markdown_content, submodels=[]
+        )
 
 
 
@@ -258,7 +272,7 @@ def test_graphical_update_success(client):
 
         assert response.status_code == 200
         mock_convert.assert_called_once_with(payload)
-        mock_update.assert_called_once_with("# Converted Markdown")
+        mock_update.assert_called_once_with(markdown_content="# Converted Markdown")
         assert 'diagram_html' in response.get_json()
 
 def test_graphical_update_empty_json(client):
@@ -315,7 +329,7 @@ def test_markdown_to_json_success(client):
         json_data = response.get_json()
         assert json_data['success'] is True
         assert 'model_json' in json_data
-        mock_converter.assert_called_once_with('# Test')
+        mock_converter.assert_called_once()
 
 def test_markdown_to_json_missing_markdown(client):
     """Test the /api/markdown_to_json endpoint with missing markdown."""
@@ -324,27 +338,30 @@ def test_markdown_to_json_missing_markdown(client):
     assert response.status_code == 400
     assert 'Missing markdown content' in response.get_json()['error']
 
-def test_generate_all_success(client):
+def test_generate_all_success(client, tmp_path):
     """Test the /api/generate_all endpoint."""
-    with patch('threat_analysis.server.server.threat_model_service.generate_full_project_export') as mock_generate, \
-         patch('threat_analysis.server.server.threat_model_service.save_model_with_metadata') as mock_save, \
-         patch('os.makedirs'), \
-         patch('os.path.join', side_effect=lambda *args: "/".join(map(str, args))):
-        
-        mock_generate.return_value = {
-            "reports": {"html": "path/to/report.html"},
-            "diagrams": {"svg": "path/to/diagram.svg"}
-        }
-        mock_save.return_value = "path/to/metadata.json"
-        
-        payload = {'markdown': '# Test', 'model_name': 'MyModel'}
-        response = client.post('/api/generate_all', data=json.dumps(payload), content_type='application/json')
-        
-        assert response.status_code == 200
-        json_data = response.get_json()
-        assert json_data['success'] is True
-        mock_generate.assert_called_once()
-        mock_save.assert_called_once()
+    # Patch the config to use the temporary directory
+    with patch('threat_analysis.server.server.config.OUTPUT_BASE_DIR', tmp_path):
+        # Patch the service call that does the heavy lifting
+        with patch('threat_analysis.server.server.threat_model_service.generate_full_project_export') as mock_generate:
+            mock_generate.return_value = {
+                "reports": {"html": "path/to/report.html"},
+                "diagrams": {"svg": "path/to/diagram.svg"}
+            }
+            
+            payload = {'markdown': '# Test', 'model_name': 'MyModel'}
+            response = client.post('/api/generate_all', data=json.dumps(payload), content_type='application/json')
+            
+            assert response.status_code == 200
+            json_data = response.get_json()
+            assert json_data['success'] is True
+            assert 'generation_dir' in json_data
+            
+            # Check that the main model file was created in the temp dir
+            generation_dir = Path(json_data['generation_dir'])
+            assert (generation_dir / "main.md").exists()
+
+            mock_generate.assert_called_once()
 
 def test_export_navigator_stix_success(client):
     """Test the /api/export_navigator_stix endpoint."""

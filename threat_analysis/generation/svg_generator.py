@@ -201,7 +201,7 @@ class CustomSVGGenerator:
                 elements.extend(self._generate_cluster_svg(obj))
         for edge in data.get('edges', []):
             logging.debug(f"CustomSVGGenerator: Processing edge: {edge}")
-            elements.extend(self._generate_edge_svg(edge, node_id_to_name))
+            elements.extend(self._generate_edge_svg(edge, objects))
         for obj in objects:
             if 'pos' in obj and not obj.get('name', '').startswith('cluster'):
                 elements.extend(self._generate_node_svg(obj))
@@ -329,15 +329,21 @@ class CustomSVGGenerator:
         elements.append('  </g>')
         return elements
 
-    def _generate_edge_svg(self, edge: Dict, node_id_to_name: Dict[str, str]) -> List[str]:
-        # Use the mapping to get sanitized node names for head and tail
-        gv_tail = edge.get('tail','')
-        gv_head = edge.get('head','')
+    def _generate_edge_svg(self, edge: Dict, objects: List[Dict]) -> List[str]:
+        # Get tail and head indices
+        tail_idx = edge.get('tail')
+        head_idx = edge.get('head')
 
-        sanitized_tail_name = node_id_to_name.get(gv_tail, self._sanitize_name(gv_tail))
-        sanitized_head_name = node_id_to_name.get(gv_head, self._sanitize_name(gv_head))
+        if tail_idx is None or head_idx is None or tail_idx >= len(objects) or head_idx >= len(objects):
+            return []
 
-        logging.debug(f"CustomSVGGenerator: _generate_edge_svg: gv_tail={gv_tail}, gv_head={gv_head}, sanitized_tail_name={sanitized_tail_name}, sanitized_head_name={sanitized_head_name}")
+        # Get the actual names of the nodes from the objects list
+        tail_node_name = objects[tail_idx].get('name', str(tail_idx))
+        head_node_name = objects[head_idx].get('name', str(head_idx))
+        
+        # Sanitize names for use in ID
+        sanitized_tail_name = self._sanitize_name(tail_node_name)
+        sanitized_head_name = self._sanitize_name(head_node_name)
 
         # Construct the edge ID using sanitized names as a fallback
         fallback_name = f"edge_{sanitized_tail_name}_{sanitized_head_name}"
@@ -348,7 +354,7 @@ class CustomSVGGenerator:
         class_attr_parts = ['edge'] # Always add 'edge' class
         label = edge.get('label', '')
         # The label can be HTML-like, so we use a regex
-        match = re.search(r'Protocol:\s*(\S+)', label, re.IGNORECASE)
+        match = re.search(r'Protocol:\s*([^<]+)', label, re.IGNORECASE)
         if match:
             protocol = match.group(1)
             protocol_class = self._sanitize_name(protocol)

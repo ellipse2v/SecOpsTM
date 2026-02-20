@@ -121,7 +121,20 @@
             color: #666;
             z-index: 1001;
         }
-
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 3px;
+            padding: 1px 0;
+            cursor: pointer;
+            border-radius: 2px;
+        }
+        .legend-item:hover {
+            background-color: rgba(0, 122, 204, 0.1);
+        }
+        .svg-element-hidden {
+            display: none !important;
+        }
         /* --- Hover effect styles --- */
         g > a > polygon,
         g > a > rect,
@@ -149,6 +162,63 @@
             stroke-width: 3px !important;
         }
 
+        /* New styles for highlighting */
+        .highlighted { /* Group-level styling for related elements */
+            opacity: 1 !important;
+        }
+        /* Style ONLY the shapes of related elements */
+        .highlighted path, .highlighted polygon, .highlighted ellipse {
+            stroke: #007bff !important; /* Bright blue */
+            stroke-width: 3px !important;
+            transition: stroke 0.2s, stroke-width 0.2s;
+        }
+        /* More specific rule for EDGES to ensure they are highlighted */
+        g.edge.highlighted path, g.edge.highlighted polygon {
+            stroke: #007bff !important;
+            stroke-width: 4px !important;
+        }
+
+        /* Ensure text within related elements remains readable */
+        .highlighted text {
+            stroke: none !important;
+            fill: inherit !important;
+        }
+
+        .selected { /* Group-level styling for selected element */
+            opacity: 1 !important;
+        }
+        /* Style ONLY the shapes of the selected element */
+        .selected path, .selected polygon, .selected ellipse {
+            stroke: red !important;
+            stroke-width: 3px !important;
+            fill: rgba(255, 0, 0, 0.15) !important; /* A more subtle fill */
+            transition: stroke 0.2s, stroke-width 0.2s, fill 0.2s;
+        }
+        /* More specific rule for EDGES to ensure they are highlighted */
+        g.edge.selected path, g.edge.selected polygon {
+            stroke: red !important;
+            stroke-width: 4px !important;
+        }
+        
+        /* Ensure text within the selected element remains perfectly readable */
+        .selected text {
+            stroke: none !important;
+            fill: inherit !important; /* Inherit original text color */
+        }
+        
+        .faded {
+            opacity: 0.5 !important;
+            transition: opacity 0.2s ease-in-out;
+        }
+        /* Specific rules for text within faded elements to remain visible */
+        .faded text {
+            fill: inherit !important; /* Keep original text color */
+            opacity: 1 !important;   /* Keep text opaque */
+        }
+        /* Remove graph-element's conflicting styles - let Graphviz set defaults, then override with !important */
+        .graph-element {
+            /* No conflicting fill/stroke here */
+        }
     </style>
 </head>
 <body>
@@ -187,15 +257,155 @@
 
     <script src="{{ '../' * current_dir_depth }}static/js/svg-pan-zoom.min.js"></script>
     <script>
+        let panZoomInstance; // Declare panZoomInstance globally
+        let globalGraphMetadata = null;
+        let currentlySelectedElementId = null;
+        let protocolVisibilityState = {};
+
+        // Function to apply highlighting
+        function highlightElement(elementId) {
+            // If the clicked element is already selected, clear highlighting and return.
+            if (currentlySelectedElementId === elementId) {
+                clearHighlighting();
+                return;
+            }
+
+            // Clear previous highlighting
+            clearHighlighting();
+            currentlySelectedElementId = elementId;
+
+            const svg = document.querySelector('#svg-container svg');
+            if (!svg || !globalGraphMetadata) {
+                return;
+            }
+
+            // Target element can be a node or an edge
+            const targetElement = globalGraphMetadata.nodes[elementId] || globalGraphMetadata.edges[elementId];
+            if (!targetElement) {
+                return;
+            }
+
+            // Get all visible SVG groups (nodes and edges)
+            const allSvgGroups = svg.querySelectorAll('g[id]');
+
+            // Apply faded class to all elements first
+            allSvgGroups.forEach(g => g.classList.add('faded'));
+
+            // Highlight the selected element
+            const selectedSvgElement = svg.querySelector(`g[id="${CSS.escape(elementId)}"]`);
+            if (selectedSvgElement) {
+                selectedSvgElement.classList.add('selected');
+                selectedSvgElement.classList.remove('faded');
+            }
+
+            // Highlight connected elements
+            const connectedElements = new Set();
+            const connectedEdges = new Set();
+
+            if (globalGraphMetadata.nodes[elementId]) { // If a node was clicked
+                globalGraphMetadata.nodes[elementId].connections.forEach(edgeId => {
+                    connectedEdges.add(edgeId);
+                    const edge = globalGraphMetadata.edges[edgeId];
+                    if (edge) {
+                        connectedElements.add(edge.source);
+                        connectedElements.add(edge.target);
+                    }
+                });
+            } else if (globalGraphMetadata.edges[elementId]) { // If an edge was clicked
+                const edge = globalGraphMetadata.edges[elementId];
+                if (edge) {
+                    connectedElements.add(edge.source);
+                    connectedElements.add(edge.target);
+                    connectedEdges.add(elementId);
+                }
+            }
+
+            connectedElements.forEach(connId => {
+                // Special handling for boundary clusters
+                if (connId.startsWith('__hidden_node_')) {
+                    const originalBoundaryId = connId.replace('__hidden_node_', '');
+                    const boundaryCluster = svg.querySelector(`g[id="cluster_${CSS.escape(originalBoundaryId)}"]`);
+                     if (boundaryCluster) {
+                        boundaryCluster.classList.add('highlighted');
+                        boundaryCluster.classList.remove('faded');
+                    }
+                }
+
+                const connSvgElementActual = svg.querySelector(`g[id="${CSS.escape(connId)}"]`);
+                if (connSvgElementActual) {
+                    connSvgElementActual.classList.add('highlighted');
+                    connSvgElementActual.classList.remove('faded');
+                }
+            });
+
+            connectedEdges.forEach(edgeId => {
+                const edgeSvgElement = svg.querySelector(`g[id="${CSS.escape(edgeId)}"]`);
+                if (edgeSvgElement) {
+                    edgeSvgElement.classList.add('highlighted');
+                    edgeSvgElement.classList.remove('faded');
+                }
+            });
+        }
+
+        // Function to clear all highlighting
+        function clearHighlighting() {
+            const svg = document.querySelector('#svg-container svg');
+            if (!svg) return;
+
+            const allSvgGroups = svg.querySelectorAll('g[id]');
+            allSvgGroups.forEach(g => {
+                g.classList.remove('selected', 'highlighted', 'faded');
+            });
+            currentlySelectedElementId = null;
+        }
+
         function toggleLegend() {
             const legend = document.getElementById('legend');
             legend.classList.toggle('hidden');
         }
 
+        function toggleProtocolVisibility(protocolClass) {
+            const legendItem = document.querySelector(`.legend-item[data-protocol="${protocolClass}"]`);
+            if (protocolVisibilityState[protocolClass] === 'hidden') {
+                protocolVisibilityState[protocolClass] = 'visible';
+                if(legendItem) legendItem.style.opacity = 1;
+            } else {
+                protocolVisibilityState[protocolClass] = 'hidden';
+                if(legendItem) legendItem.style.opacity = 0.5;
+            }
+            applyProtocolVisibility();
+        }
+
+        function applyProtocolVisibility() {
+            const svg = document.querySelector('#svg-container svg');
+            if (!svg) return;
+
+            const allElements = svg.querySelectorAll('g.edge');
+            allElements.forEach(el => el.classList.remove('svg-element-hidden'));
+
+            for (const protocolClass in protocolVisibilityState) {
+                if (protocolVisibilityState[protocolClass] === 'hidden') {
+                    const elementsToHide = svg.querySelectorAll(`.protocol-${protocolClass}`);
+                    elementsToHide.forEach(el => {
+                        el.classList.add('svg-element-hidden');
+                    });
+                }
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             var svgElement = document.querySelector('#svg-container svg');
+            
+            // Inject graph_metadata from Jinja2 context
+            const rawGraphMetadata = JSON.parse('{{ graph_metadata_json | safe }}');
+            if (Object.keys(rawGraphMetadata).length > 0) {
+                globalGraphMetadata = rawGraphMetadata;
+            } else {
+                console.warn("No graph metadata provided to navigable_diagram_template.html");
+            }
+
             if (svgElement) {
-                var panZoom = svgPanZoom(svgElement, {
+                panZoomInstance = svgPanZoom(svgElement, {
                     zoomEnabled: true,
                     controlIconsEnabled: false,
                     fit: true,
@@ -206,31 +416,53 @@
 
                 document.getElementById('zoom-in').addEventListener('click', function(e) {
                     e.preventDefault();
-                    panZoom.zoomIn();
+                    panZoomInstance.zoomIn();
                 });
 
                 document.getElementById('zoom-out').addEventListener('click', function(e) {
                     e.preventDefault();
-                    panZoom.zoomOut();
+                    panZoomInstance.zoomOut();
                 });
 
-                // --- Hover effect logic ---
-                var clickableLinks = document.querySelectorAll('#svg-container svg a');
-                console.log('Found ' + clickableLinks.length + ' clickable links for hover effect.');
+                // Add a single click listener to the SVG container for event delegation
+                svgElement.addEventListener('click', (e) => {
+                    // Find the closest parent group that is a graph element
+                    const g = e.target.closest('.graph-element');
 
+                    if (g) {
+                        // A graph element (node or edge) was clicked
+                        // Check if the original click target was a link, if so, do not highlight
+                        if (e.target.closest('a')) {
+                            return;
+                        }
+                        e.stopPropagation(); // Stop event from propagating further, just in case
+                        e.preventDefault(); // Prevent default link behavior if any
+                        highlightElement(g.id);
+                    } else {
+                        // The background was clicked, clear any highlighting
+                        clearHighlighting();
+                    }
+                });
+
+                // Add graph-element class to all groups with an ID for easy identification by the listener
+                const allSvgGroups = svgElement.querySelectorAll('g[id]');
+                allSvgGroups.forEach(g => {
+                    g.classList.add('graph-element');
+                });
+
+                // --- Hover effect logic for sub-model links ---
+                const clickableLinks = svgElement.querySelectorAll('a');
                 clickableLinks.forEach(function(link) {
-                    var group = link.parentElement;
-                    if (group && group.tagName.toLowerCase() === 'g') {
+                    const group = link.closest('.graph-element');
+                    if (group) {
                         try {
-                            // Add a class to the group for CSS targeting
                             group.classList.add('hover-effect');
                             group.style.cursor = 'pointer';
 
-                            // Set transform-origin dynamically for accurate scaling
-                            var bbox = group.getBBox();
-                            var cx = bbox.x + bbox.width / 2;
-                            var cy = bbox.y + bbox.height / 2;
-                            group.style.transformOrigin = cx + 'px ' + cy + 'px';
+                            const bbox = group.getBBox();
+                            const cx = bbox.x + bbox.width / 2;
+                            const cy = bbox.y + bbox.height / 2;
+                            group.style.transformOrigin = `${cx}px ${cy}px`;
 
                             group.addEventListener('mouseover', function() {
                                 group.classList.add('hovered');
@@ -240,10 +472,27 @@
                                 group.classList.remove('hovered');
                             });
                         } catch (e) {
-                            console.error('Could not apply hover effect to group:', group.id, e);
+                            // BBox can fail on hidden elements, not critical
                         }
                     }
                 });
+
+                // Add event listener for legend item clicks
+                const legend = document.getElementById('legend');
+                legend.addEventListener('click', (event) => {
+                    const legendItem = event.target.closest('.legend-item');
+                    if (legendItem) {
+                        const protocolClass = legendItem.dataset.protocol;
+                        if (protocolClass) {
+                            toggleProtocolVisibility(protocolClass);
+                        }
+                    }
+                });
+
+                applyProtocolVisibility();
+
+            } else {
+                console.warn("SVG element not found for pan/zoom and highlighting initialization.");
             }
         });
     </script>
