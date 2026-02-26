@@ -1,0 +1,53 @@
+# Provider configuration
+ai_providers:
+  mistral_api:
+    enabled: false
+    model: "mistral-small-3.1"
+    api_key_env: "MISTRAL_API_KEY"
+    temperature: 0.3
+    max_tokens: 4096
+    timeout: 30
+    
+  openai:  # Fallback optionnel
+    enabled: false
+    model: "gpt-4o-mini"
+
+  ollama:
+    enabled: true
+    model: "llama3:8b-instruct-q4_K_M"
+    host: "http://127.0.0.1:11434"
+    stream: true
+    num_ctx: 4096
+    num_predict: 4096
+    timeout: 60
+
+# Threat generation settings
+threat_generation:
+  mode: "hybrid"  # "traditional", "ai", "hybrid"
+  confidence_threshold: 0.75
+  fallback_to_traditional: true
+  max_threats_per_component: 10
+  include_attack_flows: true
+  
+# RAG configuration (Phase 2)
+rag:
+  enabled: false
+  vector_db: "chroma"
+  embedding_model: "sentence-transformers/all-MiniLM-L6-v2"
+  top_k_examples: 5
+  
+# Attack Flow generation
+attack_flows:
+  enabled: true
+  format: "stix_2.1"
+  max_depth: 7
+  include_detection_points: true
+  generate_for_categories: ["Tampering", "Information Disclosure", "Elevation of Privilege"]
+  
+# Fine-tuning (Phase 3 optionnel)
+fine_tuning:
+  enabled: false
+  base_model: "mistralai/Ministral-8B"
+  lora_rank: 16
+  lora_alpha: 32
+  dataset_path: "data/training/threat_dataset.jsonl"

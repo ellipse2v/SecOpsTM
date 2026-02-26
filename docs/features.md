@@ -1,5 +1,4 @@
 # Features
-
 - **Markdown-based Threat Modeling**: Use a simple DSL to describe your architecture and flows.
 - **Automated STRIDE Analysis**: Detects threats for each element and flow.
 - **MITRE ATT&CK Mapping**: Each threat is mapped to relevant MITRE tactics and techniques.
@@ -22,3 +21,4 @@
   - All interactive features, including highlighting and legend filtering, are available in the live preview.
 - **Extensible**: All mappings and calculations are modular and easy to override.
 - **PyTM Compatibility**: Supports PyTM's model structure and can be extended with PyTM's features.
+- **AI-Enhanced Threat Analysis (Hybrid Mode)**: Threats are automatically enriched using an offline LLM (Mistral via Ollama) for added context, business impact assessment, real-world precedents, and detailed attack scenarios. This is enabled by default via `config/ai_config.yaml`.

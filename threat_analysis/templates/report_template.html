@@ -409,13 +409,15 @@
         }
 
         /* For cells with scrollable-cell, remove padding to avoid double padding */
-        td:nth-child(5), /* CAPEC */
-        td:nth-child(6), /* MITRE Techniques */
-        td:nth-child(7), /* MITRE Mitigations */
-        td:nth-child(8), /* D3FEND */
-        td:nth-child(9), /* CIS */
-        td:nth-child(10), /* NIST */
-        td:nth-child(11) { /* OWASP */
+        td:nth-child(6), /* Confidence */
+        td:nth-child(7), /* CVEs */
+        td:nth-child(9), /* CAPEC */
+        td:nth-child(10), /* MITRE Techniques */
+        td:nth-child(11), /* MITRE Mitigations */
+        td:nth-child(12), /* D3FEND */
+        td:nth-child(13), /* CIS */
+        td:nth-child(14), /* NIST */
+        td:nth-child(15) { /* OWASP */
             padding: 0;
         }
 
@@ -642,6 +644,14 @@
                     </select>
                 </div>
                 {% endif %}
+                <div>
+                    <label for="sourceFilter" style="font-weight: 500; color: var(--text-secondary);">Filter by Source:</label>
+                    <select id="sourceFilter" onchange="filterThreats()">
+                        <option value="all">All</option>
+                        <option value="pytm">pytm</option>
+                        <option value="AI">AI</option>
+                    </select>
+                </div>
                 {% if unique_business_values or all_threats %}
                 <div>
                     <label for="businessValueFilter" style="font-weight: 500; color: var(--text-secondary);">Filter by Business Value:</label>
@@ -674,6 +684,8 @@
                             <th>Target</th>
                             <th>Business Value</th>
                             <th>Description</th>
+                            <th>Source</th>
+                            <th>Confidence</th>
                             <th>CVEs</th>
                             <th>Severity</th>
                             <th>CAPEC</th>
@@ -692,6 +704,20 @@
                             <td>{{ threat.target }}</td>
                             <td>{{ threat.business_value if threat.business_value else 'N/A' }}</td>
                             <td>{{ threat.description }}</td>
+                            <td>
+                                <div class="scrollable-cell">
+                                    {{ threat.source if threat.source else 'pytm' }}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="scrollable-cell">
+                                    {% if threat.confidence is not none %}
+                                        {{ "%.2f"|format(threat.confidence) }}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </div>
+                            </td>
                             <td>
                                 <div class="scrollable-cell">
                                     {% if threat.cve %}
@@ -858,9 +884,11 @@
         function filterThreats() {
             var businessValueFilter = document.getElementById("businessValueFilter");
             var targetFilter = document.getElementById("targetFilter");
+            var sourceFilter = document.getElementById("sourceFilter");
 
             var selectedBusinessValue = businessValueFilter ? businessValueFilter.value : 'all';
             var selectedTarget = targetFilter ? targetFilter.value : 'all';
+            var selectedSource = sourceFilter ? sourceFilter.value : 'all';
 
             var tables = document.querySelectorAll(".tab-content.active table tbody");
 
@@ -871,6 +899,7 @@
                     
                     var targetCell = row.cells[1]; // 'Target' is the 2nd column (index 1)
                     var businessValueCell = row.cells[2]; // 'Business Value' is the 3rd column (index 2)
+                    var sourceCell = row.cells[4]; // 'Source' is the 5th column (index 4)
                     
                     var targetMatch = true;
                     if (targetCell) {
@@ -888,7 +917,15 @@
                         }
                     }
 
-                    if (targetMatch && businessValueMatch) {
+                    var sourceMatch = true;
+                    if (sourceCell) {
+                        var rowSource = sourceCell.textContent.trim();
+                        if (selectedSource !== "all" && rowSource !== selectedSource) {
+                            sourceMatch = false;
+                        }
+                    }
+
+                    if (targetMatch && businessValueMatch && sourceMatch) {
                         row.style.display = "";
                     } else {
                         row.style.display = "none";

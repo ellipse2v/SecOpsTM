@@ -20,12 +20,16 @@ import re
 import datetime
 import json
 import glob
-from typing import Optional
-from flask import Flask, render_template, request, jsonify, send_from_directory, send_file, make_response
+from typing import Dict, List, Any, Optional
+from flask import Flask, render_template, request, jsonify, send_from_directory, send_file, make_response, Response, stream_with_context, g
 from threat_analysis import config
+import asyncio
+import queue
 from threat_analysis.server.threat_model_service import ThreatModelService
+import time
 
-# Add project root to sys.path
+
+ # Add project root to sys.path
 project_root = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "..")
 )
@@ -35,17 +39,90 @@ if project_root not in sys.path:
 # Get the absolute path to the server directory
 server_dir = os.path.dirname(os.path.abspath(__file__))
 
-app = Flask(__name__, 
+app = Flask(__name__,
           template_folder=os.path.join(server_dir, "templates"),
           static_folder=os.path.join(server_dir, "static"),
           static_url_path="/static")
 
+@app.before_request
+def before_request():
+    g.start_time = time.time()
+    g.request_received_time = time.time()
+
+@app.after_request
+def after_request(response):
+    if hasattr(g, "start_time"):
+        # Total time from request start to response ready
+        total_duration_ms = (time.time() - g.start_time) * 1000
+
+        processing_time_ms = g.get("processing_time_ms", 0)
+        generation_time_ms = g.get("generation_time_ms", 0)
+
+        transmission_latency_ms = 0
+        if "X-Request-Start" in request.headers:
+            try:
+                request_start_time = float(request.headers["X-Request-Start"])
+                transmission_latency_ms = (g.request_received_time - request_start_time) * 1000
+            except (ValueError, TypeError):
+                pass
+        
+        # The time to send the response is what's left over
+        response_transmission_ms = total_duration_ms - processing_time_ms - generation_time_ms - transmission_latency_ms
+
+        logging.info(
+            f"API Latency Report for {request.path} - "
+            f"Latence de transmission: {transmission_latency_ms:.2f}ms, "
+            f"Temps de traitement: {processing_time_ms:.2f}ms, "
+            f"Temps de génération de réponse: {generation_time_ms:.2f}ms, "
+            f"Temps de transmission de réponse: {response_transmission_ms:.2f}ms"
+        )
+    return response
+
 # Initialize the service layer
 threat_model_service = ThreatModelService()
 
+# Global queue for SSE events
+ai_status_event_queue = queue.Queue()
+
+def initialize_ai_in_background():
+    """Run AI initialization in a separate thread with its own event loop."""
+    import asyncio
+
+    async def init_and_log():
+        logging.info("Starting AI initialization in background...")
+        try:
+            await threat_model_service.init_ai()
+            threat_model_service.ai_online = True
+            logging.info("Background AI initialization complete.")
+
+            data = {"ai_online": True}
+            ai_status_event_queue.put(
+                f"event: ai_status\ndata: {json.dumps(data)}\n\n"
+            )
+
+        except Exception as e:
+            logging.error(f"Error during background AI initialization: {e}", exc_info=True)
+            threat_model_service.ai_online = False
+
+            data = {"ai_online": False, "error": str(e)}
+            ai_status_event_queue.put(
+                f"event: ai_status\ndata: {json.dumps(data)}\n\n"
+            )
+
+    loop = None
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(init_and_log())
+    except Exception as e:
+        logging.error(f"Error during background AI initialization: {e}", exc_info=True)
+    finally:
+        if loop and not loop.is_closed():
+            loop.close()
+
 # Generate configuration files if needed
 def generate_config_files():
-    """Generate configuration files to ensure they're up to date"""
+    """Generate configuration files to ensure they\'re up to date"""
     try:
         # Add the threat_analysis directory to the path
         import sys
@@ -63,8 +140,7 @@ def generate_config_files():
 generate_config_files()
 
 # Verify that the config file was generated successfully
-import os
-import time
+
 config_js_path = os.path.join(os.path.dirname(__file__), "static", "js", "config.js")
 max_attempts = 3
 attempt = 0
@@ -73,7 +149,7 @@ while attempt < max_attempts:
     if os.path.exists(config_js_path):
         # Check if the file has content
         try:
-            with open(config_js_path, 'r') as f:
+            with open(config_js_path, "r") as f:
                 content = f.read()
                 if len(content) > 100:  # Basic check for valid content
                     print(f"Configuration file verified: {config_js_path}")
@@ -132,41 +208,66 @@ def run_server(model_filepath: Optional[str] = None, project_path: Optional[str]
     It launches the Flask application on a single port and serves a menu
     to choose between the simple and graphical modes.
     """
+    start_time = time.time()
+    logging.info(f"[{time.time() - start_time:.4f}s] Server startup sequence initiated.")
+
     global initial_markdown_content
-    if model_filepath and os.path.exists(model_filepath):
+    effective_model_path = None
+
+    if project_path and os.path.isdir(project_path):
+        logging.info(f"[{time.time() - start_time:.4f}s] Project mode: loading from {project_path}")
+        effective_model_path = os.path.join(project_path, "main.md")
+        if not os.path.exists(effective_model_path):
+             logging.warning(f"main.md not found in project path, will start with an empty model.")
+
+    elif model_filepath:
+        effective_model_path = model_filepath
+
+    if effective_model_path and os.path.exists(effective_model_path):
         try:
-            with open(model_filepath, "r", encoding="utf-8") as f:
+            with open(effective_model_path, "r", encoding="utf-8") as f:
                 initial_markdown_content = f.read()
-            logging.info(f"Loaded initial threat model from {model_filepath}")
+            logging.info(f"[{time.time() - start_time:.4f}s] Loaded initial threat model from {effective_model_path}")
         except Exception as e:
-            logging.error(f"Error loading initial model from {model_filepath}: {e}")
+            logging.error(f"[{time.time() - start_time:.4f}s] Error loading initial model from {effective_model_path}: {e}")
             initial_markdown_content = DEFAULT_EMPTY_MARKDOWN
-            logging.info("Loaded initial threat model from a temporary model due to file loading error.")
     else:
         initial_markdown_content = DEFAULT_EMPTY_MARKDOWN
-        logging.info("No initial threat model file provided or found. Starting with a default empty model.")
-    
-    if project_path:
-        app.config['PROJECT_PATH'] = project_path
+        if project_path or model_filepath:
+             logging.warning(f"[{time.time() - start_time:.4f}s] No initial threat model file found at the specified path. Starting with a default empty model.")
+        else:
+            logging.info(f"[{time.time() - start_time:.4f}s] No initial threat model file provided. Starting with a default empty model.")
 
+    logging.info(f"[{time.time() - start_time:.4f}s] Initializing threat model service...")
+    # The ThreatModelService is already instantiated globally
+    logging.info(f"[{time.time() - start_time:.4f}s] Threat model service initialized.")
+
+    # Start AI initialization in a background thread
+    import threading
+    logging.info(f"[{time.time() - start_time:.4f}s] Starting AI initialization in background thread...")
+    ai_init_thread = threading.Thread(target=initialize_ai_in_background, daemon=True)
+    ai_init_thread.start()
+    logging.info(f"[{time.time() - start_time:.4f}s] AI initialization thread started.")
+    
     print(
         "\n🚀 Starting Threat Model Server. Open your browser to: http://127.0.0.1:5000/\n"
     )
-    app.run(debug=os.environ.get('FLASK_DEBUG', 'false').lower() == 'true', port=5000)
+    logging.info(f"[{time.time() - start_time:.4f}s] Starting Flask app...")
+    app.run(debug=os.environ.get("FLASK_DEBUG", "false").lower() == "true", port=5000)
 
 
-@app.route('/static/<path:filename>')
+@app.route("/static/<path:filename>")
 def serve_static(filename):
     """Serve static files from the static directory."""
     static_folder = app.static_folder or os.path.join(server_dir, "static")
     return send_from_directory(static_folder, filename)
 
-@app.route('/api/data_dictionary')
+@app.route("/api/data_dictionary")
 def get_data_dictionary():
     """Serves the data dictionary XML file."""
-    xml_path = os.path.join(project_root, 'threat_analysis', 'external_data', 'data_dictionary.xml')
+    xml_path = os.path.join(project_root, "threat_analysis", "external_data", "data_dictionary.xml")
     if os.path.exists(xml_path):
-        return send_file(xml_path, mimetype='application/xml')
+        return send_file(xml_path, mimetype="application/xml")
     return jsonify({"error": "Data dictionary not found"}), 404
 
 @app.route("/")
@@ -176,39 +277,113 @@ def index():
 
 @app.route("/simple")
 def simple_mode():
-    """Serves the simple web interface."""
-    project_path = app.config.get('PROJECT_PATH')
-    models = []
-    if project_path and os.path.isdir(project_path):
-        # Logic to load models from project
-        model_files = glob.glob(os.path.join(project_path, '**', 'main.md'), recursive=True)
-        model_files.extend(glob.glob(os.path.join(project_path, '**', 'model.md'), recursive=True))
-        for model_file in model_files:
-            with open(model_file, "r", encoding="utf-8") as f:
-                content = f.read()
-                models.append({
-                    "path": os.path.relpath(model_file, project_path),
-                    "content": content
-                })
-    else:
-        # Fallback for single file or no project
-        models.append({
-            "path": "main.md",
-            "content": initial_markdown_content
-        })
-
-    encoded_models = base64.b64encode(json.dumps(models).encode('utf-8')).decode('utf-8')
+    """
+    Serves the simple web interface.
+    """
+    model_name = get_model_name(initial_markdown_content)
+    
+    # Prepare initial_models for the template
+    initial_models_data = [{
+        "path": "main.md",
+        "content": initial_markdown_content
+    }]
+    initial_models_json = json.dumps(initial_models_data)
+    initial_models_b64 = base64.b64encode(initial_models_json.encode('utf-8')).decode('utf-8')
 
     return render_template(
         "simple_mode.html",
-        initial_models=encoded_models
+        initial_markdown=json.dumps(initial_markdown_content),
+        DEFAULT_EMPTY_MARKDOWN=json.dumps(DEFAULT_EMPTY_MARKDOWN),
+        model_name=model_name,
+        ai_online=threat_model_service.ai_online,
+        initial_models=initial_models_b64
     )
 
 
 @app.route("/graphical")
 def graphical_editor():
-    """Serves the main web interface."""
-    return render_template("graphical_editor.html")
+    """
+    Serves the main web interface.
+    """
+    return render_template(
+        "graphical_editor.html",
+        ai_online=threat_model_service.ai_online  # Pass AI status to template
+    )
+
+
+@app.route("/api/ai_status")
+def ai_status():
+    """Returns the status of the AI server."""
+    if threat_model_service:
+        return jsonify({"ai_online": threat_model_service.ai_online})
+    return jsonify({"ai_online": False}), 503
+
+
+@app.route("/api/ai_status_stream")
+def ai_status_stream():
+    def generate_events():
+        # Send initial status immediately
+        data = {"ai_online": threat_model_service.ai_online}
+        yield f"event: ai_status\ndata: {json.dumps(data)}\n\n"
+
+        while True:
+            # Block until an event is available
+            event_data = ai_status_event_queue.get()
+            yield event_data
+
+    return Response(stream_with_context(generate_events()), mimetype="text/event-stream")
+
+
+@app.route("/api/generate_markdown_from_prompt", methods=["POST"])
+def generate_markdown_from_prompt():
+    """
+    Receives a natural language prompt, uses AI to generate a threat model in Markdown DSL,
+    and returns it in a JSON object. This version is more robust to AI response variations.
+    """
+    if not threat_model_service.ai_online:
+        return jsonify({"error": "AI server is not available. This feature is disabled."}), 503
+
+    data = request.json
+    prompt = data.get("prompt")
+    markdown = data.get("markdown")  # Existing markdown
+    if not prompt:
+        return jsonify({"error": "Prompt is missing"}), 400
+
+    try:
+        full_response = "".join(
+            threat_model_service.generate_markdown_from_prompt_sync(prompt, markdown)
+        )
+
+        extracted_markdown = None
+        # Improved regex: makes 'markdown' optional and is non-greedy.
+        match = re.search(r"```(?:markdown)?\n(.*?)\n```", full_response, re.DOTALL)
+        
+        if match:
+            extracted_markdown = match.group(1).strip()
+        else:
+            logging.warning(f"AI response did not contain a clear markdown block. Raw response: {full_response}")
+            # Fallback: find the start of the threat model and clean up common AI chatter.
+            model_start_index = full_response.find("# Threat Model:")
+            if model_start_index != -1:
+                # Take everything from the start of the model
+                extracted_markdown = full_response[model_start_index:].strip()
+                
+                # Further cleanup: if there's a closing ```, remove anything after it.
+                end_block_index = extracted_markdown.rfind("```")
+                if end_block_index != -1:
+                    extracted_markdown = extracted_markdown[:end_block_index].strip()
+
+            else:
+                return jsonify({
+                    "error": "Failed to extract a valid threat model from the AI response.",
+                    "raw_response": full_response
+                }), 500
+
+        return jsonify({"markdown_content": extracted_markdown})
+
+    except Exception as e:
+        logging.error(f"Error generating markdown from prompt: {e}", exc_info=True)
+        return jsonify({"error": f"An error occurred during generation: {str(e)}"}), 500
 
 
 
@@ -227,9 +402,9 @@ def update_diagram():
         return jsonify({"error": "Markdown content is empty"}), 400
 
     try:
-        result = threat_model_service.update_diagram_logic(
-            markdown_content=markdown_content, submodels=submodels
-        )
+        result = threat_model_service.update_diagram_logic(markdown_content, submodels=submodels)
+        g.processing_time_ms = result.get("processing_time_ms", 0)
+        g.generation_time_ms = result.get("generation_time_ms", 0)
         model_name = get_model_name(markdown_content)
         result["model_name"] = model_name
         return jsonify(result)
@@ -258,45 +433,47 @@ def convert_json_to_markdown(data: dict) -> str:
     """Converts JSON from the graphical editor to Markdown DSL."""
     markdown_lines = ["# Threat Model: Graphical Editor"]
     
-    boundaries = data.get('boundaries', [])
-    actors = data.get('actors', [])
-    servers = data.get('servers', [])
-    data_elements = data.get('data', [])
-    dataflows = data.get('dataflows', [])
+    boundaries = data.get("boundaries", [])
+    actors = data.get("actors", [])
+    servers = data.get("servers", [])
+    data_elements = data.get("data", [])
+    dataflows = data.get("dataflows", [])
 
-    boundary_map = {b['id']: b['name'] for b in boundaries}
+    boundary_map = {b["id"]: b["name"] for b in boundaries}
 
     markdown_lines.append("\n## Boundaries")
     for boundary in boundaries:
-        props_str = _format_properties(boundary, ['description'])
+        props_str = _format_properties(boundary, ["description"])
         markdown_lines.append(f"- **{boundary['name']}**: {props_str}")
 
     markdown_lines.append("\n## Actors")
     for actor in actors:
-        props = {'boundary': boundary_map.get(actor.get('parentId'))}
-        props_str = _format_properties({**actor, **props}, ['boundary', 'description'])
+        props = {"boundary": boundary_map.get(actor.get("parentId"))}
+        props_str = _format_properties({**actor, **props}, ["boundary", "description"])
         markdown_lines.append(f"- **{actor['name']}**: {props_str}")
 
     markdown_lines.append("\n## Servers")
     for server in servers:
-        props = {'boundary': boundary_map.get(server.get('parentId'))}
-        props_str = _format_properties({**server, **props}, ['boundary', 'description'])
+        props = {"boundary": boundary_map.get(server.get("parentId"))}
+        props_str = _format_properties({**server, **props}, ["boundary", "description"])
         markdown_lines.append(f"- **{server['name']}**: {props_str}")
 
     markdown_lines.append("\n## Data")
     for data_item in data_elements:
-        props_str = _format_properties(data_item, ['description', 'classification'])
+        props_str = _format_properties(data_item, ["description", "classification"])
         markdown_lines.append(f"- **{data_item['name']}**: {props_str}")
 
     markdown_lines.append("\n## Dataflows")
-    nodes = {item['id']: item for item in actors + servers + data_elements}
+    nodes = {item["id"]: item for item in actors + servers + data_elements}
     for df in dataflows:
-        from_node = nodes.get(df['from'])
-        to_node = nodes.get(df['to'])
+        from_node = nodes.get(df["from"])
+        to_node = nodes.get(df["to"])
         if from_node and to_node:
             df_name = df.get("name") or f"{from_node['name']} to {to_node['name']}"
-            props_str = _format_properties(df, ['protocol', 'description'])
-            markdown_lines.append(f'- **{df_name}**: from="{from_node["name"]}", to="{to_node["name"]}", {props_str}')
+            props_str = _format_properties(df, ["protocol", "description"])
+            markdown_lines.append(
+                f'- **{df_name}**: from="{from_node["name"]}", to="{to_node["name"]}", {props_str}'
+            )
 
     return "\n".join(markdown_lines)
 
@@ -360,7 +537,7 @@ def export_files():
         )
         
         # Add custom header with output directory information
-        response.headers['X-Output-Directory'] = str(config.OUTPUT_BASE_DIR)
+        response.headers["X-Output-Directory"] = str(config.OUTPUT_BASE_DIR)
         return response
 
     except ValueError as e:
@@ -408,7 +585,6 @@ def export_all_files():
         return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
 @app.route("/api/export_navigator_stix", methods=["POST"])
-
 def export_navigator_stix_files():
 
     logging.info("Received request for /api/export_navigator_stix.")
@@ -541,7 +717,7 @@ def list_models():
     try:
         output_dir = config.OUTPUT_BASE_DIR
         model_files = []
-        for filepath in glob.iglob(os.path.join(output_dir, '**', '*.md'), recursive=True):
+        for filepath in glob.iglob(os.path.join(output_dir, "**", "*.md"), recursive=True):
             model_files.append(os.path.relpath(filepath, project_root))
         return jsonify({"success": True, "models": model_files})
     except Exception as e:
@@ -556,7 +732,7 @@ def load_model():
     """
     try:
         data = request.get_json()
-        model_path = data.get('model_path', '')
+        model_path = data.get("model_path", "")
         logging.info(f"Received request to load model: {model_path}")
 
         if not model_path:
@@ -571,15 +747,15 @@ def load_model():
         if not os.path.exists(full_model_path):
             return jsonify({"error": "Model file not found"}), 404
 
-        with open(full_model_path, 'r', encoding="utf-8") as f:
+        with open(full_model_path, "r", encoding="utf-8") as f:
             markdown_content = f.read()
 
         metadata = None
-        metadata_path = full_model_path.replace('.md', '_metadata.json')
+        metadata_path = full_model_path.replace(".md", "_metadata.json")
         logging.info(f"Looking for metadata at: {metadata_path}")
         if os.path.exists(metadata_path):
             logging.info("Metadata file found. Loading.")
-            with open(metadata_path, 'r', encoding="utf-8") as f:
+            with open(metadata_path, "r", encoding="utf-8") as f:
                 metadata = json.load(f)
         else:
             logging.warning("Metadata file not found.")
@@ -602,7 +778,7 @@ def markdown_to_json():
     """
     try:
         data = request.get_json()
-        markdown_content = data.get('markdown', '')
+        markdown_content = data.get("markdown", "")
         
         if not markdown_content:
             return jsonify({"error": "Missing markdown content"}), 400
@@ -618,7 +794,7 @@ def markdown_to_json():
         # Also log the markdown content that caused the error
         try:
             data = request.get_json()
-            markdown_content = data.get('markdown', '')
+            markdown_content = data.get("markdown", "")
             logging.error(f"Problematic markdown content:\n{markdown_content}")
         except Exception as log_e:
             logging.error(f"Could not log markdown content: {log_e}")
@@ -632,9 +808,9 @@ def save_model():
     """
     try:
         data = request.get_json()
-        markdown_content = data.get('markdown', '')
-        model_name = data.get('model_name', 'threat_model')
-        positions_data = data.get('positions', None)  # Exact positions from UI
+        markdown_content = data.get("markdown", "")
+        model_name = data.get("model_name", "threat_model")
+        positions_data = data.get("positions", None)  # Exact positions from UI
         
         if not markdown_content:
             return jsonify({"error": "Missing markdown content"}), 400
@@ -668,14 +844,14 @@ def save_model():
 def generate_all():
     """
     Generates all artifacts for a threat model: reports, diagrams, metadata, etc.
-    This is the complete 'Generate' button functionality.
+    This is the complete \'Generate\' button functionality.
     """
     try:
         data = request.get_json()
-        markdown_content = data.get('markdown', '')
+        markdown_content = data.get("markdown", "")
         model_name = get_model_name(markdown_content)
-        positions_data = data.get('positions', None)
-        submodels = data.get('submodels', [])
+        positions_data = data.get("positions", None)
+        submodels = data.get("submodels", [])
         
         if not markdown_content:
             return jsonify({"error": "Missing markdown content"}), 400
@@ -692,20 +868,11 @@ def generate_all():
         # Save the main model file
         model_filename = "main.md" # Standardize to main.md for clarity
         model_path = os.path.join(generation_dir, model_filename)
-        with open(model_path, "w", encoding="utf-8") as f:
-            f.write(markdown_content)
-
-        # Save submodels
-        for submodel in submodels:
-            submodel_path_str = submodel.get('path', '').lstrip('./\\')
-            if not submodel_path_str:
-                continue
-            submodel_path = os.path.join(generation_dir, submodel_path_str)
-            os.makedirs(os.path.dirname(submodel_path), exist_ok=True)
-            with open(submodel_path, "w", encoding="utf-8") as f:
-                f.write(submodel['content'])
-
-        # Generate all reports and diagrams using the main model path
+        metadata_path = threat_model_service.save_model_with_metadata(
+            markdown_content, model_path, positions_data
+        )
+        
+        # Generate all reports and diagrams
         result = threat_model_service.generate_full_project_export(
             markdown_content, generation_dir, submodels=submodels
         )
@@ -732,11 +899,11 @@ def generate_all():
 def save_project():
     """
     Saves the threat model markdown and its metadata (with calculated positions).
-    This is a lightweight version of 'generate_all' for saving work in progress.
+    This is a lightweight version of \'generate_all\' for saving work in progress.
     """
     try:
         data = request.get_json()
-        markdown_content = data.get('markdown', '')
+        markdown_content = data.get("markdown", "")
         model_name = get_model_name(markdown_content)
         
         if not markdown_content:
@@ -745,7 +912,6 @@ def save_project():
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         safe_model_name = re.sub(r'[^a-zA-Z0-9_]', '_', model_name)
         
-        # Unlike generate_all, save to a consistent folder if it exists, or create one.
         project_dir = os.path.join(config.OUTPUT_BASE_DIR, safe_model_name)
         os.makedirs(project_dir, exist_ok=True)
         
@@ -775,30 +941,34 @@ def check_version_compatibility():
     """
     try:
         data = request.get_json()
-        model_path = data.get('model_path', '')
-        metadata_path = data.get('metadata_path', '')
+        model_path = data.get("model_path", "")
+        metadata_path = data.get("metadata_path", "")
         
         if not model_path or not metadata_path:
             return jsonify({"error": "Missing model or metadata path"}), 400
         
-        # Check if paths are valid and within allowed directory
-        if not model_path.startswith(config.OUTPUT_BASE_DIR) or not metadata_path.startswith(config.OUTPUT_BASE_DIR):
-            return jsonify({"error": "Invalid file paths"}), 400
+        # Security check: ensure the path is within the project
+        full_model_path = os.path.abspath(os.path.join(project_root, model_path))
+        full_metadata_path = os.path.abspath(os.path.join(project_root, metadata_path))
         
-        if not os.path.exists(model_path) or not os.path.exists(metadata_path):
+        output_base_abs = os.path.abspath(config.OUTPUT_BASE_DIR)
+        
+        if not full_model_path.startswith(output_base_abs) or not full_metadata_path.startswith(output_base_abs):
+             return jsonify({"error": "Invalid file paths"}), 400
+
+        if not os.path.exists(full_model_path) or not os.path.exists(full_metadata_path):
             return jsonify({"error": "Model or metadata file not found"}), 404
-        
-        # Check version compatibility
-        is_compatible = threat_model_service.check_version_compatibility(model_path, metadata_path)
-        
+
+        is_compatible = threat_model_service.check_version_compatibility(full_model_path, full_metadata_path)
+
         return jsonify({
             "success": True,
-            "compatible": is_compatible,
-            "message": "Version compatibility checked successfully"
+            "compatible": is_compatible
         })
     except Exception as e:
-        logging.error(f"Error during version compatibility check: {e}", exc_info=True)
+        logging.error(f"Error during version check: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
+
 
 @app.route("/api/load_metadata", methods=["POST"])
 def load_metadata():
@@ -807,20 +977,21 @@ def load_metadata():
     """
     try:
         data = request.get_json()
-        metadata_path = data.get('metadata_path', '')
+        metadata_path = data.get("metadata_path", "")
         
         if not metadata_path:
             return jsonify({"error": "Missing metadata path"}), 400
         
         # Check if path is valid and within allowed directory
-        if not metadata_path.startswith(config.OUTPUT_BASE_DIR):
+        full_metadata_path = os.path.abspath(os.path.join(project_root, metadata_path))
+        if not full_metadata_path.startswith(os.path.abspath(config.OUTPUT_BASE_DIR)):
             return jsonify({"error": "Invalid metadata path"}), 400
         
-        if not os.path.exists(metadata_path):
+        if not os.path.exists(full_metadata_path):
             return jsonify({"error": "Metadata file not found"}), 404
         
         # Load and return the metadata
-        with open(metadata_path, 'r') as f:
+        with open(metadata_path, "r") as f:
             metadata = json.load(f)
         
         return jsonify({
@@ -843,62 +1014,9 @@ def export_metadata():
         
         # Create a response with the metadata
         response = make_response(json.dumps(metadata, indent=2))
-        response.headers['Content-Disposition'] = 'attachment; filename=element_positions.json'
-        response.headers['Content-Type'] = 'application/json'
+        response.headers["Content-Disposition"] = "attachment; filename=element_positions.json"
+        response.headers["Content-Type"] = "application/json"
         return response
     except Exception as e:
         logging.error(f"Error during metadata export: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
-
-
-@app.route("/api/load_project", methods=["POST"])
-def load_project():
-    """
-    Loads all threat model files from the configured project directory.
-    """
-    try:
-        project_path = app.config.get('PROJECT_PATH')
-        if not project_path:
-            # Fallback to a default or scan for a project directory if one isn't explicitly set
-            # For now, we'll assume a project must be set on startup.
-            return jsonify({"error": "No project path is configured for the server."}), 404
-
-        models = threat_model_service.load_project(project_path)
-        
-        return jsonify({
-            "success": True,
-            "models": models,
-            "message": f"Project loaded successfully from {project_path}"
-        })
-    except Exception as e:
-        logging.error(f"Error loading project: {e}", exc_info=True)
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route("/api/resolve_submodels", methods=["POST"])
-def resolve_submodels():
-    """
-    Resolves sub_model_path references from a main model against a project file structure.
-    """
-    try:
-        data = request.get_json()
-        main_model_content = data.get('main_model_content')
-        project_files = data.get('project_files')
-
-        if not main_model_content or not isinstance(project_files, list):
-            return jsonify({"error": "Missing main_model_content or project_files"}), 400
-
-        # The method is part of the class instance, so `self` is passed implicitly.
-        resolved = threat_model_service.resolve_submodels(main_model_content, project_files)
-        
-        return jsonify({
-            "success": True,
-            "submodels": resolved
-        })
-
-    except Exception as e:
-        logging.error(f"Error resolving submodels: {e}", exc_info=True)
-        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
-
-
-

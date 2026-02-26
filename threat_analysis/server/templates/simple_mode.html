@@ -499,6 +499,103 @@
             /* No conflicting fill/stroke here */
         }
 
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 700px;
+            height: auto;
+            min-height: 200px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
+            resize: both;
+            overflow: auto;
+        }
+        body.dark-mode .modal-content {
+            background-color: #3a3a3a;
+            border-color: #555;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        body.dark-mode .modal-header {
+            border-bottom-color: #555;
+        }
+        .modal-header h2 {
+            margin: 0;
+        }
+        .close-button {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+        }
+        body.dark-mode .close-button {
+            color: #ccc;
+        }
+        body.dark-mode .close-button:hover,
+        body.dark-mode .close-button:focus {
+            color: white;
+        }
+        #prompt-textarea {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: vertical;
+            margin-bottom: 10px;
+        }
+        body.dark-mode #prompt-textarea {
+            background-color: #2a2a2a;
+            border-color: #555;
+            color: #e0e0e0;
+        }
+        #generate-from-prompt-btn {
+            background-color: #2c974b;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #generate-from-prompt-btn:hover {
+            background-color: #278341;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        body.dark-mode button:disabled {
+            background-color: #555;
+            color: #aaa;
+        }
     </style>
     <script src="/static/js/split.min.js"></script>
     <script src="/static/js/svg-pan-zoom.min.js"></script>
@@ -511,22 +608,20 @@
         <h1>Threat Model Editor <span style="font-size: 0.6em;">- Main Model</span></h1>
         <div class="menu-bar">
             <div class="dropdown">
-                <button class="dropbtn">📁 File</button>
+                <button class="dropbtn">📁 Threat Model</button>
                 <div class="dropdown-content">
+                    <button id="new-btn">✨ New TM</button>
+                    <button id="ai-generate-btn" {% if not ai_online %}disabled{% endif %} title="{% if not ai_online %}AI server is offline{% endif %}">🤖 Create/update TM with AI</button>
+                    <button onclick="TabManager.addSubmodel()">➕ Add Sub-model</button>
+                    <hr style="margin: 4px 10px; border: 0; border-top: 1px solid #eee;">
                     <button onclick="document.getElementById('loadFileInput').click()">📥 Load Model (.md)</button>
                     <input type="file" id="loadFileInput" accept=".md" style="display: none;" onchange="loadMarkdownFile(event)">
-                    <button onclick="TabManager.loadProject()">📂 Load Project</button>
-                    <button onclick="TabManager.clearAllTabs()">🗑️ Clear All</button>
-                    <button onclick="saveProjectToServer()">💾 Save Project to Server</button>
-                </div>
-            </div>
-            <div class="menu-separator"></div>
-            <div class="dropdown">
-                <button class="dropbtn">Submodel</button>
-                <div class="dropdown-content">
-                    <button onclick="TabManager.addSubmodel()">➕ Add Sub-model</button>
                     <button onclick="TabManager.triggerLoadSubmodel()">📂 Load Sub-model</button>
                     <input type="file" id="loadSubmodelInput" accept=".md" style="display: none;" onchange="TabManager.loadSubmodel(event)">
+                    <button onclick="TabManager.loadProject()">📂 Load Project</button>
+                    <hr style="margin: 4px 10px; border: 0; border-top: 1px solid #eee;">
+                    <button onclick="saveProjectToServer()">💾 Save Project to Server</button>
+                    <button onclick="TabManager.clearAllTabs()">🗑️ Clear All</button>
                 </div>
             </div>
             <div class="menu-separator"></div>
@@ -571,6 +666,22 @@
         </div>
     </div>
 
+   <!-- AI Prompt Modal -->
+   <div id="ai-prompt-modal" class="modal">
+       <div class="modal-content">
+           <div class="modal-header">
+               <h2>Generate Threat Model with AI</h2>
+               <span class="close-button">&times;</span>
+           </div>
+           <p>Enter a description of your system, and the AI will generate a threat model for you.</p>
+           <textarea id="prompt-textarea" placeholder="e.g., A simple web application with a frontend, a backend API, and a PostgreSQL database."></textarea>
+           <div class="modal-footer" style="padding-top: 15px; display: flex; justify-content: flex-end; gap: 10px;">
+               <button id="close-from-footer-btn" class="menu-button" style="background-color: #f44336; margin-left: 0;">Close</button>
+               <button id="generate-from-prompt-btn">Generate</button>
+           </div>
+       </div>
+   </div>
+
     <script>
         let panZoomInstance;
         let debounceTimer;
@@ -578,11 +689,11 @@
         const svgWrapper = document.getElementById('svg-wrapper');
         const legendContainer = document.getElementById('legend-container');
         const errorMessageDiv = document.getElementById('errorMessage');
-        let protocolVisibilityState = {};
-        
-        // Global variables for graph interaction
-        let globalGraphMetadata = null;
-        let currentlySelectedElementId = null;
+        const aiButton = document.getElementById('ai-generate-btn');
+
+        let protocolVisibilityState = {}; // Stores { 'protocol_name': 'hidden' / 'visible' }
+
+
 
         // Function to apply highlighting
         function highlightElement(elementId) {
@@ -737,6 +848,10 @@
                     lineNumbers: true,
                     lineWrapping: true,
                 });
+                    // Set initial markdown content from server
+                const initialMarkdown = {{ initial_markdown | safe }};
+                const defaultEmptyMarkdown = {{ DEFAULT_EMPTY_MARKDOWN | safe }};
+                editor.setValue(initialMarkdown);
                 editor.setValue(content);
                 editor.on('change', () => {
                     clearTimeout(debounceTimer);
@@ -1207,22 +1322,7 @@
                const activeEditorPath = TabManager.getActiveEditor().path;
                const finalSubmodels = allFiles.filter(fileData => fileData.path !== activeEditorPath);
 
-               // Step 1: Resolve all sub-models recursively from the full set of project files
-               const resolveResponse = await fetch('/api/resolve_submodels', {
-                   method: 'POST',
-                   headers: { 'Content-Type': 'application/json' },
-                   body: JSON.stringify({
-                       main_model_content: mainModelContent,
-                       project_files: allFiles // Send all collected files for resolution
-                   })
-               });
 
-               if (!resolveResponse.ok) {
-                   const errorData = await resolveResponse.json();
-                   throw new Error(`Sub-model resolution failed: ${errorData.error}`);
-               }
-               // We don't need resolvedData from here to filter finalSubmodels, as finalSubmodels already contains them.
-               // The important part is that the server's resolution logic is run with all context.
 
                const generateResponse = await fetch('/api/generate_all', {
                    method: 'POST',
@@ -1445,6 +1545,113 @@
                 showErrorMessage('Only .md files are supported for drag and drop.');
             }
         }, false);
+
+       // --- Modal ---
+       const modal = document.getElementById('ai-prompt-modal');
+       const newButton = document.getElementById('new-btn');
+       const closeButton = document.querySelector('.close-button'); // X icon in header
+       const closeFooterButton = document.getElementById('close-from-footer-btn'); // New Close button in footer
+       const generateFromPromptBtn = document.getElementById('generate-from-prompt-btn');
+       const promptTextarea = document.getElementById('prompt-textarea');
+       
+       const closeModal = () => {
+           modal.style.display = 'none';
+       };
+
+       aiButton.onclick = () => {
+           modal.style.display = 'block';
+       };
+
+       newButton.onclick = () => {
+           if (confirm('Are you sure you want to start a new model? Any unsaved changes will be lost.')) {
+               const activeEditor = TabManager.getActiveEditor();
+               if (activeEditor) {
+                    activeEditor.setValue(defaultEmptyMarkdown);
+               }
+           }
+       };
+
+       // Event listeners to close the modal
+       closeButton.onclick = closeModal;
+       closeFooterButton.onclick = closeModal;
+
+       window.onclick = (event) => {
+           if (event.target == modal) {
+               closeModal();
+           }
+       };
+
+       generateFromPromptBtn.onclick = async () => {
+           const prompt = promptTextarea.value;
+           if (!prompt) {
+               alert('Please enter a prompt.');
+               return;
+           }
+
+           generateFromPromptBtn.disabled = true;
+           generateFromPromptBtn.textContent = 'Generating...';
+
+           try {
+                const activeEditor = TabManager.getActiveEditor();
+                const markdownContent = activeEditor ? activeEditor.getValue() : '';
+               const response = await fetch('/api/generate_markdown_from_prompt', {
+                   method: 'POST',
+                   headers: { 'Content-Type': 'application/json' },
+                   body: JSON.stringify({ prompt: prompt, markdown: markdownContent }),
+               });
+
+               if (!response.ok) {
+                   const errorData = await response.json();
+                   showErrorMessage(`Error generating from prompt: ${errorData.error}`);
+               } else {
+                   const data = await response.json();
+                   const activeEditor = TabManager.getActiveEditor();
+                   if (activeEditor) {
+                       activeEditor.setValue(data.markdown_content);
+                   }
+                   modal.style.display = 'none'; // Close modal on success
+               }
+           } catch (error) {
+               showErrorMessage(`Failed to fetch from AI: ${error.message}`);
+           } finally {
+               generateFromPromptBtn.disabled = false;
+               generateFromPromptBtn.textContent = 'Generate';
+               promptTextarea.value = ''; // Clear textarea
+           }
+       };
+
+        // AI Status real-time update
+        (function() {
+            const aiButton = document.getElementById('ai-generate-btn');
+            if (!aiButton) return;
+
+            const eventSource = new EventSource('/api/ai_status_stream');
+
+            eventSource.addEventListener('ai_status', function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('AI status update received:', data);
+                    if (data.ai_online) {
+                        aiButton.disabled = false;
+                        aiButton.title = 'Create/update TM with AI';
+                    } else {
+                        aiButton.disabled = true;
+                        aiButton.title = 'AI server is offline';
+                        if (data.error) {
+                             aiButton.title += `: ${data.error}`;
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to parse AI status event:", e);
+                }
+            });
+
+            eventSource.onerror = function(err) {
+                console.error('EventSource connection failed:', err);
+                aiButton.disabled = true;
+                aiButton.title = 'AI connection lost. Refresh to try again.';
+            };
+        })();
     </script>
 </body>
 </html>

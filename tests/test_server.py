@@ -59,7 +59,7 @@ def test_update_api_success(client):
         assert 'diagram_html' in json_data
         assert json_data['diagram_html'] == "<html>Diagram</html>"
         mock_update_diagram_logic.assert_called_once_with(
-            markdown_content=markdown_payload["markdown"], submodels=[]
+            markdown_payload["markdown"], submodels=[]
         )
 
 def test_update_api_empty_markdown(client):
@@ -161,14 +161,26 @@ def test_run_server_with_existing_model_file(client):
     models_payload = [{"path": "main.md", "content": mock_file_content}]
     expected_encoded_json = base64.b64encode(json.dumps(models_payload).encode('utf-8')).decode('utf-8')
     
+    # We need to be careful with patching builtins.open as it can break template loading.
+    # Instead of mock_open, we use a side effect that only mocks our specific file.
+    original_open = open
+    model_path = '/path/to/existing/model.md'
+    
+    def mocked_open(path, *args, **kwargs):
+        if path == model_path:
+            return mock_open(read_data=mock_file_content).return_value
+        return original_open(path, *args, **kwargs)
+
     with patch('os.path.exists', return_value=True):
-        with patch('builtins.open', mock_open(read_data=mock_file_content)) as mock_file:
-            with patch('threat_analysis.server.server.app.run'):
-                run_server(model_filepath='/path/to/existing/model.md')
+        with patch('builtins.open', side_effect=mocked_open) as mock_file:
+            with patch('threat_analysis.server.server.app.run'), \
+                 patch('threat_analysis.server.server.initialize_ai_in_background'):
+                run_server(model_filepath=model_path)
                 response = client.get('/simple')
                 assert response.status_code == 200
                 assert expected_encoded_json in response.data.decode('utf-8')
-                mock_file.assert_called_once_with('/path/to/existing/model.md', "r", encoding="utf-8")
+                # Verify that our specific file was indeed opened
+                assert any(call.args[0] == model_path for call in mock_file.call_args_list)
 
 def test_export_all_api_success(client):
     """Test the /api/export_all endpoint for successful ZIP file generation."""
@@ -231,7 +243,7 @@ A simple example system.
         assert 'diagram_html' in json_data
         assert json_data['diagram_html'] == "<html>Full Diagram</html>"
         mock_update_diagram_logic.assert_called_once_with(
-            markdown_content=full_markdown_content, submodels=[]
+            full_markdown_content, submodels=[]
         )
 
 
@@ -668,8 +680,10 @@ def test_load_metadata_success(client):
     """Test the /api/load_metadata endpoint."""
     with patch('os.path.exists', return_value=True), \
          patch('builtins.open', mock_open(read_data='{"version": "1.0"}')) as mock_file, \
-         patch('threat_analysis.server.server.config.OUTPUT_BASE_DIR', 'output'):
-        with patch('os.path.abspath', side_effect=lambda x: x):
+         patch('threat_analysis.server.server.config.OUTPUT_BASE_DIR', 'output'), \
+         patch('threat_analysis.server.server.project_root', ''):
+        # Simplified abspath mock that just returns the input if it looks like what we want
+        with patch('os.path.abspath', side_effect=lambda x: x if x.startswith('output') else os.path.join('output', os.path.basename(x))):
             payload = {'metadata_path': 'output/meta.json'}
             response = client.post('/api/load_metadata', data=json.dumps(payload), content_type='application/json')
             assert response.status_code == 200

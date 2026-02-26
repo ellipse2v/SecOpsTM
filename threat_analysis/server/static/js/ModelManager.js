@@ -158,7 +158,11 @@ class ModelManager {
 
     fetchModels() {
         this.modelListContainer.innerHTML = '<p>Loading models...</p>';
-        fetch('/api/models')
+        fetch('/api/models', {
+            headers: {
+                'X-Request-Start': performance.now()
+            }
+        })
             .then(response => response.json())
             .then(data => {
                 if (data.error) {
@@ -185,13 +189,18 @@ class ModelManager {
     }
 
     loadModel(modelPath) {
+        console.log(`[ModelManager] loadModel called for path: ${modelPath}`);
         fetch('/api/load_model', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Request-Start': performance.now()
+            },
             body: JSON.stringify({ model_path: modelPath })
         })
         .then(response => response.json())
         .then(data => {
+            console.log('[ModelManager] Received response from /api/load_model:', data);
             if (data.error) {
                 alert(`Error loading model: ${data.error}`);
                 return;
@@ -206,6 +215,7 @@ class ModelManager {
     }
 
     repopulateGraph(markdown, metadata) {
+        console.log('[ModelManager] repopulateGraph called.');
         this.parseProtocolStyles(markdown);
         this.parseDataDictionaryFromMarkdown(markdown);
         // Clear existing graph
@@ -248,13 +258,18 @@ class ModelManager {
                 }
             }
 
+            console.log('[ModelManager] Fetching /api/markdown_to_json...');
             fetch('/api/markdown_to_json', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Request-Start': performance.now()
+                },
                 body: JSON.stringify({ markdown: markdown })
             })
             .then(response => response.json())
             .then(data => {
+                console.log('[ModelManager] Received response from /api/markdown_to_json:', data);
                 if (data.error) {
                     alert(`Error converting model: ${data.error}`);
                     return;
@@ -269,6 +284,7 @@ class ModelManager {
     }
 
     drawGraphFromJSON(modelData, positions) {
+        console.log('[ModelManager] drawGraphFromJSON called.');
         const getPosition = (type, name) => {
             let searchKey = `${type.toLowerCase()}s`;
             if (type.toLowerCase() === 'boundary') {
@@ -344,6 +360,14 @@ class ModelManager {
 
         this.connectionManager.activeConnection = null; // Reset active connection after all connections are drawn
         this.konvaManager.getLayer().draw();
+
+        const event = new CustomEvent('modelLoaded', {
+            detail: {
+                modelData: modelData,
+                message: 'Threat model has been successfully loaded and drawn on the canvas.'
+            }
+        });
+        window.dispatchEvent(event);
     }
 
     sanitizeName(name) {
@@ -445,7 +469,11 @@ class ModelManager {
     }
 
     loadDataDictionary() {
-        fetch('/api/data_dictionary')
+        fetch('/api/data_dictionary', {
+            headers: {
+                'X-Request-Start': performance.now()
+            }
+        })
             .then(response => response.text())
             .then(xmlString => {
                 const parser = new DOMParser();

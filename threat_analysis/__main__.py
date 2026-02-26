@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import time
+_start_time_main = time.time()
+
 """
 Main STRIDE threat analysis module with MITRE ATT&CK integration
 Complete orchestration of security analysis - Modified version
@@ -27,6 +30,7 @@ import inspect
 import traceback
 
 # Import library modules
+logging.info(f"[{time.time() - _start_time_main:.4f}s] Starting module imports...")
 from threat_analysis.core.models_module import ThreatModel
 from threat_analysis.core.mitre_mapping_module import MitreMapping
 from threat_analysis.severity_calculator_module import SeverityCalculator
@@ -37,11 +41,11 @@ from threat_analysis.core.model_factory import create_threat_model
 from threat_analysis.iac_plugins import IaCPlugin
 from threat_analysis.generation.report_generator import ReportGenerator
 from threat_analysis.utils import _validate_path_within_project, resolve_path
-from threat_analysis.server.server import run_server
+from threat_analysis.server.server import run_server, get_model_name # Import get_model_name
 from threat_analysis.core.model_validator import ModelValidator
 from threat_analysis.core.cve_service import CVEService
 from threat_analysis import config
-
+logging.info(f"[{time.time() - _start_time_main:.4f}s] Finished module imports.")
 
 # Add project root to sys.path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -54,7 +58,9 @@ class SecOpsTMFramework:
     def __init__(
         self, markdown_content: str, model_name: str, model_description: str, model_file_path: str,
         implemented_mitigations_path: Optional[str] = None,
-        cve_service: Optional[CVEService] = None,
+        cve_service: CVEService = None, # Changed to non-Optional, must be provided by caller
+        ai_config_path: Optional[Path] = None,
+        context_path: Optional[Path] = None,
     ):
         """Initializes the analysis framework"""
         self.markdown_content = markdown_content
@@ -91,8 +97,6 @@ class SecOpsTMFramework:
         # Component initialization
         self.mitre_mapper = MitreMapping(threat_model_path=self.model_file_path)
         self.threat_model = self._load_and_validate_model(self.markdown_content)
-        if not self.threat_model:
-            sys.exit(1)  # Exit if model loading fails
 
         self.severity_calculator = SeverityCalculator(
             markdown_file_path=str(Path("threatModel_Template/threat_model.md")) # Hardcoded path instead of config
@@ -101,6 +105,8 @@ class SecOpsTMFramework:
             self.severity_calculator, self.mitre_mapper, # Use the mitre_mapper from the threat_model
             implemented_mitigations_path=Path(implemented_mitigations_path) if implemented_mitigations_path else None,
             cve_service=self.cve_service,
+            ai_config_path=ai_config_path,
+            context_path=context_path,
         )
         self.diagram_generator = DiagramGenerator()
 
@@ -116,7 +122,7 @@ class SecOpsTMFramework:
         ):
             logging.warning(
                 "⚠️ WARNING: The model appears to be empty or was not parsed "
-                "correctly. Check your 'threat_model.md'."
+                "correctly. Check your \'threat_model.md\'."
             )
 
         # Analysis state (after model loading)
@@ -125,21 +131,23 @@ class SecOpsTMFramework:
         self.custom_threats_list = []
         self.elements_with_custom_threats = set()
 
-    def _load_and_validate_model(self, markdown_content: str) -> Optional[ThreatModel]:
+    def _load_and_validate_model(self, markdown_content: str) -> ThreatModel:
         """Loads and validates the threat model from the Markdown DSL content."""
         logging.info(f"⏳ Loading model from provided Markdown content...")
         try:
-            # Pass the framework's cve_service instance to the factory
-            return create_threat_model(
+            threat_model = create_threat_model(
                 markdown_content=markdown_content,
                 model_name=self.model_name,
                 model_description=self.model_description,
                 cve_service=self.cve_service, # type: ignore
                 validate=True,
             )
+            if not threat_model:
+                raise RuntimeError("create_threat_model returned None")
+            return threat_model
         except Exception as e:
             logging.error(f"❌ Error parsing or validating model: {e}")
-            return None
+            raise RuntimeError(f"Failed to load or validate threat model: {e}")
 
     def run_analysis(self) -> Dict[str, List[Tuple[Any, Any]]]:
         """Executes the threat analysis."""
@@ -176,6 +184,7 @@ class SecOpsTMFramework:
         )
         logging.info("✅ Reports generated.")
         return {"html": str(html_report_path), "json": str(json_report_path)}
+        return {"html": str(html_report_path), "json": str(json_report_path)}
 
     def generate_stix_report(self) -> Optional[str]:
         """Generates STIX report in the timestamped directory."""
@@ -194,6 +203,7 @@ class SecOpsTMFramework:
         )
 
         logging.info("✅ STIX report generated.")
+        return str(stix_report_path)
         return str(stix_report_path)
 
     def generate_diagrams(self) -> Dict[str, Optional[str]]:
@@ -289,8 +299,7 @@ class SecOpsTMFramework:
         except Exception:
             pass
 
-
-def generate_and_save_attack_flow(threat_model, output_dir, model_name):
+def generate_and_save_attack_flow(threat_model: ThreatModel, output_dir: Path, model_name: str):
     """Generates and saves Attack Flow files based on STRIDE categories."""
     logging.info(f"🌊 Generating Attack Flow files for {model_name}...")
     try:
@@ -364,7 +373,7 @@ class CustomArgumentParser:
             "--log-level",
             type=str,
             default=None,
-            choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+            choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
             help="Set the logging level (e.g., DEBUG, INFO, WARNING). Overrides the config file setting.",
         )
 
@@ -387,12 +396,12 @@ class CustomArgumentParser:
         self.parser.add_argument(
             "--implemented-mitigations-file",
             type=str,
-            help="Path to the implemented mitigations file. If not provided, the tool will look for a file named 'implemented_mitigations.txt' in the same directory as the model or project.",
+            help="Path to the implemented mitigations file. If not provided, the tool will look for a file named \'implemented_mitigations.txt\' in the same directory as the model or project.",
         )
         self.parser.add_argument(
             "--cve-definitions-file",
             type=str,
-            help="Path to the CVE definitions file. If not provided, the tool will look for a file named 'cve_definitions.yml' in the same directory as the model or project.",
+            help="Path to the CVE definitions file. If not provided, the tool will look for a file named \'cve_definitions.yml\' in the same directory as the model or project.",
         )
 
         # Dynamically add arguments for IaC plugins
@@ -402,17 +411,30 @@ class CustomArgumentParser:
                 type=str,
                 help=f"Path to the {plugin.name} configuration (e.g., project root, playbook).",
             )
+        self.parser.add_argument(
+            "--ai-config-file",
+            type=str,
+            default="config/ai_config.yaml",
+            help="Path to the AI configuration file (e.g., ai_config.yaml).",
+        )
+        self.parser.add_argument(
+            "--ai-context-file",
+            type=str,
+            default="config/context.yaml",
+            help="Path to the AI context file (e.g., context.yaml).",
+        )
 
     def parse_args(self):
         return self.parser.parse_known_args()
-
 
 def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, IaCPlugin]):
     """Runs the analysis for a single threat model file or an IaC input."""
     markdown_content_for_analysis = ""
     iac_plugin_used = False
-    iac_input_filename = ""
-    base_model_filepath = None # Initialize to None
+    base_model_filepath: Optional[Path] = None
+    implemented_mitigations_path: Optional[Path] = None
+    cve_definitions_path: Optional[Path] = None
+    cve_service: Optional[CVEService] = None
 
     # Check for IaC plugin arguments
     for plugin_name, plugin_instance in loaded_iac_plugins.items():
@@ -437,6 +459,14 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
                     logging.warning(f"⚠️ Warning: Base protocol styles file not found: {base_protocol_styles_path}. Proceeding without it.")
                     markdown_content_for_analysis = iac_generated_content
 
+                # Save generated content to a temporary .md file for further processing
+                temp_model_name = f"{iac_input_filename}_{config.TIMESTAMP}.md"
+                base_model_filepath = config.OUTPUT_BASE_DIR / temp_model_name
+                os.makedirs(config.OUTPUT_BASE_DIR, exist_ok=True)
+                with open(base_model_filepath, "w", encoding="utf-8") as f:
+                    f.write(markdown_content_for_analysis)
+                logging.info(f"Generated IaC threat model saved to: {base_model_filepath}")
+
                 break # Process only one IaC plugin at a time
             except Exception as e:
                 logging.error(f"❌ Error processing {plugin_name} config: {e}")
@@ -455,30 +485,8 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
         with open(base_model_filepath, "w", encoding="utf-8") as f:
             f.write(markdown_content_for_analysis)
         logging.info(f"Model file saved to output directory: {base_model_filepath}")
-    else:
-        # Ensure the output directory exists before writing
-        os.makedirs(config.OUTPUT_BASE_DIR, exist_ok=True)
 
-        # If IaC plugin was used, and a model file was also specified,
-        # write the generated content to that file.
-        # If no --model-file is specified, use a default name based on IaC input.
-        if args.model_file:
-            # If --model-file is specified, create the file within the timestamped output directory
-            output_model_filepath = config.OUTPUT_BASE_DIR / Path(args.model_file).name
-        else:
-            # If no --model-file is specified, use a default name based on IaC input
-            output_model_filepath = config.OUTPUT_BASE_DIR / f"{iac_input_filename}.md"
-
-        try:
-            with open(output_model_filepath, "w", encoding="utf-8") as f:
-                f.write(markdown_content_for_analysis)
-            logging.info(f"Generated IaC threat model written to: {output_model_filepath}")
-            base_model_filepath = output_model_filepath # Assign here
-        except Exception as e:
-            logging.error(f"❌ Error writing generated IaC model to {output_model_filepath}: {e}")
-            sys.exit(1)
-
-
+    # Resolve paths for implemented mitigations and CVE definitions
     base_dir = base_model_filepath.parent if base_model_filepath else Path.cwd()
 
     implemented_mitigations_path, _ = resolve_path(
@@ -492,24 +500,29 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
         PROJECT_ROOT, cve_definitions_path, is_cve_path_explicit
     )
 
+    ai_config_path = PROJECT_ROOT / (args.ai_config_file if hasattr(args, "ai_config_file") else "config/ai_config.yaml")
+    context_path = PROJECT_ROOT / (args.ai_context_file if hasattr(args, "ai_context_file") else "config/context.yaml")
+
     framework = SecOpsTMFramework(
         markdown_content=markdown_content_for_analysis,
-        model_name="Enhanced DMZ Security Analysis",
-        model_description="Advanced DMZ architecture with 8 external flows and command zone",
+        model_name=get_model_name(markdown_content_for_analysis), # Derive from content
+        model_description="Threat model generated from markdown file", # Derive or default
         model_file_path=str(base_model_filepath),
-        implemented_mitigations_path=str(implemented_mitigations_path),
-        cve_service=cve_service
+        implemented_mitigations_path=str(implemented_mitigations_path) if implemented_mitigations_path else None,
+        cve_service=cve_service,
+        ai_config_path=ai_config_path,
+        context_path=context_path,
     )
 
     threats = framework.run_analysis()
 
     if not threats:
         logging.error("Threat analysis failed. Please check the logs for validation errors.")
-        if framework.threat_model:
-            validator = ModelValidator(framework.threat_model)
-            errors = validator.validate()
-            for error in errors:
-                logging.error(f"- {error}")
+        # Removed framework.threat_model check as it should always be present now
+        validator = ModelValidator(framework.threat_model)
+        errors = validator.validate()
+        for error in errors:
+            logging.error(f"- {error}")
         sys.exit(1)
 
     reports = framework.generate_reports()
@@ -558,13 +571,14 @@ if __name__ == "__main__":
     args, remaining_argv = custom_parser.parse_args()
 
     # --- Logger Configuration ---
+    logging.info(f"[{time.time() - _start_time_main:.4f}s] Configuring logger...")
     logger = logging.getLogger()
     
     # Determine log level
     log_level_str = args.log_level if args.log_level else config.LOG_LEVEL
     numeric_level = getattr(logging, log_level_str.upper(), None)
     if not isinstance(numeric_level, int):
-        logging.warning(f"Invalid log level: {log_level_str}. Defaulting to INFO.")
+        logging.warning(f"[{time.time() - _start_time_main:.4f}s] Invalid log level: {log_level_str}. Defaulting to INFO.")
         numeric_level = logging.INFO
         
     logger.setLevel(numeric_level)
@@ -579,16 +593,18 @@ if __name__ == "__main__":
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
     logger.propagate = False
+    logging.info(f"[{time.time() - _start_time_main:.4f}s] Logger configured.")
 
     # Reconstruct sys.argv for PyTM
     sys.argv = [sys.argv[0]] + remaining_argv
 
+    logging.info(f"[{time.time() - _start_time_main:.4f}s] Starting main execution path.")
     if args.server: # Use the new --server argument
         try:
             run_server(model_filepath=args.model_file, project_path=args.project)
         except ImportError:
             logging.error(
-                "❌ Flask is not installed. Please install it to use the web server: "
+                f"[{time.time() - _start_time_main:.4f}s] ❌ Flask is not installed. Please install it to use the web server: "
                 "pip install Flask"
             )
             sys.exit(1)
@@ -611,11 +627,17 @@ if __name__ == "__main__":
 
         severity_calculator = SeverityCalculator(markdown_file_path=str(project_path / "main.md"))
         mitre_mapping = MitreMapping(threat_model_path=str(project_path / "main.md"))
+
+        ai_config_path = PROJECT_ROOT / (args.ai_config_file if hasattr(args, 'ai_config_file') else "config/ai_config.yaml")
+        context_path = PROJECT_ROOT / (args.ai_context_file if hasattr(args, 'ai_context_file') else "config/context.yaml")
+
         report_generator = ReportGenerator(
             severity_calculator,
             mitre_mapping,
             implemented_mitigations_path=Path(implemented_mitigations_path),
-            cve_service=cve_service
+            cve_service=cve_service,
+            ai_config_path=ai_config_path,
+            context_path=context_path,
         )
 
         project_threat_model = report_generator.generate_project_reports(project_path, output_dir)

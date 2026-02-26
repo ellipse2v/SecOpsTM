@@ -31,6 +31,8 @@ from threat_analysis.utils import _validate_path_within_project
 from threat_analysis.mitigation_suggestions import get_framework_mitigation_suggestions
 from threat_analysis.core.cve_service import CVEService
 from .utils import extract_name_from_object, get_target_name
+import yaml
+import asyncio
 
 project_root = Path(__file__).resolve().parents[2]
 if str(project_root) not in sys.path:
@@ -42,6 +44,7 @@ from threat_analysis.generation.stix_generator import StixGenerator
 from threat_analysis.generation.attack_navigator_generator import AttackNavigatorGenerator
 from threat_analysis.core.models_module import ThreatModel
 from threat_analysis.core.mitre_mapping_module import MitreMapping
+from threat_analysis.ai_engine.providers.ollama_provider import OllamaProvider
 
 def load_implemented_mitigations(mitigations_file: Optional[Path]) -> Set[str]:
     """Loads implemented mitigation IDs from a file."""
@@ -53,15 +56,111 @@ def load_implemented_mitigations(mitigations_file: Optional[Path]) -> Set[str]:
 class ReportGenerator:
     """Class for generating HTML and JSON reports"""
 
-    def __init__(self, severity_calculator, mitre_mapping, 
-                 implemented_mitigations_path: Optional[Path] = None, 
-                 cve_service: Optional[CVEService] = None):
+    def __init__(self, severity_calculator, mitre_mapping,
+                 implemented_mitigations_path: Optional[Path] = None,
+                 cve_service: Optional[CVEService] = None,
+                 ai_config_path: Optional[Path] = None,
+                 context_path: Optional[Path] = None):
         self.severity_calculator = severity_calculator
         self.mitre_mapping = mitre_mapping
         self.env = Environment(loader=FileSystemLoader(Path(__file__).parent.parent / 'templates'), extensions=['jinja2.ext.do'])
         self.implemented_mitigations = load_implemented_mitigations(implemented_mitigations_path)
         self.all_detailed_threats = []
-        self.cve_service = cve_service if cve_service else CVEService(project_root)
+        self.cve_service = cve_service if cve_service else CVEService(project_root, project_root / "cve_definitions.yml")
+        self.ai_provider = None
+        self.ai_context = None
+
+        if ai_config_path and ai_config_path.exists():
+            with open(ai_config_path, "r", encoding="utf-8") as f:
+                ai_config = yaml.safe_load(f)
+            
+            # Look for enabled provider
+            providers = ai_config.get("ai_providers", {})
+            for provider_name, provider_config in providers.items():
+                if provider_config.get("enabled"):
+                    logging.info(f"AI Provider '{provider_name}' enabled for report enrichment.")
+                    if provider_name in ["ollama", "mistral_local"]:
+                        self.ai_provider = OllamaProvider(provider_config)
+                    # Add other providers here if needed
+                    break
+            
+            if self.ai_provider:
+                if context_path and context_path.exists():
+                    with open(context_path, "r", encoding="utf-8") as f:
+                        self.ai_context = yaml.safe_load(f)
+                    logging.info("AI Context loaded for enrichment.")
+                else:
+                    logging.warning(f"AI Context file not found at {context_path}")
+            else:
+                logging.warning("No enabled AI provider found in config for report enrichment.")
+
+    async def _enrich_threats_with_ai(self, threat_model: ThreatModel, all_threats: List[Dict]) -> List[Dict]:
+        if not self.ai_provider:
+            logging.warning("AI enrichment skipped: No AI provider initialized.")
+            return all_threats
+        
+        if not self.ai_context:
+            logging.warning("AI enrichment skipped: No AI context loaded.")
+            return all_threats
+
+        logging.info(f"Enriching threats with AI using provider: {type(self.ai_provider).__name__}")
+        
+        # Check if the AI provider is reachable before proceeding
+        if not await self.ai_provider.check_connection():
+            logging.warning(f"AI enrichment skipped: Provider {type(self.ai_provider).__name__} is not reachable.")
+            return all_threats
+
+        # Combine all components to enrich: servers, actors, and boundaries
+        components_to_enrich = []
+        for server in threat_model.servers:
+            components_to_enrich.append({"name": server.get("name"), "type": "Server", "description": server.get("description", "")})
+        for actor in threat_model.actors:
+            components_to_enrich.append({"name": actor.get("name"), "type": "Actor", "description": actor.get("description", "")})
+        for b_name, b_info in threat_model.boundaries.items():
+            components_to_enrich.append({"name": b_name, "type": "Boundary", "description": b_info.get("description", "")})
+
+        ai_threats = []
+        for component in components_to_enrich:
+            generated_threats = await self.ai_provider.generate_threats(component, self.ai_context)
+            for threat in generated_threats:
+                stride_category = threat.get("category", "InformationDisclosure")
+                target_name = component.get("name")
+                
+                # Use the severity calculator for AI-generated threats
+                severity_info = self.severity_calculator.get_severity_info(
+                    stride_category, 
+                    target_name,
+                    impact=threat.get("business_impact", {}).get("impact_score"),
+                    likelihood=threat.get("business_impact", {}).get("likelihood_score")
+                )
+
+                ai_threats.append({
+                    "type": stride_category,
+                    "description": threat.get("description"),
+                    "target": target_name,
+                    "severity": severity_info,
+                    "mitre_techniques": [{"id": tech, "name": ""} for tech in threat.get("mitre_techniques", [])],
+                    "stride_category": stride_category,
+                    "capecs": [], # AI doesn't generate CAPECs in this version
+                    "cve": threat.get("real_world_precedents", []),
+                    "confidence": threat.get("confidence", 0.8),
+                    "source": "AI"
+                })
+
+        # Simple deduplication: identify unique AI threats based on category and description
+        existing_threats_signatures = set()
+        for threat in all_threats:
+            signature = (threat.get("stride_category"), threat.get("description"))
+            existing_threats_signatures.add(signature)
+
+        unique_ai_threats = []
+        for ai_threat in ai_threats:
+            signature = (ai_threat.get("stride_category"), ai_threat.get("description"))
+            if signature not in existing_threats_signatures:
+                unique_ai_threats.append(ai_threat)
+                existing_threats_signatures.add(signature)
+        
+        return all_threats + unique_ai_threats
 
     def generate_html_report(self, threat_model, grouped_threats: Dict[str, List], 
                              output_file: Path = Path("stride_mitre_report.html"), 
@@ -74,10 +173,16 @@ class ReportGenerator:
 
         if all_detailed_threats is None:
             all_detailed_threats = self._get_all_threats_with_mitre_info(grouped_threats, threat_model)
+
+        if self.ai_provider:
+             original_count = len(all_detailed_threats)
+             all_detailed_threats = asyncio.run(self._enrich_threats_with_ai(threat_model, all_detailed_threats))
+             ai_added = len(all_detailed_threats) - original_count
+             logging.info(f"AI enrichment complete. Added {ai_added} new threats.")
         
         self.all_detailed_threats = all_detailed_threats
         summary_stats = self.generate_summary_stats(all_detailed_threats)
-        stride_categories = sorted(list(set(threat['stride_category'] for threat in all_detailed_threats)))
+        stride_categories = sorted(list(set(threat['stride_category'] for threat in all_detailed_threats if threat['stride_category'] != "Threat")))
         
         unique_business_values = self._get_all_business_values(threat_model)
         
@@ -151,7 +256,7 @@ class ReportGenerator:
     def open_report_in_browser(self, html_file: Path) -> bool:
         """Opens the report in the browser"""
         try:
-            webbrowser.open(html_file)
+            webbrowser.open(str(html_file.resolve().as_uri()))
             return True
         except Exception as e:
             return False
@@ -242,7 +347,9 @@ class ReportGenerator:
                     "stride_category": stride_category,
                     "capecs": capecs,
                     "cve": sorted(list(cve_ids_for_threat)),
-                    "business_value": business_value
+                    "business_value": business_value,
+                    "confidence": getattr(threat, 'confidence', 1.0),
+                    "source": "pytm"
                 })
         return all_detailed_threats
 
@@ -490,10 +597,10 @@ class ReportGenerator:
 
     def _get_all_project_models(self, project_path: Path) -> List[ThreatModel]:
         """
-        Recursively finds and parses all 'model.md' or 'main.md' files in a project directory.
+        Recursively finds and parses all '.md' files in a project directory.
         """
         all_models = []
-        model_files = list(project_path.glob("**/model.md")) + list(project_path.glob("**/main.md"))
+        model_files = list(project_path.glob("**/*.md"))
 
         for model_path in model_files:
             try:
@@ -647,12 +754,12 @@ class ReportGenerator:
         diagram_generator = DiagramGenerator()
         model_name = threat_model.tm.name
 
-        dot_code = diagram_generator.generate_dot_file_from_model(threat_model, output_dir / f"{model_name}.dot", project_protocol_styles)
+        dot_code = diagram_generator.generate_dot_file_from_model(threat_model, str(output_dir / f"{model_name}.dot"), project_protocol_styles)
         if not dot_code:
             logging.error(f"Failed to generate DOT code for {model_name}")
             return
 
-        svg_path = diagram_generator.generate_diagram_from_dot(dot_code, output_dir / f"{model_name}.svg", "svg")
+        svg_path = diagram_generator.generate_diagram_from_dot(dot_code, str(output_dir / f"{model_name}.svg"), "svg")
         if not svg_path:
             logging.error(f"Failed to generate SVG for {model_name}")
             return

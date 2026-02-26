@@ -42,4 +42,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     console.log('Split initialized');
+
+    window.addEventListener('modelLoaded', (e) => {
+        console.log('Custom event "modelLoaded" caught:', e.detail.message);
+        alert('Model loaded successfully!');
+    });
 });

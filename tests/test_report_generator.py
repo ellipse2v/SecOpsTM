@@ -91,13 +91,33 @@ def test_generate_html_report(mock_get_framework_mitigations, report_generator):
 def test_generate_json_export(report_generator):
     threat_model = MagicMock()
     threat_model.tm.name = "Test Architecture"
+    threat_model.actors = []
+    threat_model.servers = []
+    threat_model.boundaries = {}
 
-    threat_mock = MagicMock(description="Test Threat", stride_category='S', target=MagicMock(data=MagicMock(classification=MagicMock(name='Public'))))
-    threat_mock.mitigations = []
+    # Use a real object or a simple mock that behaves like one but isn't a MagicMock for target
+    class SimpleTarget:
+        def __init__(self, name):
+            self.name = name
+    
+    class SimpleThreat:
+        def __init__(self, description, stride_category):
+            self.description = description
+            self.stride_category = stride_category
+            self.capec_ids = []
+            self.source = "pytm"
+            self.confidence = 1.0
+            self.mitigations = []
+            # Mock the target.data.classification.name chain simply
+            self.target = MagicMock()
+            self.target.data.classification.name = 'Public'
+
+    threat_obj = SimpleThreat("Test Threat", 'S')
+    target_obj = SimpleTarget("TestTarget")
 
     grouped_threats = {
         'Spoofing': [
-            (threat_mock, MagicMock(name="Test Target"))
+            (threat_obj, target_obj)
         ]
     }
 
@@ -106,7 +126,7 @@ def test_generate_json_export(report_generator):
         'score': 8.0
     }
     report_generator.mitre_mapping.map_threat_to_mitre.return_value = {'techniques': [], 'capecs': []}
-    report_generator.mitre_mapping.capec_to_mitre_map = {} # Fix for JSON serialization
+    report_generator.mitre_mapping.configure_mock(capec_to_mitre_map={})
 
     output_file = "test_export.json"
     with patch("builtins.open", mock_open()) as mock_file:

@@ -580,3 +580,16 @@ coverage report
 ```
 
 The first command runs the tests and collects the coverage data. The second command generates a report that shows the code coverage for each module.
+
+### 4.14. Graphical Editor Enhancements
+
+The graphical editor has been enhanced to improve the rendering of components, specifically the database element.
+
+-   **Database Component Rendering**: The rendering logic for the database component in the graphical editor has been fixed.
+    -   **Icon**: The database icon is now correctly displayed.
+    -   **Color**: The fill and stroke colors are now correctly applied based on the theme.
+    -   **Shape**: The cylinder shape of the database is now drawn correctly.
+    -   **Size**: The database component is now scaled to a smaller size to be more consistent with the other components.
+-   **Connection Positioning**: Fixed a bug where connections would be misplaced when moving a scaled component (like the database). The connection update logic now correctly accounts for the component's scale.
+-   **Model Loading**: Fixed a bug that prevented loading a second model. The graph clearing logic was improved by safely iterating over a copy of the elements to prevent errors during their destruction.
+

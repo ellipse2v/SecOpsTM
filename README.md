@@ -13,6 +13,7 @@ This project is a Python-based, end-to-end STRIDE threat modeling and analysis f
 -   **Generate optimized Attack Flow diagrams** for key objectives (Tampering, Spoofing, Information Disclosure, Repudiation).
 -   **Extend and customize** all mappings, calculations, and reporting logic.
 -   **Run as a web-based editor** for live, interactive threat modeling.
+-   **AI-Enhanced Threat Analysis (Hybrid Mode)**: Since version 2.1, threats are enriched using an offline LLM (Mistral via Ollama) for added context, business impact assessment, real-world precedents, and detailed attack scenarios. This is enabled by default.
 
 > **Based on [PyTM](https://github.com/OWASP/pytm):** This framework leverages PyTM's modeling primitives and extends them with advanced reporting, MITRE mapping, and diagram generation.
 
@@ -41,6 +42,7 @@ The generated diagrams (both in the live editor and in exported HTML reports) ar
 
 ### Simple Server Mode
 -   The integrated web server can be started with a path to a project directory (`--project path/to/your/project`). It will automatically find all `*.md` threat model files within that project and open them in tabs, ready for editing.
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/ellipse2v/cybersec-mapping/graphs/commit-activity)
 
 ---
 
@@ -79,9 +81,9 @@ After installation, restart your terminal or IDE.
 ## License
 
 Apache License 2.0. See [LICENSE](LICENSE).
-
 ---
 
 ## Author
 
 ellipse2v
+
