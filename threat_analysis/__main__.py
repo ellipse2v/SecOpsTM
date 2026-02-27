@@ -29,23 +29,11 @@ import importlib.util
 import inspect
 import traceback
 
+from threat_analysis import config # Re-add config import
+from threat_analysis.server.server import run_server, get_model_name # Re-add this import
+
 # Import library modules
-logging.info(f"[{time.time() - _start_time_main:.4f}s] Starting module imports...")
-from threat_analysis.core.models_module import ThreatModel
-from threat_analysis.core.mitre_mapping_module import MitreMapping
-from threat_analysis.severity_calculator_module import SeverityCalculator
-from threat_analysis.generation.diagram_generator import DiagramGenerator
-from threat_analysis.generation.attack_navigator_generator import AttackNavigatorGenerator
-from threat_analysis.generation.attack_flow_generator import AttackFlowGenerator
-from threat_analysis.core.model_factory import create_threat_model
-from threat_analysis.iac_plugins import IaCPlugin
-from threat_analysis.generation.report_generator import ReportGenerator
-from threat_analysis.utils import _validate_path_within_project, resolve_path
-from threat_analysis.server.server import run_server, get_model_name # Import get_model_name
-from threat_analysis.core.model_validator import ModelValidator
-from threat_analysis.core.cve_service import CVEService
-from threat_analysis import config
-logging.info(f"[{time.time() - _start_time_main:.4f}s] Finished module imports.")
+# Lazy imports will be handled within methods
 
 # Add project root to sys.path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -58,9 +46,10 @@ class SecOpsTMFramework:
     def __init__(
         self, markdown_content: str, model_name: str, model_description: str, model_file_path: str,
         implemented_mitigations_path: Optional[str] = None,
-        cve_service: CVEService = None, # Changed to non-Optional, must be provided by caller
+        cve_service: 'CVEService' = None, # Use forward reference for lazy loading
         ai_config_path: Optional[Path] = None,
         context_path: Optional[Path] = None,
+        cve_definitions_path: Optional[Path] = None, # New parameter
     ):
         """Initializes the analysis framework"""
         self.markdown_content = markdown_content
@@ -94,7 +83,30 @@ class SecOpsTMFramework:
         )
         # --- End of output path management ---
 
+        # Lazy imports for components
+        cve_service_module = importlib.import_module("threat_analysis.core.cve_service")
+        CVEService = cve_service_module.CVEService
+
+        mitre_mapping_module = importlib.import_module("threat_analysis.core.mitre_mapping_module")
+        MitreMapping = mitre_mapping_module.MitreMapping
+
+        severity_calculator_module = importlib.import_module("threat_analysis.severity_calculator_module")
+        SeverityCalculator = severity_calculator_module.SeverityCalculator
+
+        report_generator_module = importlib.import_module("threat_analysis.generation.report_generator")
+        ReportGenerator = report_generator_module.ReportGenerator
+
+        diagram_generator_module = importlib.import_module("threat_analysis.generation.diagram_generator")
+        DiagramGenerator = diagram_generator_module.DiagramGenerator
+
         # Component initialization
+        # Ensure self.cve_service is initialized first as others may depend on it
+        self.cve_service = cve_service if cve_service else CVEService(
+            PROJECT_ROOT, 
+            cve_definitions_path, 
+            is_path_explicit=bool(cve_definitions_path) # Determine if explicit path was provided
+        )
+
         self.mitre_mapper = MitreMapping(threat_model_path=self.model_file_path)
         self.threat_model = self._load_and_validate_model(self.markdown_content)
 
@@ -102,11 +114,12 @@ class SecOpsTMFramework:
             markdown_file_path=str(Path("threatModel_Template/threat_model.md")) # Hardcoded path instead of config
         )
         self.report_generator = ReportGenerator(
-            self.severity_calculator, self.mitre_mapper, # Use the mitre_mapper from the threat_model
+            self.severity_calculator, self.mitre_mapper,
             implemented_mitigations_path=Path(implemented_mitigations_path) if implemented_mitigations_path else None,
             cve_service=self.cve_service,
             ai_config_path=ai_config_path,
             context_path=context_path,
+            threat_model_ref=self.threat_model,
         )
         self.diagram_generator = DiagramGenerator()
 
@@ -131,10 +144,16 @@ class SecOpsTMFramework:
         self.custom_threats_list = []
         self.elements_with_custom_threats = set()
 
-    def _load_and_validate_model(self, markdown_content: str) -> ThreatModel:
+    def _load_and_validate_model(self, markdown_content: str) -> 'ThreatModel': # Use forward reference for type hint
         """Loads and validates the threat model from the Markdown DSL content."""
         logging.info(f"⏳ Loading model from provided Markdown content...")
         try:
+            # Lazy import ThreatModel and create_threat_model
+            models_module = importlib.import_module("threat_analysis.core.models_module")
+            ThreatModel = models_module.ThreatModel
+            model_factory_module = importlib.import_module("threat_analysis.core.model_factory")
+            create_threat_model = model_factory_module.create_threat_model
+
             threat_model = create_threat_model(
                 markdown_content=markdown_content,
                 model_name=self.model_name,
@@ -262,6 +281,10 @@ class SecOpsTMFramework:
 
         logging.info("🗺️ Generating ATT&CK Navigator layer...")
         try:
+            # Lazy import AttackNavigatorGenerator
+            attack_navigator_module = importlib.import_module("threat_analysis.generation.attack_navigator_generator")
+            AttackNavigatorGenerator = attack_navigator_module.AttackNavigatorGenerator
+
             # We need all detailed threats, not just grouped ones.
             if self.threat_model:
                 all_threats = self.threat_model.get_all_threats_details()
@@ -299,10 +322,14 @@ class SecOpsTMFramework:
         except Exception:
             pass
 
-def generate_and_save_attack_flow(threat_model: ThreatModel, output_dir: Path, model_name: str):
+def generate_and_save_attack_flow(threat_model: 'ThreatModel', output_dir: Path, model_name: str):
     """Generates and saves Attack Flow files based on STRIDE categories."""
     logging.info(f"🌊 Generating Attack Flow files for {model_name}...")
     try:
+        # Lazy import AttackFlowGenerator
+        attack_flow_module = importlib.import_module("threat_analysis.generation.attack_flow_generator")
+        AttackFlowGenerator = attack_flow_module.AttackFlowGenerator
+
         # The generator now expects the raw threat data to perform its own filtering.
         raw_threats = threat_model.mitre_analysis_results.get("processed_threats", [])
         if not raw_threats:
@@ -320,12 +347,16 @@ def generate_and_save_attack_flow(threat_model: ThreatModel, output_dir: Path, m
         logging.error(f"❌ Failed to generate Attack Flow files for {model_name}: {e}")
         traceback.print_exc()
 
-def load_iac_plugins() -> Dict[str, IaCPlugin]:
+def load_iac_plugins() -> Dict[str, 'IaCPlugin']:
     """Dynamically loads IaC plugins from the iac_plugins directory.
 
     Returns:
         A dictionary mapping plugin names to their instantiated objects.
     """
+    # Lazy import IaCPlugin
+    iac_plugins_module = importlib.import_module("threat_analysis.iac_plugins")
+    IaCPlugin = iac_plugins_module.IaCPlugin # Import the base class here
+
     plugins = {}
     plugins_dir = Path(__file__).parent / "iac_plugins"
 
@@ -349,7 +380,7 @@ def load_iac_plugins() -> Dict[str, IaCPlugin]:
 
 
 class CustomArgumentParser:
-    def __init__(self, loaded_plugins: Dict[str, IaCPlugin]):
+    def __init__(self, loaded_plugins: Dict[str, 'IaCPlugin']):
         self.parser = argparse.ArgumentParser(
             description="SecOpsTM Framework",
             epilog=(
@@ -427,7 +458,7 @@ class CustomArgumentParser:
     def parse_args(self):
         return self.parser.parse_known_args()
 
-def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, IaCPlugin]):
+def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 'IaCPlugin']):
     """Runs the analysis for a single threat model file or an IaC input."""
     markdown_content_for_analysis = ""
     iac_plugin_used = False
@@ -496,6 +527,9 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
         args.cve_definitions_file, base_dir, "cve_definitions.yml"
     )
 
+    # Lazy import CVEService
+    cve_service_module = importlib.import_module("threat_analysis.core.cve_service")
+    CVEService = cve_service_module.CVEService
     cve_service = CVEService(
         PROJECT_ROOT, cve_definitions_path, is_cve_path_explicit
     )
@@ -512,6 +546,7 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
         cve_service=cve_service,
         ai_config_path=ai_config_path,
         context_path=context_path,
+        cve_definitions_path=cve_definitions_path # Pass cve_definitions_path to SecOpsTMFramework
     )
 
     threats = framework.run_analysis()
@@ -621,16 +656,29 @@ if __name__ == "__main__":
             args.cve_definitions_file, project_path, "cve_definitions.yml"
         )
         
+        # Lazy import CVEService
+        cve_service_module = importlib.import_module("threat_analysis.core.cve_service")
+        CVEService = cve_service_module.CVEService
         cve_service = CVEService(
             PROJECT_ROOT, cve_definitions_path, is_cve_path_explicit
         )
 
+        # Lazy import SeverityCalculator
+        severity_calculator_module = importlib.import_module("threat_analysis.severity_calculator_module")
+        SeverityCalculator = severity_calculator_module.SeverityCalculator
         severity_calculator = SeverityCalculator(markdown_file_path=str(project_path / "main.md"))
+        
+        # Lazy import MitreMapping
+        mitre_mapping_module = importlib.import_module("threat_analysis.core.mitre_mapping_module")
+        MitreMapping = mitre_mapping_module.MitreMapping
         mitre_mapping = MitreMapping(threat_model_path=str(project_path / "main.md"))
 
         ai_config_path = PROJECT_ROOT / (args.ai_config_file if hasattr(args, 'ai_config_file') else "config/ai_config.yaml")
         context_path = PROJECT_ROOT / (args.ai_context_file if hasattr(args, 'ai_context_file') else "config/context.yaml")
 
+        # Lazy import ReportGenerator
+        report_generator_module = importlib.import_module("threat_analysis.generation.report_generator")
+        ReportGenerator = report_generator_module.ReportGenerator
         report_generator = ReportGenerator(
             severity_calculator,
             mitre_mapping,
@@ -638,6 +686,7 @@ if __name__ == "__main__":
             cve_service=cve_service,
             ai_config_path=ai_config_path,
             context_path=context_path,
+            threat_model_ref=None # Project reports are generated per model, ref is set internally
         )
 
         project_threat_model = report_generator.generate_project_reports(project_path, output_dir)
@@ -645,6 +694,10 @@ if __name__ == "__main__":
         if args.navigator and project_threat_model:
             logging.info("🗺️ Generating ATT&CK Navigator layer for project...")
             try:
+                # Lazy import AttackNavigatorGenerator
+                attack_navigator_module = importlib.import_module("threat_analysis.generation.attack_navigator_generator")
+                AttackNavigatorGenerator = attack_navigator_module.AttackNavigatorGenerator
+                
                 all_threats = project_threat_model.get_all_threats_details()
                 navigator_generator = AttackNavigatorGenerator(
                     threat_model_name=str(project_threat_model.tm.name),

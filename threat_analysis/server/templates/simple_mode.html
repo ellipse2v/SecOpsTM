@@ -642,6 +642,13 @@
             </div>
         </div>
     </div>
+    
+    <div id="progress-container" style="display: none; padding: 10px;">
+        <div style="font-weight: bold; margin-bottom: 5px;">Generation in progress...</div>
+        <div id="progress-bar-container" style="background-color: #ddd; border-radius: 4px;">
+            <div id="progress-bar" style="width: 0%; height: 20px; background-color: #4CAF50; border-radius: 4px; text-align: center; color: white; line-height: 20px;">0%</div>
+        </div>
+    </div>
 
     <div class="error-message" id="errorMessage"></div>
 
@@ -1505,6 +1512,73 @@
             }
         }
 
+                console.error('Export Navigator and STIX error:', error);
+                alert('An error occurred during export.');
+            }
+        }
+        
+        async function generateAllFiles() {
+            const markdownContent = editor.getValue();
+            // Find the "Generate All" button specifically, or use a more generic way if structure changes
+            const generateAllButton = Array.from(document.querySelectorAll('.menu-bar .menu-button')).find(btn => btn.textContent.includes('Generate All'));
+            
+            const progressContainer = document.getElementById('progress-container');
+            const progressBar = document.getElementById('progress-bar');
+
+            if (generateAllButton) {
+                generateAllButton.disabled = true;
+            }
+            progressContainer.style.display = 'block';
+            progressBar.style.width = '0%';
+            progressBar.textContent = '0%';
+
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 10;
+                if (progress > 100) {
+                    progress = 100;
+                }
+                progressBar.style.width = progress + '%';
+                progressBar.textContent = progress + '%';
+            }, 500);
+
+            try {
+                const response = await fetch('/api/generate_all', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ markdown: markdownContent }),
+                });
+
+                clearInterval(interval);
+                progressBar.style.width = '100%';
+                progressBar.textContent = '100%';
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    alert(`Generate All failed: ${errorData.error}`);
+                    return;
+                }
+                const result = await response.json();
+                if (result.success) {
+                    alert(`Success! All files generated in: ${result.generation_dir}\n\nGenerated files:\n- ${Object.keys(result.generated_files).join('\n- ')}`);
+                } else {
+                    alert(`Generate All failed: ${result.error || 'Unknown error'}`);
+                }
+            } catch (error) {
+                console.error('Generate All error:', error);
+                alert('An error occurred during generation.');
+                clearInterval(interval);
+            } finally {
+                generateAllBtn.disabled = false;
+                setTimeout(() => {
+                    progressContainer.style.display = 'none';
+                }, 2000);
+            }
+        }
+
+        // Function to load markdown from a file
         function loadMarkdownFile(event) {
             const file = event.target.files[0];
             if (!file) return;

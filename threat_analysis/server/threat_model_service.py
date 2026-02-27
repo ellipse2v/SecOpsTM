@@ -51,10 +51,21 @@ class ThreatModelService:
             context_path=context_path
         )
         
-        self.ai_service = AIService()
+        self.ai_service = AIService(config_path=str(PROJECT_ROOT / "config" / "ai_config.yaml"))
         self.diagram_service = DiagramService(self.cve_service, self.diagram_generator)
         self.model_management_service = ModelManagementService(self.cve_service, self.diagram_service)
-        self.export_service = ExportService(self.cve_service, self.diagram_generator, self.report_generator, self.ai_service, self.diagram_service)
+        # Import queue locally to avoid circular dependency issues if any
+        
+        from threat_analysis.server.events import ai_status_event_queue
+        
+        self.export_service = ExportService(
+            self.cve_service,
+            self.diagram_generator,
+            self.report_generator,
+            self.ai_service,
+            self.diagram_service,
+            ai_status_event_queue=ai_status_event_queue
+        )
 
     @property
     def ai_online(self):

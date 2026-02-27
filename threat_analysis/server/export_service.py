@@ -22,6 +22,7 @@ from io import BytesIO
 import json
 from pathlib import Path
 import asyncio
+import queue
 
 from threat_analysis.core.model_factory import create_threat_model
 from threat_analysis.core.model_validator import ModelValidator
@@ -36,12 +37,17 @@ OUTPUT_BASE_DIR_TPL = "output"
 JSON_NAVIGATOR_FILENAME_TPL = "attack_navigator_layer_{timestamp}.json"
 
 class ExportService:
-    def __init__(self, cve_service, diagram_generator, report_generator, ai_service, diagram_service):
+    def __init__(self, cve_service, diagram_generator, report_generator, ai_service, diagram_service, ai_status_event_queue: queue.Queue = None):
         self.cve_service = cve_service
         self.diagram_generator = diagram_generator
         self.report_generator = report_generator
         self.ai_service = ai_service
         self.diagram_service = diagram_service
+        self.ai_status_event_queue = ai_status_event_queue
+
+    def _get_output_dir(self):
+        timestamp = datetime.datetime.now().strftime(TIMESTAMP_FORMAT)
+        return Path(OUTPUT_BASE_DIR_TPL) / timestamp
 
     def _get_output_dir(self):
         timestamp = datetime.datetime.now().strftime(TIMESTAMP_FORMAT)

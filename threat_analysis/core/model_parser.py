@@ -303,7 +303,7 @@ class ModelParser:
 
         if from_elem and to_elem:
             self.threat_model.add_dataflow(from_elem, to_elem, name, **params)
-            logging.info(f"   - Added Dataflow: {name} ({from_name_raw} -> {to_name_raw}, Props: {params})")
+            logging.debug(f"   - Added Dataflow: {name} ({from_name_raw} -> {to_name_raw}, Props: {params})")
         else:
             logging.warning(f"⚠️ Warning: Elements for dataflow '{name}' not found. From: '{from_name_raw}', To: '{to_name_raw}'.")
             

@@ -143,7 +143,42 @@ class ThreatModelGenerator {
             const modelName = this.getModelName(markdownContent);
             const positionsData = this.nodeManager.getNodesPositions(); // Get positions from NodeManager
 
-            this.analysisResultContainer.innerHTML = '<h3>Generating...</h3><div class="loading-spinner"></div>';
+            this.analysisResultContainer.innerHTML = `
+                <h3>Generating...</h3>
+                <div class="loading-spinner"></div>
+                <p id="generation-progress-message"></p>
+                <div id="ai-progress-container" style="display: none;">
+                    <p id="ai-progress-message"></p>
+                    <div class="progress-bar-container">
+                        <div id="ai-progress-bar" class="progress-bar"></div>
+                    </div>
+                </div>
+            `;
+            const progressMessageElement = document.getElementById('generation-progress-message');
+            const aiProgressContainer = document.getElementById('ai-progress-container');
+            const aiProgressMessageElement = document.getElementById('ai-progress-message');
+            const aiProgressBar = document.getElementById('ai-progress-bar');
+
+            const eventSource = new EventSource('/api/ai_status_stream');
+
+            eventSource.addEventListener('ai_progress', (e) => {
+                const eventData = JSON.parse(e.data);
+                if (eventData.status === 'ai_enrichment_started') {
+                    progressMessageElement.textContent = eventData.message;
+                    aiProgressContainer.style.display = 'block';
+                } else if (eventData.status === 'ai_enrichment_progress') {
+                    aiProgressMessageElement.textContent = eventData.message;
+                    aiProgressBar.style.width = eventData.progress + '%';
+                } else if (eventData.status === 'ai_enrichment_finished') {
+                    progressMessageElement.textContent = 'AI enrichment complete, finishing up...';
+                    aiProgressBar.style.width = '100%';
+                }
+            });
+
+            eventSource.onerror = (err) => {
+                console.error("EventSource failed:", err);
+                eventSource.close();
+            };
 
             fetch('/api/generate_all', {
                 method: 'POST',
@@ -156,6 +191,7 @@ class ThreatModelGenerator {
             })
             .then(response => response.json())
             .then(data => {
+                eventSource.close();
                 if (data.error) {
                     alert('Error during generation:\n' + data.error);
                     this.analysisResultContainer.innerHTML = '<h3>Error during generation</h3><pre>' + data.error + '</pre>' + debug_info;
@@ -180,6 +216,7 @@ class ThreatModelGenerator {
                     filesHtml + debug_info;
             })
             .catch(error => {
+                eventSource.close();
                 alert('Network Error:\n' + error.message);
                 this.analysisResultContainer.innerHTML = '<h3>Network Error</h3><pre>' + error.message + '</pre>' + debug_info;
                 console.error('Network error:', error);

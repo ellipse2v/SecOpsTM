@@ -60,7 +60,8 @@ class ReportGenerator:
                  implemented_mitigations_path: Optional[Path] = None,
                  cve_service: Optional[CVEService] = None,
                  ai_config_path: Optional[Path] = None,
-                 context_path: Optional[Path] = None):
+                 context_path: Optional[Path] = None,
+                 threat_model_ref: Optional[ThreatModel] = None):
         self.severity_calculator = severity_calculator
         self.mitre_mapping = mitre_mapping
         self.env = Environment(loader=FileSystemLoader(Path(__file__).parent.parent / 'templates'), extensions=['jinja2.ext.do'])
@@ -69,6 +70,7 @@ class ReportGenerator:
         self.cve_service = cve_service if cve_service else CVEService(project_root, project_root / "cve_definitions.yml")
         self.ai_provider = None
         self.ai_context = None
+        self.threat_model_ref = threat_model_ref # Store the reference
 
         if ai_config_path and ai_config_path.exists():
             with open(ai_config_path, "r", encoding="utf-8") as f:
@@ -167,9 +169,14 @@ class ReportGenerator:
                              all_detailed_threats: Optional[List[Dict]] = None,
                              report_title: str = "🛡️ STRIDE & MITRE ATT&CK Threat Model Report") -> Path:
         """Generates a complete HTML report with MITRE ATT&CK"""
-        total_threats_analyzed = threat_model.mitre_analysis_results.get('total_threats', 0)
-        total_mitre_techniques_mapped = threat_model.mitre_analysis_results.get('mitre_techniques_count', 0)
-        stride_distribution = threat_model.mitre_analysis_results.get('stride_distribution', {})
+        # Temporarily set threat_model_ref for _get_all_threats_with_mitre_info
+        original_threat_model_ref = self.threat_model_ref
+        self.threat_model_ref = threat_model # Set the current threat_model
+
+        try:
+            total_threats_analyzed = threat_model.mitre_analysis_results.get('total_threats', 0)
+            total_mitre_techniques_mapped = threat_model.mitre_analysis_results.get('mitre_techniques_count', 0)
+            stride_distribution = threat_model.mitre_analysis_results.get('stride_distribution', {})
 
         if all_detailed_threats is None:
             all_detailed_threats = self._get_all_threats_with_mitre_info(grouped_threats, threat_model)
@@ -205,9 +212,12 @@ class ReportGenerator:
             implemented_mitigation_ids=self.implemented_mitigations
         )
 
-        with open(output_file, "w", encoding="utf-8") as f:
-            f.write(html)
+            with open(output_file, "w", encoding="utf-8") as f:
+                f.write(html)
 
+        finally:
+            self.threat_model_ref = original_threat_model_ref # Reset
+        
         return output_file
 
     def generate_json_export(self, threat_model, grouped_threats: Dict[str, List],
@@ -229,8 +239,10 @@ class ReportGenerator:
             "detailed_threats": self._export_detailed_threats(grouped_threats, threat_model)
         }
 
-        with open(output_file, "w", encoding="utf-8") as f:
-            json.dump(export_data, f, indent=2, ensure_ascii=False)
+            with open(output_file, "w", encoding="utf-8") as f:
+                json.dump(export_data, f, indent=2, ensure_ascii=False)
+        finally:
+            self.threat_model_ref = original_threat_model_ref # Reset
 
         return output_file
 
@@ -267,6 +279,7 @@ class ReportGenerator:
         """Gathers detailed information for all threats, including MITRE ATT&CK mapping and severity."""
         all_detailed_threats = []
         
+        # Process threats from grouped_threats (PyTM and custom threats)
         for threat_type, threats in grouped_threats.items():
             for item in threats:
                 if isinstance(item, tuple) and len(item) == 2:
@@ -274,6 +287,7 @@ class ReportGenerator:
                     target_name = self._get_target_name_for_severity_calc(target)
                     threat_description = getattr(threat, 'description', f"Threat of type {threat_type} affecting {target_name}")
                     stride_category = getattr(threat, 'stride_category', threat_type)
+                    threat_source = getattr(threat, 'source', 'pytm') # Get the source attribute
                 else:
                     continue
 
@@ -312,7 +326,8 @@ class ReportGenerator:
                 threat_dict = {
                     "description": threat_description,
                     "stride_category": stride_category,
-                    "capec_ids": getattr(threat, 'capec_ids', [])
+                    "capec_ids": getattr(threat, 'capec_ids', []),
+                    "source": threat_source # Add the source to the dict
                 }
                 mapping_results = self.mitre_mapping.map_threat_to_mitre(threat_dict)
                 mitre_techniques = mapping_results.get('techniques', [])
@@ -322,8 +337,10 @@ class ReportGenerator:
                 
                 target_names_to_check = []
                 if isinstance(target, tuple) and len(target) == 2:
-                    source_name = extract_name_from_object(target[0])
-                    sink_name = extract_name_from_object(target[1])
+                    source_obj = target[0]
+                    sink_obj = target[1]
+                    source_name = extract_name_from_object(source_obj)
+                    sink_name = extract_name_from_object(sink_obj)
                     if source_name != "Unspecified": target_names_to_check.append(source_name)
                     if sink_name != "Unspecified": target_names_to_check.append(sink_name)
                 else:
@@ -351,6 +368,45 @@ class ReportGenerator:
                     "confidence": getattr(threat, 'confidence', 1.0),
                     "source": "pytm"
                 })
+        
+        # Process global RAG threats
+        if hasattr(self.threat_model_ref.tm, 'global_threats_llm'): # Access via self.threat_model_ref
+            for threat in self.threat_model_ref.tm.global_threats_llm:
+                target_name = "Threat Model (Global)" # RAG threats are system-level
+                threat_description = getattr(threat, 'description', 'RAG-generated global threat')
+                stride_category = getattr(threat, 'category', 'Generic RAG Threat')
+                threat_source = getattr(threat, 'source', 'LLM')
+
+                severity_info = self.severity_calculator.get_severity_info(
+                    stride_category,
+                    target_name,
+                    impact=getattr(threat, 'impact', None),
+                    likelihood=getattr(threat, 'likelihood', None)
+                )
+
+                threat_dict = {
+                    "description": threat_description,
+                    "stride_category": stride_category,
+                    "capec_ids": getattr(threat, 'capec_ids', []),
+                    "source": threat_source
+                }
+                mapping_results = self.mitre_mapping.map_threat_to_mitre(threat_dict)
+                mitre_techniques = mapping_results.get('techniques', [])
+                capecs = mapping_results.get('capecs', [])
+
+                all_detailed_threats.append({
+                    "type": threat_source, # Use threat_source as type for consistent filtering in UI
+                    "description": threat_description,
+                    "target": target_name,
+                    "severity": severity_info,
+                    "mitre_techniques": mitre_techniques,
+                    "stride_category": stride_category,
+                    "capecs": capecs,
+                    "cve": [], # RAG threats don't have CVEs by default
+                    "confidence": 1.0, # Default confidence for RAG threats
+                    "source": threat_source
+                })
+        
         return all_detailed_threats
 
     def _get_target_name_for_severity_calc(self, target: Any) -> str:

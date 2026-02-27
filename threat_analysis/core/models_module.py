@@ -15,6 +15,7 @@
 """
 Threat Model Definition Module with MITRE ATT&CK Integration
 """
+import pytm # Add import for pytm module (moved to top)
 from pytm import TM, Boundary, Actor, Server, Dataflow, Data, Classification, Lifetime
 from collections import defaultdict
 from typing import List, Dict, Any, Optional, Tuple
@@ -54,6 +55,17 @@ class CustomThreat:
     def __str__(self):
         return self.name
 
+class ExtendedThreat(pytm.Threat): # Inherit from pytm.Threat
+    """
+    Extends pytm.Threat to include a source attribute,
+    allowing us to track where the threat was generated (e.g., pytm, LLM).
+    """
+    def __init__(self, *args, source: str = "pytm", **kwargs):
+        super().__init__(*args, **kwargs)
+        self.source = source
+
+    def __repr__(self):
+        return f"ExtendedThreat(source='{self.source}', description='{self.description}', category='{self.category}')"
 
 class ThreatModel:
     """Main class for managing the threat model with MITRE ATT&CK integration"""

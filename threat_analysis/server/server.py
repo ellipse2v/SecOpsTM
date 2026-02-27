@@ -24,7 +24,7 @@ from typing import Dict, List, Any, Optional
 from flask import Flask, render_template, request, jsonify, send_from_directory, send_file, make_response, Response, stream_with_context, g
 from threat_analysis import config
 import asyncio
-import queue
+from threat_analysis.server.events import ai_status_event_queue
 from threat_analysis.server.threat_model_service import ThreatModelService
 import time
 
@@ -69,7 +69,7 @@ def after_request(response):
         # The time to send the response is what's left over
         response_transmission_ms = total_duration_ms - processing_time_ms - generation_time_ms - transmission_latency_ms
 
-        logging.info(
+        logging.debug(
             f"API Latency Report for {request.path} - "
             f"Latence de transmission: {transmission_latency_ms:.2f}ms, "
             f"Temps de traitement: {processing_time_ms:.2f}ms, "
@@ -81,8 +81,6 @@ def after_request(response):
 # Initialize the service layer
 threat_model_service = ThreatModelService()
 
-# Global queue for SSE events
-ai_status_event_queue = queue.Queue()
 
 def initialize_ai_in_background():
     """Run AI initialization in a separate thread with its own event loop."""
@@ -92,7 +90,7 @@ def initialize_ai_in_background():
         logging.info("Starting AI initialization in background...")
         try:
             await threat_model_service.init_ai()
-            threat_model_service.ai_online = True
+            # threat_model_service.ai_online is updated in ai_service.init_ai()
             logging.info("Background AI initialization complete.")
 
             data = {"ai_online": True}
@@ -109,16 +107,10 @@ def initialize_ai_in_background():
                 f"event: ai_status\ndata: {json.dumps(data)}\n\n"
             )
 
-    loop = None
     try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(init_and_log())
+        asyncio.run(init_and_log())
     except Exception as e:
         logging.error(f"Error during background AI initialization: {e}", exc_info=True)
-    finally:
-        if loop and not loop.is_closed():
-            loop.close()
 
 # Generate configuration files if needed
 def generate_config_files():
@@ -231,12 +223,13 @@ def run_server(model_filepath: Optional[str] = None, project_path: Optional[str]
         except Exception as e:
             logging.error(f"[{time.time() - start_time:.4f}s] Error loading initial model from {effective_model_path}: {e}")
             initial_markdown_content = DEFAULT_EMPTY_MARKDOWN
+            logging.debug(f"[{time.time() - start_time:.4f}s] Loaded initial threat model from a temporary model due to file loading error.")
     else:
         initial_markdown_content = DEFAULT_EMPTY_MARKDOWN
         if project_path or model_filepath:
              logging.warning(f"[{time.time() - start_time:.4f}s] No initial threat model file found at the specified path. Starting with a default empty model.")
         else:
-            logging.info(f"[{time.time() - start_time:.4f}s] No initial threat model file provided. Starting with a default empty model.")
+            logging.debug(f"[{time.time() - start_time:.4f}s] No initial threat model file provided. Starting with a default empty model.")
 
     logging.info(f"[{time.time() - start_time:.4f}s] Initializing threat model service...")
     # The ThreatModelService is already instantiated globally
@@ -393,7 +386,7 @@ def update_diagram():
     Receives Markdown content, generates a threat model diagram,
     and returns the HTML representation of the diagram.
     """
-    logging.info("Entering update_diagram function.")
+    logging.debug("Entering update_diagram function.")
     data = request.json
     markdown_content = data.get("markdown", "")
     submodels = data.get("submodels", [])
@@ -483,14 +476,14 @@ def graphical_update():
     """
     Receives JSON graph data, converts it to Markdown, and returns the analysis.
     """
-    logging.info("Entering graphical_update function.")
+    logging.debug("Entering graphical_update function.")
     json_data = request.json
     if not json_data:
         return jsonify({"error": "JSON data is empty"}), 400
 
     try:
         markdown_content = convert_json_to_markdown(json_data)
-        logging.info(f"Converted Markdown:\n{markdown_content}")
+        logging.debug(f"Converted Markdown:\n{markdown_content}")
         
         # Ensure output directory exists (using the same structure as other modes)
         os.makedirs(config.OUTPUT_BASE_DIR, exist_ok=True)
@@ -517,7 +510,7 @@ def export_files():
     """
     markdown_content = request.json.get("markdown", "")
     export_format = request.json.get("format")  # "svg", "diagram", "report"
-    logging.info(f"Entering export_files function for format: {export_format}")
+    logging.debug(f"Entering export_files function for format: {export_format}")
 
     if not markdown_content or not export_format:
         return (
@@ -560,7 +553,7 @@ def export_all_files():
     markdown_content = request.json.get("markdown", "")
     if not markdown_content:
         return jsonify({"error": "Missing markdown content"}), 400
-    logging.info("Entering export_all_files function.")
+    logging.debug("Entering export_all_files function.")
 
     try:
         submodels = request.json.get("submodels", [])
@@ -587,7 +580,7 @@ def export_all_files():
 @app.route("/api/export_navigator_stix", methods=["POST"])
 def export_navigator_stix_files():
 
-    logging.info("Received request for /api/export_navigator_stix.")
+    logging.debug("Received request for /api/export_navigator_stix.")
 
     """
 
@@ -601,7 +594,7 @@ def export_navigator_stix_files():
 
         return jsonify({"error": "Missing markdown content"}), 400
 
-    logging.info("Entering export_navigator_stix_files function.")
+    logging.debug("Entering export_navigator_stix_files function.")
 
 
 
@@ -660,7 +653,7 @@ def export_attack_flow():
 
 
 
-    logging.info("Entering export_attack_flow function.")
+    logging.debug("Entering export_attack_flow function.")
 
 
 
@@ -733,7 +726,7 @@ def load_model():
     try:
         data = request.get_json()
         model_path = data.get("model_path", "")
-        logging.info(f"Received request to load model: {model_path}")
+        logging.debug(f"Received request to load model: {model_path}")
 
         if not model_path:
             return jsonify({"error": "Missing model path"}), 400
@@ -752,9 +745,9 @@ def load_model():
 
         metadata = None
         metadata_path = full_model_path.replace(".md", "_metadata.json")
-        logging.info(f"Looking for metadata at: {metadata_path}")
+        logging.debug(f"Looking for metadata at: {metadata_path}")
         if os.path.exists(metadata_path):
-            logging.info("Metadata file found. Loading.")
+            logging.debug("Metadata file found. Loading.")
             with open(metadata_path, "r", encoding="utf-8") as f:
                 metadata = json.load(f)
         else:

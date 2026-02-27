@@ -52,10 +52,10 @@ class LiteLLMClient:
                 json.loads(potential_json)
                 return potential_json
         except (json.JSONDecodeError, TypeError):
-             # Not a valid JSON object, so we return the original text and let the caller handle the error.
-             pass
+             # Not a valid JSON object, return None to indicate failure.
+             return None
 
-        return text
+        return None # No JSON found or extracted.
 
     @staticmethod
     async def create():
@@ -84,7 +84,7 @@ class LiteLLMClient:
                 # Dynamically import litellm only if an AI provider is enabled
                 try:
                     self._litellm_module = importlib.import_module("litellm")
-                    logging.info(f"[{time.time() - start_time:.4f}s] litellm module dynamically imported.")
+                    logging.debug(f"[{time.time() - start_time:.4f}s] litellm module dynamically imported.")
                 except ImportError as e:
                     logging.error(f"[{time.time() - start_time:.4f}s] Failed to import litellm: {e}. AI features disabled.")
                     return
@@ -98,7 +98,7 @@ class LiteLLMClient:
                 if provider_name == "ollama":
                     ollama_host = self.provider_config.get('host', 'http://localhost:11434')
                     os.environ['OLLAMA_API_BASE'] = ollama_host
-                    logging.info(f"[{time.time() - start_time:.4f}s] LiteLLM configured for Ollama at {ollama_host} using model {self.model_name}")
+                    logging.debug(f"[{time.time() - start_time:.4f}s] LiteLLM configured for Ollama at {ollama_host} using model {self.model_name}")
 
                 logging.info(f"[{time.time() - start_time:.4f}s] Checking AI server status...")
                 self.ai_online = await self.check_connection()
@@ -120,7 +120,7 @@ class LiteLLMClient:
         if not self.model_name or not self._litellm_module:
             return False
         try:
-            logging.info(f"[{time.time() - check_start_time:.4f}s] Pinging AI model {self.model_name}...")
+            logging.debug(f"[{time.time() - check_start_time:.4f}s] Pinging AI model {self.model_name}...")
             await self._litellm_module.acompletion(
                 model=self.model_name, 
                 messages=[{"role": "user", "content": "hi"}],
@@ -128,7 +128,7 @@ class LiteLLMClient:
                 timeout=self.provider_config.get('timeout', 10),    
                 stream=False  
             )
-            logging.info(f"[{time.time() - check_start_time:.4f}s] AI model {self.model_name} responded successfully.")
+            logging.debug(f"[{time.time() - check_start_time:.4f}s] AI model {self.model_name} responded successfully.")
             return True
         except Exception as e:
             logging.error(f"[{time.time() - check_start_time:.4f}s] LiteLLM health check failed for model {self.model_name}: {e}")
@@ -171,35 +171,33 @@ class LiteLLMClient:
             llm_call_start_time = time.time()
             response = await self._litellm_module.acompletion(**completion_params)
             llm_call_end_time = time.time()
-            logging.info(f"[LLM Response Time: {llm_call_end_time - llm_call_start_time:.4f}s] Model: {self.model_name}")
+            logging.debug(f"[LLM Response Time: {llm_call_end_time - llm_call_start_time:.4f}s] Model: {self.model_name}")
             
+            full_response_content = ""
             if use_stream:
-                full_response_content = ""
                 async for chunk in response:
                     if chunk.choices and chunk.choices[0].delta.content:
                         content_chunk = chunk.choices[0].delta.content
                         full_response_content += content_chunk
                         yield content_chunk
-                
-                if output_format == "json":
+            else:
+                full_response_content = response.choices[0].message.content
+            
+            if output_format == "json":
+                cleaned_content = self._extract_json_from_response(full_response_content)
+                if cleaned_content:
                     try:
-                        cleaned_content = self._extract_json_from_response(full_response_content)
                         yield json.loads(cleaned_content)
                     except json.JSONDecodeError as e:
                         logging.error(f"Failed to decode JSON from AI response: {e}")
                         yield f"Error: Failed to decode JSON from AI response. Raw output: {full_response_content}"
-
-            else:
-                content = response.choices[0].message.content
-                if output_format == "json":
-                    try:
-                        cleaned_content = self._extract_json_from_response(content)
-                        yield json.loads(cleaned_content)
-                    except json.JSONDecodeError as e:
-                        logging.error(f"Failed to decode JSON from AI response: {e}")
-                        yield f"Error: Failed to decode JSON from AI response. Raw output: {content}"
                 else:
-                    yield content
+                    yield f"Error: No valid JSON found in AI response. Raw output: {full_response_content}"
+            else:
+                yield full_response_content
+
+
+
 
         except Exception as e:
             logging.error(f"Error during LiteLLM generation: {e}", exc_info=True)
