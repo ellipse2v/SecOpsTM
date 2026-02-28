@@ -699,7 +699,8 @@
         const aiButton = document.getElementById('ai-generate-btn');
 
         let protocolVisibilityState = {}; // Stores { 'protocol_name': 'hidden' / 'visible' }
-
+        let currentlySelectedElementId = null;
+        let globalGraphMetadata = null;
 
 
         // Function to apply highlighting
@@ -970,33 +971,37 @@
                }
            },
 
-            getActiveEditor: function() {
+            getActiveEditorData: function() {
                 const activeTab = document.querySelector('.tab-button.active');
                 if (activeTab) {
                     const tabIndex = parseInt(activeTab.dataset.tabIndex, 10);
-                    return this.editors[tabIndex]?.editor;
+                    return this.editors[tabIndex];
                 }
                 return null;
             },
 
+            getActiveEditor: function() {
+                return this.getActiveEditorData()?.editor;
+            },
+
             getAllData: function() {
-                const activeEditor = this.getActiveEditor();
-                if (!activeEditor) {
-                    return { mainModelContent: '', submodels: [] };
+                const activeEditorData = this.getActiveEditorData();
+                if (!activeEditorData) {
+                    return { mainModelContent: '', mainModelPath: 'main.md', submodels: [] };
                 }
-                const mainModelContent = activeEditor.getValue();
+                const mainModelContent = activeEditorData.editor.getValue();
+                const mainModelPath = activeEditorData.path;
                 const submodels = [];
-                // This logic might need adjustment depending on how submodels are identified.
-                // For now, we'll consider all *other* tabs as potential submodels.
+                // Gather all other tabs
                 this.editors.forEach((editorData, index) => {
-                    if (editorData && editorData.editor !== activeEditor) {
+                    if (editorData && editorData.editor !== activeEditorData.editor) {
                         submodels.push({
                             path: editorData.path,
                             content: editorData.editor.getValue()
                         });
                     }
                 });
-                return { mainModelContent, submodels };
+                return { mainModelContent, mainModelPath, submodels };
             },
 
             triggerLoadSubmodel: function() {
@@ -1326,7 +1331,7 @@
                // Ensure `allFiles` contains all models (active tab, other tabs, and picked files).
                // The main model (active tab content) is sent as 'markdown'.
                // All other models are sent as 'submodels'.
-               const activeEditorPath = TabManager.getActiveEditor().path;
+               const activeEditorPath = TabManager.getActiveEditorData()?.path;
                const finalSubmodels = allFiles.filter(fileData => fileData.path !== activeEditorPath);
 
 
@@ -1511,14 +1516,9 @@
                 alert(`Export Navigator & STIX failed: ${error.message}`);
             }
         }
-
-                console.error('Export Navigator and STIX error:', error);
-                alert('An error occurred during export.');
-            }
-        }
         
         async function generateAllFiles() {
-            const markdownContent = editor.getValue();
+            const markdownContent = TabManager.getActiveEditor()?.getValue();
             // Find the "Generate All" button specifically, or use a more generic way if structure changes
             const generateAllButton = Array.from(document.querySelectorAll('.menu-bar .menu-button')).find(btn => btn.textContent.includes('Generate All'));
             
@@ -1532,28 +1532,32 @@
             progressBar.style.width = '0%';
             progressBar.textContent = '0%';
 
-            let progress = 0;
-            const interval = setInterval(() => {
-                progress += 10;
-                if (progress > 100) {
-                    progress = 100;
+            // SSE Progress Listener
+            const progressSource = new EventSource('/api/progress_stream');
+            progressSource.addEventListener('progress', function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    progressBar.style.width = data.percent + '%';
+                    progressBar.textContent = `${data.percent}% - ${data.message}`;
+                    console.log('Progress:', data);
+                } catch (e) {
+                    console.error('Error parsing progress data:', e);
                 }
-                progressBar.style.width = progress + '%';
-                progressBar.textContent = progress + '%';
-            }, 500);
+            });
 
             try {
+                const { mainModelContent, mainModelPath, submodels } = TabManager.getAllData();
                 const response = await fetch('/api/generate_all', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ markdown: markdownContent }),
+                    body: JSON.stringify({ 
+                        markdown: mainModelContent,
+                        path: mainModelPath,
+                        submodels: submodels 
+                    }),
                 });
-
-                clearInterval(interval);
-                progressBar.style.width = '100%';
-                progressBar.textContent = '100%';
 
                 if (!response.ok) {
                     const errorData = await response.json();
@@ -1569,12 +1573,14 @@
             } catch (error) {
                 console.error('Generate All error:', error);
                 alert('An error occurred during generation.');
-                clearInterval(interval);
             } finally {
-                generateAllBtn.disabled = false;
+                progressSource.close();
+                if (generateAllButton) {
+                    generateAllButton.disabled = false;
+                }
                 setTimeout(() => {
                     progressContainer.style.display = 'none';
-                }, 2000);
+                }, 1000); // Wait 1 second before hiding the progress bar
             }
         }
 

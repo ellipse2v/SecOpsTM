@@ -17,7 +17,6 @@
 This module is responsible for loading and parsing external threat data files.
 """
 
-import pandas as pd
 import json
 import logging
 from pathlib import Path
@@ -123,6 +122,7 @@ def load_d3fend_mapping() -> Dict[str, Dict[str, str]]:
     Raises:
         None: Errors are logged but not raised to ensure graceful degradation.
     """
+    import pandas as pd
     d3fend_details = {}
     csv_file_path = Path(__file__).parent.parent / 'external_data' / 'd3fend.csv'
     
@@ -220,6 +220,7 @@ def _clean_string(value: Optional[str]) -> str:
     Returns:
         str: Cleaned string or empty string if invalid
     """
+    import pandas as pd
     if pd.isna(value) or value is None:
         return ""
     
@@ -232,6 +233,7 @@ def load_nist_mappings() -> Dict[str, List[Dict[str, str]]]:
     Loads NIST 800-53 R5 mappings from the local Excel file.
     Maps ATT&CK Technique IDs to NIST control details.
     """
+    import pandas as pd
     nist_mappings = defaultdict(list)
     excel_path = Path(__file__).parent.parent / 'external_data' / "nist800-53-r5-mappings.xlsx"
 

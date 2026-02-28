@@ -32,7 +32,13 @@ STIX_DATA_FILE = Path(__file__).parent / 'external_data' / 'enterprise-attack.js
 
 class MitigationStixMapper:
     def __init__(self):
-        self.attack_to_mitigations_map = self._load_stix_mitigations()
+        self._attack_to_mitigations_map = None
+
+    @property
+    def attack_to_mitigations_map(self):
+        if self._attack_to_mitigations_map is None:
+            self._attack_to_mitigations_map = self._load_stix_mitigations()
+        return self._attack_to_mitigations_map
 
     def _load_stix_mitigations(self):
         mitigations_map = {}
@@ -285,21 +291,36 @@ def _create_mitre_to_cis_map() -> Dict[str, List[Dict[str, str]]]:
     logging.info(f"Successfully created MITRE to CIS reverse map for {len(mitre_to_cis)} techniques.")
     return mitre_to_cis
 
-# Load framework-specific mitigation maps
-MITRE_TO_CIS_MAP = _create_mitre_to_cis_map()
-NIST_MITIGATION_MAP = load_nist_mappings()
+# Lazy load framework-specific mitigation maps
+_MITRE_TO_CIS_MAP = None
+_NIST_MITIGATION_MAP = None
 
-def get_framework_mitigation_suggestions(technique_ids: list[str]) -> list[dict]:
+def get_mitre_to_cis_map() -> Dict[str, List[Dict[str, str]]]:
+    global _MITRE_TO_CIS_MAP
+    if _MITRE_TO_CIS_MAP is None:
+        _MITRE_TO_CIS_MAP = _create_mitre_to_cis_map()
+    return _MITRE_TO_CIS_MAP
+
+def get_nist_mitigation_map() -> Dict[str, List[Dict[str, str]]]:
+    global _NIST_MITIGATION_MAP
+    if _NIST_MITIGATION_MAP is None:
+        _NIST_MITIGATION_MAP = load_nist_mappings()
+    return _NIST_MITIGATION_MAP
+
+def get_framework_mitigation_suggestions(technique_ids: List[str]) -> List[Dict[str, Any]]:
     """
     Retrieves a list of framework-specific mitigation suggestions for the given
     MITRE ATT&CK technique IDs.
     """
     suggestions = []
+    mitre_to_cis = get_mitre_to_cis_map()
+    nist_mitigation = get_nist_mitigation_map()
+    
     for tech_id in technique_ids:
         if tech_id in FRAMEWORK_MITIGATION_MAP:
             suggestions.extend(FRAMEWORK_MITIGATION_MAP[tech_id])
-        if tech_id in MITRE_TO_CIS_MAP:
-            suggestions.extend(MITRE_TO_CIS_MAP[tech_id])
-        if tech_id in NIST_MITIGATION_MAP:
-            suggestions.extend(NIST_MITIGATION_MAP[tech_id])
+        if tech_id in mitre_to_cis:
+            suggestions.extend(mitre_to_cis[tech_id])
+        if tech_id in nist_mitigation:
+            suggestions.extend(nist_mitigation[tech_id])
     return suggestions

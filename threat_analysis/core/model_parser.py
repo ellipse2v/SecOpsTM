@@ -193,7 +193,7 @@ class ModelParser:
         business_value = server_kwargs.pop('businessValue', None)
 
         self.threat_model.add_server(name, boundary_name=boundary_name, business_value=business_value, **server_kwargs)
-        logging.info(f"   - Added Server: {name} (Boundary: {boundary_name}, Props: {server_kwargs}, Business Value: {business_value})")
+        logging.debug(f"   - Added Server: {name} (Boundary: {boundary_name}, Props: {server_kwargs}, Business Value: {business_value})")
             
     def _parse_key_value_params(self, params_str: str) -> Dict[str, Any]:
         """
@@ -277,7 +277,7 @@ class ModelParser:
         self.threat_model.add_data(name, **data_kwargs)
         
         params_display = [f"{key}: {value.name if hasattr(value, 'name') else value}" for key, value in data_kwargs.items()]
-        logging.info(f"   - Added Data: {name} ({', '.join(params_display)})")
+        logging.debug(f"   - Added Data: {name} ({', '.join(params_display)})")
 
     def _parse_dataflow(self, name: str, params_str: str):
         """Parses a dataflow from a name and a parameter string (can be multi-line)."""
@@ -315,7 +315,7 @@ class ModelParser:
         self.threat_model.add_protocol_style(name, **style_kwargs)
         
         params_display = [f"{key}: {value}" for key, value in style_kwargs.items()]
-        logging.info(f"   - Added Protocol Style: {name} ({', '.join(params_display)})")
+        logging.debug(f"   - Added Protocol Style: {name} ({', '.join(params_display)})")
 
     def _parse_severity_multiplier(self, name: str, params_str: str):
         """Parses a severity multiplier from a name and a value string."""
@@ -323,7 +323,7 @@ class ModelParser:
         try:
             multiplier = float(params_str)
             self.threat_model.add_severity_multiplier(name, multiplier)
-            logging.info(f"   - Added Severity Multiplier: {name} = {multiplier}")
+            logging.debug(f"   - Added Severity Multiplier: {name} = {multiplier}")
         except (ValueError, TypeError):
             logging.warning(f"⚠️ Warning: Malformed severity multiplier value for '{name}': {params_str}")
 

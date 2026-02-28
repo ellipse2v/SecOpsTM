@@ -89,7 +89,7 @@ Return ONLY valid JSON following this STIX 2.1 structure:
 {{
   "type": "attack-flow",
   "spec_version": "3.0.0",
-  "id": "attack-flow--{threat_category.lower()}-{uuid}",
+  "id": "attack-flow--{threat_category.lower()}-{{uuid}}",
   "created": "{{current_timestamp}}",
   "modified": "{{current_timestamp}}",
   "name": "{threat_title}",

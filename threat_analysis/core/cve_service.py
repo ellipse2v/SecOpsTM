@@ -41,7 +41,14 @@ class CVEService:
             / "cve2capec"
         )
         self.cve_definitions = self._load_cve_definitions()
-        self.cve_to_capec_map = self._load_cve_to_capec_map()
+        self._cve_to_capec_map = None
+
+    @property
+    def cve_to_capec_map(self) -> Dict[str, List[str]]:
+        """Returns the CVE to CAPEC mapping, loading it if necessary."""
+        if self._cve_to_capec_map is None:
+            self._cve_to_capec_map = self._load_cve_to_capec_map()
+        return self._cve_to_capec_map
 
     def _load_cve_definitions(self) -> Dict[str, List[str]]:
         """Loads the user-defined CVEs for each equipment from cve_definitions.yml."""

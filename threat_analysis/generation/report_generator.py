@@ -178,39 +178,39 @@ class ReportGenerator:
             total_mitre_techniques_mapped = threat_model.mitre_analysis_results.get('mitre_techniques_count', 0)
             stride_distribution = threat_model.mitre_analysis_results.get('stride_distribution', {})
 
-        if all_detailed_threats is None:
-            all_detailed_threats = self._get_all_threats_with_mitre_info(grouped_threats, threat_model)
+            if all_detailed_threats is None:
+                all_detailed_threats = self._get_all_threats_with_mitre_info(grouped_threats, threat_model)
 
-        if self.ai_provider:
-             original_count = len(all_detailed_threats)
-             all_detailed_threats = asyncio.run(self._enrich_threats_with_ai(threat_model, all_detailed_threats))
-             ai_added = len(all_detailed_threats) - original_count
-             logging.info(f"AI enrichment complete. Added {ai_added} new threats.")
-        
-        self.all_detailed_threats = all_detailed_threats
-        summary_stats = self.generate_summary_stats(all_detailed_threats)
-        stride_categories = sorted(list(set(threat['stride_category'] for threat in all_detailed_threats if threat['stride_category'] != "Threat")))
-        
-        unique_business_values = self._get_all_business_values(threat_model)
-        
-        EXCLUDE_TARGETS = ["Unspecified →", "Unspecified", "→"]
-        unique_targets = sorted(list(set(threat['target'] for threat in all_detailed_threats if threat.get('target') and threat.get('target') not in EXCLUDE_TARGETS)))
+            if self.ai_provider:
+                 original_count = len(all_detailed_threats)
+                 all_detailed_threats = asyncio.run(self._enrich_threats_with_ai(threat_model, all_detailed_threats))
+                 ai_added = len(all_detailed_threats) - original_count
+                 logging.info(f"AI enrichment complete. Added {ai_added} new threats.")
+            
+            self.all_detailed_threats = all_detailed_threats
+            summary_stats = self.generate_summary_stats(all_detailed_threats)
+            stride_categories = sorted(list(set(threat['stride_category'] for threat in all_detailed_threats if threat['stride_category'] != "Threat")))
+            
+            unique_business_values = self._get_all_business_values(threat_model)
+            
+            EXCLUDE_TARGETS = ["Unspecified →", "Unspecified", "→"]
+            unique_targets = sorted(list(set(threat['target'] for threat in all_detailed_threats if threat.get('target') and threat.get('target') not in EXCLUDE_TARGETS)))
 
-        template = self.env.get_template('report_template.html')
-        html = template.render(
-            title="STRIDE & MITRE ATT&CK Report",
-            report_title=report_title,
-            total_threats_analyzed=total_threats_analyzed,
-            total_mitre_techniques_mapped=total_mitre_techniques_mapped,
-            stride_distribution=stride_distribution,
-            summary_stats=summary_stats,
-            all_threats=all_detailed_threats,
-            stride_categories=stride_categories,
-            unique_business_values=unique_business_values,
-            unique_targets=unique_targets,
-            severity_calculation_note=self.severity_calculator.get_calculation_explanation(),
-            implemented_mitigation_ids=self.implemented_mitigations
-        )
+            template = self.env.get_template('report_template.html')
+            html = template.render(
+                title="STRIDE & MITRE ATT&CK Report",
+                report_title=report_title,
+                total_threats_analyzed=total_threats_analyzed,
+                total_mitre_techniques_mapped=total_mitre_techniques_mapped,
+                stride_distribution=stride_distribution,
+                summary_stats=summary_stats,
+                all_threats=all_detailed_threats,
+                stride_categories=stride_categories,
+                unique_business_values=unique_business_values,
+                unique_targets=unique_targets,
+                severity_calculation_note=self.severity_calculator.get_calculation_explanation(),
+                implemented_mitigation_ids=self.implemented_mitigations
+            )
 
             with open(output_file, "w", encoding="utf-8") as f:
                 f.write(html)
@@ -223,21 +223,26 @@ class ReportGenerator:
     def generate_json_export(self, threat_model, grouped_threats: Dict[str, List],
                              output_file: Path = Path("mitre_analysis.json")) -> Path:
         """Generates a JSON export of the analysis data"""
-        export_data = {
-            "analysis_date": datetime.now().isoformat(),
-            "architecture": threat_model.tm.name,
-            "threats_detected": sum(len(threats) for threats in grouped_threats.values()),
-            "threat_types": list(grouped_threats.keys()),
-            "mitre_mapping": self.mitre_mapping.capec_to_mitre_map,
-            "severity_levels": {
-                "CRITICAL": "9.0-10.0",
-                "HIGH": "7.5-8.9",
-                "MEDIUM": "6.0-7.4",
-                "LOW": "4.0-5.9",
-                "INFORMATIONAL": "1.0-3.9"
-            },
-            "detailed_threats": self._export_detailed_threats(grouped_threats, threat_model)
-        }
+        # Temporarily set threat_model_ref
+        original_threat_model_ref = self.threat_model_ref
+        self.threat_model_ref = threat_model
+
+        try:
+            export_data = {
+                "analysis_date": datetime.now().isoformat(),
+                "architecture": threat_model.tm.name,
+                "threats_detected": sum(len(threats) for threats in grouped_threats.values()),
+                "threat_types": list(grouped_threats.keys()),
+                "mitre_mapping": self.mitre_mapping.capec_to_mitre_map,
+                "severity_levels": {
+                    "CRITICAL": "9.0-10.0",
+                    "HIGH": "7.5-8.9",
+                    "MEDIUM": "6.0-7.4",
+                    "LOW": "4.0-5.9",
+                    "INFORMATIONAL": "1.0-3.9"
+                },
+                "detailed_threats": self._export_detailed_threats(grouped_threats, threat_model)
+            }
 
             with open(output_file, "w", encoding="utf-8") as f:
                 json.dump(export_data, f, indent=2, ensure_ascii=False)
@@ -370,8 +375,8 @@ class ReportGenerator:
                 })
         
         # Process global RAG threats
-        if hasattr(self.threat_model_ref.tm, 'global_threats_llm'): # Access via self.threat_model_ref
-            for threat in self.threat_model_ref.tm.global_threats_llm:
+        if hasattr(threat_model.tm, 'global_threats_llm'): # Access via threat_model
+            for threat in threat_model.tm.global_threats_llm:
                 target_name = "Threat Model (Global)" # RAG threats are system-level
                 threat_description = getattr(threat, 'description', 'RAG-generated global threat')
                 stride_category = getattr(threat, 'category', 'Generic RAG Threat')
@@ -590,7 +595,7 @@ class ReportGenerator:
         )
         logging.info(f"✅ Generated global project report with {len(all_threats_details)} total threats at {output_dir / 'global_threat_report.html'}")
 
-    def generate_project_reports(self, project_path: Path, output_dir: Path) -> Optional[ThreatModel]:
+    def generate_project_reports(self, project_path: Path, output_dir: Path, progress_callback = None) -> Optional[ThreatModel]:
         """
         Generates all reports for a project, ensuring a consistent legend across all diagrams.
         Returns the main threat model of the project.
@@ -608,11 +613,15 @@ class ReportGenerator:
             except Exception as e:
                 logging.error(f"Failed to copy static files: {e}")
 
-        all_models = self._get_all_project_models(project_path)
-        if not all_models:
+        all_models_files = list(project_path.glob("**/*.md"))
+        total_models = len(all_models_files)
+        if total_models == 0:
             logging.error("No threat models found in the project. Aborting.")
             return None
 
+        # Pass 1: Gather project-wide metadata
+        if progress_callback: progress_callback(10, "Gathering project-wide metadata...")
+        all_models = self._get_all_project_models(project_path)
         project_protocols, project_protocol_styles = self._aggregate_project_data(all_models)
 
         main_model_path = project_path / "main.md"
@@ -635,6 +644,15 @@ class ReportGenerator:
             return None
 
         all_processed_models = []
+        if progress_callback: progress_callback(20, f"Processing {total_models} models...")
+        
+        # Internal helper to track progress across recursion
+        processed_count = [0]
+        def tracked_progress_callback(message):
+            processed_count[0] += 1
+            percent = 20 + int((processed_count[0] / total_models) * 70) # Map to 20-90% range
+            if progress_callback: progress_callback(percent, message)
+
         self._recursively_generate_reports(
             model_path=main_model_path,
             project_path=project_path,
@@ -643,12 +661,15 @@ class ReportGenerator:
             project_protocols=project_protocols,
             project_protocol_styles=project_protocol_styles,
             all_project_models=all_processed_models,
-            threat_model=main_threat_model
+            threat_model=main_threat_model,
+            progress_callback=tracked_progress_callback
         )
 
         if all_processed_models:
+            if progress_callback: progress_callback(95, "Generating global project report...")
             self.generate_global_project_report(all_processed_models, output_dir)
-
+        
+        if progress_callback: progress_callback(100, "Project generation complete!")
         return main_threat_model
 
     def _get_all_project_models(self, project_path: Path) -> List[ThreatModel]:
@@ -696,11 +717,12 @@ class ReportGenerator:
 
         return project_protocols, project_protocol_styles
 
-    def _recursively_generate_reports(self, model_path: Path, project_path: Path, output_dir: Path, breadcrumb: List[tuple[str, str]], project_protocols: set, project_protocol_styles: dict, all_project_models: List[ThreatModel], threat_model: Optional[ThreatModel] = None):
+    def _recursively_generate_reports(self, model_path: Path, project_path: Path, output_dir: Path, breadcrumb: List[tuple[str, str]], project_protocols: set, project_protocol_styles: dict, all_project_models: List[ThreatModel], threat_model: Optional[ThreatModel] = None, progress_callback = None):
         """
         Recursively generates reports for each model in the project.
         """
         model_name = model_path.stem
+        if progress_callback: progress_callback(f"Generating reports for {model_name}...")
 
         try:
             with open(model_path, "r", encoding="utf-8") as f:
@@ -760,9 +782,9 @@ class ReportGenerator:
             except Exception as e:
                 logging.error(f"❌ Failed to generate ATT&CK Navigator layer for {model_name}: {e}")
 
-            for server in threat_model.servers:
-                if 'submodel' in server:
-                    submodel_path_str = server['submodel']
+            for server_props in threat_model.servers:
+                if 'submodel' in server_props:
+                    submodel_path_str = server_props['submodel']
                     try:
                         submodel_path = _validate_path_within_project(str(model_path.parent / submodel_path_str), base_dir=project_path)
 
@@ -795,7 +817,8 @@ class ReportGenerator:
                                 breadcrumb=new_breadcrumb,
                                 project_protocols=project_protocols,
                                 project_protocol_styles=project_protocol_styles,
-                                all_project_models=all_project_models
+                                all_project_models=all_project_models,
+                                progress_callback=progress_callback
                             )
                     except ValueError as e:
                         logging.warning(f"Skipping submodel referenced in '{model_path.name}' because it was not found: {e}")

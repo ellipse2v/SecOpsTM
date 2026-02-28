@@ -16,20 +16,21 @@ import logging
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 
-from threat_analysis.core.mitre_mapping_module import MitreMapping
-from threat_analysis.severity_calculator_module import SeverityCalculator
-from threat_analysis.generation.report_generator import ReportGenerator
-from threat_analysis.generation.diagram_generator import DiagramGenerator
-from threat_analysis.core.cve_service import CVEService
-from threat_analysis.server.ai_service import AIService
-from threat_analysis.server.diagram_service import DiagramService
-from threat_analysis.server.export_service import ExportService
-from threat_analysis.server.model_management_service import ModelManagementService
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 class ThreatModelService:
     def __init__(self):
+        # Lazy imports to speed up server startup
+        from threat_analysis.core.mitre_mapping_module import MitreMapping
+        from threat_analysis.severity_calculator_module import SeverityCalculator
+        from threat_analysis.generation.report_generator import ReportGenerator
+        from threat_analysis.generation.diagram_generator import DiagramGenerator
+        from threat_analysis.core.cve_service import CVEService
+        from threat_analysis.server.ai_service import AIService
+        from threat_analysis.server.diagram_service import DiagramService
+        from threat_analysis.server.export_service import ExportService
+        from threat_analysis.server.model_management_service import ModelManagementService
+
         self.mitre_mapping = MitreMapping(threat_model_path="")
         self.severity_calculator = SeverityCalculator()
         self.diagram_generator = DiagramGenerator()
@@ -102,8 +103,8 @@ class ThreatModelService:
     def export_all_files_logic(self, markdown_content: str, submodels: list | None = None):
         return self.export_service.export_all_files_logic(markdown_content, submodels)
 
-    def generate_full_project_export(self, markdown_content: str, export_path: Path, submodels: list | None = None):
-        return self.export_service.generate_full_project_export(markdown_content, export_path, submodels)
+    def generate_full_project_export(self, markdown_content: str, export_path: Path, submodels: list | None = None, progress_callback = None, project_root: Path | None = None):
+        return self.export_service.generate_full_project_export(markdown_content, export_path, submodels, progress_callback=progress_callback, project_root=project_root)
 
     def export_navigator_stix_logic(self, markdown_content: str, submodels: list | None = None):
         return self.export_service.export_navigator_stix_logic(markdown_content, submodels)

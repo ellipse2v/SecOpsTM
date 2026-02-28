@@ -33,13 +33,12 @@ from threat_analysis.core.mitre_static_maps import ATTACK_D3FEND_MAPPING
 class MitreMapping:
     """Class for managing MITRE ATT&CK mapping with D3FEND mitigations"""
     def __init__(self, threat_model=None, threat_model_path: str = ""):
-        self.d3fend_details = data_loader.load_d3fend_mapping()
-        self.capec_to_mitre_map = data_loader.load_capec_to_mitre_mapping()
-        self.stride_to_capec = data_loader.load_stride_to_capec_map()
-        self.all_attack_techniques = data_loader.load_attack_techniques()
-        self.mitigation_stix_mapper = MitigationStixMapper()
-        self.technique_to_mitigation_map = self.mitigation_stix_mapper.attack_to_mitigations_map
-        logging.info(f"MitreMapping initialized. technique_to_mitigation_map size: {len(self.technique_to_mitigation_map)}")
+        self._d3fend_details = None
+        self._capec_to_mitre_map = None
+        self._stride_to_capec = None
+        self._all_attack_techniques = None
+        self._mitigation_stix_mapper = None
+        self._technique_to_mitigation_map = None
         self.custom_threats = self._load_custom_threats(threat_model)
         self.custom_mitre_mappings = []
         project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -48,6 +47,43 @@ class MitreMapping:
             if os.path.exists(full_markdown_path):
                 self.custom_mitre_mappings = self._load_custom_mitre_mappings_from_markdown(full_markdown_path)
         self.markdown_mitigations = {}
+
+    @property
+    def d3fend_details(self):
+        if self._d3fend_details is None:
+            self._d3fend_details = data_loader.load_d3fend_mapping()
+        return self._d3fend_details
+
+    @property
+    def capec_to_mitre_map(self):
+        if self._capec_to_mitre_map is None:
+            self._capec_to_mitre_map = data_loader.load_capec_to_mitre_mapping()
+        return self._capec_to_mitre_map
+
+    @property
+    def stride_to_capec(self):
+        if self._stride_to_capec is None:
+            self._stride_to_capec = data_loader.load_stride_to_capec_map()
+        return self._stride_to_capec
+
+    @property
+    def all_attack_techniques(self):
+        if self._all_attack_techniques is None:
+            self._all_attack_techniques = data_loader.load_attack_techniques()
+        return self._all_attack_techniques
+
+    @property
+    def mitigation_stix_mapper(self):
+        if self._mitigation_stix_mapper is None:
+            self._mitigation_stix_mapper = MitigationStixMapper()
+        return self._mitigation_stix_mapper
+
+    @property
+    def technique_to_mitigation_map(self):
+        if self._technique_to_mitigation_map is None:
+            self._technique_to_mitigation_map = self.mitigation_stix_mapper.attack_to_mitigations_map
+            logging.info(f"MitreMapping technique_to_mitigation_map loaded. size: {len(self._technique_to_mitigation_map)}")
+        return self._technique_to_mitigation_map
 
 
     def _load_custom_threats(self, threat_model) -> Dict[str, List[Dict[str, Any]]]:

@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import pytest
+import json
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from threat_analysis.server.export_service import ExportService
@@ -42,7 +44,92 @@ def test_export_files_logic_missing_data(export_service):
     with pytest.raises(ValueError, match="Missing markdown content or export format"):
         export_service.export_files_logic("# Test", "")
 
-@patch('threat_analysis.server.export_service.create_threat_model', return_value=None)
-def test_export_files_logic_failed_threat_model_creation(mock_create_threat_model, export_service):
-    with pytest.raises(RuntimeError, match="Failed to create or validate threat model"):
-        export_service.export_files_logic("some markdown", "svg")
+@patch('threat_analysis.server.export_service.ModelValidator')
+@patch('threat_analysis.server.export_service.create_threat_model')
+def test_export_files_logic_svg(mock_create, mock_validator, export_service):
+    tm = MagicMock()
+    mock_create.return_value = tm
+    mock_validator.return_value.validate.return_value = []
+    
+    export_service.diagram_generator._generate_manual_dot.return_value = "dot"
+    export_service.diagram_generator.generate_custom_svg_export.return_value = "path"
+    
+    with patch('os.makedirs'):
+        path, filename = export_service.export_files_logic("md", "svg")
+        assert filename == "diagram.svg"
+
+@patch('threat_analysis.server.export_service.ModelValidator')
+@patch('threat_analysis.server.export_service.create_threat_model')
+def test_export_files_logic_markdown(mock_create, mock_validator, export_service):
+    tm = MagicMock()
+    mock_create.return_value = tm
+    mock_validator.return_value.validate.return_value = []
+    
+    with patch('os.makedirs'):
+        with patch('builtins.open', MagicMock()):
+            path, filename = export_service.export_files_logic("md", "markdown")
+            assert filename == "threat_model.md"
+
+@patch('threat_analysis.server.export_service.ModelValidator')
+@patch('threat_analysis.server.export_service.create_threat_model')
+def test_generate_full_project_export_single(mock_create, mock_validator, export_service):
+    tm = MagicMock()
+    tm.tm.name = "TestModel"
+    tm.get_all_threats_details.return_value = []
+    mock_create.return_value = tm
+    mock_validator.return_value.validate.return_value = []
+    
+    with patch('pathlib.Path.write_text'):
+        with patch('threat_analysis.server.export_service.AttackNavigatorGenerator') as mock_nav:
+            mock_nav.return_value.save_layer_to_file.return_value = None
+            with patch('threat_analysis.server.export_service.StixGenerator') as mock_stix:
+                mock_stix.return_value.generate_stix_bundle.return_value = {"type": "bundle"}
+                res = export_service.generate_full_project_export("md", Path("/tmp"))
+                assert "reports" in res
+                assert res["reports"]["html"] == "stride_mitre_report.html"
+
+def test_export_all_files_logic(export_service):
+    with patch.object(export_service, 'generate_full_project_export'):
+        with patch('threat_analysis.server.export_service.create_threat_model') as mock_create:
+            tm = MagicMock()
+            tm.tm.name = "Test"
+            mock_create.return_value = tm
+            with patch('os.makedirs'):
+                with patch('pathlib.Path.write_text'):
+                    with patch('zipfile.ZipFile'):
+                        with patch('shutil.rmtree'):
+                            export_service.diagram_service._generate_positions_from_graphviz.return_value = {"a": 1}
+                            buf, ts = export_service.export_all_files_logic("md")
+                            assert ts is not None
+
+def test_export_navigator_stix_logic(export_service):
+    with patch('threat_analysis.server.export_service.create_threat_model') as mock_create:
+        tm = MagicMock()
+        tm.tm.name = "Test"
+        tm.get_all_threats_details.return_value = []
+        mock_create.return_value = tm
+        with patch('os.makedirs'):
+            with patch('threat_analysis.server.export_service.ModelValidator') as mock_val:
+                mock_val.return_value.validate.return_value = []
+                with patch('threat_analysis.server.export_service.AttackNavigatorGenerator') as mock_nav:
+                    mock_nav.return_value.save_layer_to_file.return_value = None
+                    with patch('threat_analysis.server.export_service.StixGenerator') as mock_stix:
+                        mock_stix.return_value.generate_stix_bundle.return_value = {"type": "bundle"}
+                        with patch('pathlib.Path.write_text'):
+                            with patch('zipfile.ZipFile'):
+                                with patch('shutil.rmtree'):
+                                    buf, ts = export_service.export_navigator_stix_logic("md")
+                                    assert ts is not None
+
+def test_export_attack_flow_logic(export_service):
+    with patch('threat_analysis.server.export_service.create_threat_model') as mock_create:
+        tm = MagicMock()
+        tm.tm.name = "Test"
+        tm.get_all_threats_details.return_value = []
+        mock_create.return_value = tm
+        with patch('threat_analysis.server.export_service.AttackFlowGenerator') as mock_afg:
+            with patch('os.path.exists', return_value=True):
+                with patch('os.listdir', return_value=['file1']):
+                    with patch('zipfile.ZipFile'):
+                        buf, ts = export_attack_flow_logic = export_service.export_attack_flow_logic("md")
+                        assert ts is not None

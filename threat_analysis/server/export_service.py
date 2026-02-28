@@ -105,7 +105,7 @@ class ExportService:
         else:
             raise ValueError(f"Invalid export format: {export_format}")
 
-    def generate_full_project_export(self, markdown_content: str, export_path: Path, submodels: list | None = None):
+    def generate_full_project_export(self, markdown_content: str, export_path: Path, submodels: list | None = None, progress_callback = None, project_root: Path | None = None):
         export_path = Path(export_path)
         timestamp = datetime.datetime.now().strftime(TIMESTAMP_FORMAT)
         result = {
@@ -115,17 +115,28 @@ class ExportService:
         
         if submodels and len(submodels) > 0:
             logging.info("--- Starting Project-Based Generation (Server Mode) ---")
-            project_path = Path(tempfile.mkdtemp())
-            (project_path / "main.md").write_text(markdown_content, encoding="utf-8")
-            for submodel in submodels:
-                submodel_path_str = submodel.get('path', '').lstrip('./\\')
-                if not submodel_path_str: continue
-                submodel_path = project_path / submodel_path_str
-                submodel_path.parent.mkdir(parents=True, exist_ok=True)
-                submodel_path.write_text(submodel['content'], encoding="utf-8")
             
-            main_threat_model = self.report_generator.generate_project_reports(project_path, export_path)
-            shutil.rmtree(project_path)
+            # If project_root is provided, use it. Otherwise create a temporary one.
+            cleanup_needed = False
+            if project_root:
+                project_path = Path(project_root)
+            else:
+                if progress_callback: progress_callback(5, "Preparing temporary project directory...")
+                project_path = Path(tempfile.mkdtemp())
+                cleanup_needed = True
+                (project_path / "main.md").write_text(markdown_content, encoding="utf-8")
+                for submodel in submodels:
+                    submodel_path_str = submodel.get('path', '').lstrip('./\\')
+                    if not submodel_path_str: continue
+                    submodel_path = project_path / submodel_path_str
+                    submodel_path.parent.mkdir(parents=True, exist_ok=True)
+                    submodel_path.write_text(submodel['content'], encoding="utf-8")
+            
+            if progress_callback: progress_callback(10, "Initializing project generation...")
+            main_threat_model = self.report_generator.generate_project_reports(project_path, export_path, progress_callback=progress_callback)
+            
+            if cleanup_needed:
+                shutil.rmtree(project_path)
             
             if main_threat_model:
                 model_name = main_threat_model.tm.name

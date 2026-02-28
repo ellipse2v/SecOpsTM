@@ -42,13 +42,77 @@ class AIService:
             self.ai_online = False
         logging.info("AI services initialized.")
 
+    async def generate_markdown_from_prompt(self, prompt: str, markdown: Optional[str] = None):
+        """Generates markdown from a prompt asynchronously."""
+        if not self.ai_online or not self.litellm_client:
+             yield "Error: AI server is offline."
+             return
+
+        system_prompt = """You are an expert cybersecurity architect. Your task is to generate a comprehensive threat model in a specific Markdown-based Domain Specific Language (DSL).
+
+The DSL structure is as follows:
+
+# Threat Model: [Model Name]
+
+## Description
+[A brief description of the system]
+
+## Boundaries
+- **[Boundary Name]**: color=[color_name_or_hex], description="[Description]"
+
+## Actors
+- **[Actor Name]**: boundary=[Boundary Name], description="[Description]"
+
+## Servers
+- **[Server Name]**: boundary=[Boundary Name], description="[Description]"
+
+## Data
+- **[Data Name]**: description="[Description]", classification="[public/internal/restricted/confidential]"
+
+## Dataflows
+- **[Flow Name]**: from="[Source Name]", to="[Destination Name]", protocol="[Protocol]", description="[Description]"
+
+Rules:
+1. Components (Actors, Servers) MUST be assigned to a Boundary.
+2. Dataflows MUST refer to existing Actors or Servers by name.
+3. Use realistic protocols (e.g., HTTPS, SQL, SSH, gRPC).
+4. Output ONLY the Markdown DSL. Do not add conversational text before or after the markdown block. Use ```markdown fences.
+"""
+        user_prompt = f"User request: {prompt}"
+        if markdown:
+            user_prompt += f"\n\nExisting Threat Model to update/expand:\n{markdown}"
+
+        async for chunk in self.litellm_client.generate_content(
+            prompt=user_prompt,
+            system_prompt=system_prompt,
+            stream=True
+        ):
+            yield chunk
+
     def generate_markdown_from_prompt_sync(self, prompt: str, markdown: Optional[str] = None):
-        """Generates markdown from a prompt synchronously."""
-        logging.debug("Generating markdown from prompt...")
-        # TODO: Add implementation for synchronous markdown generation
-        return "Generated markdown from prompt."
-    
-    # ... (rest of the class)
+        """Generates markdown from a prompt synchronously by bridging the async generator."""
+        logging.debug("Generating markdown from prompt (sync)...")
+        
+        async_gen = self.generate_markdown_from_prompt(prompt, markdown)
+        
+        import asyncio
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        # Helper to consume async generator synchronously
+        def iter_async(gen):
+            while True:
+                try:
+                    # In a threaded environment like Flask, we might need a more robust way to run async code
+                    # but for now, run_until_complete on the anext should work if there's no running loop.
+                    yield loop.run_until_complete(gen.__anext__())
+                except StopAsyncIteration:
+                    break
+
+        return iter_async(async_gen)
 
     async def _generate_rag_threats(self, threat_model) -> List[ExtendedThreat]: # Return List[ExtendedThreat]
         """

@@ -27,7 +27,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Now we can import the app
-from threat_analysis.server.server import app, run_server, DEFAULT_EMPTY_MARKDOWN, threat_model_service
+from threat_analysis.server.server import app, run_server, DEFAULT_EMPTY_MARKDOWN, get_threat_model_service
 
 @pytest.fixture
 def client():
@@ -44,8 +44,10 @@ def test_index_route(client):
 
 def test_update_api_success(client):
     """Test the /api/update endpoint with valid markdown."""
-    with patch('threat_analysis.server.server.threat_model_service.update_diagram_logic') as mock_update_diagram_logic:
-        mock_update_diagram_logic.return_value = {
+    with patch('threat_analysis.server.server.get_threat_model_service') as mock_get_service:
+        mock_service = MagicMock()
+        mock_get_service.return_value = mock_service
+        mock_service.update_diagram_logic.return_value = {
             "diagram_html": "<html>Diagram</html>",
             "diagram_svg": "<svg>mocked svg</svg>",
             "legend_html": "<div>Legend</div>",
@@ -58,14 +60,16 @@ def test_update_api_success(client):
         json_data = response.get_json()
         assert 'diagram_html' in json_data
         assert json_data['diagram_html'] == "<html>Diagram</html>"
-        mock_update_diagram_logic.assert_called_once_with(
+        mock_service.update_diagram_logic.assert_called_once_with(
             markdown_payload["markdown"], submodels=[]
         )
 
 def test_update_api_empty_markdown(client):
     """Test the /api/update endpoint with empty markdown content."""
-    with patch('threat_analysis.server.server.threat_model_service.update_diagram_logic') as mock_update_diagram_logic:
-        mock_update_diagram_logic.side_effect = ValueError("Markdown content is empty")
+    with patch('threat_analysis.server.server.get_threat_model_service') as mock_get_service:
+        mock_service = MagicMock()
+        mock_get_service.return_value = mock_service
+        mock_service.update_diagram_logic.side_effect = ValueError("Markdown content is empty")
         markdown_payload = {'markdown': ''}
         response = client.post('/api/update', data=json.dumps(markdown_payload), content_type='application/json')
         assert response.status_code == 400
@@ -81,17 +85,19 @@ def test_export_api_success(client, export_format):
     sys.argv = [original_argv[0]] # Set to script name only
 
     try:
-        with patch('threat_analysis.server.server.threat_model_service.export_files_logic') as mock_export_files_logic, \
+        with patch('threat_analysis.server.server.get_threat_model_service') as mock_get_service, \
              patch('threat_analysis.server.server.send_from_directory') as mock_send:
 
-            mock_export_files_logic.return_value = ("/fake/path/to/output", "mock_file.ext")
+            mock_service = MagicMock()
+            mock_get_service.return_value = mock_service
+            mock_service.export_files_logic.return_value = ("/fake/path/to/output", "mock_file.ext")
             mock_send.return_value = MagicMock(status_code=200)
             markdown_payload = {'markdown': """## Actors
 - User""", 'format': export_format}
             response = client.post('/api/export', data=json.dumps(markdown_payload), content_type='application/json')
 
             assert response.status_code == 200
-            mock_export_files_logic.assert_called_once_with(
+            mock_service.export_files_logic.assert_called_once_with(
                 markdown_content=markdown_payload['markdown'], export_format=export_format
             )
             mock_send.assert_called_once_with("/fake/path/to", "mock_file.ext", as_attachment=True)
@@ -101,8 +107,10 @@ def test_export_api_success(client, export_format):
 
 def test_export_api_invalid_format(client):
     """Test the /api/export endpoint with an invalid format."""
-    with patch('threat_analysis.server.server.threat_model_service.export_files_logic') as mock_export_files_logic:
-        mock_export_files_logic.side_effect = ValueError("Invalid export format")
+    with patch('threat_analysis.server.server.get_threat_model_service') as mock_get_service:
+        mock_service = MagicMock()
+        mock_get_service.return_value = mock_service
+        mock_service.export_files_logic.side_effect = ValueError("Invalid export format")
         markdown_payload = {'markdown': """## Actors
 - User""", 'format': 'invalid_format'}
         response = client.post('/api/export', data=json.dumps(markdown_payload), content_type='application/json')
@@ -110,7 +118,7 @@ def test_export_api_invalid_format(client):
         json_data = response.get_json()
         assert 'error' in json_data
         assert json_data['error'] == 'Invalid export format'
-        mock_export_files_logic.assert_called_once_with(
+        mock_service.export_files_logic.assert_called_once_with(
             markdown_content=markdown_payload['markdown'], export_format=markdown_payload['format']
         )
 
@@ -185,25 +193,29 @@ def test_run_server_with_existing_model_file(client):
 def test_export_all_api_success(client):
     """Test the /api/export_all endpoint for successful ZIP file generation."""
     mock_markdown = "# Test Model"
-    with patch('threat_analysis.server.server.threat_model_service.export_all_files_logic') as mock_export_all_files_logic, \
+    with patch('threat_analysis.server.server.get_threat_model_service') as mock_get_service, \
          patch('threat_analysis.server.server.send_file') as mock_send_file:
 
-        mock_export_all_files_logic.return_value = (BytesIO(b"zip_content"), "2025-01-01_12-00-00")
+        mock_service = MagicMock()
+        mock_get_service.return_value = mock_service
+        mock_service.export_all_files_logic.return_value = (BytesIO(b"zip_content"), "2025-01-01_12-00-00")
         mock_send_file.return_value = MagicMock(status_code=200, data=b'zip_content')
 
         markdown_payload = {'markdown': mock_markdown}
         response = client.post('/api/export_all', data=json.dumps(markdown_payload), content_type='application/json')
 
         assert response.status_code == 200
-        mock_export_all_files_logic.assert_called_once_with(
+        mock_service.export_all_files_logic.assert_called_once_with(
             markdown_content=mock_markdown, submodels=[]
         )
         mock_send_file.assert_called_once()
 
 def test_export_all_api_missing_markdown(client):
     """Test the /api/export_all endpoint with missing markdown content."""
-    with patch('threat_analysis.server.server.threat_model_service.export_all_files_logic') as mock_export_all_files_logic:
-        mock_export_all_files_logic.side_effect = ValueError("Missing markdown content")
+    with patch('threat_analysis.server.server.get_threat_model_service') as mock_get_service:
+        mock_service = MagicMock()
+        mock_get_service.return_value = mock_service
+        mock_service.export_all_files_logic.side_effect = ValueError("Missing markdown content")
         response = client.post('/api/export_all', data=json.dumps({}), content_type='application/json')
         assert response.status_code == 400
         json_data = response.get_json()
@@ -230,8 +242,10 @@ A simple example system.
 ## Dataflows
 - **Request**: from="External User", to="Web Server", protocol="HTTPS"
 """
-    with patch('threat_analysis.server.server.threat_model_service.update_diagram_logic') as mock_update_diagram_logic:
-        mock_update_diagram_logic.return_value = {
+    with patch('threat_analysis.server.server.get_threat_model_service') as mock_get_service:
+        mock_service = MagicMock()
+        mock_get_service.return_value = mock_service
+        mock_service.update_diagram_logic.return_value = {
             "diagram_html": "<html>Full Diagram</html>",
             "diagram_svg": "<svg>full svg</svg>",
             "legend_html": "<div>Full Legend</div>",
@@ -242,7 +256,7 @@ A simple example system.
         json_data = response.get_json()
         assert 'diagram_html' in json_data
         assert json_data['diagram_html'] == "<html>Full Diagram</html>"
-        mock_update_diagram_logic.assert_called_once_with(
+        mock_service.update_diagram_logic.assert_called_once_with(
             full_markdown_content, submodels=[]
         )
 
@@ -250,8 +264,10 @@ A simple example system.
 
 def test_save_model_success(client):
     """Test the /api/save_model endpoint for successful model saving."""
-    with patch('threat_analysis.server.server.threat_model_service.save_model_with_metadata') as mock_save:
-        mock_save.return_value = "path/to/metadata.json"
+    with patch('threat_analysis.server.server.get_threat_model_service') as mock_get_service:
+        mock_service = MagicMock()
+        mock_get_service.return_value = mock_service
+        mock_service.save_model_with_metadata.return_value = "path/to/metadata.json"
         payload = {
             'markdown': '# Test',
             'model_name': 'MyModel',
@@ -262,7 +278,7 @@ def test_save_model_success(client):
         json_data = response.get_json()
         assert json_data['success'] is True
         assert 'Model and metadata saved successfully' in json_data['message']
-        mock_save.assert_called_once()
+        mock_service.save_model_with_metadata.assert_called_once()
 
 def test_save_model_missing_markdown(client):
     """Test the /api/save_model endpoint with missing markdown."""
@@ -274,17 +290,19 @@ def test_save_model_missing_markdown(client):
 def test_graphical_update_success(client):
     """Test the /api/graphical_update endpoint with valid JSON data."""
     with patch('threat_analysis.server.server.convert_json_to_markdown') as mock_convert, \
-         patch('threat_analysis.server.server.threat_model_service.update_diagram_logic') as mock_update:
+         patch('threat_analysis.server.server.get_threat_model_service') as mock_get_service:
         
+        mock_service = MagicMock()
+        mock_get_service.return_value = mock_service
         mock_convert.return_value = "# Converted Markdown"
-        mock_update.return_value = {"diagram_html": "<html></html>"}
+        mock_service.update_diagram_logic.return_value = {"diagram_html": "<html></html>"}
         
         payload = {'actors': [{'id': '1', 'name': 'User'}]}
         response = client.post('/api/graphical_update', data=json.dumps(payload), content_type='application/json')
 
         assert response.status_code == 200
         mock_convert.assert_called_once_with(payload)
-        mock_update.assert_called_once_with(markdown_content="# Converted Markdown")
+        mock_service.update_diagram_logic.assert_called_once_with(markdown_content="# Converted Markdown")
         assert 'diagram_html' in response.get_json()
 
 def test_graphical_update_empty_json(client):
@@ -333,15 +351,17 @@ def test_load_model_not_found(client, tmp_path):
 
 def test_markdown_to_json_success(client):
     """Test the /api/markdown_to_json endpoint."""
-    with patch('threat_analysis.server.server.threat_model_service.markdown_to_json_for_gui') as mock_converter:
-        mock_converter.return_value = {'actors': [{'name': 'User'}]}
+    with patch('threat_analysis.server.server.get_threat_model_service') as mock_get_service:
+        mock_service = MagicMock()
+        mock_get_service.return_value = mock_service
+        mock_service.markdown_to_json_for_gui.return_value = {'actors': [{'name': 'User'}]}
         payload = {'markdown': '# Test'}
         response = client.post('/api/markdown_to_json', data=json.dumps(payload), content_type='application/json')
         assert response.status_code == 200
         json_data = response.get_json()
         assert json_data['success'] is True
         assert 'model_json' in json_data
-        mock_converter.assert_called_once()
+        mock_service.markdown_to_json_for_gui.assert_called_once()
 
 def test_markdown_to_json_missing_markdown(client):
     """Test the /api/markdown_to_json endpoint with missing markdown."""
@@ -355,8 +375,10 @@ def test_generate_all_success(client, tmp_path):
     # Patch the config to use the temporary directory
     with patch('threat_analysis.server.server.config.OUTPUT_BASE_DIR', tmp_path):
         # Patch the service call that does the heavy lifting
-        with patch('threat_analysis.server.server.threat_model_service.generate_full_project_export') as mock_generate:
-            mock_generate.return_value = {
+        with patch('threat_analysis.server.server.get_threat_model_service') as mock_get_service:
+            mock_service = MagicMock()
+            mock_get_service.return_value = mock_service
+            mock_service.generate_full_project_export.return_value = {
                 "reports": {"html": "path/to/report.html"},
                 "diagrams": {"svg": "path/to/diagram.svg"}
             }
@@ -373,38 +395,47 @@ def test_generate_all_success(client, tmp_path):
             generation_dir = Path(json_data['generation_dir'])
             assert (generation_dir / "main.md").exists()
 
-            mock_generate.assert_called_once()
+            mock_service.generate_full_project_export.assert_called_once()
 
 def test_export_navigator_stix_success(client):
     """Test the /api/export_navigator_stix endpoint."""
-    with patch('threat_analysis.server.server.threat_model_service.export_navigator_stix_logic') as mock_export:
-        mock_export.return_value = (BytesIO(b"zip_content"), "timestamp")
+    with patch('threat_analysis.server.server.get_threat_model_service') as mock_get_service:
+        mock_service = MagicMock()
+        mock_get_service.return_value = mock_service
+        mock_service.export_navigator_stix_logic.return_value = (BytesIO(b"zip_content"), "timestamp")
         with patch('threat_analysis.server.server.send_file') as mock_send:
             mock_send.return_value = MagicMock(status_code=200)
             payload = {'markdown': '# Test'}
             response = client.post('/api/export_navigator_stix', data=json.dumps(payload), content_type='application/json')
             assert response.status_code == 200
-            mock_export.assert_called_once()
+            mock_service.export_navigator_stix_logic.assert_called_once()
             mock_send.assert_called_once()
 
 def test_export_attack_flow_success(client):
     """Test the /api/export_attack_flow endpoint."""
     with patch('threat_analysis.server.server.convert_json_to_markdown') as mock_convert, \
-         patch('threat_analysis.server.server.threat_model_service.export_attack_flow_logic') as mock_export:
+         patch('threat_analysis.server.server.get_threat_model_service') as mock_get_service:
+        
+        mock_service = MagicMock()
+        mock_get_service.return_value = mock_service
         mock_convert.return_value = "# Markdown"
-        mock_export.return_value = (BytesIO(b"zip_content"), "timestamp")
+        mock_service.export_attack_flow_logic.return_value = (BytesIO(b"zip_content"), "timestamp")
         with patch('threat_analysis.server.server.send_file') as mock_send:
             mock_send.return_value = MagicMock(status_code=200)
             payload = {'some': 'data'}
             response = client.post('/api/export_attack_flow', data=json.dumps(payload), content_type='application/json')
             assert response.status_code == 200
-            mock_export.assert_called_once()
+            mock_service.export_attack_flow_logic.assert_called_once()
             mock_send.assert_called_once()
 
 def test_export_attack_flow_no_flows(client):
     """Test the /api/export_attack_flow endpoint when no flows are generated."""
     with patch('threat_analysis.server.server.convert_json_to_markdown'), \
-         patch('threat_analysis.server.server.threat_model_service.export_attack_flow_logic', return_value=(None, None)):
+         patch('threat_analysis.server.server.get_threat_model_service') as mock_get_service:
+        
+        mock_service = MagicMock()
+        mock_get_service.return_value = mock_service
+        mock_service.export_attack_flow_logic.return_value = (None, None)
         payload = {'some': 'data'}
         response = client.post('/api/export_attack_flow', data=json.dumps(payload), content_type='application/json')
         assert response.status_code == 404
@@ -412,8 +443,10 @@ def test_export_attack_flow_no_flows(client):
 
 def test_export_metadata_success(client):
     """Test the /api/export_metadata endpoint."""
-    with patch('threat_analysis.server.server.threat_model_service.get_element_positions') as mock_get_pos:
-        mock_get_pos.return_value = {"actors": {"User": {"x": 10}}}
+    with patch('threat_analysis.server.server.get_threat_model_service') as mock_get_service:
+        mock_service = MagicMock()
+        mock_get_service.return_value = mock_service
+        mock_service.get_element_positions.return_value = {"actors": {"User": {"x": 10}}}
         response = client.post('/api/export_metadata') # Changed to POST
         assert response.status_code == 200
         assert response.mimetype == 'application/json'
@@ -531,11 +564,13 @@ def test_data_dictionary_route_not_found(client):
 
 def test_save_project_success(client):
     """Test the /api/save_project endpoint."""
-    with patch('threat_analysis.server.server.threat_model_service.save_model_with_metadata') as mock_save, \
+    with patch('threat_analysis.server.server.get_threat_model_service') as mock_get_service, \
          patch('os.makedirs'), \
          patch('os.path.join', side_effect=lambda *args: "/".join(map(str, args))):
         
-        mock_save.return_value = "path/to/metadata.json"
+        mock_service = MagicMock()
+        mock_get_service.return_value = mock_service
+        mock_service.save_model_with_metadata.return_value = "path/to/metadata.json"
         payload = {
             'markdown': '# Test Model',
             'model_name': 'MyProject'
@@ -545,7 +580,7 @@ def test_save_project_success(client):
         json_data = response.get_json()
         assert json_data['success'] is True
         assert 'Project saved successfully' in json_data['message']
-        mock_save.assert_called_once()
+        mock_service.save_model_with_metadata.assert_called_once()
 
 
 def test_save_project_missing_markdown(client):
@@ -648,8 +683,10 @@ def test_format_properties_empty():
 
 def test_update_api_generic_exception(client):
     """Test the /api/update endpoint with a generic exception."""
-    with patch('threat_analysis.server.server.threat_model_service.update_diagram_logic') as mock_update:
-        mock_update.side_effect = Exception("A wild error appeared")
+    with patch('threat_analysis.server.server.get_threat_model_service') as mock_get_service:
+        mock_service = MagicMock()
+        mock_get_service.return_value = mock_service
+        mock_service.update_diagram_logic.side_effect = Exception("A wild error appeared")
         payload = {'markdown': '# Test'}
         response = client.post('/api/update', data=json.dumps(payload), content_type='application/json')
         assert response.status_code == 500
@@ -667,23 +704,38 @@ def test_run_server_with_file_read_error(client):
 
 def test_check_version_compatibility_success(client):
     """Test the /api/check_version_compatibility endpoint."""
-    with patch('threat_analysis.server.server.threat_model_service.check_version_compatibility') as mock_check, \
-         patch('os.path.exists', return_value=True):
-        mock_check.return_value = True
-        payload = {'model_path': 'path/m.md', 'metadata_path': 'path/m.json'}
-        with patch('threat_analysis.server.server.config.OUTPUT_BASE_DIR', 'path'):
-            response = client.post('/api/check_version_compatibility', data=json.dumps(payload), content_type='application/json')
-            assert response.status_code == 200
-            assert response.get_json()['compatible'] is True
+    with patch('threat_analysis.server.server.get_threat_model_service') as mock_get_service, \
+         patch('os.path.exists', return_value=True), \
+         patch('threat_analysis.server.server.project_root', '/root'):
+        mock_service = MagicMock()
+        mock_get_service.return_value = mock_service
+        mock_service.check_version_compatibility.return_value = True
+        payload = {'model_path': 'output/m.md', 'metadata_path': 'output/m.json'}
+        with patch('threat_analysis.server.server.config.OUTPUT_BASE_DIR', '/root/output'):
+            # Simplified abspath mock that resolves /root/output to /root/output
+            def mocked_abspath(path):
+                if path.startswith('output'):
+                    return '/root/' + path
+                return path
+
+            with patch('os.path.abspath', side_effect=mocked_abspath):
+                response = client.post('/api/check_version_compatibility', data=json.dumps(payload), content_type='application/json')
+                assert response.status_code == 200
+                assert response.get_json()['compatible'] is True
 
 def test_load_metadata_success(client):
     """Test the /api/load_metadata endpoint."""
     with patch('os.path.exists', return_value=True), \
-         patch('builtins.open', mock_open(read_data='{"version": "1.0"}')) as mock_file, \
-         patch('threat_analysis.server.server.config.OUTPUT_BASE_DIR', 'output'), \
-         patch('threat_analysis.server.server.project_root', ''):
-        # Simplified abspath mock that just returns the input if it looks like what we want
-        with patch('os.path.abspath', side_effect=lambda x: x if x.startswith('output') else os.path.join('output', os.path.basename(x))):
+         patch('builtins.open', mock_open(read_data='{"version": "1.0"}')), \
+         patch('threat_analysis.server.server.config.OUTPUT_BASE_DIR', '/root/output'), \
+         patch('threat_analysis.server.server.project_root', '/root'):
+        
+        def mocked_abspath(path):
+            if path.startswith('output'):
+                return '/root/' + path
+            return path
+
+        with patch('os.path.abspath', side_effect=mocked_abspath):
             payload = {'metadata_path': 'output/meta.json'}
             response = client.post('/api/load_metadata', data=json.dumps(payload), content_type='application/json')
             assert response.status_code == 200

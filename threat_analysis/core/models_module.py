@@ -61,6 +61,10 @@ class ExtendedThreat(pytm.Threat): # Inherit from pytm.Threat
     allowing us to track where the threat was generated (e.g., pytm, LLM).
     """
     def __init__(self, *args, source: str = "pytm", **kwargs):
+        # We need to capture category/stride_category before super().__init__
+        # because pytm.Threat doesn't store them.
+        self.category = kwargs.get('category') or kwargs.get('stride_category', 'Unknown')
+        self.stride_category = self.category
         super().__init__(*args, **kwargs)
         self.source = source
 
@@ -176,7 +180,7 @@ class ThreatModel:
         """
         data_obj = Data(name, **kwargs)  # Passes **kwargs to the Data constructor
         self.data_objects[name.lower()] = data_obj
-        logging.info(f"   - Added Data: {name} (Props: {kwargs})")  # Debugging
+        logging.debug(f"   - Added Data: {name} (Props: {kwargs})")  # Debugging
         logging.debug(f"DEBUG: Data object added with name: '{name}'") # New debug log
         return data_obj
 
