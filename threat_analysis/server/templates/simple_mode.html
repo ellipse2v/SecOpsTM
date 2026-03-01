@@ -1711,16 +1711,27 @@
                 try {
                     const data = JSON.parse(event.data);
                     console.log('AI status update received:', data);
-                    if (data.ai_online) {
-                        aiButton.disabled = false;
-                        aiButton.title = 'Create/update TM with AI';
-                    } else {
-                        aiButton.disabled = true;
-                        aiButton.title = 'AI server is offline';
-                        if (data.error) {
-                             aiButton.title += `: ${data.error}`;
+                    
+                    // Select all buttons that should be enabled/disabled based on AI status
+                    // We look for common AI related IDs or you can add more here
+                    const aiButtons = [
+                        document.getElementById('ai-generate-btn'),
+                        document.getElementById('ai-update-btn'), // if it exists
+                        document.getElementById('generate-from-prompt-btn')
+                    ].filter(btn => btn !== null);
+
+                    aiButtons.forEach(btn => {
+                        if (data.ai_online) {
+                            btn.disabled = false;
+                            if (btn.id === 'ai-generate-btn') btn.title = 'Create/update TM with AI';
+                        } else {
+                            btn.disabled = true;
+                            if (btn.id === 'ai-generate-btn') {
+                                btn.title = 'AI server is offline';
+                                if (data.error) btn.title += `: ${data.error}`;
+                            }
                         }
-                    }
+                    });
                 } catch (e) {
                     console.error("Failed to parse AI status event:", e);
                 }

@@ -255,5 +255,38 @@
             <button id="new-data-item-btn">Clear Form</button>
         </div>
     </div>
+    <script>
+        // AI Status real-time update
+        (function() {
+            const eventSource = new EventSource('/api/ai_status_stream');
+            const aiButton = document.getElementById('analyze-btn');
+
+            eventSource.addEventListener('ai_status', function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('AI status update received:', data);
+                    
+                    if (data.ai_online) {
+                        if (aiButton) {
+                            aiButton.disabled = false;
+                            aiButton.title = 'Generate artifacts and enrich with AI';
+                        }
+                    } else {
+                        // We don't disable analyze-btn completely because it also does non-AI generation
+                        // but we could change its title or indicate AI is missing.
+                        if (aiButton) {
+                            aiButton.title = 'Generate (AI features offline)';
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to parse AI status event:", e);
+                }
+            });
+
+            eventSource.onerror = function(err) {
+                console.error('EventSource connection failed:', err);
+            };
+        })();
+    </script>
 </body>
 </html>

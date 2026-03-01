@@ -127,18 +127,26 @@ def initialize_ai_in_background():
         try:
             service = get_threat_model_service()
             await service.init_ai()
-            # threat_model_service.ai_online is updated in ai_service.init_ai()
+            
+            # The status is already updated inside service.init_ai()
+            # but we force a broadcast here to be sure the frontend gets it
             logging.info(f"Background AI initialization complete. Online: {service.ai_online}")
 
             data = {"ai_online": service.ai_online}
             ai_status_broadcaster.broadcast("ai_status", data)
+            
+            # Also put it in the event queue for other services
+            try:
+                from threat_analysis.server.events import ai_status_event_queue
+                ai_status_event_queue.put(f"event: ai_status\ndata: {json.dumps(data)}\n\n")
+            except:
+                pass
 
         except Exception as e:
             logging.error(f"Error during background AI initialization: {e}", exc_info=True)
-            try:
-                get_threat_model_service().ai_online = False
-            except:
-                pass
+            service = get_threat_model_service()
+            if service:
+                service.ai_online = False
 
             data = {"ai_online": False, "error": str(e)}
             ai_status_broadcaster.broadcast("ai_status", data)
@@ -350,17 +358,19 @@ def graphical_editor():
 @app.route("/api/ai_status")
 def ai_status():
     """Returns the status of the AI server."""
-    if get_threat_model_service():
-        return jsonify({"ai_online": get_threat_model_service().ai_online})
+    service = get_threat_model_service()
+    if service:
+        return jsonify({"ai_online": service.ai_online})
     return jsonify({"ai_online": False}), 503
 
 
 @app.route("/api/ai_status_stream")
 def ai_status_stream():
     def generate_events():
-        # Send initial status immediately
+        # Send current status immediately upon connection
         service = get_threat_model_service()
-        data = {"ai_online": service.ai_online}
+        is_online = service.ai_online if service else False
+        data = {"ai_online": is_online}
         yield f"event: ai_status\ndata: {json.dumps(data)}\n\n"
 
         q = ai_status_broadcaster.subscribe()

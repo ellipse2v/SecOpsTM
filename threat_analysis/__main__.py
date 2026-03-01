@@ -32,6 +32,7 @@ import traceback
 from threat_analysis import config # Re-add config import
 from threat_analysis.server.server import run_server, get_model_name # Re-add this import
 from threat_analysis.utils import resolve_path, _validate_path_within_project
+from threat_analysis.utils import resolve_path, _validate_path_within_project
 
 # Import library modules
 # Lazy imports will be handled within methods

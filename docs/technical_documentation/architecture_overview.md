@@ -25,42 +25,56 @@ This document outlines the architecture of the diagram generation process, highl
             3.  It then manually constructs an SVG file string by interpreting the JSON data (e.g., drawing paths, placing text, embedding images).
         *   **Implication**: This component **re-implements** the rendering logic. Any feature from DOT/HTML-labels (like `ALIGN="LEFT"` in a `TD`) must be explicitly handled by the Python script. Discrepancies between the native Graphviz output and the output of this script are likely due to features not being implemented in this custom generator.
 
+## AI Provider Architecture
+
+The framework uses a pluggable AI provider architecture to support various Large Language Models (LLMs) for threat generation and enrichment.
+
+### Key Components:
+
+1.  **`threat_analysis/ai_engine/providers/base_provider.py`**:
+    *   **Role**: Abstract Base Class (`BaseLLMProvider`) defining the interface for all AI providers.
+    *   **Interface**: Requires implementation of `check_connection()`, `generate_threats()`, and `generate_attack_flow()`.
+
+2.  **`threat_analysis/ai_engine/providers/litellm_client.py`**:
+    *   **Role**: A unified client leveraging the `litellm` library.
+    *   **Function**: Provides a consistent interface to interact with numerous AI providers (OpenAI, Anthropic, Google Gemini, Mistral, Ollama, etc.) using a single completion function.
+    *   **Configuration**: Loads settings from `config/ai_config.yaml` and handles API keys via environment variables (e.g., `GOOGLE_API_KEY` for Gemini).
+
+3.  **`threat_analysis/ai_engine/providers/litellm_provider.py`**:
+    *   **Role**: A concrete implementation of `BaseLLMProvider` that wraps `LiteLLMClient`.
+    *   **Function**: Bridges the gap between the internal `LiteLLMClient` and the standardized provider interface used by the rest of the framework (like `ReportGenerator`).
+
+4.  **`threat_analysis/ai_engine/providers/ollama_provider.py`**:
+    *   **Role**: A dedicated provider for local Ollama instances.
+    *   **Function**: Uses direct HTTP calls to the Ollama API for low-latency local inference.
+
 ## AI-Powered Threat Model Generation and Modification
 
-This section details the architecture behind the AI-driven generation and modification of threat models, available primarily through the "simple mode" interface. This feature leverages large language models to interpret natural language prompts and either create new threat models or iteratively refine existing ones.
+This section details the architecture behind the AI-driven generation and modification of threat models, available primarily through the "simple mode" interface.
 
 ### Workflow:
 
 1.  **User Interaction (Frontend - `threat_analysis/server/templates/simple_mode.html`)**:
     *   The user accesses the "simple mode" web interface.
-    *   A text area (`prompt-textarea`) allows the user to describe their system or request modifications to an existing threat model.
-    *   Upon clicking "Generate with AI" (`ai-generate-btn`), the client-side JavaScript (`generateFromPromptBtn.onclick`) gathers two pieces of information:
-        *   The user's natural language `prompt` for the AI.
-        *   The `markdown` content currently displayed in the CodeMirror editor, representing the existing threat model (if any).
-    *   These two pieces of data are sent as a JSON payload via a POST request to the backend endpoint `/api/generate_markdown_from_prompt`.
+    *   A text area allows for natural language prompts.
+    *   Data is sent to the `/api/generate_markdown_from_prompt` endpoint.
 
 2.  **Backend Processing (`threat_analysis/server/server.py`)**:
-    *   The Flask route `/api/generate_markdown_from_prompt` receives the JSON payload.
-    *   It extracts both the `prompt` and the `markdown` (existing model content) from the request body.
-    *   These parameters are then passed to the `threat_model_service.generate_markdown_from_prompt` method.
-    *   The backend now handles the potentially streaming output from the service layer, wrapping it in a `Response` object with `stream_with_context` to stream the content back to the client as `text/plain`.
+    *   The Flask route receives the prompt and current markdown.
+    *   It delegates to `threat_model_service.generate_markdown_from_prompt`.
 
-3.  **Service Layer Logic (`threat_analysis/server/threat_model_service.py`)**:
-    *   The `generate_markdown_from_prompt` method in `ThreatModelService` is the central orchestrator for AI interaction.
-    *   It now uses the `ollama` library (via `ollama.Client`) for direct interaction with the Ollama server.
-    *   It conditionally constructs the `system_prompt` sent to the AI:
-        *   **New Generation**: If no `markdown` content is provided (i.e., the user is starting a new model), a `system_prompt` is used to instruct the AI to generate a complete threat model from scratch based solely on the user's `prompt`.
-        *   **Modification**: If `markdown` content is provided, a specialized `system_prompt` is used. This prompt explicitly instructs the AI to *modify* the given `markdown` content according to the user's `prompt`, preserving the existing structure where possible and making only the requested changes. The full existing `markdown` content is included in the `user_prompt` sent to the AI, along with the modification request.
-    *   Crucially, the `ollama.Client.generate` method is called with a `stream` parameter (configured in `ai_config.yaml`). If streaming is enabled, this method returns a generator that yields chunks of the response as they are received from the LLM.
-    *   The `generate_markdown_from_prompt` method itself now acts as a generator, yielding these chunks directly.
+3.  **Service Layer Logic (`threat_analysis/server/ai_service.py`)**:
+    *   The `AiService` (formerly integrated into the threat model service) is the central orchestrator.
+    *   It utilizes `LiteLLMClient` to communicate with the configured AI provider.
+    *   It supports streaming responses, allowing the user to see the threat model being generated in real-time.
 
-4.  **AI Provider Interaction (`threat_analysis/ai_engine/providers/ollama_provider.py`)**:
-    *   The configured AI provider (`OllamaProvider` in this case) formats the `system_prompt` and `user_prompt` into a request suitable for the chosen LLM (e.g., Ollama).
-    *   The LLM processes the request and returns the AI-generated or AI-modified threat model content in Markdown DSL.
+4.  **AI Provider Interaction**:
+    *   Based on `config/ai_config.yaml`, the `LiteLLMClient` identifies the enabled provider (e.g., `gemini`, `openai`, or `ollama`).
+    *   It retrieves the necessary API keys from environment variables and sends the formatted prompts to the LLM.
 
 5.  **Result Handling**:
-    *   The generated/modified Markdown content is returned through the service layer and the Flask backend to the `simple_mode.html` frontend.
-    *   The `editor.setValue()` function in the frontend updates the CodeMirror editor with the new content, and the diagram is re-rendered to reflect the changes.
+    *   The generated Markdown content is streamed back to the frontend.
+    *   The CodeMirror editor is updated, and the diagram is re-rendered.
 
 This architecture enables an iterative threat modeling process, allowing users to start with a basic model and refine it incrementally through natural language commands, significantly enhancing the usability and flexibility of the tool compared to an overwrite-only approach.
 

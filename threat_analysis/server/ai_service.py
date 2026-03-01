@@ -12,11 +12,12 @@ from threat_analysis.ai_engine.providers.litellm_client import LiteLLMClient
 
 
 class AIService:
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: str, ai_status_event_queue: Optional[queue.Queue] = None):
         self.litellm_client = None
         self.rag_generator = None
         self.ai_online = False
         self.ai_config = self._load_ai_config(config_path) # Load config in __init__
+        self.ai_status_event_queue = ai_status_event_queue
 
 
     def _load_ai_config(self, config_path: str) -> Dict[str, Any]:
@@ -40,7 +41,13 @@ class AIService:
             self.ai_online = self.litellm_client.ai_online
         else:
             self.ai_online = False
-        logging.info("AI services initialized.")
+        
+        # Broadcast status update if queue is available
+        if self.ai_status_event_queue:
+            data = {"ai_online": self.ai_online}
+            self.ai_status_event_queue.put(f"event: ai_status\ndata: {json.dumps(data)}\n\n")
+            
+        logging.info(f"AI services initialized. Online: {self.ai_online}")
 
     async def generate_markdown_from_prompt(self, prompt: str, markdown: Optional[str] = None):
         """Generates markdown from a prompt asynchronously."""
@@ -277,6 +284,10 @@ Internet Facing: {context["internet_facing"]}
                     raw_response = chunk
                     is_pre_parsed = True
                     break
+            
+            # Respect Rate Limits for cloud providers (like Gemini Free Tier)
+            import asyncio
+            await asyncio.sleep(1.5) 
 
             if is_pre_parsed:
                 threat_json_output = raw_response

@@ -43,6 +43,9 @@ class ThreatModelService:
         ai_config_path = PROJECT_ROOT / "config" / "ai_config.yaml"
         context_path = PROJECT_ROOT / "config" / "context.yaml"
         
+        # Import queue locally to avoid circular dependency issues
+        from threat_analysis.server.events import ai_status_event_queue
+        
         self.report_generator = ReportGenerator(
             self.severity_calculator, 
             self.mitre_mapping,
@@ -52,12 +55,12 @@ class ThreatModelService:
             context_path=context_path
         )
         
-        self.ai_service = AIService(config_path=str(PROJECT_ROOT / "config" / "ai_config.yaml"))
+        self.ai_service = AIService(
+            config_path=str(ai_config_path),
+            ai_status_event_queue=ai_status_event_queue
+        )
         self.diagram_service = DiagramService(self.cve_service, self.diagram_generator)
         self.model_management_service = ModelManagementService(self.cve_service, self.diagram_service)
-        # Import queue locally to avoid circular dependency issues if any
-        
-        from threat_analysis.server.events import ai_status_event_queue
         
         self.export_service = ExportService(
             self.cve_service,

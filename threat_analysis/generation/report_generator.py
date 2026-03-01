@@ -45,6 +45,7 @@ from threat_analysis.generation.attack_navigator_generator import AttackNavigato
 from threat_analysis.core.models_module import ThreatModel
 from threat_analysis.core.mitre_mapping_module import MitreMapping
 from threat_analysis.ai_engine.providers.ollama_provider import OllamaProvider
+from threat_analysis.ai_engine.providers.litellm_provider import LiteLLMProvider
 
 def load_implemented_mitigations(mitigations_file: Optional[Path]) -> Set[str]:
     """Loads implemented mitigation IDs from a file."""
@@ -83,7 +84,9 @@ class ReportGenerator:
                     logging.info(f"AI Provider '{provider_name}' enabled for report enrichment.")
                     if provider_name in ["ollama", "mistral_local"]:
                         self.ai_provider = OllamaProvider(provider_config)
-                    # Add other providers here if needed
+                    else:
+                        logging.info(f"Initializing LiteLLMProvider for '{provider_name}'")
+                        self.ai_provider = LiteLLMProvider(provider_config)
                     break
             
             if self.ai_provider:

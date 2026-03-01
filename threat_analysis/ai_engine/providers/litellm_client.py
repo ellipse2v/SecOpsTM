@@ -99,6 +99,24 @@ class LiteLLMClient:
                     ollama_host = self.provider_config.get('host', 'http://localhost:11434')
                     os.environ['OLLAMA_API_BASE'] = ollama_host
                     logging.debug(f"[{time.time() - start_time:.4f}s] LiteLLM configured for Ollama at {ollama_host} using model {self.model_name}")
+                
+                # Handle API keys from environment variables
+                api_key_env = self.provider_config.get('api_key_env')
+                if api_key_env:
+                    api_key = os.getenv(api_key_env)
+                    if api_key:
+                        # LiteLLM uses environment variables for many providers (OPENAI_API_KEY, ANTHROPIC_API_KEY, etc.)
+                        # but we can also pass it explicitly if needed, or just ensure it's in os.environ.
+                        # For Gemini via LiteLLM, it usually expects GEMINI_API_KEY or GOOGLE_API_KEY.
+                        # We ensure it's set in the environment if it's not already the standard name.
+                        os.environ[api_key_env] = api_key
+                        if provider_name == "gemini":
+                            os.environ["GEMINI_API_KEY"] = api_key
+                            os.environ["GOOGLE_API_KEY"] = api_key
+                        
+                        logging.debug(f"[{time.time() - start_time:.4f}s] API key set from environment variable: {api_key_env}")
+                    else:
+                        logging.warning(f"[{time.time() - start_time:.4f}s] API key environment variable {api_key_env} is not set.")
 
                 logging.info(f"[{time.time() - start_time:.4f}s] Checking AI server status...")
                 self.ai_online = await self.check_connection()
@@ -154,7 +172,8 @@ class LiteLLMClient:
             "stream": self.stream if stream is None else stream,
             "temperature": self.provider_config.get('temperature', 0.7),
             "max_tokens": self.provider_config.get('max_tokens', 4096),
-            "timeout": self.provider_config.get('timeout', 30)
+            "timeout": self.provider_config.get('timeout', 30),
+            "num_retries": 3 # Automatically retry on rate limits
         }
 
         if output_format == "json":
