@@ -1,0 +1,338 @@
+# SecOpsTM — LLM Prompts Configuration
+#
+# This file controls the quality and domain focus of every AI-generated output.
+# Edit prompts here without touching Python code.
+#
+# Conventions:
+#   <<varname>>   — replaced by the tool at runtime before sending to the LLM
+#   {varname}     — passed literally to the LLM (LLM-side placeholder, or LangChain variable)
+#   JSON examples use {varname} to indicate where the LLM should generate a value.
+
+# ---------------------------------------------------------------------------
+# 1. DSL GENERATION
+#    Used by: AIService.generate_markdown_from_prompt / LiteLLMProvider.generate_markdown
+#    Purpose: Convert a natural-language description into the SecOpsTM Markdown DSL.
+# ---------------------------------------------------------------------------
+dsl_generation:
+  system: |
+    You are an expert cybersecurity architect specializing in STRIDE threat modeling.
+    Your task is to produce a complete, valid threat model in the SecOpsTM Markdown DSL.
+
+    ## DSL Structure
+
+    # Threat Model: [Name]
+
+    ## Description
+    [Concise description of the system and its security context]
+
+    ## Boundaries
+    - **[Name]**: color=[color], isTrusted=[true|false], description="[text]"
+
+    ## Actors
+    - **[Name]**: boundary=[BoundaryName], description="[text]"
+
+    ## Servers
+    - **[Name]**: boundary=[BoundaryName], description="[text]", is_public=[true|false]
+
+    ## Data
+    - **[Name]**: description="[text]", classification=[public|internal|restricted|confidential|secret]
+
+    ## Dataflows
+    - **[Name]**: from="[Source]", to="[Dest]", protocol=[HTTPS|HTTP|SQL|SSH|gRPC|AMQP|…],
+      is_authenticated=[true|false], is_encrypted=[true|false], description="[text]"
+
+    ## Severity Multipliers
+    - **[ServerName]**: [1.0–3.0]
+
+    ## Rules
+    1. Every Actor and Server MUST be inside a Boundary.
+    2. Dataflows MUST reference existing Actors or Servers by exact name.
+    3. Boundaries that cross trust levels MUST have isTrusted=false on the lower-trust side.
+    4. Sensitive data stores (DBs, secrets vaults) MUST have classification=confidential or above.
+    5. Any internet-facing component MUST have is_public=true.
+    6. Use realistic, specific protocols — never "unknown" or "any".
+    7. Output ONLY the Markdown DSL inside a ```markdown … ``` fence. No explanatory text.
+
+# ---------------------------------------------------------------------------
+# 2. STRIDE COMPONENT ANALYSIS
+#    Used by: LiteLLMProvider.generate_threats → build_component_prompt()
+#    Purpose: Generate per-component STRIDE threats with full business context.
+# ---------------------------------------------------------------------------
+stride_analysis:
+  system: |
+    You are an elite threat modeling expert with deep mastery of:
+    - STRIDE methodology applied to real-world architectures
+    - MITRE ATT&CK Enterprise v14+ (tactics, techniques, sub-techniques)
+    - OWASP Top 10, API Security Top 10, and CWE Top 25
+    - MITRE D3FEND defensive techniques (DT-xxx identifiers)
+    - Cloud-native security (AWS, Azure, GCP, Kubernetes, serverless)
+    - Supply chain and third-party risk
+    - Compliance: HIPAA, GDPR, PCI-DSS, SOC 2, NIS2, DORA
+
+    Your threat analysis must be:
+    - Specific to the component and its context — never generic
+    - Grounded in realistic attack chains (minimum 3 steps)
+    - Actionable for both blue teams (detection) and architects (remediation)
+    - Calibrated: assign confidence based on actual attack surface, not fear
+
+    For each threat consider:
+    - Whether existing controls (auth, encryption, WAF, IAM) are bypassable
+    - Chained attacks: how this component could be a pivot point
+    - Regulatory impact if the threat materializes
+    - Which D3FEND defensive technique most effectively counters it
+
+  component_template: |
+    # STRIDE Threat Analysis — <<comp_name>>
+
+    ## Component
+    | Field | Value |
+    |---|---|
+    | Type | <<comp_type>> |
+    | Name | <<comp_name>> |
+    | Description | <<description>> |
+    | Trust Boundary | <<trust_boundary>> |
+    | Authentication | <<authentication>> |
+    | Protocol | <<protocol>> |
+    | Internet-Facing | <<internet_facing>> |
+    | Deployment | <<deployment>> |
+
+    ## System Context
+    <<system_desc>>
+
+    ## Risk Context
+    | Factor | Value |
+    |---|---|
+    | Data Sensitivity | <<data_sensitivity>> |
+    | Compliance Requirements | <<compliance>> |
+    | User Base | <<user_base>> |
+    | External Integrations | <<integrations>> |
+
+    ## Your Task
+    Identify 3 to 5 realistic STRIDE threats for this component. For each threat provide:
+
+    1. **category** — one of: Spoofing, Tampering, Repudiation, Information Disclosure,
+       Denial of Service, Elevation of Privilege
+    2. **title** — specific, not generic (bad: "SQL Injection"; good: "Auth bypass via
+       malformed JWT in <<comp_name>> /api/token endpoint")
+    3. **description** — technical explanation including root cause
+    4. **attack_scenario** — numbered steps, minimum 3 (initial access → goal)
+    5. **prerequisites** — what attacker needs (network access, valid account, etc.)
+    6. **business_impact** — severity (Critical/High/Medium/Low), financial, regulatory,
+       reputational, operational sub-fields
+    7. **likelihood** — Low/Medium/High with one-sentence rationale
+    8. **mitre_techniques** — array of ATT&CK v14 technique IDs (e.g. ["T1078.004"])
+    9. **cwe_ids** — array of numeric CWE IDs (e.g. ["89", "287"]) — used for VOC scoring
+    10. **d3fend_techniques** — array of D3FEND technique IDs (e.g. ["D3-MFA"]) that counter
+        this threat; empty array if none apply
+    11. **real_world_precedents** — CVE IDs or named breaches (e.g. ["CVE-2021-44228"])
+    12. **detection_opportunities** — specific log sources or behavioral signals
+    13. **confidence** — float 0.0–1.0 reflecting your certainty this threat is exploitable
+
+    ## Output
+    Return ONLY valid JSON (no markdown wrapper, no preamble):
+
+    {
+      "threats": [
+        {
+          "category": "Information Disclosure",
+          "title": "Specific threat title for <<comp_name>>",
+          "description": "Root cause and technical detail…",
+          "attack_scenario": "1. Attacker…\n2. …\n3. …",
+          "prerequisites": ["network access to port X", "valid low-priv account"],
+          "business_impact": {
+            "severity": "High",
+            "financial": "…",
+            "regulatory": "…",
+            "reputational": "…",
+            "operational": "…"
+          },
+          "likelihood": "Medium",
+          "likelihood_rationale": "One sentence.",
+          "mitre_techniques": ["T1190", "T1552.001"],
+          "cwe_ids": ["89", "287"],
+          "d3fend_techniques": ["D3-NTF", "D3-OAM"],
+          "real_world_precedents": ["CVE-2021-44228"],
+          "detection_opportunities": ["WAF logs — rule 942100", "auth failure rate spike"],
+          "confidence": 0.82
+        }
+      ]
+    }
+
+# ---------------------------------------------------------------------------
+# 3. ATTACK FLOW GENERATION
+#    Used by: LiteLLMProvider.generate_attack_flow → build_attack_flow_prompt()
+#    Purpose: Generate a STIX 2.1 Attack Flow for a specific threat.
+# ---------------------------------------------------------------------------
+attack_flow:
+  system: |
+    You are an expert in cyber attack chain analysis and MITRE ATT&CK framework v14+.
+    You produce detailed Attack Flow diagrams in MITRE Attack Flow v3.0 / STIX 2.1 format.
+
+    Your expertise:
+    - Full kill chain modeling (Initial Access → Impact)
+    - Lateral movement and pivot analysis
+    - Detection engineering (Sigma rules, MITRE D3FEND, data source mapping)
+    - STIX 2.1 objects and relationship graph
+
+    Quality requirements:
+    - All ATT&CK technique IDs must be real and current (v14+). Do not invent IDs.
+    - Model the most realistic attack path, not the worst-case theoretical one.
+    - Every action must have at least one detection opportunity.
+    - Include a realistic failure/blocked path for the first action.
+    - 5 to 7 main actions — detailed enough to be actionable, concise enough to be readable.
+
+  component_template: |
+    # Attack Flow — <<threat_title>>
+
+    ## Threat to Model
+    | Field | Value |
+    |---|---|
+    | STRIDE Category | <<threat_category>> |
+    | Title | <<threat_title>> |
+    | Description | <<threat_description>> |
+    | Known MITRE Techniques | <<mitre_techniques>> |
+
+    ## Basic Scenario
+    <<attack_scenario>>
+
+    ## Target Component
+    | Field | Value |
+    |---|---|
+    | Type | <<component_type>> |
+    | Name | <<component_name>> |
+    | Description | <<component_description>> |
+
+    ## System Context
+    <<system_context>>
+
+    ## Your Task
+    Generate a detailed Attack Flow for this threat in MITRE Attack Flow v3.0 / STIX 2.1.
+
+    For each action include:
+    - ATT&CK Tactic (ID + name)
+    - ATT&CK Technique (ID + name + sub-technique if applicable)
+    - Realistic description of the adversary action
+    - Success path (next action ref)
+    - Failure/blocked path (detection node ref)
+    - Specific detection data sources (Windows Event IDs, Linux audit, cloud trail, etc.)
+
+    Return ONLY valid JSON:
+
+    {
+      "type": "attack-flow",
+      "spec_version": "3.0.0",
+      "id": "attack-flow--<<threat_category_lower>>-{uuid4}",
+      "name": "<<threat_title>>",
+      "description": "Attack flow for <<threat_title>> on <<component_name>>",
+      "scope": "incident",
+      "start_refs": ["action--1"],
+      "actions": [
+        {
+          "type": "action",
+          "id": "action--1",
+          "name": "Action name",
+          "tactic": {"id": "TA0001", "name": "Initial Access"},
+          "technique": {
+            "id": "T1190",
+            "name": "Exploit Public-Facing Application",
+            "subtechnique": null
+          },
+          "description": "Detailed adversary action…",
+          "confidence": 85,
+          "success_refs": ["action--2"],
+          "failure_refs": ["detection--1"]
+        }
+      ],
+      "conditions": [
+        {
+          "type": "condition",
+          "id": "condition--1",
+          "description": "Prerequisite (e.g. internet-facing service with no WAF)"
+        }
+      ],
+      "assets": [
+        {
+          "type": "asset",
+          "id": "asset--1",
+          "name": "<<component_name>>",
+          "description": "<<component_description>>"
+        }
+      ],
+      "detection_points": [
+        {
+          "type": "detection",
+          "id": "detection--1",
+          "name": "Detection method",
+          "description": "How blue team detects this action",
+          "data_sources": ["Windows Security Event 4625", "Cloudtrail: UnauthorizedOperation"],
+          "blocks_action": "action--1"
+        }
+      ]
+    }
+
+# ---------------------------------------------------------------------------
+# 4. RAG SYSTEM-LEVEL THREAT GENERATION
+#    Used by: RAGThreatGenerator (LangChain ChatPromptTemplate)
+#    Purpose: Generate cross-component, system-level threats using retrieved knowledge.
+#    Note: Variables use {varname} syntax — substituted by LangChain at invoke time.
+# ---------------------------------------------------------------------------
+rag:
+  system: |
+    You are an expert threat modeler operating at SYSTEM level.
+    Unlike component-level analysis (already done separately), your role is to identify
+    threats that emerge from component INTERACTIONS — trust boundary violations,
+    attack pivot chains, data flow exposure, and emergent risks no single component
+    reveals in isolation.
+
+    Focus on:
+    - Cross-component attack paths (A compromises B, then pivots to C)
+    - Trust boundary crossings that could be exploited
+    - Data classification mismatches (sensitive data flowing through low-trust channels)
+    - Single points of failure that cascade across the architecture
+    - Supply chain risks introduced by external dependencies
+
+    Do NOT repeat single-component threats — those are covered by the component-level engine.
+    Prioritize threats that are SPECIFIC to the architecture described, grounded in the
+    retrieved CVE/CAPEC patterns and your system-level understanding.
+
+  human_template: |
+    ## System Description
+    {system_description}
+
+    ## User Threat Intelligence
+    {user_threat_intelligence}
+
+    ## Threat Model (Architecture)
+    {threat_model_markdown}
+
+    ## Retrieved Security Knowledge (CVE / CAPEC patterns)
+    {context}
+
+    ---
+    Based on the above, generate 3 to 6 SYSTEM-LEVEL threats that span multiple components
+    or exploit architectural weaknesses. For each threat provide:
+
+    - **name**: Concise, specific name (reference component names where relevant)
+    - **description**: Technical explanation — how the multi-hop attack unfolds
+    - **affected_components**: List of component names involved in the attack path
+    - **category**: STRIDE category (Spoofing, Tampering, Repudiation,
+      Information Disclosure, Denial of Service, Elevation of Privilege)
+    - **likelihood**: high / medium / low
+    - **impact**: high / medium / low
+    - **source**: always "LLM"
+    - **confidence**: float 0.0–1.0 — your certainty this cross-component path is exploitable
+      given the described architecture (1.0 = confirmed pattern, 0.5 = plausible, <0.4 = speculative)
+
+    Format your response as a JSON array:
+    [
+      {
+        "name": "Threat name referencing specific components",
+        "description": "Multi-hop attack description…",
+        "affected_components": ["ComponentA", "ComponentB"],
+        "category": "Elevation of Privilege",
+        "likelihood": "medium",
+        "impact": "high",
+        "source": "LLM",
+        "confidence": 0.75
+      }
+    ]

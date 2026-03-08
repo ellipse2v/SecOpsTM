@@ -18,8 +18,9 @@ import logging
 import asyncio
 from typing import Dict, List
 from .base_provider import BaseLLMProvider
-from ..prompts.stride_prompts import STRIDE_SYSTEM_PROMPT, build_component_prompt
-from ..prompts.attack_flow_prompts import ATTACK_FLOW_SYSTEM_PROMPT, build_attack_flow_prompt
+from ..prompts.stride_prompts import build_component_prompt
+from ..prompts.attack_flow_prompts import build_attack_flow_prompt
+from threat_analysis.ai_engine.prompt_loader import get as _get_prompt
 
 class OllamaProvider(BaseLLMProvider):
     """Provider for local deployment with Ollama"""
@@ -53,7 +54,7 @@ class OllamaProvider(BaseLLMProvider):
                         f"{self.host}/api/generate",
                         json={
                             "model": self.model,
-                            "prompt": f"{STRIDE_SYSTEM_PROMPT}\n\n{prompt}",
+                            "prompt": f"{_get_prompt('stride_analysis', 'system')}\n\n{prompt}",
                             "format": "json",
                             "stream": False,
                             "options": {
@@ -94,7 +95,7 @@ class OllamaProvider(BaseLLMProvider):
                         f"{self.host}/api/generate",
                         json={
                             "model": self.model,
-                            "prompt": f"{ATTACK_FLOW_SYSTEM_PROMPT}\n\n{prompt}",
+                            "prompt": f"{_get_prompt('attack_flow', 'system')}\n\n{prompt}",
                             "format": "json",
                             "stream": False,
                             "options": {

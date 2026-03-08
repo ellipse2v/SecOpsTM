@@ -34,6 +34,8 @@ from .utils import extract_name_from_object, get_target_name
 import yaml
 import asyncio
 
+_CVE_RE = re.compile(r'^CVE-\d{4}-\d+$', re.IGNORECASE)
+
 project_root = Path(__file__).resolve().parents[2]
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
@@ -46,6 +48,33 @@ from threat_analysis.core.models_module import ThreatModel
 from threat_analysis.core.mitre_mapping_module import MitreMapping
 from threat_analysis.ai_engine.providers.ollama_provider import OllamaProvider
 from threat_analysis.ai_engine.providers.litellm_provider import LiteLLMProvider
+from threat_analysis.core.threat_consolidator import ThreatConsolidator
+from threat_analysis.core.report_serializer import ReportSerializer
+from threat_analysis.severity_calculator_module import RiskContext
+
+def _is_network_exposed(target: Any) -> bool:
+    """Return True when the target is reachable without authentication or encryption.
+
+    Heuristics (offline, no network calls):
+    - Dataflow: not authenticated OR not encrypted.
+    - Actor / Server: boundary is absent or explicitly untrusted.
+    - Tuple (source, sink): either endpoint in an untrusted boundary.
+    """
+    from pytm import Dataflow as _Dataflow
+    if isinstance(target, _Dataflow):
+        return not getattr(target, 'is_authenticated', False) or \
+               not getattr(target, 'is_encrypted', False)
+    if isinstance(target, tuple):
+        return any(_boundary_untrusted(obj) for obj in target if obj is not None)
+    return _boundary_untrusted(target)
+
+
+def _boundary_untrusted(element: Any) -> bool:
+    boundary = getattr(element, 'inBoundary', None)
+    if boundary is None:
+        return True  # no boundary → implicitly exposed
+    return not getattr(boundary, 'isTrusted', True)
+
 
 def load_implemented_mitigations(mitigations_file: Optional[Path]) -> Set[str]:
     """Loads implemented mitigation IDs from a file."""
@@ -99,7 +128,7 @@ class ReportGenerator:
             else:
                 logging.warning("No enabled AI provider found in config for report enrichment.")
 
-    async def _enrich_threats_with_ai(self, threat_model: ThreatModel, all_threats: List[Dict]) -> List[Dict]:
+    async def _enrich_threats_with_ai(self, threat_model: ThreatModel, all_threats: List[Dict], progress_callback = None) -> List[Dict]:
         if not self.ai_provider:
             logging.warning("AI enrichment skipped: No AI provider initialized.")
             return all_threats
@@ -124,33 +153,63 @@ class ReportGenerator:
         for b_name, b_info in threat_model.boundaries.items():
             components_to_enrich.append({"name": b_name, "type": "Boundary", "description": b_info.get("description", "")})
 
-        ai_threats = []
-        for component in components_to_enrich:
-            generated_threats = await self.ai_provider.generate_threats(component, self.ai_context)
-            for threat in generated_threats:
-                stride_category = threat.get("category", "InformationDisclosure")
-                target_name = component.get("name")
-                
-                # Use the severity calculator for AI-generated threats
-                severity_info = self.severity_calculator.get_severity_info(
-                    stride_category, 
-                    target_name,
-                    impact=threat.get("business_impact", {}).get("impact_score"),
-                    likelihood=threat.get("business_impact", {}).get("likelihood_score")
-                )
+        total_components = len(components_to_enrich)
+        if total_components == 0:
+            return all_threats
 
-                ai_threats.append({
-                    "type": stride_category,
-                    "description": threat.get("description"),
-                    "target": target_name,
-                    "severity": severity_info,
-                    "mitre_techniques": [{"id": tech, "name": ""} for tech in threat.get("mitre_techniques", [])],
-                    "stride_category": stride_category,
-                    "capecs": [], # AI doesn't generate CAPECs in this version
-                    "cve": threat.get("real_world_precedents", []),
-                    "confidence": threat.get("confidence", 0.8),
-                    "source": "AI"
-                })
+        if progress_callback:
+            progress_callback(f"Starting AI enrichment for {total_components} components...")
+
+        ai_threats = []
+        semaphore = asyncio.Semaphore(5)  # Limit concurrency to 5 workers
+        processed_count = [0]
+
+        async def process_component(component):
+            async with semaphore:
+                try:
+                    generated_threats = await self.ai_provider.generate_threats(component, self.ai_context)
+                    processed_count[0] += 1
+                    if progress_callback:
+                        progress_callback(f"AI Enrichment: {processed_count[0]}/{total_components} components processed ({component.get('name')})")
+                    
+                    component_threats = []
+                    for threat in generated_threats:
+                        stride_category = threat.get("category", "InformationDisclosure")
+                        target_name = component.get("name")
+                        
+                        # Use the severity calculator for AI-generated threats
+                        severity_info = self.severity_calculator.get_severity_info(
+                            stride_category, 
+                            target_name,
+                            impact=threat.get("business_impact", {}).get("impact_score"),
+                            likelihood=threat.get("business_impact", {}).get("likelihood_score")
+                        )
+
+                        component_threats.append({
+                            "type": stride_category,
+                            "description": threat.get("description"),
+                            "target": target_name,
+                            "severity": severity_info,
+                            "mitre_techniques": [{"id": tech, "name": ""} for tech in threat.get("mitre_techniques", [])],
+                            "stride_category": stride_category,
+                            "capecs": [], # AI doesn't generate CAPECs in this version
+                            "cve": [p for p in threat.get("real_world_precedents", []) if isinstance(p, str) and _CVE_RE.match(p.strip())],
+                            "confidence": threat.get("confidence", 0.8),
+                            "source": "AI"
+                        })
+                    return component_threats
+                except Exception as e:
+                    logging.error(f"Error enriching component {component.get('name')}: {e}")
+                    processed_count[0] += 1
+                    return []
+
+        # Run all components in parallel (limited by semaphore)
+        tasks = [process_component(c) for c in components_to_enrich]
+        results = await asyncio.gather(*tasks)
+        
+        # Flatten results
+        for component_threats in results:
+            ai_threats.extend(component_threats)
 
         # Simple deduplication: identify unique AI threats based on category and description
         existing_threats_signatures = set()
@@ -170,7 +229,8 @@ class ReportGenerator:
     def generate_html_report(self, threat_model, grouped_threats: Dict[str, List], 
                              output_file: Path = Path("stride_mitre_report.html"), 
                              all_detailed_threats: Optional[List[Dict]] = None,
-                             report_title: str = "🛡️ STRIDE & MITRE ATT&CK Threat Model Report") -> Path:
+                             report_title: str = "🛡️ STRIDE & MITRE ATT&CK Threat Model Report",
+                             progress_callback = None) -> Path:
         """Generates a complete HTML report with MITRE ATT&CK"""
         # Temporarily set threat_model_ref for _get_all_threats_with_mitre_info
         original_threat_model_ref = self.threat_model_ref
@@ -186,13 +246,16 @@ class ReportGenerator:
 
             if self.ai_provider:
                  original_count = len(all_detailed_threats)
-                 all_detailed_threats = asyncio.run(self._enrich_threats_with_ai(threat_model, all_detailed_threats))
+                 all_detailed_threats = asyncio.run(self._enrich_threats_with_ai(threat_model, all_detailed_threats, progress_callback=progress_callback))
                  ai_added = len(all_detailed_threats) - original_count
                  logging.info(f"AI enrichment complete. Added {ai_added} new threats.")
             
             self.all_detailed_threats = all_detailed_threats
             summary_stats = self.generate_summary_stats(all_detailed_threats)
-            stride_categories = sorted(list(set(threat['stride_category'] for threat in all_detailed_threats if threat['stride_category'] != "Threat")))
+            stride_categories = sorted(
+                c for c in self._VALID_STRIDE
+                if any(t['stride_category'] == c for t in all_detailed_threats)
+            )
             
             unique_business_values = self._get_all_business_values(threat_model)
             
@@ -225,32 +288,18 @@ class ReportGenerator:
 
     def generate_json_export(self, threat_model, grouped_threats: Dict[str, List],
                              output_file: Path = Path("mitre_analysis.json")) -> Path:
-        """Generates a JSON export of the analysis data"""
-        # Temporarily set threat_model_ref
+        """Generates a versioned JSON export (schema_version 1.0) of the analysis data."""
         original_threat_model_ref = self.threat_model_ref
         self.threat_model_ref = threat_model
 
         try:
-            export_data = {
-                "analysis_date": datetime.now().isoformat(),
-                "architecture": threat_model.tm.name,
-                "threats_detected": sum(len(threats) for threats in grouped_threats.values()),
-                "threat_types": list(grouped_threats.keys()),
-                "mitre_mapping": self.mitre_mapping.capec_to_mitre_map,
-                "severity_levels": {
-                    "CRITICAL": "9.0-10.0",
-                    "HIGH": "7.5-8.9",
-                    "MEDIUM": "6.0-7.4",
-                    "LOW": "4.0-5.9",
-                    "INFORMATIONAL": "1.0-3.9"
-                },
-                "detailed_threats": self._export_detailed_threats(grouped_threats, threat_model)
-            }
+            all_detailed_threats = self._get_all_threats_with_mitre_info(grouped_threats, threat_model)
+            export_data = ReportSerializer.serialize(threat_model, all_detailed_threats)
 
             with open(output_file, "w", encoding="utf-8") as f:
                 json.dump(export_data, f, indent=2, ensure_ascii=False)
         finally:
-            self.threat_model_ref = original_threat_model_ref # Reset
+            self.threat_model_ref = original_threat_model_ref
 
         return output_file
 
@@ -285,8 +334,8 @@ class ReportGenerator:
 
     def _get_all_threats_with_mitre_info(self, grouped_threats: Dict[str, List], threat_model: ThreatModel) -> List[Dict[str, Any]]:
         """Gathers detailed information for all threats, including MITRE ATT&CK mapping and severity."""
-        all_detailed_threats = []
-        
+        pytm_threat_dicts = []
+
         # Process threats from grouped_threats (PyTM and custom threats)
         for threat_type, threats in grouped_threats.items():
             for item in threats:
@@ -302,68 +351,92 @@ class ReportGenerator:
                 data_classification = None
                 if hasattr(threat, 'target') and hasattr(threat.target, 'data') and hasattr(threat.target.data, 'classification'):
                     data_classification = threat.target.data.classification.name
-                
+
                 threat_impact = getattr(threat, 'impact', None)
                 threat_likelihood = getattr(threat, 'likelihood', None)
 
                 # Get business_value of the target
                 business_value = None
-                # Check if target is a pytm object (Actor, Server, Boundary)
                 if hasattr(target, 'name'):
-                    # Search in threat_model's stored components
-                    # Actors
                     for actor_data in threat_model.actors:
                         if actor_data.get('object') == target:
                             business_value = actor_data.get('business_value')
                             break
-                    # Servers
                     if not business_value:
                         for server_data in threat_model.servers:
                             if server_data.get('object') == target:
                                 business_value = server_data.get('business_value')
                                 break
-                    # Boundaries
                     if not business_value:
                         for boundary_data in threat_model.boundaries.values():
                             if boundary_data.get('boundary') == target:
                                 business_value = boundary_data.get('business_value')
                                 break
-                
-                severity_info = self.severity_calculator.get_severity_info(stride_category, target_name, classification=data_classification, impact=threat_impact, likelihood=threat_likelihood)
-                
+
+                # --- MITRE mapping (done before severity so D3FEND is available) ---
                 threat_dict = {
                     "description": threat_description,
                     "stride_category": stride_category,
                     "capec_ids": getattr(threat, 'capec_ids', []),
-                    "source": threat_source # Add the source to the dict
+                    "source": threat_source,
                 }
                 mapping_results = self.mitre_mapping.map_threat_to_mitre(threat_dict)
                 mitre_techniques = mapping_results.get('techniques', [])
                 capecs = mapping_results.get('capecs', [])
 
+                # --- CVE lookup (done before severity to feed RiskContext) ---
                 cve_ids_for_threat = set()
-                
+                cwe_ids_for_threat: List[str] = []
+
                 target_names_to_check = []
                 if isinstance(target, tuple) and len(target) == 2:
                     source_obj = target[0]
                     sink_obj = target[1]
                     source_name = extract_name_from_object(source_obj)
                     sink_name = extract_name_from_object(sink_obj)
-                    if source_name != "Unspecified": target_names_to_check.append(source_name)
-                    if sink_name != "Unspecified": target_names_to_check.append(sink_name)
+                    if source_name != "Unspecified":
+                        target_names_to_check.append(source_name)
+                    if sink_name != "Unspecified":
+                        target_names_to_check.append(sink_name)
                 else:
                     target_names_to_check.append(target_name)
 
+                threat_capecs = {capec['capec_id'] for capec in capecs}
                 for name_to_check in target_names_to_check:
                     equipment_cves = self.cve_service.get_cves_for_equipment(name_to_check)
-                    if equipment_cves:
-                        threat_capecs = {capec['capec_id'] for capec in capecs}
-                        for cve_id in equipment_cves:
-                            cve_capecs = self.cve_service.get_capecs_for_cve(cve_id.upper())
-                            if threat_capecs.intersection(cve_capecs):
-                                cve_ids_for_threat.add(cve_id)
+                    for cve_id in equipment_cves:
+                        cve_capecs = self.cve_service.get_capecs_for_cve(cve_id.upper())
+                        if threat_capecs.intersection(cve_capecs):
+                            cve_ids_for_threat.add(cve_id)
+                            cwe_ids_for_threat.extend(
+                                self.cve_service.get_cwes_for_cve(cve_id.upper())
+                            )
 
-                all_detailed_threats.append({
+                # --- Network exposure signal ---
+                network_exposed = _is_network_exposed(target)
+
+                # --- D3FEND coverage signal ---
+                has_d3fend = any(
+                    tech.get('defend_mitigations')
+                    for tech in mitre_techniques
+                )
+
+                # --- Build unified RiskContext and score ---
+                risk_ctx = RiskContext(
+                    has_cve_match=bool(cve_ids_for_threat),
+                    cwe_ids=list(set(cwe_ids_for_threat)),
+                    network_exposed=network_exposed,
+                    has_d3fend_mitigations=has_d3fend,
+                )
+                severity_info = self.severity_calculator.get_severity_info(
+                    stride_category, target_name,
+                    classification=data_classification,
+                    impact=threat_impact,
+                    likelihood=threat_likelihood,
+                    risk_context=risk_ctx,
+                )
+
+                pytm_threat_dicts.append({
                     "type": threat_type,
                     "description": threat_description,
                     "target": target_name,
@@ -374,9 +447,93 @@ class ReportGenerator:
                     "cve": sorted(list(cve_ids_for_threat)),
                     "business_value": business_value,
                     "confidence": getattr(threat, 'confidence', 1.0),
-                    "source": "pytm"
+                    "source": threat_source,
+                    "risk_signals": {
+                        "cve_match": risk_ctx.has_cve_match,
+                        "cwe_high_risk": risk_ctx.cwe_high_risk,
+                        "network_exposed": risk_ctx.network_exposed,
+                        "d3fend_mitigations": risk_ctx.has_d3fend_mitigations,
+                    },
                 })
-        
+
+        # Collect component-level AI threats (added by AIService._enrich_with_ai_threats)
+        ai_element_threat_dicts = []
+        enriched_elements = (
+            [(d.get('object'), d.get('name', ''), d.get('business_value')) for d in threat_model.actors] +
+            [(d.get('object'), d.get('name', ''), d.get('business_value')) for d in threat_model.servers]
+        )
+        # Dataflows are stored as pytm objects directly (not dicts)
+        for df in threat_model.dataflows:
+            enriched_elements.append((df, getattr(df, 'name', ''), None))
+
+        for element_obj, element_name, business_value in enriched_elements:
+            if element_obj is None:
+                continue
+            for et in getattr(element_obj, 'threats', []):
+                if getattr(et, 'source', 'pytm') != 'AI':
+                    continue
+                stride_category = getattr(et, 'stride_category', getattr(et, 'category', 'Unknown'))
+                target_name = element_name or getattr(element_obj, 'name', 'Unknown')
+                threat_description = getattr(et, 'description', f"AI threat on {target_name}")
+
+                threat_dict_for_mapping = {
+                    "description": threat_description,
+                    "stride_category": stride_category,
+                    "capec_ids": getattr(et, 'capec_ids', []),
+                    "source": "AI",
+                }
+                mapping_results = self.mitre_mapping.map_threat_to_mitre(threat_dict_for_mapping)
+                ai_mitre_techniques = mapping_results.get('techniques', [])
+                ai_capecs = mapping_results.get('capecs', [])
+
+                # CVE lookup for AI-element threats
+                ai_cve_ids: set = set()
+                ai_cwe_ids: List[str] = []
+                ai_threat_capecs = {c['capec_id'] for c in ai_capecs}
+                for cve_id in self.cve_service.get_cves_for_equipment(target_name):
+                    if ai_threat_capecs.intersection(
+                        self.cve_service.get_capecs_for_cve(cve_id.upper())
+                    ):
+                        ai_cve_ids.add(cve_id)
+                        ai_cwe_ids.extend(self.cve_service.get_cwes_for_cve(cve_id.upper()))
+
+                ai_risk_ctx = RiskContext(
+                    has_cve_match=bool(ai_cve_ids),
+                    cwe_ids=list(set(ai_cwe_ids)),
+                    network_exposed=_is_network_exposed(element_obj),
+                    has_d3fend_mitigations=any(
+                        t.get('defend_mitigations') for t in ai_mitre_techniques
+                    ),
+                )
+                severity_info = self.severity_calculator.get_severity_info(
+                    stride_category, target_name,
+                    impact=getattr(et, 'impact', None),
+                    likelihood=getattr(et, 'likelihood', None),
+                    risk_context=ai_risk_ctx,
+                )
+                ai_element_threat_dicts.append({
+                    "type": stride_category,
+                    "description": threat_description,
+                    "target": target_name,
+                    "severity": severity_info,
+                    "mitre_techniques": ai_mitre_techniques,
+                    "stride_category": stride_category,
+                    "capecs": ai_capecs,
+                    "cve": sorted(ai_cve_ids),
+                    "business_value": business_value,
+                    "confidence": getattr(et, 'confidence', 0.9),
+                    "source": "AI",
+                    "risk_signals": {
+                        "cve_match": ai_risk_ctx.has_cve_match,
+                        "cwe_high_risk": ai_risk_ctx.cwe_high_risk,
+                        "network_exposed": ai_risk_ctx.network_exposed,
+                        "d3fend_mitigations": ai_risk_ctx.has_d3fend_mitigations,
+                    },
+                })
+
+        # Merge: AI wins on semantic duplicates within same (target, stride_category)
+        all_detailed_threats = ThreatConsolidator.deduplicate(pytm_threat_dicts, ai_element_threat_dicts)
+
         # Process global RAG threats
         if hasattr(threat_model.tm, 'global_threats_llm'): # Access via threat_model
             for threat in threat_model.tm.global_threats_llm:
@@ -411,7 +568,7 @@ class ReportGenerator:
                     "stride_category": stride_category,
                     "capecs": capecs,
                     "cve": [], # RAG threats don't have CVEs by default
-                    "confidence": 1.0, # Default confidence for RAG threats
+                    "confidence": getattr(threat, 'confidence', 0.75),
                     "source": threat_source
                 })
         
@@ -421,13 +578,27 @@ class ReportGenerator:
         """Determines the target name for severity calculation, handling different target types."""
         return get_target_name(target)
 
+    _VALID_STRIDE: frozenset = frozenset({
+        'Spoofing', 'Tampering', 'Repudiation',
+        'Information Disclosure', 'Denial of Service', 'Elevation of Privilege',
+    })
+
     def generate_summary_stats(self, all_detailed_threats: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Generates summary statistics based on severity scores."""
+        """Generates summary statistics based on severity scores.
+
+        Only counts threats that belong to one of the 6 canonical STRIDE categories
+        and have a non-Unknown severity level.
+        """
         if not all_detailed_threats: return {}
-        all_scores = [threat['severity']['score'] for threat in all_detailed_threats if 'severity' in threat and 'score' in threat['severity']]
+        known_threats = [
+            t for t in all_detailed_threats
+            if t.get('stride_category') in self._VALID_STRIDE
+            and t.get('severity', {}).get('level', 'UNKNOWN').upper() != 'UNKNOWN'
+        ]
+        all_scores = [t['severity']['score'] for t in known_threats if 'severity' in t and 'score' in t['severity']]
         if not all_scores: return {}
-        severity_distribution = {}
-        for threat in all_detailed_threats:
+        severity_distribution: Dict[str, int] = {}
+        for threat in known_threats:
             level = threat.get('severity', {}).get('level', 'UNKNOWN')
             severity_distribution[level] = severity_distribution.get(level, 0) + 1
         return {
@@ -651,9 +822,10 @@ class ReportGenerator:
         
         # Internal helper to track progress across recursion
         processed_count = [0]
-        def tracked_progress_callback(message):
-            processed_count[0] += 1
-            percent = 20 + int((processed_count[0] / total_models) * 70) # Map to 20-90% range
+        def tracked_progress_callback(message, is_new_model=False):
+            if is_new_model:
+                processed_count[0] += 1
+            percent = 20 + int((min(processed_count[0], total_models) / total_models) * 70) # Map to 20-90% range
             if progress_callback: progress_callback(percent, message)
 
         self._recursively_generate_reports(
@@ -725,7 +897,7 @@ class ReportGenerator:
         Recursively generates reports for each model in the project.
         """
         model_name = model_path.stem
-        if progress_callback: progress_callback(f"Generating reports for {model_name}...")
+        if progress_callback: progress_callback(f"Generating reports for {model_name}...", is_new_model=True)
 
         try:
             with open(model_path, "r", encoding="utf-8") as f:
@@ -747,7 +919,7 @@ class ReportGenerator:
             grouped_threats = threat_model.process_threats()
             all_project_models.append(threat_model)
 
-            self.generate_html_report(threat_model, grouped_threats, output_dir / f"{model_name}_threat_report.html")
+            self.generate_html_report(threat_model, grouped_threats, output_dir / f"{model_name}_threat_report.html", progress_callback=progress_callback)
             self.generate_json_export(threat_model, grouped_threats, output_dir / f"{model_name}.json")
             self.generate_diagram_html(threat_model, output_dir, breadcrumb, project_protocols, project_protocol_styles)
 

@@ -1,24 +1,29 @@
 # Provider configuration
 ai_providers:
-  mistral_api:
-    enabled: false
-    model: "mistral-small-3.1"
-    api_key_env: "MISTRAL_API_KEY"
-    temperature: 0.3
-    max_tokens: 4096
-    timeout: 30
-    
-  gemini:
+  mistral:
     enabled: true
-    model: "gemini-flash-latest"
-    api_key_env: "GOOGLE_API_KEY"
+    model: "mistral-small-latest"
+    api_key_env: "MISTRAL_API_KEY"
+    api_base: ""  # Set your internal enterprise host here (e.g. http://mistral.internal:8000/v1)
     temperature: 0.3
     max_tokens: 4096
     timeout: 30
 
-  openai:  # Fallback optionnel
+  gemini:
+    enabled: false
+    model: "gemini-flash-latest"
+    api_key_env: "GOOGLE_API_KEY"
+    api_base: ""  # Set your internal enterprise host here
+    temperature: 0.3
+    max_tokens: 4096
+    timeout: 30
+
+  openai:
     enabled: false
     model: "gpt-4o-mini"
+    api_key_env: "OPENAI_API_KEY"
+    api_base: ""  # Set your internal enterprise host here
+
 
   ollama:
     enabled: false
@@ -36,12 +41,20 @@ threat_generation:
   fallback_to_traditional: true
   max_threats_per_component: 10
   include_attack_flows: true
+  # Delay (seconds) between per-component LLM calls.
+  # Set to 1.5 for Gemini free tier, 0.0 for paid/Ollama.
+  rate_limit_sleep: 0.0
   
+# Embedding configuration (Shared between Vector Store and RAG)
+embedding:
+  provider: huggingface        # huggingface | google | mistral | ollama
+  model: all-MiniLM-L6-v2
+  device: cpu                  # cpu | cuda
+
 # RAG configuration (Phase 2)
 rag:
   enabled: true
   vector_db: "chroma"
-  embedding_model: "sentence-transformers/all-MiniLM-L6-v2"
   top_k_examples: 5
   
 # Attack Flow generation

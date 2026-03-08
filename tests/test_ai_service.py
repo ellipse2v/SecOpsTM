@@ -17,54 +17,60 @@ from unittest.mock import MagicMock, AsyncMock, patch, mock_open
 
 from threat_analysis.server.ai_service import AIService
 
+AI_CONFIG_WITH_RAG = """
+ai_providers: {}
+rag:
+  enabled: true
+"""
+
 @pytest.fixture
 def ai_service():
     with patch("os.path.exists", return_value=True):
-        with patch("builtins.open", mock_open(read_data="ai_providers: {}")):
+        with patch("builtins.open", mock_open(read_data=AI_CONFIG_WITH_RAG)):
             return AIService(config_path="dummy_config.yaml")
 
 @pytest.mark.asyncio
 async def test_init_ai(ai_service):
-    with patch("threat_analysis.server.ai_service.LiteLLMClient.create", new_callable=AsyncMock) as mock_create, \
+    with patch("threat_analysis.server.ai_service.LiteLLMProvider") as mock_provider_class, \
          patch("threat_analysis.server.ai_service.RAGThreatGenerator") as mock_rag:
         
-        mock_client = MagicMock()
-        mock_client.ai_online = True
-        mock_create.return_value = mock_client
+        mock_provider = MagicMock()
+        mock_provider.check_connection = AsyncMock(return_value=True)
+        mock_provider_class.return_value = mock_provider
         
         await ai_service.init_ai()
         
         assert ai_service.ai_online is True
-        mock_create.assert_awaited_once()
+        mock_provider.check_connection.assert_awaited_once()
         mock_rag.assert_called_once()
 
 @pytest.mark.asyncio
 async def test_generate_markdown_from_prompt(ai_service):
     ai_service.ai_online = True
-    ai_service.litellm_client = MagicMock()
+    ai_service.provider = MagicMock()
     
     async def mock_gen(**kwargs):
         yield "chunk 1 "
         yield "chunk 2"
         
-    ai_service.litellm_client.generate_content.side_effect = mock_gen
+    ai_service.provider.generate_markdown.return_value = mock_gen()
     
     chunks = []
     async for chunk in ai_service.generate_markdown_from_prompt("test prompt", "existing markdown"):
         chunks.append(chunk)
     
     assert chunks == ["chunk 1 ", "chunk 2"]
-    ai_service.litellm_client.generate_content.assert_called_once()
+    ai_service.provider.generate_markdown.assert_called_once()
 
 def test_generate_markdown_from_prompt_sync(ai_service):
     ai_service.ai_online = True
-    ai_service.litellm_client = MagicMock()
+    ai_service.provider = MagicMock()
     
     async def mock_gen(**kwargs):
         yield "chunk 1 "
         yield "chunk 2"
         
-    ai_service.litellm_client.generate_content.side_effect = mock_gen
+    ai_service.provider.generate_markdown.return_value = mock_gen()
     
     chunks = list(ai_service.generate_markdown_from_prompt_sync("test prompt"))
     assert chunks == ["chunk 1 ", "chunk 2"]
@@ -72,15 +78,15 @@ def test_generate_markdown_from_prompt_sync(ai_service):
 @pytest.mark.asyncio
 async def test_enrich_with_ai_threats(ai_service):
     ai_service.ai_online = True
-    ai_service.litellm_client = MagicMock()
-    ai_service.litellm_client.check_connection = AsyncMock(return_value=True)
+    ai_service.provider = MagicMock()
+    ai_service.provider.check_connection = AsyncMock(return_value=True)
     
     class MockElement:
         def __init__(self, name, description, stereotype):
             self.name = name
             self.description = description
             self.stereotype = stereotype
-            # self.threats will be added by the service
+            self.threats = []
             
     actor = MockElement("Actor 1", "Actor desc", "Actor")
     
@@ -91,20 +97,18 @@ async def test_enrich_with_ai_threats(ai_service):
     threat_model.dataflows = []
     threat_model.tm.description = "System desc"
     
-    async def mock_gen(**kwargs):
-        yield {
+    ai_service.provider.generate_threats = AsyncMock(return_value=[
+        {
             "title": "SQLi",
             "description": "SQL injection",
             "category": "Information Disclosure",
             "likelihood": "high",
             "business_impact": {"severity": "critical", "details": "bad"}
         }
-        
-    ai_service.litellm_client.generate_content.return_value = mock_gen()
+    ])
     
     await ai_service._enrich_with_ai_threats(threat_model)
     
-    assert hasattr(actor, 'threats')
     assert len(actor.threats) == 1
     assert "SQLi" in actor.threats[0].description
 
@@ -142,8 +146,8 @@ async def test_generate_rag_threats(ai_service):
 @pytest.mark.asyncio
 async def test_enrich_with_ai_threats_rag_enabled(ai_service):
     ai_service.ai_online = True
-    ai_service.litellm_client = MagicMock()
-    ai_service.litellm_client.check_connection = AsyncMock(return_value=True)
+    ai_service.provider = MagicMock()
+    ai_service.provider.check_connection = AsyncMock(return_value=True)
     ai_service.rag_generator = MagicMock()
     ai_service.rag_generator.generate_threats.return_value = []
     
@@ -162,14 +166,15 @@ async def test_enrich_with_ai_threats_rag_enabled(ai_service):
 @pytest.mark.asyncio
 async def test_enrich_with_ai_threats_json_fallback(ai_service):
     ai_service.ai_online = True
-    ai_service.litellm_client = MagicMock()
-    ai_service.litellm_client.check_connection = AsyncMock(return_value=True)
+    ai_service.provider = MagicMock()
+    ai_service.provider.check_connection = AsyncMock(return_value=True)
     
     class MockElement:
         def __init__(self, name, description, stereotype):
             self.name = name
             self.description = description
             self.stereotype = stereotype
+            self.threats = []
             
     actor = MockElement("Actor 1", "Actor desc", "Actor")
     threat_model = MagicMock()
@@ -178,25 +183,11 @@ async def test_enrich_with_ai_threats_json_fallback(ai_service):
     threat_model.dataflows = []
     threat_model.tm.description = "System desc"
     
-    # Mock return string with markdown fences
-    async def mock_gen(**kwargs):
-        yield "```json\n"
-        yield '{"title": "Fenced", "description": "desc"}'
-        yield "\n```"
-        
-    ai_service.litellm_client.generate_content.return_value = mock_gen()
+    ai_service.provider.generate_threats = AsyncMock(return_value=[
+        {"title": "Fenced", "description": "desc"}
+    ])
     
     await ai_service._enrich_with_ai_threats(threat_model)
     assert len(actor.threats) == 1
     assert "Fenced" in actor.threats[0].description
 
-    # Reset
-    actor.threats = []
-    # Mock return string with raw JSON
-    async def mock_gen_raw(**kwargs):
-        yield '{"title": "Raw", "description": "desc"}'
-        
-    ai_service.litellm_client.generate_content.return_value = mock_gen_raw()
-    await ai_service._enrich_with_ai_threats(threat_model)
-    assert len(actor.threats) == 1
-    assert "Raw" in actor.threats[0].description

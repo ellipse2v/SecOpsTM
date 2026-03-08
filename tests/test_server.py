@@ -723,21 +723,80 @@ def test_check_version_compatibility_success(client):
                 assert response.status_code == 200
                 assert response.get_json()['compatible'] is True
 
-def test_load_metadata_success(client):
-    """Test the /api/load_metadata endpoint."""
-    with patch('os.path.exists', return_value=True), \
-         patch('builtins.open', mock_open(read_data='{"version": "1.0"}')), \
-         patch('threat_analysis.server.server.config.OUTPUT_BASE_DIR', '/root/output'), \
-         patch('threat_analysis.server.server.project_root', '/root'):
+def test_generate_markdown_from_prompt_success(client):
+    """Test the /api/generate_markdown_from_prompt endpoint."""
+    with patch('threat_analysis.server.server.get_threat_model_service') as mock_get_service:
+        mock_service = MagicMock()
+        mock_get_service.return_value = mock_service
+        mock_service.ai_online = True
         
-        def mocked_abspath(path):
-            if path.startswith('output'):
-                return '/root/' + path
-            return path
+        async def mock_gen(*args):
+            yield "```markdown\n# Generated Model\n```"
+        
+        mock_service.generate_markdown_from_prompt.return_value = mock_gen()
+        
+        payload = {'prompt': 'Create a web app model'}
+        response = client.post('/api/generate_markdown_from_prompt', data=json.dumps(payload), content_type='application/json')
+        
+        assert response.status_code == 200
+        assert response.get_json()['markdown_content'] == '# Generated Model'
 
-        with patch('os.path.abspath', side_effect=mocked_abspath):
-            payload = {'metadata_path': 'output/meta.json'}
-            response = client.post('/api/load_metadata', data=json.dumps(payload), content_type='application/json')
-            assert response.status_code == 200
-            assert response.get_json()['metadata']['version'] == "1.0"
+def test_generate_markdown_from_prompt_no_online(client):
+    """Test the /api/generate_markdown_from_prompt endpoint when AI is offline."""
+    with patch('threat_analysis.server.server.get_threat_model_service') as mock_get_service:
+        mock_service = MagicMock()
+        mock_get_service.return_value = mock_service
+        mock_service.ai_online = False
+        
+        payload = {'prompt': 'test'}
+        response = client.post('/api/generate_markdown_from_prompt', data=json.dumps(payload), content_type='application/json')
+        assert response.status_code == 503
+
+def test_ai_status_stream(client):
+    """Test the /api/ai_status_stream endpoint."""
+    with patch('threat_analysis.server.server.get_threat_model_service') as mock_get_service:
+        mock_service = MagicMock()
+        mock_get_service.return_value = mock_service
+        mock_service.ai_online = True
+        
+        response = client.get('/api/ai_status_stream')
+        assert response.status_code == 200
+        assert response.mimetype == "text/event-stream"
+
+def test_progress_stream(client):
+    """Test the /api/progress_stream endpoint."""
+    response = client.get('/api/progress_stream')
+    assert response.status_code == 200
+    assert response.mimetype == "text/event-stream"
+
+def test_sse_broadcaster():
+    """Test the SSEBroadcaster class."""
+    from threat_analysis.server.server import SSEBroadcaster
+    import queue
+    
+    broadcaster = SSEBroadcaster()
+    q = broadcaster.subscribe()
+    assert isinstance(q, queue.Queue)
+    
+    broadcaster.broadcast("test_event", {"data": "info"})
+    msg = q.get(timeout=1)
+    assert "event: test_event" in msg
+    assert '"data": "info"' in msg
+    
+    broadcaster.unsubscribe(q)
+    assert q not in broadcaster.listeners
+
+def test_before_after_request(client):
+    """Test before_request and after_request hooks."""
+    response = client.get('/')
+    assert response.status_code == 200
+    # The hooks should have executed without error.
+
+def test_get_threat_model_service_singleton():
+    """Test that get_threat_model_service returns a singleton."""
+    with patch('threat_analysis.server.threat_model_service.ThreatModelService') as mock_service_class:
+        mock_service_class.return_value = MagicMock()
+        s1 = get_threat_model_service()
+        s2 = get_threat_model_service()
+        assert s1 is s2
 

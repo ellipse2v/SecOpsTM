@@ -456,6 +456,24 @@ class CustomArgumentParser:
             default="config/context.yaml",
             help="Path to the AI context file (e.g., context.yaml).",
         )
+        self.parser.add_argument(
+            "--output-format",
+            type=str,
+            default="all",
+            choices=["all", "html", "json", "stix"],
+            help="Output format(s) to generate. Use 'json' for CI pipelines.",
+        )
+        self.parser.add_argument(
+            "--output-file",
+            type=str,
+            default=None,
+            help="Write the primary output to this path instead of the default timestamped directory.",
+        )
+        self.parser.add_argument(
+            "--stdout",
+            action="store_true",
+            help="Print JSON report to stdout (implies --output-format json). Useful for CI pipelines.",
+        )
 
     def parse_args(self):
         return self.parser.parse_known_args()
@@ -555,23 +573,33 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
 
     if not threats:
         logging.error("Threat analysis failed. Please check the logs for validation errors.")
-        # Removed framework.threat_model check as it should always be present now
         validator = ModelValidator(framework.threat_model)
         errors = validator.validate()
         for error in errors:
             logging.error(f"- {error}")
         sys.exit(1)
 
-    reports = framework.generate_reports()
-    framework.generate_stix_report()
-    diagrams = framework.generate_diagrams()
+    output_format = getattr(args, "output_format", "all")
+    to_stdout = getattr(args, "stdout", False)
+    explicit_output_file = getattr(args, "output_file", None)
 
-    # Generate metadata for graphical editor
-    framework.diagram_generator.generate_metadata(
-        threat_model=framework.threat_model,
-        markdown_content=framework.markdown_content,
-        output_path=str(base_model_filepath)
-    )
+    if to_stdout:
+        output_format = "json"
+
+    reports = {}
+    if output_format in ("all", "html", "json"):
+        reports = framework.generate_reports()
+
+    if output_format in ("all", "stix"):
+        framework.generate_stix_report()
+
+    if output_format == "all":
+        diagrams = framework.generate_diagrams()
+        framework.diagram_generator.generate_metadata(
+            threat_model=framework.threat_model,
+            markdown_content=framework.markdown_content,
+            output_path=str(base_model_filepath)
+        )
 
     if args.navigator:
         framework.generate_navigator_layer()
@@ -582,6 +610,24 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
             output_dir=framework.output_base_dir,
             model_name=framework.model_name
         )
+
+    # --output-file: copy primary output to the requested path
+    if explicit_output_file and reports:
+        primary_key = "json" if output_format == "json" else "html"
+        primary_path = reports.get(primary_key) or reports.get("html") or reports.get("json")
+        if primary_path and os.path.exists(primary_path):
+            import shutil
+            shutil.copy2(primary_path, explicit_output_file)
+            logging.info(f"Output copied to {explicit_output_file}")
+
+    # --stdout: print the JSON report to stdout for CI consumption
+    if to_stdout:
+        json_path = reports.get("json")
+        if json_path and os.path.exists(json_path):
+            with open(json_path, "r", encoding="utf-8") as _f:
+                sys.stdout.write(_f.read())
+        else:
+            logging.error("--stdout requested but JSON report was not generated.")
 
 class ColoredFormatter(logging.Formatter):
     """Custom formatter to add color to log messages."""
@@ -601,7 +647,8 @@ class ColoredFormatter(logging.Formatter):
         return f"{self.COLOR_CODES.get(record.levelname, self.RESET_CODE)}{log_message}{self.RESET_CODE}"
 
 # --- Main entry point ---
-if __name__ == "__main__":
+def main():
+    """Entry point for the `secopstm` CLI command."""
     print("\n🚀 SecOpsTM Framework is starting...")
     # --- Argument Parsing ---
     loaded_iac_plugins = load_iac_plugins()
@@ -725,3 +772,7 @@ if __name__ == "__main__":
 
         # if "html" in reports and reports["html"]:
         #     framework.open_report_in_browser(reports["html"])
+
+
+if __name__ == "__main__":
+    main()

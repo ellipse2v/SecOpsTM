@@ -20,7 +20,7 @@ import os
 import json
 import time
 import importlib
-import re
+from threat_analysis.utils import extract_json_from_llm_response
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
@@ -30,32 +30,10 @@ class LiteLLMClient:
         self.model_name = ""
         self.stream = False
         self.ai_online = False
-        self.client = None # litellm doesn\'t require a client object for its main completion function
+        self.client = None 
         self.provider_config = {}
-        self._litellm_module = None # To hold the dynamically imported litellm module
-
-    def _extract_json_from_response(self, text: str) -> str:
-        """Extracts a JSON object from a string that might be wrapped in markdown or have other text."""
-        # First, try to find JSON within markdown code fences
-        pattern = r"```(?:json)?\s*(\{.*?\})\s*```"
-        match = re.search(pattern, text, re.DOTALL)
-        if match:
-            return match.group(1)
-
-        # If no fences, find the first '{' and last '}' as a fallback for models that don't use fences
-        try:
-            start = text.find('{')
-            end = text.rfind('}')
-            if start != -1 and end != -1 and end > start:
-                potential_json = text[start:end+1]
-                # A simple check to see if it's likely a JSON object
-                json.loads(potential_json)
-                return potential_json
-        except (json.JSONDecodeError, TypeError):
-             # Not a valid JSON object, return None to indicate failure.
-             return None
-
-        return None # No JSON found or extracted.
+        self.api_base = None
+        self._litellm_module = None 
 
     @staticmethod
     async def create():
@@ -118,6 +96,11 @@ class LiteLLMClient:
                     else:
                         logging.warning(f"[{time.time() - start_time:.4f}s] API key environment variable {api_key_env} is not set.")
 
+                # Handle Custom API Base (Internal enterprise host)
+                self.api_base = self.provider_config.get('api_base')
+                if self.api_base:
+                    logging.info(f"[{time.time() - start_time:.4f}s] Custom API base configured for {provider_name}: {self.api_base}")
+
                 logging.info(f"[{time.time() - start_time:.4f}s] Checking AI server status...")
                 self.ai_online = await self.check_connection()
                 if self.ai_online:
@@ -144,7 +127,8 @@ class LiteLLMClient:
                 messages=[{"role": "user", "content": "hi"}],
                 max_tokens=1, 
                 timeout=self.provider_config.get('timeout', 10),    
-                stream=False  
+                stream=False,
+                api_base=self.api_base
             )
             logging.debug(f"[{time.time() - check_start_time:.4f}s] AI model {self.model_name} responded successfully.")
             return True
@@ -173,7 +157,8 @@ class LiteLLMClient:
             "temperature": self.provider_config.get('temperature', 0.7),
             "max_tokens": self.provider_config.get('max_tokens', 4096),
             "timeout": self.provider_config.get('timeout', 30),
-            "num_retries": 3 # Automatically retry on rate limits
+            "num_retries": 3, # Automatically retry on rate limits
+            "api_base": self.api_base
         }
 
         if output_format == "json":
@@ -203,7 +188,7 @@ class LiteLLMClient:
                 full_response_content = response.choices[0].message.content
             
             if output_format == "json":
-                cleaned_content = self._extract_json_from_response(full_response_content)
+                cleaned_content = extract_json_from_llm_response(full_response_content)
                 if cleaned_content:
                     try:
                         yield json.loads(cleaned_content)

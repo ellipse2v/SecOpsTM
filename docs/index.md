@@ -18,6 +18,8 @@ This documentation is designed to provide you with everything you need to know t
 
 -   [Extensibility](extensibility.md)
 
+-   [Customizing LLM Prompts](customizing_prompts.md)
+
 -   [Technical Documentation](technical_documentation/index.md)
 
 -   [Roadmap](Roadmap.md)

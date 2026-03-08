@@ -25,6 +25,55 @@ This document outlines the architecture of the diagram generation process, highl
             3.  It then manually constructs an SVG file string by interpreting the JSON data (e.g., drawing paths, placing text, embedding images).
         *   **Implication**: This component **re-implements** the rendering logic. Any feature from DOT/HTML-labels (like `ALIGN="LEFT"` in a `TD`) must be explicitly handled by the Python script. Discrepancies between the native Graphviz output and the output of this script are likely due to features not being implemented in this custom generator.
 
+## Threat Consolidation and VOC Scoring Pipeline
+
+This section describes how the three threat sources (pytm rules, component-level AI, RAG system-level)
+are deduplicated and scored into a single unified output.
+
+### Components
+
+1. **`threat_analysis/core/threat_consolidator.py`** — `ThreatConsolidator`
+   - **Role**: Eliminates duplicate threats that cover the same `(target, stride_category)` with
+     similar descriptions across pytm and AI sources.
+   - **Algorithm**: Offline Jaccard word-overlap (`|s1 ∩ s2| / |s1 ∪ s2| ≥ 0.3`) or substring
+     containment. When a duplicate is found, the AI version is kept (richer context). No NLP
+     library or network access required — purely offline string comparison.
+
+2. **`threat_analysis/severity_calculator_module.py`** — `RiskContext` + `SeverityCalculator`
+   - **Role**: Encodes four binary context signals that adjust the base STRIDE score:
+     - `has_cve_match` → +0.5 (confirmed exploitability evidence for this target/category)
+     - `cwe_high_risk` → +0.3 (CWE class in `_HIGH_RISK_CWES`: injection, memory corruption, hardcoded creds…)
+     - `network_exposed` → +0.7 (Dataflow without auth/encryption, or element in untrusted boundary)
+     - `has_d3fend_mitigations` → −0.5 (active defensive controls reduce residual risk)
+   - **Why CWE instead of CVSS**: The CVE JSONL files carry only `CWE`, `CAPEC`, and `TECHNIQUES`
+     keys — no CVSS scores. CWE class is used as an offline exploitability proxy.
+
+3. **`threat_analysis/core/report_serializer.py`** — `ReportSerializer`
+   - **Role**: Serialises the consolidated threat list into a stable, versioned dict stamped
+     `schema_version: "1.0"`. Threats receive sequential IDs (`T-0001`, `T-0002`, …).
+   - **Validation**: The output is validated against
+     `threat_analysis/schemas/v1/threat_model_report.schema.json` (JSON Schema 2020-12) before
+     being written to disk.
+
+### Scoring order in `ReportGenerator._get_all_threats_with_mitre_info()`
+
+```
+For each threat:
+    1. MitreMapping.analyze()        → ATT&CK techniques, D3FEND mitigations
+    2. CVEService.get_cwes_for_cve() → CWE IDs (single-pass JSONL, lazy-loaded)
+    3. _is_network_exposed(target)   → Dataflow auth/encryption or Boundary trust
+    4. RiskContext(...)              → assemble context signals
+    5. SeverityCalculator.calculate_score(..., risk_context)  → final clamped score
+```
+
+After all threats are collected:
+```
+ThreatConsolidator.deduplicate(pytm_threats, ai_threats)
+    → unique_pytm + ai_threats
+ReportSerializer.serialize(threat_model, all_threats)
+    → validated versioned dict
+```
+
 ## AI Provider Architecture
 
 The framework uses a pluggable AI provider architecture to support various Large Language Models (LLMs) for threat generation and enrichment.

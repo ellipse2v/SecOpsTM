@@ -35,7 +35,6 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # Define paths
 DATA_SOURCE_DIR = "threat_analysis/external_data"
 VECTOR_STORE_DIR = "threat_analysis/vector_store"
-EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
 
 # Ensure the vector store directory exists
 os.makedirs(VECTOR_STORE_DIR, exist_ok=True)
@@ -109,8 +108,14 @@ def main():
 
     # Lazy imports for main function
     from langchain_text_splitters import RecursiveCharacterTextSplitter
-    from langchain_huggingface import HuggingFaceEmbeddings
     from langchain_chroma import Chroma # Use langchain_chroma for Chroma
+    from threat_analysis.ai_engine.embedding_factory import get_embeddings
+    import yaml
+
+    # Load ai_config
+    ai_config_path = "config/ai_config.yaml"
+    with open(ai_config_path, 'r', encoding='utf-8') as f:
+        ai_config = yaml.safe_load(f)
 
     # 1. Load and filter documents
     logging.info(f"Loading and filtering documents from {DATA_SOURCE_DIR}...")
@@ -127,11 +132,12 @@ def main():
     logging.info(f"Split documents into {len(texts)} chunks.")
 
     # 3. Create embeddings
-    logging.info(f"Creating embeddings using '{EMBEDDING_MODEL_NAME}'...")
-    embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL_NAME)
+    logging.info("Creating embeddings...")
+    embeddings = get_embeddings(ai_config)
 
     # 4. Create and persist the vector store
     logging.info(f"Creating and persisting Chroma vector store at '{VECTOR_STORE_DIR}'...")
+
     vector_store = Chroma.from_documents(
         documents=texts,
         embedding=embeddings,

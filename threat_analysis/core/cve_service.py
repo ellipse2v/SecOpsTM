@@ -42,13 +42,57 @@ class CVEService:
         )
         self.cve_definitions = self._load_cve_definitions()
         self._cve_to_capec_map = None
+        self._cve_to_cwe_map: Optional[Dict[str, List[str]]] = None
+
+    def _ensure_maps_loaded(self) -> None:
+        """Loads both the CAPEC and CWE maps from the JSONL files in a single pass."""
+        if self._cve_to_capec_map is not None:
+            return
+        capec_map: Dict[str, List[str]] = {}
+        cwe_map: Dict[str, List[str]] = {}
+        if not self.cve2capec_db_path.is_dir():
+            logging.warning(
+                f"CVE2CAPEC database directory not found at {self.cve2capec_db_path}."
+            )
+            self._cve_to_capec_map = capec_map
+            self._cve_to_cwe_map = cwe_map
+            return
+        for jsonl_file in self.cve2capec_db_path.glob("*.jsonl"):
+            try:
+                with open(jsonl_file, "r", encoding="utf-8") as f:
+                    for line in f:
+                        try:
+                            data = json.loads(line)
+                            for cve_id, details in data.items():
+                                if details.get("CAPEC"):
+                                    capec_map[cve_id] = [
+                                        f"CAPEC-{c}" for c in details["CAPEC"]
+                                    ]
+                                if details.get("CWE"):
+                                    cwe_map[cve_id] = [str(c) for c in details["CWE"]]
+                        except json.JSONDecodeError:
+                            logging.warning(
+                                f"Could not decode line in {jsonl_file}: {line.strip()}"
+                            )
+            except Exception as e:
+                logging.error(f"Error reading {jsonl_file}: {e}")
+        logging.info(
+            f"Loaded {len(capec_map)} CVE→CAPEC and {len(cwe_map)} CVE→CWE mappings."
+        )
+        self._cve_to_capec_map = capec_map
+        self._cve_to_cwe_map = cwe_map
 
     @property
     def cve_to_capec_map(self) -> Dict[str, List[str]]:
         """Returns the CVE to CAPEC mapping, loading it if necessary."""
-        if self._cve_to_capec_map is None:
-            self._cve_to_capec_map = self._load_cve_to_capec_map()
-        return self._cve_to_capec_map
+        self._ensure_maps_loaded()
+        return self._cve_to_capec_map  # type: ignore[return-value]
+
+    @property
+    def cve_to_cwe_map(self) -> Dict[str, List[str]]:
+        """Returns the CVE to CWE mapping, loading it if necessary."""
+        self._ensure_maps_loaded()
+        return self._cve_to_cwe_map  # type: ignore[return-value]
 
     def _load_cve_definitions(self) -> Dict[str, List[str]]:
         """Loads the user-defined CVEs for each equipment from cve_definitions.yml."""
@@ -66,36 +110,13 @@ class CVEService:
             logging.error(f"❌ Error loading CVE definitions file: {e}")
             return {}
 
-    def _load_cve_to_capec_map(self) -> Dict[str, List[str]]:
-        """
-        Loads the CVE to CAPEC mapping from the cve2capec database.
-        The database consists of multiple JSONL files, one for each year.
-        """
-        cve_map = {}
-        if not self.cve2capec_db_path.is_dir():
-            logging.warning(f"⚠️ CVE2CAPEC database directory not found at {self.cve2capec_db_path}. Cannot map CVEs to CAPECs.")
-            return {}
-
-        for jsonl_file in self.cve2capec_db_path.glob("*.jsonl"):
-            try:
-                with open(jsonl_file, 'r', encoding='utf-8') as f:
-                    for line in f:
-                        try:
-                            data = json.loads(line)
-                            for cve_id, details in data.items():
-                                if "CAPEC" in details and details["CAPEC"]:
-                                    cve_map[cve_id] = [f"CAPEC-{capec_id}" for capec_id in details["CAPEC"]]
-                        except json.JSONDecodeError:
-                            logging.warning(f"Could not decode line in {jsonl_file}: {line.strip()}")
-            except Exception as e:
-                logging.error(f"❌ Error reading {jsonl_file}: {e}")
-        
-        logging.info(f"✅ Loaded {len(cve_map)} CVE to CAPEC mappings.")
-        return cve_map
-
     def get_capecs_for_cve(self, cve_id: str) -> List[str]:
         """Returns a list of CAPEC IDs for a given CVE ID."""
         return self.cve_to_capec_map.get(cve_id, [])
+
+    def get_cwes_for_cve(self, cve_id: str) -> List[str]:
+        """Returns a list of numeric CWE ID strings for a given CVE ID."""
+        return self.cve_to_cwe_map.get(cve_id, [])
 
     def get_cves_for_equipment(self, equipment_name: str) -> List[str]:
         """Returns a list of CVE IDs for a given equipment name."""

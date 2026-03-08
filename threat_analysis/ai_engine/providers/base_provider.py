@@ -13,7 +13,8 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
-from typing import List, Dict
+from typing import AsyncGenerator, Dict, List, Optional
+
 
 class BaseLLMProvider(ABC):
     @abstractmethod
@@ -25,7 +26,7 @@ class BaseLLMProvider(ABC):
     async def generate_threats(
         self,
         component: Dict,
-        context: Dict
+        context: Dict,
     ) -> List[Dict]:
         """Generates STRIDE threats for a component."""
         pass
@@ -35,7 +36,21 @@ class BaseLLMProvider(ABC):
         self,
         threat: Dict,
         component: Dict,
-        context: Dict
+        context: Dict,
     ) -> Dict:
         """Generates an Attack Flow STIX 2.1 for a threat."""
         pass
+
+    @abstractmethod
+    async def generate_markdown(
+        self,
+        prompt: str,
+        markdown: Optional[str] = None,
+    ) -> AsyncGenerator[str, None]:
+        """Streams DSL Markdown from a natural language prompt.
+
+        This is an async generator — callers must use ``async for chunk in ...``.
+        Each yielded value is a string token from the LLM stream.
+        """
+        raise NotImplementedError
+        yield  # pragma: no cover — makes this an abstract async generator

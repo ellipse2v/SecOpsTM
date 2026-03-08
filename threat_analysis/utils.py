@@ -13,11 +13,55 @@
 # limitations under the License.
 
 import os
+import re
+import json
 from pathlib import Path
-from typing import Tuple
+from typing import Optional, Tuple
 
 # Define project root
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+def extract_json_from_llm_response(text: str) -> Optional[str]:
+    """Extracts a JSON object or array from an LLM response that may be wrapped
+    in markdown code fences or contain surrounding prose.
+
+    Handles both ``{...}`` objects and ``[...]`` arrays.
+    Returns the extracted JSON string, or None if no valid JSON is found.
+    """
+    # 1. Prefer JSON inside markdown code fences (```json ... ``` or ``` ... ```)
+    match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", text, re.DOTALL)
+    if match:
+        candidate = match.group(1).strip()
+        try:
+            json.loads(candidate)
+            return candidate
+        except json.JSONDecodeError:
+            pass  # fence content wasn't valid JSON, fall through
+
+    # 2. Fallback: find the outermost [...] or {...} in the raw text.
+    # Arrays take priority because most AI threat outputs are lists.
+    start_bracket = text.find("[")
+    start_brace = text.find("{")
+
+    if start_bracket == -1 and start_brace == -1:
+        return None
+
+    if start_bracket != -1 and (start_brace == -1 or start_bracket < start_brace):
+        start_index, end_char = start_bracket, "]"
+    else:
+        start_index, end_char = start_brace, "}"
+
+    end_index = text.rfind(end_char)
+    if end_index <= start_index:
+        return None
+
+    candidate = text[start_index: end_index + 1]
+    try:
+        json.loads(candidate)
+        return candidate
+    except (json.JSONDecodeError, TypeError):
+        return None
+
 
 def resolve_path(
     path: str,

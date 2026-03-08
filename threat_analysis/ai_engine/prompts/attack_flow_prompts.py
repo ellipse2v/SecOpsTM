@@ -12,146 +12,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Attack Flow prompt helpers — all prompt text lives in config/prompts.yaml.
+"""
+
 from typing import Dict
+from threat_analysis.ai_engine.prompt_loader import get as _get
 
-ATTACK_FLOW_SYSTEM_PROMPT = """You are an expert in cyber attack chain analysis and MITRE ATT&CK framework. You specialize in creating detailed Attack Flow diagrams following the MITRE Attack Flow v3.0 specification (STIX 2.1 format).
 
-Your expertise includes:
-- Kill chain methodology (Lockheed Martin, MITRE ATT&CK)
-- Attack graph theory and path analysis
-- STIX 2.1 objects and relationships
-- Detection engineering and defensive opportunities
+def __getattr__(name: str) -> str:
+    if name == "ATTACK_FLOW_SYSTEM_PROMPT":
+        return _get("attack_flow", "system")
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
-You create comprehensive, realistic attack flows that show:
-1. Initial access vectors
-2. Privilege escalation paths
-3. Lateral movement opportunities
-4. Data exfiltration methods
-5. Defensive detection points
-6. Alternative paths (if primary blocked)"""
 
 def build_attack_flow_prompt(threat: Dict, component: Dict, context: Dict) -> str:
-    """Generates a prompt to create a STIX 2.1 Attack Flow."""
-    
-    threat_title = threat.get('title', 'Unknown')
-    threat_category = threat.get('category', 'Unknown')
-    threat_description = threat.get('description', '')
-    attack_scenario = threat.get('attack_scenario', '')
-    mitre_techniques = threat.get('mitre_techniques', [])
-    
-    prompt = f"""# Attack Flow Generation Request
+    """Builds a STIX 2.1 Attack Flow generation prompt.
 
-## Threat to Analyze
-- **Category**: {threat_category}
-- **Title**: {threat_title}
-- **Description**: {threat_description}
-- **Basic Scenario**: {attack_scenario}
-- **Known MITRE Techniques**: {', '.join(mitre_techniques)}
+    Reads the template from ``config/prompts.yaml``
+    (``attack_flow.component_template``) and injects threat + component data.
+    """
+    mitre_techniques = threat.get("mitre_techniques", [])
+    threat_category = threat.get("category", "Unknown")
 
-## Target Component
-- **Type**: {component.get('type')}
-- **Name**: {component.get('name')}
-- **Context**: {component.get('description', '')}
-
-## System Context
-{context.get('system_description', 'No additional context')}
-
-## Your Task
-Create a detailed Attack Flow in MITRE Attack Flow v3.0 format (STIX 2.1 based).
-
-The flow should include:
-1. **Initial Access**: How attacker gains entry
-2. **Execution**: Code execution or command running
-3. **Persistence** (if applicable): How attacker maintains access
-4. **Privilege Escalation**: Moving to higher privileges
-5. **Defense Evasion**: Bypassing security controls
-6. **Credential Access**: Obtaining credentials
-7. **Discovery**: Network/system reconnaissance
-8. **Lateral Movement** (if applicable): Moving to other systems
-9. **Collection**: Gathering target data
-10. **Exfiltration**: Data exfiltration method
-
-For each action, include:
-- MITRE ATT&CK Tactic ID and name
-- MITRE ATT&CK Technique ID and name
-- Sub-technique (if applicable)
-- Description of the action
-- Success path (next action)
-- Failure path (if blocked)
-- Detection opportunities
-
-Include conditions (prerequisites) and assets (targeted resources).
-
-## Output Format
-Return ONLY valid JSON following this STIX 2.1 structure:
-
-```json
-{{
-  "type": "attack-flow",
-  "spec_version": "3.0.0",
-  "id": "attack-flow--{threat_category.lower()}-{{uuid}}",
-  "created": "{{current_timestamp}}",
-  "modified": "{{current_timestamp}}",
-  "name": "{threat_title}",
-  "description": "Attack flow for {threat_title}",
-  "scope": "incident",
-  "start_refs": ["action--1"],
-  
-  "actions": [
-    {{
-      "type": "action",
-      "id": "action--1",
-      "name": "Action Name",
-      "tactic": {{
-        "id": "TA0001",
-        "name": "Initial Access"
-      }},
-      "technique": {{
-        "id": "T1078",
-        "name": "Valid Accounts",
-        "subtechnique": {{
-          "id": "T1078.004",
-          "name": "Cloud Accounts"
-        }}
-      }},
-      "description": "Detailed action description",
-      "confidence": 85,
-      "success_refs": ["action--2"],
-      "failure_refs": ["action--detection-1"]
-    }}
-  ],
-  
-  "conditions": [
-    {{
-      "type": "condition",
-      "id": "condition--1",
-      "description": "Prerequisite condition",
-      "pattern": "Observable pattern or requirement"
-    }}
-  ],
-  
-  "assets": [
-    {{
-      "type": "asset",
-      "id": "asset--1",
-      "name": "Asset name",
-      "description": "Asset description"
-    }}
-  ],
-  
-  "detection_points": [
-    {{
-      "type": "detection",
-      "id": "detection--1",
-      "name": "Detection method",
-      "description": "How to detect this action",
-      "data_sources": ["Log source 1", "Log source 2"],
-      "blocks_action": "action--X"
-    }}
-  ]
-}}
-```
-
-Create a realistic, detailed attack flow with 5-7 main actions."""
-
-    return prompt
+    return _get(
+        "attack_flow",
+        "component_template",
+        threat_category=threat_category,
+        threat_category_lower=threat_category.lower().replace(" ", "-"),
+        threat_title=threat.get("title", "Unknown Threat"),
+        threat_description=threat.get("description", ""),
+        attack_scenario=threat.get("attack_scenario", ""),
+        mitre_techniques=", ".join(mitre_techniques) if mitre_techniques else "None identified",
+        component_type=component.get("type", "Unknown"),
+        component_name=component.get("name", "Unknown"),
+        component_description=component.get("description", ""),
+        system_context=context.get("system_description", "No additional context provided"),
+    )

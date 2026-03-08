@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ellipse2v/SecOpsTM/schemas/v1/threat_model_report.schema.json",
+  "title": "ThreatModelReport",
+  "description": "Versioned JSON output schema for SecOpsTM threat analysis reports (v1.0).",
+  "type": "object",
+  "required": ["schema_version", "generated_at", "model", "threats", "statistics"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Schema version. Increment the major digit on breaking changes."
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp of report generation."
+    },
+    "model": {
+      "type": "object",
+      "required": ["name", "description", "components"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "components": {
+          "type": "object",
+          "required": ["actors", "servers", "dataflows", "boundaries"],
+          "additionalProperties": false,
+          "properties": {
+            "actors": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/Component" }
+            },
+            "servers": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/Component" }
+            },
+            "dataflows": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/Dataflow" }
+            },
+            "boundaries": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/Boundary" }
+            }
+          }
+        }
+      }
+    },
+    "threats": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Threat" }
+    },
+    "statistics": {
+      "type": "object",
+      "required": ["total", "by_source", "by_stride_category", "by_severity_level"],
+      "additionalProperties": false,
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "by_source": {
+          "type": "object",
+          "additionalProperties": { "type": "integer" }
+        },
+        "by_stride_category": {
+          "type": "object",
+          "additionalProperties": { "type": "integer" }
+        },
+        "by_severity_level": {
+          "type": "object",
+          "additionalProperties": { "type": "integer" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "Component": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "boundary": { "type": ["string", "null"] },
+        "business_value": { "type": ["string", "null"] }
+      }
+    },
+    "Dataflow": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "from": { "type": ["string", "null"] },
+        "to": { "type": ["string", "null"] },
+        "protocol": { "type": ["string", "null"] }
+      }
+    },
+    "Boundary": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "color": { "type": ["string", "null"] }
+      }
+    },
+    "Severity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "score": { "type": ["number", "null"] },
+        "level": { "type": ["string", "null"] },
+        "formatted_score": { "type": ["string", "null"] }
+      }
+    },
+    "MitreTechnique": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" }
+      }
+    },
+    "Capec": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "capec_id": { "type": "string" },
+        "name": { "type": "string" }
+      }
+    },
+    "Threat": {
+      "type": "object",
+      "required": ["id", "description", "source", "stride_category", "target", "severity"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^T-[0-9]{4}$",
+          "description": "Sequential identifier within this report (T-0001 … T-NNNN)."
+        },
+        "description": { "type": "string" },
+        "source": {
+          "type": "string",
+          "enum": ["pytm", "AI", "LLM"],
+          "description": "pytm = rule engine, AI = component-level LLM, LLM = RAG global."
+        },
+        "stride_category": { "type": "string" },
+        "target": { "type": "string" },
+        "severity": { "$ref": "#/$defs/Severity" },
+        "confidence": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "mitre_techniques": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/MitreTechnique" }
+        },
+        "capecs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Capec" }
+        },
+        "cve": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "business_value": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

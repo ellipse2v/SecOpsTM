@@ -38,6 +38,7 @@ sys.modules['langchain_core'] = MagicMock()
 sys.modules['langchain_core.prompts'] = MagicMock()
 sys.modules['langchain_core.output_parsers'] = MagicMock()
 sys.modules['langchain_core.runnables'] = MagicMock()
+sys.modules['threat_analysis.ai_engine.embedding_factory'] = MagicMock()
 
 # Now we can safely import our modules
 from threat_analysis.ai_engine.rag_service import RAGThreatGenerator
@@ -66,9 +67,12 @@ ai_providers:
     model: "test-llama3"
     host: "http://localhost:11434"
     temperature: 0.5
+embedding:
+  provider: huggingface
+  model: "test-embedding-model"
+  device: cpu
 rag:
   enabled: true
-  embedding_model: "test-embedding-model"
 """
     with open(TEST_AI_CONFIG_PATH, "w", encoding="utf-8") as f:
         f.write(ai_config_content)
@@ -110,26 +114,23 @@ class AsyncIterator:
             raise StopAsyncIteration
 
 @pytest.fixture
-def mock_litellm_client():
-    """Mocks the LiteLLMClient for AIService."""
-    mock_client = MagicMock()
-    mock_client.ai_online = True
-    mock_client.check_connection = AsyncMock(return_value=True)
+def mock_provider():
+    """Mocks the LiteLLMProvider for AIService."""
+    mock_provider = MagicMock()
+    mock_provider.check_connection = AsyncMock(return_value=True)
     
-    # Mock for generate_content (component-level threats)
-    mock_client.generate_content.side_effect = lambda **kwargs: AsyncIterator([
-        [
-            {
-                "title": "SQL Injection",
-                "description": "SQL Injection vulnerability in payment module.",
-                "category": "Tampering",
-                "likelihood": "high",
-                "business_impact": {"severity": "critical", "details": "Data breach"},
-                "confidence": 0.9
-            }
-        ]
+    # Mock for generate_threats (component-level threats)
+    mock_provider.generate_threats = AsyncMock(return_value=[
+        {
+            "title": "SQL Injection",
+            "description": "SQL Injection vulnerability in payment module.",
+            "category": "Tampering",
+            "likelihood": "high",
+            "business_impact": {"severity": "critical", "details": "Data breach"},
+            "confidence": 0.9
+        }
     ])
-    return mock_client
+    return mock_provider
 
 @pytest.fixture
 def mock_chat_litellm():
@@ -182,7 +183,6 @@ async def test_rag_threat_generator_initialization(mock_chat_litellm):
 async def test_rag_threat_generator_generates_threats(mock_chat_litellm):
     """Test RAGThreatGenerator generates threats in the correct format."""
     with patch('os.path.exists', side_effect=lambda x: x == str(TEST_VECTOR_STORE_DIR) or x == str(TEST_AI_CONFIG_PATH) or x == str(TEST_USER_CONTEXT_PATH)):
-        # We need to mock the vector store's similarity search
         with patch.object(RAGThreatGenerator, '_initialize_components'):
             rag_generator = RAGThreatGenerator(
                 vector_store_dir=str(TEST_VECTOR_STORE_DIR),
@@ -191,39 +191,33 @@ async def test_rag_threat_generator_generates_threats(mock_chat_litellm):
             )
             rag_generator.vector_store = MagicMock()
             rag_generator.vector_store.similarity_search.return_value = [MagicMock(page_content="context")]
-            rag_generator.llm = mock_chat_litellm
-            rag_generator.prompt = MagicMock()
-            
-            # The invoke chain is complex, let's mock it simply
-            with patch('threat_analysis.ai_engine.rag_service.RunnablePassthrough'), \
-                 patch('threat_analysis.ai_engine.rag_service.json.loads') as mock_json_loads:
-                
-                mock_json_loads.return_value = [
-                    {"name": "T1", "category": "Spoofing", "source": "LLM"},
-                    {"name": "T2", "category": "Tampering", "source": "LLM"}
-                ]
-                
-                # Mock the extract method to return a valid JSON string
-                rag_generator._extract_json_from_response = MagicMock(return_value="[]")
-                
-                example_threat_model_md = "This is a test threat model."
-                threats = rag_generator.generate_threats(example_threat_model_md)
 
-                assert isinstance(threats, list)
-                assert len(threats) == 2
+            expected_threats = [
+                {"name": "T1", "category": "Spoofing", "source": "LLM"},
+                {"name": "T2", "category": "Tampering", "source": "LLM"},
+            ]
+            # Mock the fully-assembled chain stored on the instance
+            rag_generator.rag_chain = MagicMock()
+            rag_generator.rag_chain.invoke.return_value = expected_threats
+
+            threats = rag_generator.generate_threats("This is a test threat model.")
+
+            assert isinstance(threats, list)
+            assert len(threats) == 2
+            rag_generator.rag_chain.invoke.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_aiservice_integrates_rag_threats(mock_litellm_client, mock_chat_litellm):
+async def test_aiservice_integrates_rag_threats(mock_provider, mock_chat_litellm):
     """Test AIService successfully integrates RAG-generated threats."""
     # Mock dependencies for AIService
     mock_ai_config_path_exists = lambda x: x == str(TEST_AI_CONFIG_PATH) or x == str(TEST_VECTOR_STORE_DIR) or x == str(TEST_USER_CONTEXT_PATH)
 
-    with patch('threat_analysis.ai_engine.providers.litellm_client.LiteLLMClient.create', new_callable=AsyncMock) as mock_create, \
+    with patch('threat_analysis.server.ai_service.LiteLLMProvider') as MockProvider, \
          patch('os.path.exists', side_effect=mock_ai_config_path_exists), \
          patch('threat_analysis.server.ai_service.RAGThreatGenerator') as MockRAG:
         
-        mock_create.return_value = mock_litellm_client
+        MockProvider.return_value = mock_provider
         
         # Configure the MockRAG to return our desired threats
         mock_rag_instance = MockRAG.return_value
@@ -278,5 +272,6 @@ async def test_aiservice_integrates_rag_threats(mock_litellm_client, mock_chat_l
         # Assert component-level AI threats are added
         assert len(threat_model.servers[0]['object'].threats) == 1
         assert threat_model.servers[0]['object'].threats[0].source == "AI"
-        assert threat_model.servers[0]['object'].threats[0].description.startswith("(AI) SQL Injection")
-        assert threat_model.servers[0]['object'].threats[0].stride_category == "Tampering"
+        assert "(AI) SQL Injection" in threat_model.servers[0]['object'].threats[0].description
+        assert threat_model.servers[0]['object'].threats[0].category == "Tampering"
+

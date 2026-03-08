@@ -13,11 +13,12 @@
 # limitations under the License.
 
 import logging
-from typing import Dict, List
+from typing import AsyncGenerator, Dict, List, Optional
 from .base_provider import BaseLLMProvider
 from .litellm_client import LiteLLMClient
-from ..prompts.stride_prompts import STRIDE_SYSTEM_PROMPT, build_component_prompt
-from ..prompts.attack_flow_prompts import ATTACK_FLOW_SYSTEM_PROMPT, build_attack_flow_prompt
+from ..prompts.stride_prompts import build_component_prompt
+from ..prompts.attack_flow_prompts import build_attack_flow_prompt
+from threat_analysis.ai_engine.prompt_loader import get as _get_prompt
 import asyncio
 import json
 
@@ -49,7 +50,7 @@ class LiteLLMProvider(BaseLLMProvider):
             full_response = ""
             async for chunk in client.generate_content(
                 prompt=prompt,
-                system_prompt=STRIDE_SYSTEM_PROMPT,
+                system_prompt=_get_prompt("stride_analysis", "system"),
                 output_format="json"
             ):
                 if isinstance(chunk, dict):
@@ -65,11 +66,11 @@ class LiteLLMProvider(BaseLLMProvider):
     async def generate_attack_flow(self, threat: Dict, component: Dict, context: Dict) -> Dict:
         client = await self._get_client()
         prompt = build_attack_flow_prompt(threat, component, context)
-        
+
         try:
             async for chunk in client.generate_content(
                 prompt=prompt,
-                system_prompt=ATTACK_FLOW_SYSTEM_PROMPT,
+                system_prompt=_get_prompt("attack_flow", "system"),
                 output_format="json"
             ):
                 if isinstance(chunk, dict):
@@ -78,3 +79,24 @@ class LiteLLMProvider(BaseLLMProvider):
         except Exception as e:
             logging.error(f"Error generating attack flow via LiteLLM: {e}")
             return {}
+
+    async def generate_markdown(
+        self,
+        prompt: str,
+        markdown: Optional[str] = None,
+    ) -> AsyncGenerator[str, None]:
+        """Streams DSL Markdown from a natural language prompt."""
+        client = await self._get_client()
+        user_prompt = f"User request: {prompt}"
+        if markdown:
+            user_prompt += f"\n\nExisting Threat Model to update/expand:\n{markdown}"
+        try:
+            async for chunk in client.generate_content(
+                prompt=user_prompt,
+                system_prompt=_get_prompt("dsl_generation", "system"),
+                stream=True,
+            ):
+                yield chunk
+        except Exception as e:
+            logging.error(f"Error generating markdown via LiteLLM: {e}")
+            yield f"Error: {e}"

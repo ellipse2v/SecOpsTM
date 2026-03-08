@@ -338,6 +338,29 @@
             background: rgba(26, 115, 232, 0.02);
         }
 
+        /* VOC / RiskContext signal badges */
+        .risk-signals {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+            padding: 4px;
+        }
+        .voc-badge {
+            display: inline-block;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            white-space: nowrap;
+            cursor: default;
+        }
+        .voc-cve  { background: #fde8e8; color: #c53030; border: 1px solid #feb2b2; }
+        .voc-cwe  { background: #fff3cd; color: #856404; border: 1px solid #ffc107; }
+        .voc-net  { background: #fce8ff; color: #7b2fa8; border: 1px solid #d6a0f7; }
+        .voc-def  { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .voc-nodef{ background: #f0f0f0; color: #888;    border: 1px solid #ccc; }
+
         .severity-cell {
             padding: 0 !important;
             vertical-align: stretch;
@@ -409,17 +432,28 @@
         }
 
         /* For cells with scrollable-cell, remove padding to avoid double padding */
-        td:nth-child(6), /* Confidence */
-        td:nth-child(7), /* CVEs */
-        td:nth-child(9), /* CAPEC */
-        td:nth-child(10), /* MITRE Techniques */
-        td:nth-child(11), /* MITRE Mitigations */
-        td:nth-child(12), /* D3FEND */
-        td:nth-child(13), /* CIS */
-        td:nth-child(14), /* NIST */
-        td:nth-child(15) { /* OWASP */
+        td:nth-child(4),  /* Source */
+        td:nth-child(5),  /* Description */
+        td:nth-child(6),  /* Confidence */
+        td:nth-child(7),  /* CVEs */
+        td:nth-child(10), /* CAPEC */
+        td:nth-child(11), /* MITRE Techniques */
+        td:nth-child(12), /* MITRE Mitigations */
+        td:nth-child(13), /* D3FEND */
+        td:nth-child(14), /* CIS */
+        td:nth-child(15), /* NIST */
+        td:nth-child(16) { /* OWASP */
             padding: 0;
         }
+
+        /* Confidence column — narrow, no wrap needed */
+        th:nth-child(6) { min-width: 52px; max-width: 60px; white-space: normal; }
+
+        /* Description column — constrained width with scroll */
+        td:nth-child(5) { max-width: 280px; }
+
+        /* Table forces horizontal scroll in its container */
+        .table-container table { min-width: 1700px; }
 
         .scrollable-cell::-webkit-scrollbar {
             width: 6px;
@@ -532,6 +566,178 @@
             display: none;
         }
 
+        /* ── Executive Summary ─────────────────────────────────────── */
+        .exec-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .exec-kpi {
+            text-align: center;
+            padding: 1rem;
+            background: linear-gradient(135deg, rgba(26,115,232,0.05), rgba(52,168,83,0.05));
+            border-radius: 0.75rem;
+            border: 1px solid rgba(26,115,232,0.15);
+        }
+        .exec-kpi .kpi-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        .exec-kpi .kpi-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+        .top-threats-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+        .top-threats-table th {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0.5rem 0.75rem;
+            border-bottom: 2px solid var(--primary-color);
+            position: static;
+            z-index: auto;
+        }
+        .top-threats-table td {
+            padding: 0.5rem 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+            height: auto;
+            max-height: none;
+            min-height: auto;
+            min-width: 0;
+            position: static;
+        }
+        .top-threats-table tr:last-child td { border-bottom: none; }
+        .top-threats-table td:first-child {
+            background: linear-gradient(135deg, rgba(26,115,232,0.08), rgba(26,115,232,0.03));
+            font-weight: 700;
+            color: var(--primary-color);
+            font-size: 1rem;
+        }
+        .sev-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .sev-badge-critical { background: linear-gradient(135deg,#dc2626,#b91c1c); color:#fff; }
+        .sev-badge-high     { background: linear-gradient(135deg,#ea580c,#dc2626); color:#fff; }
+        .sev-badge-medium   { background: linear-gradient(135deg,#d97706,#ea580c); color:#fff; }
+        .sev-badge-low      { background: linear-gradient(135deg,#16a34a,#15803d); color:#fff; }
+
+        /* ── Risk Matrix ────────────────────────────────────────────── */
+        .risk-matrix-outer { display: flex; gap: 6px; align-items: stretch; justify-content: center; max-width: 900px; margin: 0 auto; }
+        .rm-y-title {
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-align: center;
+            padding: 4px 0;
+            flex-shrink: 0;
+        }
+        .risk-matrix {
+            display: grid;
+            grid-template-columns: 2.2rem repeat(5, 1fr);
+            grid-template-rows: repeat(5, 3.2rem) 1.6rem;
+            gap: 3px;
+            flex: 1;
+            min-width: 500px;
+            max-width: 860px;
+        }
+        .rm-cell {
+            border-radius: 6px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+            align-items: center;
+            justify-content: center;
+            padding: 3px;
+            min-width: 0;
+        }
+        .rm-cell.rm-bg-low      { background: rgba(22,163,74,0.12); }
+        .rm-cell.rm-bg-medium   { background: rgba(217,119,6,0.12);  }
+        .rm-cell.rm-bg-high     { background: rgba(234,88,12,0.15);  }
+        .rm-cell.rm-bg-critical { background: rgba(220,38,38,0.15);  }
+        .rm-axis-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.62rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+        .rm-dot {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid rgba(255,255,255,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.55rem;
+            font-weight: 700;
+            color: white;
+            position: relative;
+            flex-shrink: 0;
+            transition: transform 0.15s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        .rm-dot:hover { transform: scale(1.4); z-index: 10; }
+        .rm-dot-critical { background: #dc2626; }
+        .rm-dot-high     { background: #ea580c; }
+        .rm-dot-medium   { background: #d97706; }
+        .rm-dot-low      { background: #16a34a; }
+        .rm-dot::after {
+            content: attr(data-tip);
+            position: absolute;
+            bottom: calc(100% + 6px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(31,41,55,0.95);
+            color: white;
+            padding: 5px 8px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 100;
+            max-width: 200px;
+            white-space: normal;
+            text-align: center;
+            line-height: 1.3;
+        }
+        .rm-dot:hover::after { opacity: 1; }
+        /* Top rows: flip tooltip below the dot so it doesn't get clipped */
+        .rm-row-top .rm-dot::after {
+            bottom: auto;
+            top: calc(100% + 6px);
+        }
+        .rm-overflow {
+            font-size: 0.6rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            line-height: 18px;
+            padding: 0 2px;
+            align-self: center;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 1rem;
@@ -601,12 +807,89 @@
             <div class="card">
                 <h3>🛡️ STRIDE Distribution</h3>
                 <ul class="stats-list">
-                {% for k, v in stride_distribution.items() %}
+                {% for k, v in stride_distribution.items() if k | lower != 'unknown' %}
                     <li><span>{{ k }}</span> <span class="stats-value">{{ v }}</span></li>
                 {% endfor %}
                 </ul>
             </div>
         </div>
+
+        {% if all_threats and summary_stats %}
+        {% set known_threats = all_threats | rejectattr('severity.level', 'equalto', 'UNKNOWN') | rejectattr('stride_category', 'equalto', 'Unknown') | list %}
+        {% set sorted_threats = known_threats | sort(attribute='severity.score', reverse=True) %}
+        {% set critical_count = known_threats | selectattr('severity.level', 'equalto', 'CRITICAL') | list | length %}
+        {% set high_count = known_threats | selectattr('severity.level', 'equalto', 'HIGH') | list | length %}
+        <h2>📋 Executive Summary</h2>
+        <div class="card">
+            <div class="exec-summary-grid">
+                <div class="exec-kpi">
+                    <div class="kpi-value">{{ "%.1f"|format(summary_stats.max_severity) }}</div>
+                    <div class="kpi-label">Max Risk Score</div>
+                </div>
+                <div class="exec-kpi">
+                    <div class="kpi-value">{{ "%.1f"|format(summary_stats.average_severity) }}</div>
+                    <div class="kpi-label">Avg Risk Score</div>
+                </div>
+                <div class="exec-kpi">
+                    <div class="kpi-value" style="color: #dc2626;">{{ critical_count }}</div>
+                    <div class="kpi-label">Critical Threats</div>
+                </div>
+                <div class="exec-kpi">
+                    <div class="kpi-value" style="color: #ea580c;">{{ high_count }}</div>
+                    <div class="kpi-label">High Threats</div>
+                </div>
+                <div class="exec-kpi">
+                    <div class="kpi-value">{{ known_threats | length }}</div>
+                    <div class="kpi-label">Total Threats</div>
+                </div>
+            </div>
+            <h3>🔥 Top 5 Threats by Severity</h3>
+            <table class="top-threats-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Target</th>
+                        <th>STRIDE</th>
+                        <th>Severity</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for threat in sorted_threats[:5] %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td style="font-weight: 600;">{{ threat.target }}</td>
+                        <td><span style="background:rgba(26,115,232,0.1);padding:2px 7px;border-radius:4px;font-size:0.72rem;font-weight:600;">{{ threat.stride_category }}</span></td>
+                        <td style="white-space: nowrap;"><span class="sev-badge sev-badge-{{ threat.severity.level | lower }}">{{ threat.severity.level }} ({{ "%.1f"|format(threat.severity.score) }})</span></td>
+                        <td style="max-width: 420px; white-space: normal; height: auto; max-height: none; min-height: 0; position: static;">{{ threat.description | truncate(130) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <h2>🎯 Risk Matrix</h2>
+        <div class="card">
+            <p style="color:var(--text-secondary); margin:0 0 0.75rem; font-size:0.875rem;">
+                Threats plotted by <strong>Impact</strong> (Y-axis, derived from severity score) vs
+                <strong>Likelihood</strong> (X-axis, derived from risk signals: CVE + CWE + network exposure).
+                Hover over a dot for details.
+            </p>
+            <div class="risk-matrix-outer">
+                <div class="rm-y-title">Impact ↑</div>
+                <div style="flex:1; overflow-x:auto;">
+                    <div class="risk-matrix" id="riskMatrix"></div>
+                    <div style="text-align:center; font-size:0.7rem; font-weight:600; color:var(--text-secondary); margin-top:4px;">← Likelihood →</div>
+                </div>
+            </div>
+            <div style="display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin-top:0.75rem; font-size:0.75rem; color:var(--text-secondary);">
+                <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block;"></span>Critical</span>
+                <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:#ea580c;display:inline-block;"></span>High</span>
+                <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:#d97706;display:inline-block;"></span>Medium</span>
+                <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:#16a34a;display:inline-block;"></span>Low</span>
+            </div>
+        </div>
+        {% endif %}
 
         <h2>📖 Severity Calculation Explained</h2>
         <div class="card explanation-card">
@@ -666,6 +949,16 @@
                     </select>
                 </div>
                 {% endif %}
+                <div>
+                    <label for="severityFilter" style="font-weight: 500; color: var(--text-secondary);">Filter by Severity:</label>
+                    <select id="severityFilter" onchange="filterThreats()">
+                        <option value="all">All</option>
+                        <option value="CRITICAL">Critical</option>
+                        <option value="HIGH">High</option>
+                        <option value="MEDIUM">Medium</option>
+                        <option value="LOW">Low</option>
+                    </select>
+                </div>
             </div>
         </div>
         <div class="tabs">
@@ -685,10 +978,10 @@
                             <th>Business Value</th>
                             <th>Source</th>
                             <th>Description</th>
-                            <th>Source</th>
-                            <th>Confidence</th>
+                            <th>Conf.</th>
                             <th>CVEs</th>
                             <th>Severity</th>
+                            <th>Risk Signals</th>
                             <th>CAPEC</th>
                             <th>MITRE Techniques</th>
                             <th>MITRE Mitigations</th>
@@ -704,13 +997,12 @@
                             <td><div class="row-number">{{ loop.index }}</div></td>
                             <td>{{ threat.target }}</td>
                             <td>{{ threat.business_value if threat.business_value else 'N/A' }}</td>
-                            <td>{{ threat.source }}</td>
-                            <td>{{ threat.description }}</td>
                             <td>
                                 <div class="scrollable-cell">
                                     {{ threat.source if threat.source else 'pytm' }}
                                 </div>
                             </td>
+                            <td><div class="scrollable-cell">{{ threat.description }}</div></td>
                             <td>
                                 <div class="scrollable-cell">
                                     {% if threat.confidence is not none %}
@@ -732,6 +1024,15 @@
                                 </div>
                             </td>
                             <td class="severity-cell"><span class="severity-{{ threat.severity.level.lower() }}">{{ threat.severity.level }} ({{ "%.1f"|format(threat.severity.score) }})</span></td>
+                            <td>
+                                {% set rs = threat.risk_signals if threat.risk_signals is defined else {} %}
+                                <div class="risk-signals">
+                                    {% if rs.get('cve_match') %}<span class="voc-badge voc-cve" title="Known CVE for this target">CVE</span>{% endif %}
+                                    {% if rs.get('cwe_high_risk') %}<span class="voc-badge voc-cwe" title="High-risk CWE class (injection, memory corruption…)">CWE&#x26A0;</span>{% endif %}
+                                    {% if rs.get('network_exposed') %}<span class="voc-badge voc-net" title="Target reachable without auth/encryption">NET</span>{% endif %}
+                                    {% if not rs.get('d3fend_mitigations') %}<span class="voc-badge voc-nodef" title="No D3FEND defensive control mapped">&#x26D4;D3F</span>{% else %}<span class="voc-badge voc-def" title="D3FEND defensive controls present">D3F</span>{% endif %}
+                                </div>
+                            </td>
                             <td>
                                 <div class="scrollable-cell">
                                     {% if threat.capecs %}
@@ -859,6 +1160,7 @@
                         </tr>
                         {% endfor %}
                     </tbody>
+
                 </table>
             </div>
         </div>
@@ -866,6 +1168,21 @@
         {% endif %}
     </div>
     <script>
+        /* ── Risk Matrix data ── */
+        var MATRIX_DATA = [
+            {% for t in all_threats if t.severity.level | lower != 'unknown' %}
+            {
+                "target":   {{ t.target | tojson }},
+                "category": {{ t.stride_category | tojson }},
+                "level":    {{ t.severity.level | tojson }},
+                "score":    {{ t.severity.score | round(2) }},
+                "rs_cve":   {{ ((t.get('risk_signals') or {}).get('cve_match', false)) | tojson }},
+                "rs_cwe":   {{ ((t.get('risk_signals') or {}).get('cwe_high_risk', false)) | tojson }},
+                "rs_net":   {{ ((t.get('risk_signals') or {}).get('network_exposed', false)) | tojson }}
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ];
+
         function openTab(evt, tabName) {
             var i, tabcontent, tablinks;
             tabcontent = document.getElementsByClassName("tab-content");
@@ -885,12 +1202,14 @@
 
         function filterThreats() {
             var businessValueFilter = document.getElementById("businessValueFilter");
-            var targetFilter = document.getElementById("targetFilter");
-            var sourceFilter = document.getElementById("sourceFilter");
+            var targetFilter        = document.getElementById("targetFilter");
+            var sourceFilter        = document.getElementById("sourceFilter");
+            var severityFilter      = document.getElementById("severityFilter");
 
             var selectedBusinessValue = businessValueFilter ? businessValueFilter.value : 'all';
-            var selectedTarget = targetFilter ? targetFilter.value : 'all';
-            var selectedSource = sourceFilter ? sourceFilter.value : 'all';
+            var selectedTarget        = targetFilter        ? targetFilter.value        : 'all';
+            var selectedSource        = sourceFilter        ? sourceFilter.value        : 'all';
+            var selectedSeverity      = severityFilter      ? severityFilter.value      : 'all';
 
             var tables = document.querySelectorAll(".tab-content.active table tbody");
 
@@ -898,51 +1217,128 @@
                 var rows = tbody.getElementsByTagName("tr");
                 for (var i = 0; i < rows.length; i++) {
                     var row = rows[i];
-                    
-                    var targetCell = row.cells[1]; // 'Target' is the 2nd column (index 1)
-                    var businessValueCell = row.cells[2]; // 'Business Value' is the 3rd column (index 2)
-                    var sourceCell = row.cells[4]; // 'Source' is the 5th column (index 4)
-                    
+
+                    // col indices: 0=#, 1=Target, 2=BusinessValue, 3=Source, 4=Description,
+                    //              5=Confidence, 6=CVEs, 7=Severity, 8=RiskSignals, …
+                    var targetCell        = row.cells[1];
+                    var businessValueCell = row.cells[2];
+                    var sourceCell        = row.cells[3];
+                    var severityCell      = row.cells[7];
+
                     var targetMatch = true;
-                    if (targetCell) {
-                        var rowTarget = targetCell.textContent.trim();
-                        if (selectedTarget !== "all" && rowTarget !== selectedTarget) {
-                            targetMatch = false;
-                        }
+                    if (targetCell && selectedTarget !== "all") {
+                        targetMatch = targetCell.textContent.trim() === selectedTarget;
                     }
 
                     var businessValueMatch = true;
-                    if (businessValueCell) {
-                        var rowBusinessValue = businessValueCell.textContent.trim();
-                        if (selectedBusinessValue !== "all" && rowBusinessValue !== selectedBusinessValue) {
-                            businessValueMatch = false;
-                        }
+                    if (businessValueCell && selectedBusinessValue !== "all") {
+                        businessValueMatch = businessValueCell.textContent.trim() === selectedBusinessValue;
                     }
 
                     var sourceMatch = true;
-                    if (sourceCell) {
-                        var rowSource = sourceCell.textContent.trim();
-                        if (selectedSource !== "all" && rowSource !== selectedSource) {
-                            sourceMatch = false;
-                        }
+                    if (sourceCell && selectedSource !== "all") {
+                        sourceMatch = sourceCell.textContent.trim() === selectedSource;
                     }
 
-                    if (targetMatch && businessValueMatch && sourceMatch) {
-                        row.style.display = "";
-                    } else {
-                        row.style.display = "none";
+                    var severityMatch = true;
+                    if (severityCell && selectedSeverity !== "all") {
+                        // Cell text is like "CRITICAL (8.5)" — check the leading word
+                        severityMatch = severityCell.textContent.trim().toUpperCase().startsWith(selectedSeverity);
                     }
+
+                    row.style.display = (targetMatch && businessValueMatch && sourceMatch && severityMatch) ? "" : "none";
                 }
             });
         }
 
-        // Initialize filter when page loads
-        document.addEventListener('DOMContentLoaded', (event) => {
-            // Check if there are any tabs, if so, the openTab function will call filterThreats
-            // If no tabs (e.g., all threats in one view), call filterThreats directly
+        /* ── Risk Matrix builder ── */
+        function buildRiskMatrix() {
+            var matrix = document.getElementById('riskMatrix');
+            if (!matrix || !MATRIX_DATA.length) return;
+
+            function getImpact(score) {
+                if (score >= 8.5) return 5;
+                if (score >= 7.0) return 4;
+                if (score >= 5.0) return 3;
+                if (score >= 3.0) return 2;
+                return 1;
+            }
+
+            function getLikelihood(t) {
+                var count = (t.rs_cve ? 1 : 0) + (t.rs_cwe ? 1 : 0) + (t.rs_net ? 1 : 0);
+                if (count >= 3) return 5;
+                if (count >= 2) return 4;
+                if (count >= 1) return 3;
+                return 1;
+            }
+
+            // Build [impact][likelihood] → threats[]
+            var cells = {};
+            for (var ii = 1; ii <= 5; ii++) {
+                for (var jj = 1; jj <= 5; jj++) { cells[ii + '_' + jj] = []; }
+            }
+            MATRIX_DATA.forEach(function(t) {
+                var imp = getImpact(t.score);
+                var lik = getLikelihood(t);
+                cells[imp + '_' + lik].push(t);
+            });
+
+            function cellBg(imp, lik) {
+                var risk = imp * lik;
+                if (risk >= 16) return 'rm-bg-critical';
+                if (risk >= 9)  return 'rm-bg-high';
+                if (risk >= 4)  return 'rm-bg-medium';
+                return 'rm-bg-low';
+            }
+
+            function dotClass(level) {
+                var l = (level || '').toLowerCase();
+                if (l === 'critical') return 'rm-dot-critical';
+                if (l === 'high')     return 'rm-dot-high';
+                if (l === 'medium')   return 'rm-dot-medium';
+                return 'rm-dot-low';
+            }
+
+            var impLabels = {5:'CRIT', 4:'HIGH', 3:'MED', 2:'LOW', 1:'VL'};
+            var MAX_DOTS = 12;
+            var html = '';
+            // 5 data rows (impact 5 → 1 = top → bottom)
+            for (var imp = 5; imp >= 1; imp--) {
+                html += '<div class="rm-axis-label">' + impLabels[imp] + '</div>';
+                // top 2 rows: flip tooltip below so it isn't clipped by overflow container
+                var rowClass = (imp >= 4) ? ' rm-row-top' : '';
+                for (var lik = 1; lik <= 5; lik++) {
+                    var bg = cellBg(imp, lik);
+                    html += '<div class="rm-cell' + rowClass + ' ' + bg + '">';
+                    var dots = cells[imp + '_' + lik];
+                    var visible = dots.slice(0, MAX_DOTS);
+                    var extra  = dots.length - MAX_DOTS;
+                    visible.forEach(function(t) {
+                        var tip = t.target + '\n' + t.category + ' — ' + t.level + ' (' + t.score.toFixed(1) + ')';
+                        html += '<div class="rm-dot ' + dotClass(t.level) + '" data-tip="' + tip.replace(/"/g, '&quot;') + '">' +
+                                (t.category ? t.category[0] : '?') + '</div>';
+                    });
+                    if (extra > 0) {
+                        html += '<div class="rm-overflow">+' + extra + '</div>';
+                    }
+                    html += '</div>';
+                }
+            }
+            // X-axis labels row
+            html += '<div></div>'; // empty corner below Y label
+            ['VL','L','M','H','VH'].forEach(function(l) {
+                html += '<div class="rm-axis-label">' + l + '</div>';
+            });
+
+            matrix.innerHTML = html;
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            buildRiskMatrix();
             var activeTab = document.querySelector(".tab-button.active");
             if (!activeTab && document.getElementById("businessValueFilter")) {
-                 filterThreats();
+                filterThreats();
             }
         });
 

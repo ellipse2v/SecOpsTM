@@ -13,7 +13,9 @@ This project is a Python-based, end-to-end STRIDE threat modeling and analysis f
 -   **Generate optimized Attack Flow diagrams** for key objectives (Tampering, Spoofing, Information Disclosure, Repudiation).
 -   **Extend and customize** all mappings, calculations, and reporting logic.
 -   **Run as a web-based editor** for live, interactive threat modeling.
--   **AI-Enhanced Threat Analysis (Hybrid Mode)**: Since version 2.1, threats are enriched using an offline LLM (Mistral via Ollama) for added context, business impact assessment, real-world precedents, and detailed attack scenarios. This is enabled by default.
+-   **AI-Enhanced Threat Analysis (Hybrid Mode)**: Threats from three independent engines — pytm rule engine, component-level LLM, and a RAG pipeline (ChromaDB + HuggingFace) — are automatically deduplicated and unified before reporting. Supports Ollama (offline), Gemini, OpenAI, Mistral, and any LiteLLM-compatible provider. Configured in `config/ai_config.yaml`.
+-   **Pure CLI & CI integration**: A `secopstm` command ships after `pip install -e .`. Use `--output-format json --stdout` to pipe structured output to dashboards or SIEM without starting a server.
+-   **Versioned JSON output**: Every JSON export is stamped `schema_version: "1.0"` and validated against `threat_analysis/schemas/v1/threat_model_report.schema.json`.
 
 > **Based on [PyTM](https://github.com/OWASP/pytm):** This framework leverages PyTM's modeling primitives and extends them with advanced reporting, MITRE mapping, and diagram generation.
 
@@ -64,6 +66,7 @@ For detailed information on features, usage, and advanced customization, please 
     ```bash
     pip install -e .
     ```
+    After this step the `secopstm` command is available in your environment.
 
 3.  **Install Graphviz (for diagram generation):**
     -   Windows: [https://graphviz.org/download/](https://graphviz.org/download/)
@@ -71,6 +74,22 @@ For detailed information on features, usage, and advanced customization, please 
     -   Linux: `sudo apt-get install graphviz`
 
 After installation, restart your terminal or IDE.
+
+### Basic CLI usage
+
+```bash
+# Full analysis — HTML + JSON + SVG in output/
+secopstm --model-file threatModel_Template/threat_model.md
+
+# JSON only, printed to stdout — ideal for CI pipelines
+secopstm --model-file model.md --stdout
+
+# JSON to a specific file
+secopstm --model-file model.md --output-format json --output-file report.json
+
+# Launch the web editor
+secopstm --server
+```
 
 ---
 

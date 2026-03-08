@@ -23,16 +23,24 @@ import logging
 from enum import Enum
 from pathlib import Path
 
-# Patch pytm.Boundary to ensure it has all necessary custom attributes
-if not hasattr(Boundary, 'isTrusted'):
-    original_boundary_init = Boundary.__init__
-    def new_boundary_init(self, *args, **kwargs):
-        original_boundary_init(self, *args, **kwargs)
-        self.protocol = ""
-        self.port = "" # Initialize port
-        self.data = [] # Initialize data as a list
-        self.isTrusted = False # Default value
-    Boundary.__init__ = new_boundary_init
+class SecOpsBoundary(Boundary):
+    """
+    Subclass of pytm.Boundary that adds the extra attributes required by SecOpsTM
+    (isTrusted, protocol, port, data). Using a subclass instead of monkey-patching
+    pytm.Boundary directly makes the code resilient to pytm upgrades: pytm's own
+    __init__ is called normally via super(), and SecOpsTM attributes are added
+    afterwards in a controlled way.
+
+    isinstance(SecOpsBoundary(...), pytm.Boundary) is True, so all pytm internals
+    (TM._boundaries list, rule engine, DFD rendering) treat these objects normally.
+    """
+
+    def __init__(self, name: str, **kwargs):
+        super().__init__(name, **kwargs)
+        self.isTrusted: bool = False
+        self.protocol: str = ""
+        self.port: str = ""
+        self.data: list = []
 
 from .mitre_mapping_module import MitreMapping
 from threat_analysis.severity_calculator_module import SeverityCalculator
@@ -61,11 +69,13 @@ class ExtendedThreat(pytm.Threat): # Inherit from pytm.Threat
     allowing us to track where the threat was generated (e.g., pytm, LLM).
     """
     def __init__(self, *args, source: str = "pytm", **kwargs):
-        # We need to capture category/stride_category before super().__init__
-        # because pytm.Threat doesn't store them.
-        self.category = kwargs.get('category') or kwargs.get('stride_category', 'Unknown')
-        self.stride_category = self.category
+        # Capture before super() call, then re-apply after — pytm.Threat.__init__
+        # may overwrite self.category via its own attribute machinery.
+        _category = kwargs.get('category') or kwargs.get('stride_category') or 'Unknown'
         super().__init__(*args, **kwargs)
+        # Re-apply after super() so pytm cannot clobber our value.
+        self.category = _category
+        self.stride_category = _category
         self.source = source
 
     def __repr__(self):
@@ -107,7 +117,7 @@ class ThreatModel:
         self.cve_service = cve_service
         self.sub_models = []
 
-    def add_boundary(self, name: str, color: str = "lightgray", parent_boundary_obj: Optional[Boundary] = None, business_value: Optional[str] = None, **kwargs) -> Boundary:
+    def add_boundary(self, name: str, color: str = "lightgray", parent_boundary_obj: Optional[Boundary] = None, business_value: Optional[str] = None, **kwargs) -> SecOpsBoundary:
         """Adds a boundary to the model with additional properties, including an optional parent.
 
         Args:
@@ -120,18 +130,8 @@ class ThreatModel:
         Returns:
             Boundary: The created Boundary object.
         """
-        boundary = Boundary(name)
-
-        # Explicitly set isTrusted on the pytm.Boundary object if provided in kwargs
-        if 'isTrusted' in kwargs:
-        # HACK: Add dummy attributes to Boundary objects to allow them to be
-        # used as sources/sinks in Dataflows. The underlying pytm library
-        # expects these attributes to exist on dataflow endpoints, which
-        # this patch provides.
-            setattr(boundary, 'isTrusted', kwargs.get('isTrusted', False))
-        setattr(boundary, 'protocol', "")
-        setattr(boundary, 'port', None)
-        setattr(boundary, 'data', None)
+        boundary = SecOpsBoundary(name)
+        boundary.isTrusted = kwargs.get('isTrusted', False)
 
         if parent_boundary_obj:
             boundary.inBoundary = parent_boundary_obj

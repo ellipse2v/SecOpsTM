@@ -1,54 +1,47 @@
+# Copyright 2025 ellipse2v
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 import json
 import logging
-import re
 from typing import List, Dict, Any, Optional
 import yaml
-from langchain_core.runnables import RunnablePassthrough
+from threat_analysis.utils import extract_json_from_llm_response
 
 logger = logging.getLogger(__name__)
 
+
+def _parse_threat_list(text: str) -> List[Dict[str, Any]]:
+    """Output parser step: converts a raw LLM string into a list of threat dicts.
+
+    Designed for use as a ``RunnableLambda`` at the end of a LangChain LCEL chain,
+    after ``StrOutputParser`` has already extracted the plain text from the AIMessage.
+    """
+    extracted = extract_json_from_llm_response(text)
+    if not extracted:
+        raise ValueError(f"No valid JSON found in LLM response. Raw: {text[:300]}")
+    return json.loads(extracted)
+
+
 class RAGThreatGenerator:
-    def _extract_json_from_response(self, text: str) -> Optional[str]:
-        """Extracts a JSON object or array from a string that might be wrapped in markdown or have other text."""
-        # First, try to find JSON within markdown code fences (handles both objects and arrays)
-        pattern = r"```(?:json)?\s*([\s\S]*?)\s*```"
-        match = re.search(pattern, text, re.DOTALL)
-        if match:
-            # The content inside the fences is our best bet for valid JSON
-            return match.group(1).strip()
-
-        # If no fences, find the first '[' or '{' and the last ']' or '}' as a fallback
-        start_char, end_char = None, None
-        if '[' in text and ']' in text:
-            start_char, end_char = '[', ']'
-        elif '{' in text and '}' in text:
-            start_char, end_char = '{', '}'
-        
-        if start_char:
-            try:
-                start_index = text.find(start_char)
-                end_index = text.rfind(end_char)
-                if start_index != -1 and end_index != -1 and end_index > start_index:
-                    potential_json = text[start_index : end_index + 1]
-                    # Validate that this substring is valid JSON
-                    json.loads(potential_json)
-                    return potential_json
-            except (json.JSONDecodeError, TypeError):
-                # This substring was not valid JSON, so we return None
-                return None
-
-        return None # No valid JSON found
-
     def __init__(
         self,
         vector_store_dir: str = "threat_analysis/vector_store",
-        embedding_model_name: str = "all-MiniLM-L6-v2",
         user_context_path: str = "config/user_context.example.json",
         ai_config_path: str = "config/ai_config.yaml",
     ):
         self.vector_store_dir = vector_store_dir
-        self.embedding_model_name = embedding_model_name
         self.user_context_path = user_context_path
         self.ai_config_path = ai_config_path
 
@@ -72,15 +65,19 @@ class RAGThreatGenerator:
         
         # Lazy imports
         from langchain_chroma import Chroma
-        from langchain_huggingface import HuggingFaceEmbeddings
+        from threat_analysis.ai_engine.embedding_factory import get_embeddings
         from langchain_litellm import ChatLiteLLM
         from chromadb.config import Settings
         from langchain_core.prompts import ChatPromptTemplate
-        from langchain_core.output_parsers import JsonOutputParser
+        from langchain_core.output_parsers import StrOutputParser
+        from langchain_core.runnables import RunnableLambda
+
+        # Initialize LLM using ai_config.yaml
+        ai_config = self._load_ai_config()
 
         # Initialize Embeddings
-        self.embeddings = HuggingFaceEmbeddings(model_name=self.embedding_model_name)
-        
+        self.embeddings = get_embeddings(ai_config)
+
         # Initialize Vector Store and disable telemetry
         if not os.path.exists(self.vector_store_dir):
             logger.error(f"Vector store directory not found: {self.vector_store_dir}. "
@@ -93,8 +90,6 @@ class RAGThreatGenerator:
             client_settings=Settings(anonymized_telemetry=False)
         )
         
-        # Initialize LLM using ai_config.yaml
-        ai_config = self._load_ai_config()
         providers = ai_config.get('ai_providers', {})
         llm_params = {}
         llm_model = None
@@ -133,54 +128,25 @@ class RAGThreatGenerator:
             logger.error("No enabled LLM provider found in ai_config.yaml. RAG functionality will be limited.")
             raise ValueError("No active LLM configuration found.")
         
+        # Load prompt templates from config/prompts.yaml
+        from threat_analysis.ai_engine.prompt_loader import get as _get_prompt
+        rag_system = _get_prompt("rag", "system")
+        rag_human = _get_prompt("rag", "human_template")
+
         # Define Prompt Template
         self.prompt = ChatPromptTemplate.from_messages([
-            ("system", "You are an expert cybersecurity analyst. Your task is to identify potential security threats based on a system's description, user-provided threat intelligence, and retrieved general threat knowledge. Focus on relevant and actionable threats."),
-            ("human", """
-            System Description:
-            {system_description}
+            ("system", rag_system),
+            ("human", rag_human),
+        ])
 
-            User-Provided Threat Intelligence:
-            {user_threat_intelligence}
-
-            Threat Model Document (Markdown):
-            {threat_model_markdown}
-
-            Retrieved General Threat Knowledge:
-            {context}
-
-            Based on the provided information, generate a list of distinct and pertinent security threats. For each threat, provide:
-            - **name**: A concise name for the threat.
-            - **description**: A detailed description of the threat, explaining how it applies to the system.
-            - **category**: The STRIDE category that best fits the threat (Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege).
-            - **likelihood**: The likelihood of exploitation (high, medium, low).
-            - **impact**: The impact of exploitation (high, medium, low).
-            - **source**: Always \"LLM\".
-
-            Format your response as a JSON array of objects, like this:
-            [
-              {{
-                "name": "Threat Name 1",
-                "description": "Detailed description of Threat 1, explaining how it applies to the system.",
-                "category": "Spoofing",
-                "likelihood": "medium",
-                "impact": "high",
-                "source": "LLM"
-              }},
-              {{
-                "name": "Threat Name 2",
-                "description": "Detailed description of Threat 2, explaining how it applies to the system.",
-                "category": "Tampering",
-                "likelihood": "low",
-                "impact": "medium",
-                "source": "LLM"
-              }}
-            ]
-            """
-        )])
-        
-        # Define Output Parser
-        self.output_parser = JsonOutputParser()
+        # Build the full LCEL chain:
+        #   prompt → llm → StrOutputParser (AIMessage → str) → _parse_threat_list (str → List[Dict])
+        self.rag_chain = (
+            self.prompt
+            | self.llm
+            | StrOutputParser()
+            | RunnableLambda(_parse_threat_list)
+        )
 
         logger.info("RAGThreatGenerator components initialized.")
 
@@ -232,35 +198,22 @@ class RAGThreatGenerator:
         context_text = "\n\n".join([doc.page_content for doc in retrieved_docs])
         logger.debug(f"Retrieved {len(retrieved_docs)} documents.")
 
-        # Construct the RAG chain
-        rag_chain = (
-            self.prompt
-            | self.llm
-        )
-
         try:
-            # Invoke the RAG chain to get the raw string response
-            raw_llm_response = rag_chain.invoke({
+            generated_threats = self.rag_chain.invoke({
                 "system_description": system_description,
                 "user_threat_intelligence": user_threat_intelligence,
                 "threat_model_markdown": threat_model_markdown,
-                "context": context_text # This context will be passed to the prompt
+                "context": context_text,
             })
-            
-            # Extract JSON from the raw response
-            cleaned_json_string = self._extract_json_from_response(raw_llm_response.content)
-            
-            if not cleaned_json_string:
-                logger.error(f"Invalid json output: No valid JSON found in LLM response. Raw output: {raw_llm_response}")
-                return []
-            
-            # Parse the extracted JSON
-            generated_threats = json.loads(cleaned_json_string)
 
-            logger.debug("Threat generation completed successfully.")
+            if not isinstance(generated_threats, list):
+                logger.error(f"RAG chain returned unexpected type: {type(generated_threats)}")
+                return []
+
+            logger.debug(f"Threat generation completed: {len(generated_threats)} threats.")
             return generated_threats
-        except json.JSONDecodeError as e:
-            logger.error(f"Error decoding JSON from RAG LLM response: {e}. Raw output: {cleaned_json_string}")
+        except ValueError as e:
+            logger.error(f"RAG chain output parsing failed: {e}")
             return []
         except Exception as e:
             logger.error(f"Error during RAG threat generation: {e}")

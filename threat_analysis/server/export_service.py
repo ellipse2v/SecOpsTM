@@ -49,10 +49,6 @@ class ExportService:
         timestamp = datetime.datetime.now().strftime(TIMESTAMP_FORMAT)
         return Path(OUTPUT_BASE_DIR_TPL) / timestamp
 
-    def _get_output_dir(self):
-        timestamp = datetime.datetime.now().strftime(TIMESTAMP_FORMAT)
-        return Path(OUTPUT_BASE_DIR_TPL) / timestamp
-
     def export_files_logic(self, markdown_content: str, export_format: str):
         logging.info(f"Entering export_files_logic for format: {export_format}")
         if not markdown_content or not export_format:
@@ -172,9 +168,14 @@ class ExportService:
             html_diagram_path = export_path / "tm_diagram.html"
             self.diagram_generator._generate_html_with_legend(svg_filepath, html_diagram_path, threat_model, graph_metadata)
             
+            def single_file_progress_cb(message, is_new_model=False):
+                if progress_callback:
+                    # Map these internal messages to a fixed or semi-fixed percentage for single-file mode
+                    progress_callback(50, message)
+
             grouped_threats = threat_model.process_threats()
             report_path = export_path / "stride_mitre_report.html"
-            self.report_generator.generate_html_report(threat_model, grouped_threats, report_path)
+            self.report_generator.generate_html_report(threat_model, grouped_threats, report_path, progress_callback=single_file_progress_cb)
             
             json_report_path = export_path / "mitre_analysis.json"
             self.report_generator.generate_json_export(threat_model, grouped_threats, json_report_path)
