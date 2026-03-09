@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import logging
+import threading
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 
@@ -70,6 +71,14 @@ class ThreatModelService:
             self.diagram_service,
             ai_status_event_queue=ai_status_event_queue
         )
+
+        # P4: pre-warm CVEService in background — loads ~26 JSONL files once so the
+        # first real threat analysis request does not pay the cold-start I/O cost.
+        threading.Thread(
+            target=self.cve_service._ensure_maps_loaded,
+            daemon=True,
+            name="cve-warmup",
+        ).start()
 
     @property
     def ai_online(self):

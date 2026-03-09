@@ -891,6 +891,59 @@
         </div>
         {% endif %}
 
+        {% if attack_chains %}
+        <h2>⛓️ Attack Chain Analysis</h2>
+        <div class="card" style="padding:1.5rem;">
+            <p style="color:var(--text-secondary);margin:0 0 1rem;font-size:0.875rem;">
+                Each row represents a potential <strong>pivot chain</strong>: an attacker compromises the
+                <em>Entry Point</em> component via its highest-severity threat, then traverses the dataflow
+                to exploit the <em>Target</em> component. Chains are ranked by average severity.
+            </p>
+            <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+                <thead>
+                    <tr style="background:var(--background-main);text-align:left;">
+                        <th style="padding:8px 12px;border-bottom:2px solid var(--border-color);">#</th>
+                        <th style="padding:8px 12px;border-bottom:2px solid var(--border-color);">Chain Score</th>
+                        <th style="padding:8px 12px;border-bottom:2px solid var(--border-color);">Entry Point</th>
+                        <th style="padding:8px 12px;border-bottom:2px solid var(--border-color);">Dataflow / Protocol</th>
+                        <th style="padding:8px 12px;border-bottom:2px solid var(--border-color);">Target</th>
+                        <th style="padding:8px 12px;border-bottom:2px solid var(--border-color);">Entry Threat</th>
+                        <th style="padding:8px 12px;border-bottom:2px solid var(--border-color);">Pivot Threat</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for chain in attack_chains %}
+                    {% set label_lower = chain.chain_label | lower %}
+                    <tr style="border-bottom:1px solid var(--border-color);">
+                        <td style="padding:8px 12px;color:var(--text-secondary);">{{ loop.index }}</td>
+                        <td style="padding:8px 12px;">
+                            <span class="sev-badge sev-badge-{{ label_lower }}">
+                                {{ chain.chain_label }} ({{ "%.1f"|format(chain.chain_score) }})
+                            </span>
+                        </td>
+                        <td style="padding:8px 12px;font-weight:600;">{{ chain.source_name }}</td>
+                        <td style="padding:8px 12px;color:var(--text-secondary);">
+                            {{ chain.dataflow_name }}
+                            {% if chain.protocol %}<br><span style="font-size:0.75rem;background:rgba(66,133,244,0.1);padding:1px 5px;border-radius:3px;">{{ chain.protocol }}</span>{% endif %}
+                        </td>
+                        <td style="padding:8px 12px;font-weight:600;">{{ chain.sink_name }}</td>
+                        <td style="padding:8px 12px;max-width:240px;">
+                            <div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);">{{ chain.entry_threat.stride_category }}</div>
+                            <div style="white-space:normal;">{{ chain.entry_threat.description | truncate(100) }}</div>
+                        </td>
+                        <td style="padding:8px 12px;max-width:240px;">
+                            <div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);">{{ chain.pivot_threat.stride_category }}</div>
+                            <div style="white-space:normal;">{{ chain.pivot_threat.description | truncate(100) }}</div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </div>
+        {% endif %}
+
         <h2>📖 Severity Calculation Explained</h2>
         <div class="card explanation-card">
             <p style="white-space: pre-wrap; margin: 0;">{{ severity_calculation_note }}</p>
@@ -913,6 +966,10 @@
             </div>
         </div>
         {% else %}
+        {% for value in unique_targets %}
+        <span id="component-{{ value | sid }}" style="display:block;height:0;position:relative;top:-80px;"></span>
+        {% endfor %}
+
         <div style="display: flex; align-items: center; gap: 1rem; margin-top: 2rem;">
             <h2>🔍 Detailed Threat Analysis</h2>
             <div style="flex-grow: 1; text-align: right; display: flex; gap: 1.5rem; justify-content: flex-end;">

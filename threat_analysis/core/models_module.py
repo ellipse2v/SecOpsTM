@@ -290,19 +290,24 @@ class ThreatModel:
 
         self.tm.process()
 
-        pytm_raw_threats = []
-        try:
-            pytm_raw_threats = self.tm._threats
-        except AttributeError:
-            logging.warning("⚠️ Could not retrieve PyTM threats from tm._threats.")
-
-        # --- Post-processing: expand class targets to all instances ---
-        expanded_pytm_threats = self._expand_class_targets(pytm_raw_threats)
+        # Use tm.findings (condition-matched, per-element) rather than tm._threats
+        # (raw definitions with unresolved class-tuple targets that produce nonsense entries).
+        expanded_pytm_threats: List[Tuple[Any, Any]] = []
+        findings = getattr(self.tm, 'findings', []) or []
+        for finding in findings:
+            element = getattr(finding, 'element', None)
+            if element is not None:
+                expanded_pytm_threats.append((finding, element))
+        if expanded_pytm_threats:
+            logging.info(f"Loaded {len(expanded_pytm_threats)} pytm findings.")
+        else:
+            logging.debug("No pytm findings matched (conditions not met or model too minimal). "
+                          "Custom THREAT_RULES will cover threat generation.")
 
         # --- Generate and add custom threats ---
         custom_threats_tuples = self._apply_custom_threats()
 
-        # Combine filtered PyTM threats with custom threats
+        # Combine pytm findings with custom threats
         self.threats_raw = expanded_pytm_threats + custom_threats_tuples
 
         # Normalization and grouping of threats
@@ -382,20 +387,32 @@ class ThreatModel:
         
         return expanded_threats
 
+    # Valid STRIDE categories — threats outside this set are excluded from grouping.
+    _VALID_STRIDE_CATEGORIES: frozenset = frozenset({
+        'Spoofing', 'Tampering', 'Repudiation',
+        'Information Disclosure', 'Denial of Service', 'Elevation of Privilege',
+    })
+
     def _group_threats(self) -> Dict[str, List[Tuple[Any, Any]]]:
-        """Groups threats by type, skipping threats with unresolved targets."""
-        grouped = defaultdict(list)
+        """Groups threats by STRIDE category, keeping only the 6 canonical categories."""
+        grouped: Dict[str, List] = defaultdict(list)
 
         for t in self.threats_raw:
-            # threats_raw should now consistently contain (threat, target) tuples
             threat, target = t
 
-            # Filter out threats with unresolved targets if necessary (e.g., target is None)
+            # Skip threats with unresolved targets
             if target is None or (isinstance(target, tuple) and any(x is None for x in target)):
                 continue
 
-            # Use the stride_category from the threat object if available, otherwise infer from class name
-            stride_category = getattr(threat, 'stride_category', str(threat.__class__.__name__))
+            # Resolve stride_category: explicit attr → MITRE keyword classification → skip
+            stride_category = getattr(threat, 'stride_category', None)
+            if not stride_category or stride_category not in self._VALID_STRIDE_CATEGORIES:
+                # Try description-based keyword classification (handles pytm Finding objects)
+                stride_category = self.mitre_mapper.classify_pytm_threat(threat)
+
+            if stride_category not in self._VALID_STRIDE_CATEGORIES:
+                continue  # Drop threats that can't be mapped to a STRIDE category
+
             grouped[stride_category].append((threat, target))
 
         return grouped

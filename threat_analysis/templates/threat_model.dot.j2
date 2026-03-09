@@ -12,20 +12,19 @@ digraph ThreatModel {
   subgraph cluster_{{ boundary.safe_name }} {
     label="{{ boundary.escaped_name }}";
     "{{ boundary.hidden_node_name }}" [style=invis, width=0, height=0, label=""];
-    {% if not boundary.is_trusted %}
     fontsize=10;
-    {% endif %}
     style="{{ boundary.style_parts | join(',') }}";
     {% if boundary.is_filled %}
     fillcolor="{{ boundary.color }}";
     {% else %}
     fillcolor="none";
     {% endif %}
-    {% if not boundary.is_trusted %}
-    color=black;
+    {% if boundary.is_trusted %}
+    color="#2e7d32";
+    penwidth=2;
     {% else %}
-    color=red;
-    penwidth=3;
+    color="#c62828";
+    penwidth=2;
     {% endif %}
     {% for actor in boundary.actors %}
     "{{ actor.escaped_name }}" {{ actor.node_attrs }};

@@ -215,11 +215,82 @@
         </div>
     </div>
 
+    <!-- B2: severity tooltip -->
+    <div id="severity-tooltip" style="display:none;position:fixed;z-index:2000;background:rgba(30,30,30,0.92);color:#fff;padding:6px 10px;border-radius:5px;font-size:12px;pointer-events:none;max-width:220px;line-height:1.4;"></div>
+
     <script>
         let panZoomInstance; // Declare panZoomInstance globally
         let globalGraphMetadata = null;
         let currentlySelectedElementId = null;
         let protocolVisibilityState = {};
+
+        // B2: report URL for "View threats" link (empty when not provided)
+        const REPORT_URL = '{{ report_url | default("") | safe }}';
+
+        // B2: severity heat-map state
+        const SEV_COLORS = { CRITICAL: '#dc2626', HIGH: '#ea580c', MEDIUM: '#d97706', LOW: '#16a34a' };
+        let severityMap = {};
+        let severityOverlayActive = false;
+        // stores original fills to restore: { nodeId: { fill, stroke } }
+        let originalNodeFills = {};
+
+        function toggleSeverityOverlay() {
+            const btn = document.getElementById('severity-overlay-btn');
+            const svg = document.querySelector('#svg-container svg');
+            if (!svg) return;
+            severityOverlayActive = !severityOverlayActive;
+            if (severityOverlayActive) {
+                // save originals and apply severity colors
+                Object.entries(severityMap).forEach(([nodeId, level]) => {
+                    const g = svg.querySelector(`g[id="${CSS.escape(nodeId)}"]`);
+                    if (!g) return;
+                    const shape = g.querySelector('polygon,ellipse,path,rect');
+                    if (!shape) return;
+                    if (!originalNodeFills[nodeId]) {
+                        originalNodeFills[nodeId] = { fill: shape.getAttribute('fill'), stroke: shape.getAttribute('stroke') };
+                    }
+                    const color = SEV_COLORS[level] || '#aaa';
+                    shape.setAttribute('fill', color);
+                    shape.setAttribute('stroke', color);
+                });
+                if (btn) { btn.textContent = '✕ Hide Heat Map'; btn.style.background = '#fee2e2'; }
+            } else {
+                // restore originals
+                Object.entries(originalNodeFills).forEach(([nodeId, orig]) => {
+                    const g = svg.querySelector(`g[id="${CSS.escape(nodeId)}"]`);
+                    if (!g) return;
+                    const shape = g.querySelector('polygon,ellipse,path,rect');
+                    if (!shape) return;
+                    if (orig.fill !== null) shape.setAttribute('fill', orig.fill);
+                    else shape.removeAttribute('fill');
+                    if (orig.stroke !== null) shape.setAttribute('stroke', orig.stroke);
+                    else shape.removeAttribute('stroke');
+                });
+                if (btn) { btn.textContent = '⬤ Show Heat Map'; btn.style.background = '#f5f5f5'; }
+            }
+        }
+
+        function showSeverityTooltip(e, nodeId) {
+            if (!severityOverlayActive) return;
+            const level = severityMap[nodeId];
+            if (!level) return;
+            const meta = globalGraphMetadata && globalGraphMetadata.nodes && globalGraphMetadata.nodes[nodeId];
+            const label = meta ? meta.label : nodeId;
+            const tip = document.getElementById('severity-tooltip');
+            let html = `<strong>${label}</strong><br>Max Severity: <span style="color:${SEV_COLORS[level]};font-weight:bold;">${level}</span>`;
+            if (REPORT_URL) {
+                html += `<br><a href="${REPORT_URL}#component-${nodeId}" target="_top" style="color:#90cdf4;font-size:11px;">View threats →</a>`;
+            }
+            tip.innerHTML = html;
+            tip.style.display = 'block';
+            tip.style.left = (e.clientX + 12) + 'px';
+            tip.style.top  = (e.clientY + 12) + 'px';
+        }
+
+        function hideSeverityTooltip() {
+            const tip = document.getElementById('severity-tooltip');
+            if (tip) tip.style.display = 'none';
+        }
 
         // Function to apply highlighting
         function highlightElement(elementId) {
@@ -354,13 +425,22 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             var svgElement = document.querySelector('#svg-container svg');
-            
+
             // Inject graph_metadata from Jinja2 context
             const rawGraphMetadata = JSON.parse('{{ graph_metadata_json | safe }}');
             if (Object.keys(rawGraphMetadata).length > 0) {
                 globalGraphMetadata = rawGraphMetadata;
             } else {
                 console.warn("No graph metadata provided to diagram_template.html");
+            }
+
+            // B2: inject severity map; hide overlay controls when no data
+            const rawSeverityMap = JSON.parse('{{ severity_map_json | safe }}');
+            if (Object.keys(rawSeverityMap).length > 0) {
+                severityMap = rawSeverityMap;
+            } else {
+                const sevSection = document.getElementById('severity-legend-section');
+                if (sevSection) sevSection.style.display = 'none';
             }
 
             if (svgElement) {
@@ -403,6 +483,14 @@
                 allSvgGroups.forEach(g => {
                     g.classList.add('graph-element');
                 });
+
+                // B2: severity tooltip on hover
+                svgElement.addEventListener('mousemove', (e) => {
+                    const g = e.target.closest('.graph-element');
+                    if (g) showSeverityTooltip(e, g.id);
+                    else hideSeverityTooltip();
+                });
+                svgElement.addEventListener('mouseleave', hideSeverityTooltip);
 
                 // Add event listener for legend item clicks
                 const legend = document.getElementById('legend');

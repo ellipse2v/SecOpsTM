@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from .threat_rules import THREAT_RULES
+from typing import Dict
 import logging
 
 class RuleBasedThreatGenerator:
@@ -24,7 +25,15 @@ class RuleBasedThreatGenerator:
         self.threat_model = threat_model
         self.threats = []
         self.id_counter = 1
-        self.rules = THREAT_RULES
+        # P3: pre-split universal rules (conditions={}) from conditional rules so the
+        # inner loop never calls _matches() for the always-true case.
+        self._rules_universal: Dict[str, list] = {}
+        self._rules_conditional: Dict[str, list] = {}
+        for key, rule_list in THREAT_RULES.items():
+            universal = [r for r in rule_list if not r.get("conditions")]
+            conditional = [r for r in rule_list if r.get("conditions")]
+            self._rules_universal[key] = universal
+            self._rules_conditional[key] = conditional
 
     def _add_threat(self, component_name, description, stride_category, impact, likelihood, mitigations=None, capec_ids=None):
         threat = {
@@ -102,35 +111,35 @@ class RuleBasedThreatGenerator:
                 return False
         return True
 
+    def _apply_rules(self, component, key: str, fmt_kwargs: dict, component_name: str) -> None:
+        """Applies all matching rules (universal + conditional) for one component."""
+        for rule in self._rules_universal[key]:
+            for tpl in rule["threats"]:
+                desc = tpl["description"].format(**fmt_kwargs)
+                self._add_threat(component_name, desc, **{k: v for k, v in tpl.items() if k != 'description'})
+        for rule in self._rules_conditional[key]:
+            if self._matches(component, rule["conditions"]):
+                for tpl in rule["threats"]:
+                    desc = tpl["description"].format(**fmt_kwargs)
+                    self._add_threat(component_name, desc, **{k: v for k, v in tpl.items() if k != 'description'})
+
     def generate_threats(self):
         """
         Generates all threats for the threat model by applying rules to each component.
         """
         for server_info in self.threat_model.servers:
-            for rule in self.rules.get("servers", []):
-                if self._matches(server_info, rule["conditions"]):
-                    for threat_template in rule["threats"]:
-                        # Format description separately and pass other args via kwargs
-                        formatted_description = threat_template["description"].format(name=server_info['name'])
-                        threat_args = {k: v for k, v in threat_template.items() if k != 'description'}
-                        self._add_threat(server_info['name'], formatted_description, **threat_args)
+            self._apply_rules(server_info, "servers", {"name": server_info['name']}, server_info['name'])
 
         for flow in self.threat_model.dataflows:
-            for rule in self.rules.get("dataflows", []):
-                if self._matches(flow, rule["conditions"]):
-                    for threat_template in rule["threats"]:
-                        formatted_description = threat_template["description"].format(source=flow.source, sink=flow.sink)
-                        threat_args = {k: v for k, v in threat_template.items() if k != 'description'}
-                        self._add_threat(f"Flow from {flow.source.name} to {flow.sink.name}", formatted_description, **threat_args)
+            self._apply_rules(
+                flow, "dataflows",
+                {"source": flow.source, "sink": flow.sink},
+                f"Flow from {flow.source.name} to {flow.sink.name}",
+            )
 
         for actor_info in self.threat_model.actors:
-            for rule in self.rules.get("actors", []):
-                if self._matches(actor_info, rule["conditions"]):
-                    for threat_template in rule["threats"]:
-                        formatted_description = threat_template["description"].format(name=actor_info['name'])
-                        threat_args = {k: v for k, v in threat_template.items() if k != 'description'}
-                        self._add_threat(actor_info['name'], formatted_description, **threat_args)
-        
+            self._apply_rules(actor_info, "actors", {"name": actor_info['name']}, actor_info['name'])
+
         return self.threats
 
 def get_custom_threats(threat_model):

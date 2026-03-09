@@ -333,7 +333,8 @@ def test_generate_manual_dot_with_boundaries(diagram_generator):
     assert 'label="Internet"' in dot_code
     assert 'fillcolor="lightcoral"' in dot_code
     assert 'style="rounded,filled,solid"' in dot_code
-    assert 'color=black;' in dot_code
+    # B1: untrusted boundary → red border
+    assert 'color="#c62828";' in dot_code
 
 
 
@@ -436,8 +437,9 @@ def test_generate_legend_html_basic(diagram_generator):
     assert "🌐" in legend_html
     assert "🔀" in legend_html
     assert "🔌" in legend_html
-    assert "Trust Boundaries" in legend_html
-    assert "Untrust Boundaries" in legend_html
+    # B1: updated boundary legend labels
+    assert "Trusted Zone" in legend_html
+    assert "Untrusted Zone" in legend_html
 
 def test_generate_legend_html_with_actors_and_servers(diagram_generator):
     mock_threat_model = MagicMock()

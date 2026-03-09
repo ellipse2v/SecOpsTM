@@ -15,6 +15,7 @@
 """
 Report generation module
 """
+import csv
 import shutil
 import re
 import json
@@ -46,6 +47,7 @@ from threat_analysis.generation.stix_generator import StixGenerator
 from threat_analysis.generation.attack_navigator_generator import AttackNavigatorGenerator
 from threat_analysis.core.models_module import ThreatModel
 from threat_analysis.core.mitre_mapping_module import MitreMapping
+from threat_analysis.core.attack_chain import AttackChainAnalyzer
 from threat_analysis.ai_engine.providers.ollama_provider import OllamaProvider
 from threat_analysis.ai_engine.providers.litellm_provider import LiteLLMProvider
 from threat_analysis.core.threat_consolidator import ThreatConsolidator
@@ -95,6 +97,10 @@ class ReportGenerator:
         self.severity_calculator = severity_calculator
         self.mitre_mapping = mitre_mapping
         self.env = Environment(loader=FileSystemLoader(Path(__file__).parent.parent / 'templates'), extensions=['jinja2.ext.do'])
+        # B2: sanitize_id filter — same algo as DiagramService._sanitize_name_for_id
+        self.env.filters['sid'] = lambda s: (
+            lambda san: f'_{san}' if san and san[0].isdigit() else san or 'unnamed'
+        )(__import__('re').sub(r'[^a-zA-Z0-9_]', '_', str(s or '')))
         self.implemented_mitigations = load_implemented_mitigations(implemented_mitigations_path)
         self.all_detailed_threats = []
         self.cve_service = cve_service if cve_service else CVEService(project_root, project_root / "cve_definitions.yml")
@@ -262,6 +268,10 @@ class ReportGenerator:
             EXCLUDE_TARGETS = ["Unspecified →", "Unspecified", "→"]
             unique_targets = sorted(list(set(threat['target'] for threat in all_detailed_threats if threat.get('target') and threat.get('target') not in EXCLUDE_TARGETS)))
 
+            attack_chains = AttackChainAnalyzer().analyze(
+                all_detailed_threats, threat_model.dataflows
+            )
+
             template = self.env.get_template('report_template.html')
             html = template.render(
                 title="STRIDE & MITRE ATT&CK Report",
@@ -275,7 +285,8 @@ class ReportGenerator:
                 unique_business_values=unique_business_values,
                 unique_targets=unique_targets,
                 severity_calculation_note=self.severity_calculator.get_calculation_explanation(),
-                implemented_mitigation_ids=self.implemented_mitigations
+                implemented_mitigation_ids=self.implemented_mitigations,
+                attack_chains=attack_chains,
             )
 
             with open(output_file, "w", encoding="utf-8") as f:
@@ -301,6 +312,80 @@ class ReportGenerator:
         finally:
             self.threat_model_ref = original_threat_model_ref
 
+        return output_file
+
+    def _get_boundary_str_for_target(self, target_name: str, threat_model) -> str:
+        """Returns '<BoundaryName> (TRUSTED|UNTRUSTED)' for a target component, or '' if unknown."""
+        for collection in (threat_model.servers, threat_model.actors):
+            for entry in collection:
+                if entry.get('name') == target_name:
+                    obj = entry.get('object')
+                    b = getattr(obj, 'inBoundary', None)
+                    if b:
+                        trusted = getattr(b, 'isTrusted', False)
+                        return f"{b.name} ({'TRUSTED' if trusted else 'UNTRUSTED'})"
+                    return ""
+        return ""
+
+    def generate_remediation_checklist(
+        self,
+        threat_model,
+        grouped_threats: Dict[str, List],
+        output_file: Path,
+    ) -> Path:
+        """Generates a CSV remediation checklist from all threats.
+
+        Columns: ID | Component | Trust Boundary | STRIDE Category | Severity | Score |
+                 Source | Description | MITRE Techniques | CAPEC IDs | CVE IDs |
+                 D3FEND Mitigations | Confidence | Status
+        """
+        output_file = Path(output_file)
+        original_ref = self.threat_model_ref
+        self.threat_model_ref = threat_model
+        try:
+            all_threats = self._get_all_threats_with_mitre_info(grouped_threats, threat_model)
+        finally:
+            self.threat_model_ref = original_ref
+
+        with open(output_file, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow([
+                "ID", "Component", "Trust Boundary", "STRIDE Category",
+                "Severity", "Score", "Source", "Description",
+                "MITRE Techniques", "CAPEC IDs", "CVE IDs", "D3FEND Mitigations",
+                "Confidence", "Status",
+            ])
+            for i, t in enumerate(all_threats, start=1):
+                target = t.get("target", "")
+                mitre = "; ".join(
+                    f"{tech.get('id', '')} {tech.get('name', '')}".strip()
+                    for tech in t.get("mitre_techniques", [])
+                )
+                capecs = "; ".join(c.get("capec_id", "") for c in t.get("capecs", []))
+                cves = "; ".join(t.get("cve", []))
+                defend = "; ".join(
+                    m.get("id", "")
+                    for tech in t.get("mitre_techniques", [])
+                    for m in tech.get("defend_mitigations", [])
+                )
+                severity = t.get("severity", {})
+                writer.writerow([
+                    f"T-{i:04d}",
+                    target,
+                    self._get_boundary_str_for_target(target, threat_model),
+                    t.get("stride_category", ""),
+                    severity.get("level", ""),
+                    severity.get("score", ""),
+                    t.get("source", ""),
+                    t.get("description", ""),
+                    mitre,
+                    capecs,
+                    cves,
+                    defend,
+                    f"{t.get('confidence', 1.0):.2f}",
+                    "TODO",
+                ])
+        logging.info(f"Remediation checklist: {output_file} ({len(all_threats)} threats)")
         return output_file
 
     def generate_stix_export(self, threat_model, grouped_threats: Dict[str, List],
@@ -343,8 +428,9 @@ class ReportGenerator:
                     threat, target = item
                     target_name = self._get_target_name_for_severity_calc(target)
                     threat_description = getattr(threat, 'description', f"Threat of type {threat_type} affecting {target_name}")
-                    stride_category = getattr(threat, 'stride_category', threat_type)
-                    threat_source = getattr(threat, 'source', 'pytm') # Get the source attribute
+                    # pytm Finding objects have no stride_category — use the group key (already validated)
+                    stride_category = getattr(threat, 'stride_category', None) or threat_type
+                    threat_source = getattr(threat, 'source', 'pytm')
                 else:
                     continue
 
@@ -769,7 +855,7 @@ class ReportGenerator:
         )
         logging.info(f"✅ Generated global project report with {len(all_threats_details)} total threats at {output_dir / 'global_threat_report.html'}")
 
-    def generate_project_reports(self, project_path: Path, output_dir: Path, progress_callback = None) -> Optional[ThreatModel]:
+    def generate_project_reports(self, project_path: Path, output_dir: Path, progress_callback = None, ai_service=None) -> Optional[ThreatModel]:
         """
         Generates all reports for a project, ensuring a consistent legend across all diagrams.
         Returns the main threat model of the project.
@@ -841,6 +927,24 @@ class ReportGenerator:
         )
 
         if all_processed_models:
+            # A2: populate sub_models so RAG gets cross-model context
+            for tm in all_processed_models:
+                if tm is not main_threat_model:
+                    main_threat_model.sub_models.append(tm)
+
+            # A2: run cross-model RAG analysis before the global report
+            if ai_service and getattr(ai_service, 'rag_generator', None) and getattr(ai_service, 'ai_online', False):
+                try:
+                    if progress_callback: progress_callback(93, "Running cross-model RAG analysis...")
+                    rag_threats = ai_service.generate_rag_threats_sync(main_threat_model)
+                    if rag_threats:
+                        if not hasattr(main_threat_model.tm, 'global_threats_llm'):
+                            main_threat_model.tm.global_threats_llm = []
+                        main_threat_model.tm.global_threats_llm.extend(rag_threats)
+                        logging.info("Cross-model RAG: added %d global threats to main model.", len(rag_threats))
+                except Exception as exc:
+                    logging.warning("Cross-model RAG analysis failed (non-fatal): %s", exc)
+
             if progress_callback: progress_callback(95, "Generating global project report...")
             self.generate_global_project_report(all_processed_models, output_dir)
         
@@ -921,6 +1025,10 @@ class ReportGenerator:
 
             self.generate_html_report(threat_model, grouped_threats, output_dir / f"{model_name}_threat_report.html", progress_callback=progress_callback)
             self.generate_json_export(threat_model, grouped_threats, output_dir / f"{model_name}.json")
+            try:
+                self.generate_remediation_checklist(threat_model, grouped_threats, output_dir / f"{model_name}_remediation_checklist.csv")
+            except Exception as e:
+                logging.warning(f"Could not generate remediation checklist for {model_name}: {e}")
             self.generate_diagram_html(threat_model, output_dir, breadcrumb, project_protocols, project_protocol_styles)
 
             # Save markdown model and generate metadata for graphical editor
@@ -1001,6 +1109,66 @@ class ReportGenerator:
         except Exception as e:
             logging.error(f"Error processing model at {model_path}: {e}", exc_info=True)
 
+    def _compute_severity_map(self, threat_model) -> Dict[str, str]:
+        """Build {sanitized_node_name: severity_level} from processed threats for B2 heat map.
+
+        Reads mitre_analysis_results so process_threats() must have been called first.
+        Returns an empty dict when no severity data is available.
+        """
+        import re as _re
+
+        def _san(name: str) -> str:
+            s = _re.sub(r'[^a-zA-Z0-9_]', '_', str(name or ''))
+            return (f'_{s}' if s and s[0].isdigit() else s) or 'unnamed'
+
+        _ORDER = {'CRITICAL': 4, 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1}
+        result: Dict[str, str] = {}
+
+        for pt in threat_model.mitre_analysis_results.get('processed_threats', []):
+            target = pt.get('target')
+            if target is None:
+                continue
+            if isinstance(target, tuple):
+                names = [getattr(t, 'name', None) for t in target if t is not None]
+            else:
+                names = [getattr(target, 'name', str(target))]
+
+            sev_info = pt.get('severity_info') or {}
+            level = (sev_info.get('level') or '').upper()
+            if level not in _ORDER:
+                continue
+
+            for name in names:
+                if not name:
+                    continue
+                sid = _san(name)
+                if _ORDER.get(level, 0) > _ORDER.get(result.get(sid, ''), 0):
+                    result[sid] = level
+
+        # Also check AI element threats
+        all_elements = (
+            [(d.get('object'), d.get('name', '')) for d in threat_model.actors]
+            + [(d.get('object'), d.get('name', '')) for d in threat_model.servers]
+        )
+        for df in threat_model.dataflows:
+            all_elements.append((df, getattr(df, 'name', '')))
+
+        _IMPACT = {5: 'CRITICAL', 4: 'HIGH', 3: 'MEDIUM', 2: 'LOW', 1: 'LOW'}
+        for element_obj, element_name in all_elements:
+            if element_obj is None or not element_name:
+                continue
+            max_impact = max(
+                (getattr(t, 'impact', 0) or 0 for t in getattr(element_obj, 'threats', [])),
+                default=0,
+            )
+            if max_impact > 0:
+                level = _IMPACT.get(max_impact, 'LOW')
+                sid = _san(element_name)
+                if _ORDER.get(level, 0) > _ORDER.get(result.get(sid, ''), 0):
+                    result[sid] = level
+
+        return result
+
     def generate_diagram_html(self, threat_model: ThreatModel, output_dir: Path, breadcrumb: List[tuple[str, str]], project_protocols: set, project_protocol_styles: dict):
         """
         Generates an HTML file containing just the diagram for navigation.
@@ -1054,14 +1222,19 @@ class ReportGenerator:
         )
 
         graph_metadata = self._extract_graph_metadata_for_frontend(threat_model)
+        severity_map = self._compute_severity_map(threat_model)
+        # Report file lives in the same output_dir; use a relative link
+        report_url = f"{model_name}_threat_report.html"
         html = template.render(
             title=f"Diagram - {model_name}",
             svg_content=svg_content,
             breadcrumb=processed_breadcrumb,
             parent_link=parent_link,
             legend_html=legend_html,
-            current_dir_depth=current_dir_depth, # Pass the depth to the template
-            graph_metadata_json=json.dumps(graph_metadata)
+            current_dir_depth=current_dir_depth,
+            graph_metadata_json=json.dumps(graph_metadata),
+            severity_map_json=json.dumps(severity_map),
+            report_url=report_url,
         )
 
         diagram_html_path = output_dir / f"{model_name}_diagram.html"

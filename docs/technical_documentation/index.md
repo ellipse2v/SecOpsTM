@@ -312,11 +312,50 @@ The `SeverityCalculator` provides a nuanced risk score for each threat.
     4.  **Protocol Adjustments**: The protocol of a dataflow can adjust the score (e.g., HTTP increases it, HTTPS decreases it).
     5.  **Data Classification**: The classification of the data in a flow (`PUBLIC`, `SECRET`, etc.) acts as a final multiplier.
 -   **Normalization**: The final score is clamped between 1.0 and 10.0 and assigned a qualitative level (e.g., "HIGH", "CRITICAL").
+-   **RiskContext VOC scoring**: Four binary context signals adjust the base score:
+    -   `has_cve_match` → +0.5 (confirmed CVE for this target/STRIDE category)
+    -   `cwe_high_risk` → +0.3 (CWE in the 14 most weaponised classes: injection, memory corruption, hardcoded creds…)
+    -   `network_exposed` → +0.7 (dataflow without auth/encryption, or element in untrusted boundary)
+    -   `has_d3fend_mitigations` → −0.5 (active D3FEND controls reduce residual risk)
+-   **Why CWE instead of CVSS**: The CVE JSONL corpus carries only `CWE`, `CAPEC`, and `TECHNIQUES` keys — no CVSS scores. CWE class is used as an offline exploitability proxy.
+
+### 4.6b. AI-Enhanced Threat Analysis (`ai_engine/` + `server/ai_service.py`)
+
+SecOpsTM runs three independent threat engines whose outputs are deduplicated and unified:
+
+| Engine | Source tag | Scope |
+|---|---|---|
+| pytm rule engine | `pytm` | Per element/dataflow, rule-based |
+| Component-level LLM | `AI` | Per component (actors + servers + **boundaries**) |
+| RAG pipeline | `LLM` | System-level, full project context (cross-model in project mode) |
+
+**Key AI features:**
+
+-   **Trust context in prompts**: Each component prompt includes the trust level of its boundary (`TRUSTED` / `UNTRUSTED`), enabling the LLM to tailor threat scenarios to the actual exposure.
+-   **Cross-model RAG** (project mode): `_generate_rag_threats()` concatenates the main model markdown with all sub-models before the RAG call, surfacing cross-boundary threats. Wired via `generate_rag_threats_sync()` after sub-model recursion in `generate_project_reports()`.
+-   **Boundary AI threats**: `SecOpsBoundary` objects are added to `all_elements` in `_enrich_with_ai_threats()`, receiving LLM analysis for zone-level threats (privilege escalation, lateral movement).
+-   **Deduplication**: `ThreatConsolidator` uses offline Jaccard word-overlap (≥0.3) or substring containment — AI version wins over pytm duplicate.
+-   **Providers**: Ollama (offline), Gemini, OpenAI, Mistral, any LiteLLM-compatible endpoint. Configured in `config/ai_config.yaml`.
+-   **All prompts** centralized in `config/prompts.yaml`, loaded lazily by `prompt_loader.py`.
+
+### 4.6c. Attack Chain Analysis (`core/attack_chain.py`)
+
+`AttackChainAnalyzer.analyze(all_threats, dataflows)` identifies multi-step attack paths:
+
+1.  Index all scored threats by target component name.
+2.  Iterate dataflows as directed edges (source → sink).
+3.  For each dataflow, pair the highest-severity threat on the source (entry point) with the highest on the sink (pivot).
+4.  `chain_score = (entry_score + pivot_score) / 2.0`; label = CRITICAL / HIGH / MEDIUM / LOW.
+5.  Deduplicate by `(source_name, sink_name)` pair; sort by score descending.
+
+Results appear in a **"⛓️ Attack Chain Analysis"** section in the HTML report. Component anchors (`#component-{sid}`) enable the severity heat map's "View threats →" links to navigate to specific threat tables.
 
 ### 4.7. Output Generation (`generation/`)
 
 -   **`diagram_generator.py`**: This module is responsible for all visual representations.
     -   It uses a Jinja2 template (`threat_model.dot.j2`) to generate Graphviz DOT language code from the `ThreatModel` object.
+    -   **Trust Boundary Colors**: Trusted boundaries use `color="#2e7d32"` (dark green, solid); untrusted use `color="#c62828"` (dark red, dashed). These values are baked into the DOT template and thus appear in both exported SVG and HTML diagrams.
+    -   **Severity Heat Map**: `_generate_html_with_legend()` accepts `severity_map` (dict of component → severity label) and `report_url`. The HTML diagram template injects these as JavaScript variables, enabling a toggle button that applies/restores per-component colour overlays and shows hover tooltips with "View threats →" deep-links into the HTML report.
     -   **Visual Styling**: The generator includes sophisticated logic for rich visual styling, combining native Graphviz shapes with embedded SVG icons. The layout of the icon and text is adjusted based on the element type for maximum clarity:
         -   **Native Shapes & Sizing**: It assigns semantic shapes to elements and sets their sizes for a clean visual hierarchy:
             -   **Actors**: Rendered as fixed-size **circles**.

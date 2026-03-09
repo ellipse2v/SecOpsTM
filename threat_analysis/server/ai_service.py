@@ -18,6 +18,7 @@ import logging
 import queue
 import json
 import asyncio
+import threading
 import concurrent.futures
 from pathlib import Path
 from typing import Optional, List, Dict, Any
@@ -30,6 +31,10 @@ from threat_analysis.ai_engine.providers.litellm_provider import LiteLLMProvider
 
 
 class AIService:
+    # Class-level persistent background event loop for sync wrappers (P2).
+    _sync_loop: Optional[asyncio.AbstractEventLoop] = None
+    _sync_loop_lock = threading.Lock()
+
     def __init__(self, config_path: str, ai_status_event_queue: Optional[queue.Queue] = None):
         self.provider: Optional[BaseLLMProvider] = None
         self.rag_generator = None
@@ -110,59 +115,111 @@ class AIService:
         async for chunk in self.provider.generate_markdown(prompt, markdown):
             yield chunk
 
+    @classmethod
+    def _get_sync_loop(cls) -> asyncio.AbstractEventLoop:
+        """Returns (or lazily starts) a persistent background event loop.
+
+        A single daemon thread running loop.run_forever() is reused across all
+        calls, avoiding the overhead of creating a new thread + event loop per
+        invocation (P2 fix).
+        """
+        if cls._sync_loop is None or cls._sync_loop.is_closed():
+            with cls._sync_loop_lock:
+                if cls._sync_loop is None or cls._sync_loop.is_closed():
+                    loop = asyncio.new_event_loop()
+                    t = threading.Thread(
+                        target=loop.run_forever,
+                        daemon=True,
+                        name="ai-sync-loop",
+                    )
+                    t.start()
+                    cls._sync_loop = loop
+        return cls._sync_loop
+
+    async def _collect_markdown_chunks(self, prompt: str, markdown: Optional[str]) -> List[str]:
+        """Collects all streamed chunks from generate_markdown_from_prompt into a list."""
+        chunks: List[str] = []
+        async for chunk in self.generate_markdown_from_prompt(prompt, markdown):
+            chunks.append(chunk)
+        return chunks
+
+    def generate_rag_threats_sync(self, threat_model) -> List[ExtendedThreat]:
+        """Sync wrapper around _generate_rag_threats.
+
+        Submits the coroutine to the persistent background event loop and blocks
+        until the result is ready.  Safe to call from sync Flask routes.
+        Returns an empty list when the RAG generator is unavailable.
+        """
+        if not self.rag_generator:
+            return []
+        future = asyncio.run_coroutine_threadsafe(
+            self._generate_rag_threats(threat_model),
+            self._get_sync_loop(),
+        )
+        try:
+            return future.result(timeout=120)
+        except Exception as exc:
+            logging.warning("generate_rag_threats_sync failed: %s", exc)
+            return []
+
     def generate_markdown_from_prompt_sync(self, prompt: str, markdown: Optional[str] = None):
         """Sync wrapper around generate_markdown_from_prompt.
 
-        Runs the async generator in a dedicated thread with its own event loop.
-        This avoids the RuntimeError('This event loop is already running') that
-        occurs when calling loop.run_until_complete() from inside a Flask async
-        context or any other already-running loop.
+        Submits the coroutine to the persistent background event loop via
+        run_coroutine_threadsafe(), then blocks until the result is ready.
+        This is safe to call from inside an already-running asyncio loop
+        (e.g. Flask async routes) because the coroutine runs in a separate loop.
         """
         logging.debug("Generating markdown from prompt (sync)...")
-
-        async def _collect() -> List[str]:
-            chunks: List[str] = []
-            async for chunk in self.generate_markdown_from_prompt(prompt, markdown):
-                chunks.append(chunk)
-            return chunks
-
-        def _run_in_new_loop() -> List[str]:
-            loop = asyncio.new_event_loop()
-            try:
-                return loop.run_until_complete(_collect())
-            finally:
-                loop.close()
-
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-            chunks = executor.submit(_run_in_new_loop).result()
-
+        future = asyncio.run_coroutine_threadsafe(
+            self._collect_markdown_chunks(prompt, markdown),
+            self._get_sync_loop(),
+        )
+        chunks = future.result()
         return iter(chunks)
 
     async def _generate_rag_threats(self, threat_model) -> List[ExtendedThreat]: # Return List[ExtendedThreat]
         """
         Generates system-level threats using the RAG service.
+
+        A2: includes sub-model content so RAG receives the full project context
+        and can identify cross-model / cross-boundary threats.
         """
         if not self.rag_generator:
             return []
 
         logging.debug("Generating system-level threats using RAG...")
 
-        # Construct a Markdown representation of the entire threat model
-        tm_markdown_content = f"# Threat Model: {threat_model.tm.name}\n\n"
-        tm_markdown_content += f"## Description\n\n{threat_model.tm.description}\n\n"
-        tm_markdown_content += "## Components\n\n"
-        
-        all_elements = [a['object'] for a in threat_model.actors] + \
-                       [s['object'] for s in threat_model.servers] + \
-                       threat_model.dataflows
-                       
-        for element in all_elements:
-            tm_markdown_content += f"### {element.name}\n\n"
-            tm_markdown_content += f"- **Type:** {element.stereotype if hasattr(element, 'stereotype') else element.__class__.__name__}\n"
-            tm_markdown_content += f"- **Description:** {element.description}\n"
-            if hasattr(element, 'protocol'):
-                tm_markdown_content += f"- **Protocol:** {element.protocol}\n"
-            tm_markdown_content += "\n"
+        def _model_markdown(tm, label: str = "") -> str:
+            """Render a single ThreatModel as Markdown for RAG context."""
+            header = label or tm.tm.name
+            md = f"# Threat Model: {header}\n\n"
+            md += f"## Description\n\n{tm.tm.description}\n\n"
+            md += "## Components\n\n"
+            elements = (
+                [a['object'] for a in tm.actors]
+                + [s['object'] for s in tm.servers]
+                + tm.dataflows
+            )
+            for element in elements:
+                md += f"### {element.name}\n\n"
+                md += f"- **Type:** {element.stereotype if hasattr(element, 'stereotype') else element.__class__.__name__}\n"
+                md += f"- **Description:** {getattr(element, 'description', '')}\n"
+                if hasattr(element, 'protocol'):
+                    md += f"- **Protocol:** {element.protocol}\n"
+                md += "\n"
+            return md
+
+        # Main model markdown
+        tm_markdown_content = _model_markdown(threat_model)
+
+        # A2: append sub-model content when running in project mode
+        for sub in getattr(threat_model, "sub_models", []):
+            try:
+                tm_markdown_content += "\n---\n\n"
+                tm_markdown_content += _model_markdown(sub, label=f"Sub-model: {sub.tm.name}")
+            except Exception as exc:
+                logging.warning("Could not append sub-model to RAG context: %s", exc)
 
         rag_generated_threats_json = self.rag_generator.generate_threats(tm_markdown_content)
         
@@ -215,9 +272,19 @@ class AIService:
         # Keep data_sensitivity from context.yaml if set; fall back to "High"
         context.setdefault("data_sensitivity", "High")
 
-        all_elements = [a['object'] for a in threat_model.actors] + \
-                       [s['object'] for s in threat_model.servers] + \
-                       threat_model.dataflows
+        all_elements = (
+            [a['object'] for a in threat_model.actors]
+            + [s['object'] for s in threat_model.servers]
+            + threat_model.dataflows
+        )
+
+        # A3: include trust boundaries as AI threat targets
+        boundary_objects = [
+            b_info['boundary']
+            for b_info in threat_model.boundaries.values()
+            if b_info.get('boundary') is not None
+        ]
+        all_elements = all_elements + boundary_objects
 
         # Ensure all elements have a 'threats' attribute to append to.
         for element in all_elements:
@@ -226,6 +293,15 @@ class AIService:
 
         total_elements = len(all_elements)
         processed_elements = 0
+
+        # P1 fix: single connection check before the loop instead of one per element.
+        if not self.provider:
+            logging.error("AI provider not initialized.")
+            return
+        if not await self.provider.check_connection():
+            logging.warning("AI enrichment stopped: provider is offline.")
+            self.ai_online = False
+            return
 
         for element in all_elements:
             processed_elements += 1
@@ -239,20 +315,35 @@ class AIService:
                 }
                 ai_status_event_queue.put(f"event: ai_progress\ndata: {json.dumps(data)}\n\n")
 
-            if not self.provider:
-                logging.error("AI provider not initialized.")
-                continue
-
-            if not await self.provider.check_connection():
-                logging.warning("AI enrichment stopped: provider is offline.")
-                self.ai_online = False
-                return
+            # A1 + A3: enrich with boundary context.
+            # For boundary objects themselves, isTrusted is a direct attribute.
+            is_boundary_element = element.__class__.__name__ in ("SecOpsBoundary", "Boundary")
+            if is_boundary_element:
+                trusted = getattr(element, 'isTrusted', False)
+                trust_boundary_str = f"Self ({'TRUSTED' if trusted else 'UNTRUSTED'})"
+                elem_type = f"Trust Boundary ({'Trusted' if trusted else 'Untrusted'})"
+            else:
+                boundary_obj = getattr(element, 'inBoundary', None)
+                if boundary_obj:
+                    trusted = getattr(boundary_obj, 'isTrusted', False)
+                    trust_boundary_str = (
+                        f"{boundary_obj.name} ({'TRUSTED' if trusted else 'UNTRUSTED'})"
+                    )
+                else:
+                    trust_boundary_str = "None assigned"
+                elem_type = (
+                    element.stereotype if hasattr(element, "stereotype")
+                    else element.__class__.__name__
+                )
 
             component_details = {
                 "name": element.name,
-                "type": element.stereotype if hasattr(element, "stereotype") else element.__class__.__name__,
-                "description": element.description,
+                "type": elem_type,
+                "description": getattr(element, 'description', ''),
                 "protocol": getattr(element, "protocol", None),
+                "trust_boundary": trust_boundary_str,
+                "is_public": getattr(element, 'is_public', False),
+                "authentication": "Yes" if getattr(element, 'is_authenticated', False) else "No",
             }
             logging.debug(f"Generating AI threats for component: {element.name}")
 

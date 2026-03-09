@@ -23,7 +23,8 @@ def test_stride_prompts():
         'description': 'Main user interface',
         'trust_boundary': 'Internet',
         'authentication': 'OAuth2',
-        'protocol': 'HTTPS'
+        'protocol': 'HTTPS',
+        'is_public': True,
     }
     context = {
         'system_description': 'A simple web application',

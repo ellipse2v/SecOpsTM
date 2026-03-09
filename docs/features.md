@@ -22,14 +22,21 @@ Three independent threat engines feed into a **unified, deduplicated** output:
 - **Unified severity scoring**: All three sources pass through the same `SeverityCalculator` before reporting.
 - **Multi-provider**: Ollama (fully offline), Google Gemini, OpenAI, Mistral, and any LiteLLM-compatible provider. Configured in `config/ai_config.yaml`.
 - **Offline-first**: The embedding model (all-MiniLM-L6-v2) and the vector store (ChromaDB) run locally. The only outbound traffic is the LLM API call if using a cloud provider.
+- **Boundary-level AI threats**: Trust boundaries (`SecOpsBoundary`) are included as AI analysis targets, generating threats specific to boundary crossing, privilege escalation, and lateral movement.
+- **Cross-model RAG analysis**: In project mode, the RAG pipeline receives the full project context (main model + all sub-models) for cross-boundary threat detection that individual model analysis cannot surface.
+- **Trust context in prompts**: Each component prompt includes its boundary's trust level (`TRUSTED` / `UNTRUSTED`) so the LLM can tailor threat scenarios to the actual exposure level.
 
 ## Reporting & Export
 
-- **HTML report**: Integrated threat statistics, STRIDE/MITRE mapping, D3FEND mitigations, severity breakdown, source tagging (`pytm` / `AI` / `LLM`).
-- **Versioned JSON export** (`schema_version: "1.0"`): Stable structure for SIEM, dashboards, and ticketing tools. Schema defined at `threat_analysis/schemas/v1/threat_model_report.schema.json`.
+- **HTML report**: Integrated threat statistics, STRIDE/MITRE mapping, D3FEND mitigations, severity breakdown, source tagging (`pytm` / `AI` / `LLM`), risk signals (`CVE`, `CWE⚠`, `NET`, `D3F`), executive summary with KPIs + top-5 risks, interactive severity filter (CRITICAL/HIGH/MEDIUM/LOW), risk matrix 5×5.
+- **⛓️ Attack Chain Analysis**: Dedicated section in the HTML report identifying multi-step attack paths that chain threats across dataflows. Each chain shows entry point, pivot component, attack scores, and CRITICAL/HIGH/MEDIUM/LOW severity label.
+- **Versioned JSON export** (`schema_version: "1.0"`): Stable structure for SIEM, dashboards, and ticketing tools. Schema defined at `threat_analysis/schemas/v1/threat_model_report.schema.json`. Threats carry stable IDs (`T-0001`).
 - **STIX 2.1** bundle and **ATT&CK Navigator** layer (JSON).
 - **Attack Flow** `.afb` files for key STRIDE objectives.
+- **Remediation Checklist**: CSV export of all actionable mitigations, one row per threat-technique pair.
 - **Visual Diagrams**: DOT, SVG, and interactive HTML with threat highlights.
+  - **Trust Boundary Colors**: Trusted zones rendered green solid (`#2e7d32`), untrusted zones red dashed (`#c62828`) — baked into the DOT template and exported SVG.
+  - **Severity Heat Map Overlay**: Interactive toggle in diagram HTML. Applies per-component severity colour (CRITICAL → red, HIGH → orange, MEDIUM → yellow, LOW → teal) over the original diagram; hover tooltip shows severity + "View threats →" deep-link to the HTML report.
 
 ## CLI & CI Integration
 
@@ -47,7 +54,8 @@ Three independent threat engines feed into a **unified, deduplicated** output:
 
 - **Real-time Editing**: Live diagram preview that updates as you type.
 - **Interactive Diagrams**: Click to highlight, interactive legend (filter by protocol), sub-model navigation.
-- **Project Mode**: Tabbed interface for multi-file projects; "Generate All" produces unified, cross-linked reports.
+- **Severity Heat Map**: Toggle button in diagram HTML applies colour-coded severity overlay; tooltip links directly to the threat report anchor for that component.
+- **Project Mode**: Tabbed interface for multi-file projects; "Generate All" produces unified, cross-linked reports with cross-model RAG analysis.
 - **Graphical Editor**: Visual drag-and-drop canvas for building models without writing Markdown.
 - **Reports are fully self-contained** and work offline.
 

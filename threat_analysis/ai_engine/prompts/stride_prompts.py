@@ -71,7 +71,15 @@ def build_component_prompt(component: Dict, context: Dict) -> str:
         trust_boundary=component.get("trust_boundary", "Unknown"),
         authentication=component.get("authentication", "Unknown"),
         protocol=component.get("protocol", "Unknown"),
-        internet_facing="Yes" if context.get("internet_facing") else "No",
+        internet_facing=(
+            "Yes (directly internet-facing)"
+            if component.get("is_public")
+            else (
+                "No (system has internet-facing components but this one is internal)"
+                if context.get("internet_facing")
+                else "No"
+            )
+        ),
         deployment=context.get("deployment_environment", "Unknown"),
         system_desc=context.get("system_description", ""),
         data_sensitivity=context.get("data_sensitivity", "Medium"),

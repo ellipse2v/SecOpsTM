@@ -12,25 +12,40 @@ This framework is designed to be used in a "Threat Model as Code" workflow. This
 
 ## 1. Command Line Interface (CLI) Mode
 
-Use the CLI mode for automated threat analysis, report generation, and diagram creation. This is ideal for integration into CI/CD pipelines or batch processing.
+Use the `secopstm` command (installed via `pip install -e .`) for automated threat analysis:
+
+```bash
+# Full analysis — HTML + JSON + SVG in output/
+secopstm --model-file threatModel_Template/threat_model.md
+
+# JSON only, printed to stdout — ideal for CI pipelines and SIEM ingestion
+secopstm --model-file model.md --stdout
+
+# JSON to a specific file
+secopstm --model-file model.md --output-format json --output-file report.json
+
+# STIX 2.1 bundle only
+secopstm --model-file model.md --output-format stix
+
+# Launch the web editor
+secopstm --server
+```
+
+You can also still use `python -m threat_analysis` with all the same flags — they are 100% equivalent.
 
 1.  **Learn how to define your threat model in Markdown** by reading the [Defining Your Threat Model](defining_threat_models.md) guide.
-2.  **Run the analysis:**
+2.  **Generate Attack Flow diagrams:** Add the `--attack-flow` flag to generate `.afb` files for key STRIDE objectives (Tampering, Spoofing, Information Disclosure, Repudiation).
     ```bash
-    python -m threat_analysis --model-file threatModel_Template/threat_model.md --navigator
+    secopstm --model-file path/to/your_model.md --attack-flow
     ```
-    (You can omit `--model-file threatModel_Template/threat_model.md` if your model file is named `threatModel_Template/threat_model.md` and is in the root directory.)
-3.  **Generate Attack Flow diagrams:** Add the `--attack-flow` flag to any analysis command to generate optimized Attack Flow `.afb` files for key objectives.
-    ```bash
-    python -m threat_analysis --model-file path/to/your_model.md --attack-flow
-    ```
-    This will generate one `.afb` file for each of the main objectives (Tampering, Spoofing, Information Disclosure, Repudiation) found in your model, selecting the highest-scoring path for each.
-4.  **View the results** in the generated `output/` folder:
-    -   HTML report
-    -   JSON export
-    -   DOT/SVG/HTML diagrams
-    -   MITRE ATT&CK Navigator layer (JSON)
-    -   Optimized Attack Flow `.afb` files
+3.  **View the results** in the generated `output/` folder:
+    -   `stride_mitre_report.html` — HTML report with attack chains, severity heat map data, executive summary
+    -   `mitre_analysis.json` — versioned JSON export (`schema_version: "1.0"`, threats with stable IDs `T-NNNN`)
+    -   `tm_diagram.svg` / `tm_diagram.html` — SVG diagram (trust colors) + interactive HTML with severity heat map toggle
+    -   `attack_navigator_layer_*.json` — MITRE ATT&CK Navigator layer
+    -   `stix_report_*.json` — STIX 2.1 bundle
+    -   `remediation_checklist.csv` — actionable mitigations per threat-technique pair
+    -   Optimized Attack Flow `.afb` files (if `--attack-flow`)
 
 ### Specifying Custom File Paths
 

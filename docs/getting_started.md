@@ -12,14 +12,13 @@
     ```bash
     pip install -e .
     ```
-    This command installs all project dependencies and sets up the project in "editable" mode, which is recommended for development.
-    For a standard installation (e.g., for deployment), you can use:
+    This installs all project dependencies in editable mode and makes the `secopstm` CLI command available in your environment.
+    For a standard installation (e.g., for deployment), use `pip install .`
+
+    **Quick CLI test after installation:**
     ```bash
-    pip install .
+    secopstm --model-file threatModel_Template/threat_model.md
     ```
-    **Note on Installation Modes:**
-    - `pip install -e .`: Installs the project in "editable" mode. This is recommended for development as any changes you make to the source code in your project directory are immediately reflected without needing to reinstall.
-    - `pip install .`: Performs a standard installation, copying the project files into your Python environment. Use this for deployment or when using the package as a dependency.
 
 3.  **Install Graphviz (for diagram generation):**
     -   Windows: [https://graphviz.org/download/](https://graphviz.org/download/)
@@ -34,6 +33,8 @@ The framework includes a web-based interface for interactive threat modeling, ac
 
 1.  **Launch the server:**
     ```bash
+    secopstm --server
+    # or equivalently:
     python3 -m threat_analysis --server
     ```
 

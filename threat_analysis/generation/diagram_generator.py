@@ -602,7 +602,8 @@ class DiagramGenerator:
         color = info.get('color', 'lightgray')
         is_trusted = info.get('isTrusted', False)
         is_filled = info.get('isFilled', True)
-        line_style = info.get('line_style', 'solid')
+        # B1: trust-based line style default — only when not explicitly set in the DSL
+        line_style = info.get('line_style') or ('solid' if is_trusted else 'dashed')
 
         display_name = boundary_obj.name if boundary_obj and hasattr(boundary_obj, 'name') else name
         escaped_name = self._escape_label(display_name)
@@ -863,10 +864,36 @@ class DiagramGenerator:
         for _, (label, color) in legend_node_types.items():
             legend_items.append(f'''<div style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 12px; height: 8px; background-color: {color}; border: 1px solid #999; margin-right: 8px; border-radius: 2px;"></div><span style="font-size: 9px;">{label}</span></div>''')
 
-        # Boundary types legend (remains the same)
-        boundary_types = [("Trust Boundaries", "#FF0000", "3px solid"), ("Untrust Boundaries", "#000000", "1px solid")]
+        # B1: Boundary trust convention legend (green solid = trusted, red dashed = untrusted)
+        boundary_types = [
+            ("🔒 Trusted Zone",   "#2e7d32", "2px solid"),
+            ("⚠ Untrusted Zone",  "#c62828", "2px dashed"),
+        ]
         for label, color, border_style in boundary_types:
             legend_items.append(f'''<div style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 20px; height: 15px; border: {border_style} {color}; margin-right: 8px; border-radius: 2px;"></div><span style="font-size: 11px;">{label}</span></div>''')
+
+        # B2: Severity heat-map legend (only shown when overlay is available)
+        legend_items.append('<div id="severity-legend-section" style="margin-top: 5px; border-top: 1px solid #eee; padding-top: 5px;">')
+        legend_items.append('<div style="margin-bottom: 3px; font-weight: bold; font-size: 10px;">Severity Overlay:</div>')
+        severity_levels = [
+            ("Critical", "#dc2626"),
+            ("High",     "#ea580c"),
+            ("Medium",   "#d97706"),
+            ("Low",      "#16a34a"),
+        ]
+        for sev_label, sev_color in severity_levels:
+            legend_items.append(
+                f'<div style="display:flex;align-items:center;margin-bottom:3px;">'
+                f'<div style="width:12px;height:12px;border-radius:50%;background:{sev_color};margin-right:8px;"></div>'
+                f'<span style="font-size:10px;">{sev_label}</span></div>'
+            )
+        legend_items.append(
+            '<div style="margin-top:4px;">'
+            '<button id="severity-overlay-btn" onclick="toggleSeverityOverlay()" '
+            'style="font-size:10px;padding:2px 7px;border:1px solid #aaa;border-radius:3px;cursor:pointer;background:#f5f5f5;">'
+            '⬤ Show Heat Map</button></div>'
+        )
+        legend_items.append('</div>')
 
         # Determine which protocol data to use
         protocol_styles_to_use = project_protocol_styles if project_protocol_styles is not None else self._get_protocol_styles_from_model(threat_model)
@@ -885,39 +912,31 @@ class DiagramGenerator:
         
         return ''.join(legend_items)
    
-    def _generate_html_with_legend(self, svg_path: Path, html_output_path: Path, threat_model, graph_metadata: Optional[dict] = None) -> Optional[Path]:
+    def _generate_html_with_legend(self, svg_path: Path, html_output_path: Path, threat_model, graph_metadata: Optional[dict] = None, severity_map: Optional[dict] = None, report_url: str = "") -> Optional[Path]:
         """Generates HTML file with SVG and positioned legend."""
         try:
-            # Read SVG content
             with open(svg_path, 'r', encoding='utf-8') as f:
                 svg_content = f.read()
-            
-            # Generate legend HTML
             legend_html = self._generate_legend_html(threat_model)
-            
-            # Create complete HTML
-            html_content = self._create_complete_html(svg_content, legend_html, threat_model, graph_metadata)
-            
-            # Write HTML file
+            html_content = self._create_complete_html(svg_content, legend_html, threat_model, graph_metadata, severity_map, report_url)
             with open(html_output_path, 'w', encoding='utf-8') as f:
                 f.write(html_content)
-            
-            
             return html_output_path
-        
         except Exception as e:
             logging.error(f"❌ Error generating HTML with legend: {e}")
-            return None   
- 
-    def _create_complete_html(self, svg_content: str, legend_html: str, threat_model, graph_metadata: Optional[dict] = None) -> str:
+            return None
+
+    def _create_complete_html(self, svg_content: str, legend_html: str, threat_model, graph_metadata: Optional[dict] = None, severity_map: Optional[dict] = None, report_url: str = "") -> str:
         """Creates the complete HTML document with SVG and legend."""
         template = self.template_env.get_template("diagram_template.html")
         model_name = threat_model.name if hasattr(threat_model, 'name') else 'Threat Model'
         return template.render(
-            title=f"Diagramme de Menaces - {model_name}",
+            title=f"Threat Diagram - {model_name}",
             svg_content=svg_content,
             legend_html=legend_html,
-            graph_metadata_json=json.dumps(graph_metadata) if graph_metadata else "{}"
+            graph_metadata_json=json.dumps(graph_metadata) if graph_metadata else "{}",
+            severity_map_json=json.dumps(severity_map or {}),
+            report_url=report_url,
         )
 
     def _get_protocol_styles_from_model(self, threat_model) -> Dict[str, Dict]:

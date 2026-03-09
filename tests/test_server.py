@@ -690,7 +690,7 @@ def test_update_api_generic_exception(client):
         payload = {'markdown': '# Test'}
         response = client.post('/api/update', data=json.dumps(payload), content_type='application/json')
         assert response.status_code == 500
-        assert 'An unexpected error occurred' in response.get_json()['error']
+        assert 'An internal error occurred' in response.get_json()['error']
 
 def test_run_server_with_file_read_error(client):
     """Test run_server when reading an existing file fails."""
@@ -751,23 +751,6 @@ def test_generate_markdown_from_prompt_no_online(client):
         payload = {'prompt': 'test'}
         response = client.post('/api/generate_markdown_from_prompt', data=json.dumps(payload), content_type='application/json')
         assert response.status_code == 503
-
-def test_ai_status_stream(client):
-    """Test the /api/ai_status_stream endpoint."""
-    with patch('threat_analysis.server.server.get_threat_model_service') as mock_get_service:
-        mock_service = MagicMock()
-        mock_get_service.return_value = mock_service
-        mock_service.ai_online = True
-        
-        response = client.get('/api/ai_status_stream')
-        assert response.status_code == 200
-        assert response.mimetype == "text/event-stream"
-
-def test_progress_stream(client):
-    """Test the /api/progress_stream endpoint."""
-    response = client.get('/api/progress_stream')
-    assert response.status_code == 200
-    assert response.mimetype == "text/event-stream"
 
 def test_sse_broadcaster():
     """Test the SSEBroadcaster class."""

@@ -148,7 +148,7 @@ def initialize_ai_in_background():
             if service:
                 service.ai_online = False
 
-            data = {"ai_online": False, "error": str(e)}
+            data = {"ai_online": False, "error": "AI initialization failed."}
             ai_status_broadcaster.broadcast("ai_status", data)
 
     try:
@@ -459,7 +459,7 @@ async def generate_markdown_from_prompt():
 
     except Exception as e:
         logging.exception(f"Exception during AI generation: {e}")
-        return jsonify({"error": f"An error occurred during generation: {str(e)}"}), 500
+        return jsonify({"error": "An internal error occurred during AI generation. Check server logs for details."}), 500
 
 
 
@@ -493,7 +493,7 @@ def update_diagram():
         return jsonify({"error": str(e)}), 500
     except Exception as e:
         logging.error(f"An unexpected error occurred during diagram update: {e}", exc_info=True)
-        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+        return jsonify({"error": "An internal error occurred. Check server logs for details."}), 500
 
 
 def _format_properties(item: dict, props_to_include: list) -> str:
@@ -582,7 +582,7 @@ def graphical_update():
 
     except Exception as e:
         logging.error(f"An unexpected error occurred during graphical update: {e}", exc_info=True)
-        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+        return jsonify({"error": "An internal error occurred. Check server logs for details."}), 500
 
 
 
@@ -624,7 +624,7 @@ def export_files():
         return jsonify({"error": str(e)}), 500
     except Exception as e:
         logging.error(f"An unexpected error occurred during export: {e}", exc_info=True)
-        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+        return jsonify({"error": "An internal error occurred. Check server logs for details."}), 500
 
 
 @app.route("/api/export_all", methods=["POST"])
@@ -658,7 +658,7 @@ def export_all_files():
         return jsonify({"error": str(e)}), 500
     except Exception as e:
         logging.error(f"An unexpected error occurred during export all: {e}", exc_info=True)
-        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+        return jsonify({"error": "An internal error occurred. Check server logs for details."}), 500
 
 @app.route("/api/export_navigator_stix", methods=["POST"])
 def export_navigator_stix_files():
@@ -712,7 +712,7 @@ def export_navigator_stix_files():
 
         logging.error(f"An unexpected error occurred during export navigator and stix: {e}", exc_info=True)
 
-        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+        return jsonify({"error": "An internal error occurred. Check server logs for details."}), 500
 
 
 
@@ -782,7 +782,7 @@ def export_attack_flow():
 
     except Exception as e:
         logging.error(f"An unexpected error occurred during Attack Flow export: {e}", exc_info=True)
-        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
+        return jsonify({"error": "An internal error occurred. Check server logs for details."}), 500
 
 
 @app.route("/api/models", methods=["GET"])
@@ -798,7 +798,7 @@ def list_models():
         return jsonify({"success": True, "models": model_files})
     except Exception as e:
         logging.error(f"Error listing models: {e}", exc_info=True)
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "An internal error occurred. Check server logs for details."}), 500
 
 
 @app.route("/api/load_model", methods=["POST"])
@@ -814,10 +814,9 @@ def load_model():
         if not model_path:
             return jsonify({"error": "Missing model path"}), 400
 
-        # Security check: ensure the path is within the project
-        full_model_path = os.path.abspath(os.path.join(project_root, model_path))
-        # Corrected security check to use startswith on the output directory
-        if not full_model_path.startswith(os.path.abspath(config.OUTPUT_BASE_DIR)):
+        # Security check: ensure the path is within the output directory (symlink-safe).
+        full_model_path = Path(os.path.abspath(os.path.join(project_root, model_path)))
+        if not full_model_path.is_relative_to(Path(config.OUTPUT_BASE_DIR).resolve()):
             return jsonify({"error": "Invalid model path"}), 400
 
         if not os.path.exists(full_model_path):
@@ -827,7 +826,7 @@ def load_model():
             markdown_content = f.read()
 
         metadata = None
-        metadata_path = full_model_path.replace(".md", "_metadata.json")
+        metadata_path = os.path.splitext(str(full_model_path))[0] + "_metadata.json"
         logging.debug(f"Looking for metadata at: {metadata_path}")
         if os.path.exists(metadata_path):
             logging.debug("Metadata file found. Loading.")
@@ -844,7 +843,7 @@ def load_model():
         })
     except Exception as e:
         logging.error(f"Error during model load: {e}", exc_info=True)
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "An internal error occurred. Check server logs for details."}), 500
 
 
 @app.route("/api/markdown_to_json", methods=["POST"])
@@ -874,7 +873,7 @@ def markdown_to_json():
             logging.error(f"Problematic markdown content:\n{markdown_content}")
         except Exception as log_e:
             logging.error(f"Could not log markdown content: {log_e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "An internal error occurred. Check server logs for details."}), 500
 
 
 @app.route("/api/save_model", methods=["POST"])
@@ -914,7 +913,7 @@ def save_model():
         })
     except Exception as e:
         logging.error(f"Error during model save: {e}", exc_info=True)
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "An internal error occurred. Check server logs for details."}), 500
 
 @app.route("/api/generate_all", methods=["POST"])
 def generate_all():
@@ -1016,7 +1015,7 @@ def generate_all():
         })
     except Exception as e:
         logging.error(f"Error during complete generation: {e}", exc_info=True)
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "An internal error occurred. Check server logs for details."}), 500
 
 
 @app.route("/api/save_project", methods=["POST"])
@@ -1055,7 +1054,7 @@ def save_project():
         })
     except Exception as e:
         logging.error(f"Error during project save: {e}", exc_info=True)
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "An internal error occurred. Check server logs for details."}), 500
 
 
 @app.route("/api/check_version_compatibility", methods=["POST"])
@@ -1071,14 +1070,13 @@ def check_version_compatibility():
         if not model_path or not metadata_path:
             return jsonify({"error": "Missing model or metadata path"}), 400
         
-        # Security check: ensure the path is within the project
-        full_model_path = os.path.abspath(os.path.join(project_root, model_path))
-        full_metadata_path = os.path.abspath(os.path.join(project_root, metadata_path))
-        
-        output_base_abs = os.path.abspath(config.OUTPUT_BASE_DIR)
-        
-        if not full_model_path.startswith(output_base_abs) or not full_metadata_path.startswith(output_base_abs):
-             return jsonify({"error": "Invalid file paths"}), 400
+        # Security check: ensure the paths are within the output directory (symlink-safe).
+        output_base_resolved = Path(config.OUTPUT_BASE_DIR).resolve()
+        full_model_path = Path(os.path.abspath(os.path.join(project_root, model_path)))
+        full_metadata_path = Path(os.path.abspath(os.path.join(project_root, metadata_path)))
+
+        if not full_model_path.is_relative_to(output_base_resolved) or not full_metadata_path.is_relative_to(output_base_resolved):
+            return jsonify({"error": "Invalid file paths"}), 400
 
         if not os.path.exists(full_model_path) or not os.path.exists(full_metadata_path):
             return jsonify({"error": "Model or metadata file not found"}), 404
@@ -1091,7 +1089,7 @@ def check_version_compatibility():
         })
     except Exception as e:
         logging.error(f"Error during version check: {e}", exc_info=True)
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "An internal error occurred. Check server logs for details."}), 500
 
 
 @app.route("/api/load_metadata", methods=["POST"])
@@ -1106,11 +1104,11 @@ def load_metadata():
         if not metadata_path:
             return jsonify({"error": "Missing metadata path"}), 400
         
-        # Check if path is valid and within allowed directory
-        full_metadata_path = os.path.abspath(os.path.join(project_root, metadata_path))
-        if not full_metadata_path.startswith(os.path.abspath(config.OUTPUT_BASE_DIR)):
+        # Security check: ensure the path is within the output directory (symlink-safe).
+        full_metadata_path = Path(os.path.abspath(os.path.join(project_root, metadata_path)))
+        if not full_metadata_path.is_relative_to(Path(config.OUTPUT_BASE_DIR).resolve()):
             return jsonify({"error": "Invalid metadata path"}), 400
-        
+
         if not os.path.exists(full_metadata_path):
             return jsonify({"error": "Metadata file not found"}), 404
         
@@ -1125,7 +1123,7 @@ def load_metadata():
         })
     except Exception as e:
         logging.error(f"Error during metadata load: {e}", exc_info=True)
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "An internal error occurred. Check server logs for details."}), 500
 
 @app.route("/api/export_metadata", methods=["POST"])
 def export_metadata():
@@ -1143,4 +1141,4 @@ def export_metadata():
         return response
     except Exception as e:
         logging.error(f"Error during metadata export: {e}", exc_info=True)
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "An internal error occurred. Check server logs for details."}), 500

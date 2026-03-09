@@ -25,6 +25,90 @@ This document outlines the architecture of the diagram generation process, highl
             3.  It then manually constructs an SVG file string by interpreting the JSON data (e.g., drawing paths, placing text, embedding images).
         *   **Implication**: This component **re-implements** the rendering logic. Any feature from DOT/HTML-labels (like `ALIGN="LEFT"` in a `TD`) must be explicitly handled by the Python script. Discrepancies between the native Graphviz output and the output of this script are likely due to features not being implemented in this custom generator.
 
+## Attack Chain Analysis
+
+The **`threat_analysis/core/attack_chain.py`** module provides offline graph traversal to detect
+multi-step attack paths across the system architecture.
+
+### How It Works
+
+```
+AttackChainAnalyzer.analyze(all_threats, dataflows)
+    1. Index threats by target component name
+    2. Sort each component's threats by severity score (desc)
+    3. Iterate dataflows as directed edges: source → sink
+    4. For each dataflow, find the top threat on both source and sink
+    5. If both exist → emit a chain: entry_threat (source) + pivot_threat (sink)
+    6. chain_score = (entry_score + pivot_score) / 2.0
+    7. chain_label = CRITICAL (≥8) / HIGH (≥6) / MEDIUM (≥4) / LOW
+    8. Deduplicate by (source_name, sink_name) pair
+    9. Return chains sorted by chain_score descending
+```
+
+The results are injected into `generate_html_report()` as `attack_chains` and rendered in a
+**"⛓️ Attack Chain Analysis"** section that appears before the severity explanation in the HTML report.
+Component deep-link anchors (`#component-{sid}`) enable the severity heat map's "View threats →"
+links to navigate directly to each component's threat table.
+
+### Integration Point
+
+`ReportGenerator.generate_html_report()` calls:
+```python
+analyzer = AttackChainAnalyzer()
+attack_chains = analyzer.analyze(all_threats_flat, threat_model.tm.dataflows)
+```
+
+---
+
+## Diagram Visual Conventions
+
+### Trust Boundary Colors
+
+The DOT template (`threat_analysis/templates/threat_model.dot.j2`) uses the following convention:
+
+| Boundary type | Color | Style | Meaning |
+|---|---|---|---|
+| `isTrusted=true` | `#2e7d32` (dark green) | solid, penwidth=2 | Trusted security zone |
+| `isTrusted=false` | `#c62828` (dark red) | dashed, penwidth=2 | Untrusted / exposed zone |
+
+These colors are baked directly into the DOT output, which means they appear in both the exported
+SVG and the HTML diagrams. The legend section in exported HTML diagrams is updated to show
+"🔒 Trusted Zone" (green) and "⚠ Untrusted Zone" (red dashed).
+
+**Why baked into DOT**: The user generates SVG files independently via `generate_custom_svg_export()`.
+Putting trust colors in the DOT template guarantees that exported SVGs always reflect trust levels
+without any extra post-processing step.
+
+### Severity Heat Map Overlay
+
+The HTML diagram templates (`diagram_template.html`, `navigable_diagram_template.html`) include a
+JavaScript severity overlay that:
+
+- Injects `severity_map_json` from the Jinja2 template context (computed by `_compute_severity_map()`)
+- Provides a toggle button "🎨 Severity Heat Map" that applies/restores SVG `fill` per node
+- Shows a tooltip on hover: component name, severity label, and "View threats →" deep-link
+  to `#component-{sid}` anchor in the paired HTML report
+- Hides the toggle section automatically when `severity_map` is empty (e.g. live editor preview)
+
+**`_compute_severity_map(threat_model)`** in `ReportGenerator`:
+- Reads `mitre_analysis_results["processed_threats"]` (pytm threats post-scoring)
+- Also reads `element.threats` (AI/LLM threats, `source="AI"`)
+- Returns `{component_name: "CRITICAL"|"HIGH"|"MEDIUM"|"LOW"}` using the highest severity per component
+
+**Propagation chain:**
+```
+ReportGenerator._compute_severity_map()
+    → ExportService.generate_full_project_export()  (single-file path)
+    → DiagramGenerator._generate_html_with_legend(..., severity_map, report_url)
+    → DiagramGenerator._create_complete_html(..., severity_map, report_url)
+    → template: {{ severity_map_json | tojson }}
+```
+
+In the live editor preview (`DiagramService.update_diagram_logic()`), `severity_map={}` is passed —
+the JS toggle hides itself when the map is empty, so no stale severity data appears during editing.
+
+---
+
 ## Threat Consolidation and VOC Scoring Pipeline
 
 This section describes how the three threat sources (pytm rules, component-level AI, RAG system-level)

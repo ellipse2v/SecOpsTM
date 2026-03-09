@@ -20,12 +20,14 @@ threatModelBypyTm/
 │   ├── core/                     Domain model
 │   │   ├── models_module.py      ThreatModel, ExtendedThreat, CustomThreat
 │   │   │                         (wraps pytm TM/Actor/Server/Dataflow/Boundary)
+│   │   │                         SecOpsBoundary(pytm.Boundary) — replaces monkey-patch
 │   │   ├── model_parser.py       ModelParser — Markdown DSL → ThreatModel (2-pass)
 │   │   ├── model_factory.py      create_threat_model() — wires parser + model
 │   │   ├── model_validator.py    ModelValidator — pre-process validation
 │   │   ├── mitre_mapping_module.py  MitreMapping — STRIDE→CAPEC→ATT&CK→D3FEND
 │   │   ├── mitre_static_maps.py  Hard-coded ATTACK_D3FEND_MAPPING dict
 │   │   ├── cve_service.py        CVEService — single-pass JSONL (CAPEC+CWE) + YAML definitions
+│   │   ├── attack_chain.py       AttackChainAnalyzer — graph traversal, chained threat paths
 │   │   ├── threat_consolidator.py  ThreatConsolidator — Jaccard dedup, AI wins over pytm
 │   │   └── report_serializer.py  ReportSerializer — stable versioned dict, IDs T-NNNN
 │   │
@@ -145,7 +147,7 @@ Markdown file
 AIService.init_ai()
     → LiteLLMClient.create()           (async factory, reads ai_config.yaml)
         → provider selection (first `enabled: true` in yaml)
-        → check_connection() ping
+        → check_connection() ping  (sets ai_online; never raises)
     → RAGThreatGenerator.__init__()    (if rag.enabled: true)
         → embedding_factory.get_embeddings()
         → Chroma(persist_directory=vector_store/)
@@ -155,11 +157,32 @@ AIService._enrich_with_ai_threats(threat_model)
         → vector_store.similarity_search(query, k=5)
         → ChatLiteLLM | prompt | invoke()
         → JSON extraction + parse → ExtendedThreat(source="LLM")
-    → For each element:
+    → For each element (actors + servers + boundaries):
+        → prompt includes boundary trust level (TRUSTED/UNTRUSTED)
         → LiteLLMClient.generate_content(prompt, system_prompt, stream=False)
         → JSON extraction → ExtendedThreat(source="AI")
         → element.threats.append(new_threat)
         → SSE progress event → ai_status_event_queue
+
+AIService._generate_rag_threats(threat_model)         (cross-model context)
+    → concatenates main model markdown + all sub_models markdown
+    → single RAG call with full project context
+    → returns List[ExtendedThreat(source="LLM")]
+
+AIService.generate_rag_threats_sync(threat_model)     (sync wrapper)
+    → asyncio.run_coroutine_threadsafe(_generate_rag_threats, _get_sync_loop())
+    → called from ReportGenerator.generate_project_reports() after sub_models populated
+```
+
+**Cross-model RAG in project mode (wiring):**
+```
+ReportGenerator.generate_project_reports(project_path, export_path, ai_service=None)
+    → recurse sub-models → all_processed_models
+    → populate main_threat_model.sub_models from all_processed_models
+    → if ai_service and rag_generator and ai_online:
+        rag_threats = ai_service.generate_rag_threats_sync(main_threat_model)
+        → main_threat_model.tm.global_threats_llm.extend(rag_threats)
+    → generate_global_project_report()       (uses global_threats_llm)
 ```
 
 ### 3. Flask Server Request Flow
@@ -210,6 +233,30 @@ ReportGenerator._get_all_threats_with_mitre_info()
     → ReportSerializer.serialize(threat_model, all_threats)
         → schema_version: "1.0", threats[].id: "T-NNNN"
         → jsonschema.validate(report, schema)        (offline, stdlib json)
+
+    → AttackChainAnalyzer.analyze(all_threats, dataflows)
+        → returns chains sorted by score desc
+        → injected into HTML report as "⛓️ Attack Chain Analysis" section
+```
+
+### 6b. Diagram Generation + Trust Colors
+
+```
+ThreatModel → DiagramGenerator._generate_manual_dot(threat_model)
+    → threat_model.dot.j2 template
+        For each boundary:
+            isTrusted=true  → color="#2e7d32"; penwidth=2; style=solid
+            isTrusted=false → color="#c62828"; penwidth=2; style=dashed
+    → DOT string → graphviz subprocess → SVG
+
+DiagramGenerator._generate_html_with_legend(svg_path, out_path, threat_model,
+                                             graph_metadata, severity_map, report_url)
+    → _generate_legend_html()   (includes Trusted/Untrusted boundary legend + severity toggle)
+    → _create_complete_html()   (injects severity_map_json + report_url into template)
+
+ReportGenerator._compute_severity_map(threat_model)
+    → reads processed_threats + AI element threats
+    → returns {name: "CRITICAL"|"HIGH"|"MEDIUM"|"LOW"} (highest per component)
 ```
 
 ### 6. RAG Vector Store Build (offline)

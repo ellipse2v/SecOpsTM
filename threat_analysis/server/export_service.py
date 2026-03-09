@@ -129,7 +129,11 @@ class ExportService:
                     submodel_path.write_text(submodel['content'], encoding="utf-8")
             
             if progress_callback: progress_callback(10, "Initializing project generation...")
-            main_threat_model = self.report_generator.generate_project_reports(project_path, export_path, progress_callback=progress_callback)
+            main_threat_model = self.report_generator.generate_project_reports(
+                project_path, export_path,
+                progress_callback=progress_callback,
+                ai_service=self.ai_service,
+            )
             
             if cleanup_needed:
                 shutil.rmtree(project_path)
@@ -141,7 +145,8 @@ class ExportService:
                     "html": f"{model_name}_threat_report.html",
                     "json": f"{model_name}.json",
                     "stix": f"{model_name}_stix_report.json",
-                    "navigator": f"{model_name}_attack_navigator_layer.json"
+                    "navigator": f"{model_name}_attack_navigator_layer.json",
+                    "checklist": f"{model_name}_remediation_checklist.csv",
                 }
                 result["diagrams"] = {
                     "html": f"{model_name}_diagram.html",
@@ -160,26 +165,38 @@ class ExportService:
                 raise ValueError("Validation failed: " + ", ".join(errors))
 
             (export_path / "threat_model.md").write_text(markdown_content, encoding="utf-8")
+
+            # Process threats first so severity_map is available for the diagram HTML
+            def single_file_progress_cb(message, is_new_model=False):
+                if progress_callback:
+                    progress_callback(50, message)
+
+            grouped_threats = threat_model.process_threats()
+
             dot_code = self.diagram_generator._generate_manual_dot(threat_model)
             svg_filepath = export_path / "tm_diagram.svg"
             self.diagram_generator.generate_diagram_from_dot(dot_code, str(svg_filepath), format="svg")
             graph_metadata = self.diagram_service._extract_graph_metadata_for_frontend(threat_model)
-            
-            html_diagram_path = export_path / "tm_diagram.html"
-            self.diagram_generator._generate_html_with_legend(svg_filepath, html_diagram_path, threat_model, graph_metadata)
-            
-            def single_file_progress_cb(message, is_new_model=False):
-                if progress_callback:
-                    # Map these internal messages to a fixed or semi-fixed percentage for single-file mode
-                    progress_callback(50, message)
+            severity_map = self.report_generator._compute_severity_map(threat_model)
 
-            grouped_threats = threat_model.process_threats()
+            html_diagram_path = export_path / "tm_diagram.html"
+            self.diagram_generator._generate_html_with_legend(
+                svg_filepath, html_diagram_path, threat_model, graph_metadata, severity_map,
+                report_url="stride_mitre_report.html",
+            )
             report_path = export_path / "stride_mitre_report.html"
             self.report_generator.generate_html_report(threat_model, grouped_threats, report_path, progress_callback=single_file_progress_cb)
             
             json_report_path = export_path / "mitre_analysis.json"
             self.report_generator.generate_json_export(threat_model, grouped_threats, json_report_path)
-            
+
+            try:
+                self.report_generator.generate_remediation_checklist(
+                    threat_model, grouped_threats, export_path / "remediation_checklist.csv"
+                )
+            except Exception as e:
+                logging.warning(f"Could not generate remediation checklist: {e}")
+
             all_detailed_threats = threat_model.get_all_threats_details()
             navigator_generator = AttackNavigatorGenerator(threat_model_name=str(threat_model.tm.name), all_detailed_threats=all_detailed_threats)
             navigator_filename = JSON_NAVIGATOR_FILENAME_TPL.format(timestamp=timestamp)
@@ -194,7 +211,8 @@ class ExportService:
                 "html": "stride_mitre_report.html",
                 "json": "mitre_analysis.json",
                 "stix": stix_filename,
-                "navigator": navigator_filename
+                "navigator": navigator_filename,
+                "checklist": "remediation_checklist.csv",
             }
             result["diagrams"] = {
                 "html": "tm_diagram.html",
