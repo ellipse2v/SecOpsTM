@@ -19,7 +19,6 @@ import queue
 import json
 import asyncio
 import threading
-import concurrent.futures
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 from threat_analysis.utils import extract_json_from_llm_response
@@ -82,19 +81,45 @@ class AIService:
                 enabled_config = cfg
                 break
 
+        # Pre-warm RAG in a background thread immediately, in parallel with the AI connection
+        # check.  RAGThreatGenerator loads chromadb + embeddings (~26s cold) which is independent
+        # of litellm being available (~64s cold import).  By the time check_connection() returns,
+        # RAG components will already be loaded — net savings ≈ 26s on first startup.
+        # run_in_executor returns an asyncio.Future that can be awaited without blocking the loop.
+        rag_enabled = self.ai_config.get("rag", {}).get("enabled", False)
+        rag_task: Optional[asyncio.Future] = None
+        if rag_enabled:
+            logging.info("RAG pre-warm started (parallel to AI connection check).")
+            loop = asyncio.get_running_loop()
+            rag_task = loop.run_in_executor(None, RAGThreatGenerator)
+
         self.provider = LiteLLMProvider(enabled_config)
         self.ai_online = await self.provider.check_connection()
 
-        # Initialize RAG only if enabled in config AND AI provider is reachable
-        rag_enabled = self.ai_config.get("rag", {}).get("enabled", False)
+        # Collect RAG pre-warm result (or fall back to synchronous init)
         if rag_enabled and self.ai_online:
-            try:
-                self.rag_generator = RAGThreatGenerator()
-                logging.info("RAG service initialized.")
-            except Exception as e:
-                logging.error(f"Failed to initialize RAG service: {e}")
-                self.rag_generator = None
+            if rag_task is not None:
+                try:
+                    self.rag_generator = await asyncio.wait_for(rag_task, timeout=300)
+                    logging.info("RAG service initialized (pre-warmed).")
+                except Exception as e:
+                    logging.error(f"RAG pre-warm failed ({e}); retrying synchronously.")
+                    try:
+                        self.rag_generator = RAGThreatGenerator()
+                        logging.info("RAG service initialized (synchronous fallback).")
+                    except Exception as e2:
+                        logging.error(f"Failed to initialize RAG service: {e2}")
+                        self.rag_generator = None
+            else:
+                try:
+                    self.rag_generator = RAGThreatGenerator()
+                    logging.info("RAG service initialized.")
+                except Exception as e:
+                    logging.error(f"Failed to initialize RAG service: {e}")
+                    self.rag_generator = None
         else:
+            if rag_task is not None:
+                rag_task.cancel()
             if rag_enabled and not self.ai_online:
                 logging.info("RAG service skipped: AI provider is offline.")
             else:
@@ -213,11 +238,10 @@ class AIService:
         # Main model markdown
         tm_markdown_content = _model_markdown(threat_model)
 
-        # A2: append sub-model content when running in project mode
+        # Append sub-model content when running in project mode (cross-model context)
         for sub in getattr(threat_model, "sub_models", []):
             try:
-                tm_markdown_content += "\n---\n\n"
-                tm_markdown_content += _model_markdown(sub, label=f"Sub-model: {sub.tm.name}")
+                tm_markdown_content += "\n---\n\n" + _model_markdown(sub, label=f"Sub-model: {sub.tm.name}")
             except Exception as exc:
                 logging.warning("Could not append sub-model to RAG context: %s", exc)
 

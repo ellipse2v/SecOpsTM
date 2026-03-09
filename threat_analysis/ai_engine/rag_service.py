@@ -21,20 +21,18 @@ from threat_analysis.utils import extract_json_from_llm_response
 
 logger = logging.getLogger(__name__)
 
-
-def _parse_threat_list(text: str) -> List[Dict[str, Any]]:
-    """Output parser step: converts a raw LLM string into a list of threat dicts.
-
-    Designed for use as a ``RunnableLambda`` at the end of a LangChain LCEL chain,
-    after ``StrOutputParser`` has already extracted the plain text from the AIMessage.
-    """
-    extracted = extract_json_from_llm_response(text)
-    if not extracted:
-        raise ValueError(f"No valid JSON found in LLM response. Raw: {text[:300]}")
-    return json.loads(extracted)
+# Default chromadb collection name created by langchain_chroma.Chroma.from_documents()
+_CHROMA_COLLECTION_NAME = "langchain"
 
 
 class RAGThreatGenerator:
+    """Generates contextualized threats using Retrieval-Augmented Generation.
+
+    Uses chromadb and litellm directly — no langchain_core / langchain_chroma imports —
+    to avoid the 270–310 s cold-start penalty those packages incur on WSL2 due to
+    network calls (LangSmith telemetry, model pricing fetch) at import time.
+    """
+
     def __init__(
         self,
         vector_store_dir: str = "threat_analysis/vector_store",
@@ -47,10 +45,14 @@ class RAGThreatGenerator:
 
         self._initialize_components()
 
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
     def _load_ai_config(self) -> Dict[str, Any]:
         """Loads AI configuration from ai_config.yaml."""
         if not os.path.exists(self.ai_config_path):
-            logger.error(f"AI config file not found: {self.ai_config_path}. Cannot initialize LLM.")
+            logger.error(f"AI config file not found: {self.ai_config_path}.")
             return {}
         try:
             with open(self.ai_config_path, 'r', encoding='utf-8') as f:
@@ -60,93 +62,78 @@ class RAGThreatGenerator:
             return {}
 
     def _initialize_components(self):
-        """Initializes the embedding model, vector store, and LLM."""
-        logger.info("Initializing RAGThreatGenerator components...")
-        
-        # Lazy imports
-        from langchain_chroma import Chroma
-        from threat_analysis.ai_engine.embedding_factory import get_embeddings
-        from langchain_litellm import ChatLiteLLM
-        from chromadb.config import Settings
-        from langchain_core.prompts import ChatPromptTemplate
-        from langchain_core.output_parsers import StrOutputParser
-        from langchain_core.runnables import RunnableLambda
+        """Initializes the embedding model, chromadb collection, and LLM config.
 
-        # Initialize LLM using ai_config.yaml
+        Only chromadb (fast) and the embedding provider are imported here.
+        langchain_chroma and langchain_core are NOT imported — they cause 270–310 s
+        of cold-start delay on WSL2 due to network calls at import time.
+        """
+        import time as _time
+        logger.info("Initializing RAGThreatGenerator components...")
+
+        _t = _time.monotonic()
+        import chromadb
+        from chromadb.config import Settings
+        logger.debug("Import chromadb: %.1fs", _time.monotonic() - _t); _t = _time.monotonic()
+
+        from threat_analysis.ai_engine.embedding_factory import get_embeddings
+        logger.debug("Import embedding_factory: %.1fs", _time.monotonic() - _t); _t = _time.monotonic()
+
         ai_config = self._load_ai_config()
+        logger.debug("Load ai_config: %.1fs", _time.monotonic() - _t); _t = _time.monotonic()
 
         # Initialize Embeddings
         self.embeddings = get_embeddings(ai_config)
+        logger.debug("Embeddings initialized: %.1fs", _time.monotonic() - _t); _t = _time.monotonic()
 
-        # Initialize Vector Store and disable telemetry
+        # Initialize chromadb directly (no langchain_chroma wrapper)
         if not os.path.exists(self.vector_store_dir):
-            logger.error(f"Vector store directory not found: {self.vector_store_dir}. "
-                          "Please run tooling/build_vector_store.py first.")
-            raise FileNotFoundError(f"Vector store not found at {self.vector_store_dir}")
-        
-        self.vector_store = Chroma(
-            persist_directory=self.vector_store_dir,
-            embedding_function=self.embeddings,
-            client_settings=Settings(anonymized_telemetry=False)
-        )
-        
-        providers = ai_config.get('ai_providers', {})
-        llm_params = {}
-        llm_model = None
+            raise FileNotFoundError(
+                f"Vector store not found at {self.vector_store_dir}. "
+                "Please run tooling/build_vector_store.py first."
+            )
 
-        # Find the first enabled provider
-        active_provider_name = None
-        active_provider_config = None
-        
+        chroma_client = chromadb.PersistentClient(
+            path=self.vector_store_dir,
+            settings=Settings(anonymized_telemetry=False),
+        )
+        # langchain_chroma builds the collection named "langchain" by default
+        self._chroma_collection = chroma_client.get_collection(_CHROMA_COLLECTION_NAME)
+        logger.info(
+            "Vector store loaded: collection '%s' (%d docs)",
+            _CHROMA_COLLECTION_NAME,
+            self._chroma_collection.count(),
+        )
+        logger.debug("Vector store ready: %.1fs", _time.monotonic() - _t); _t = _time.monotonic()
+
+        # LLM configuration
+        providers = ai_config.get('ai_providers', {})
+        llm_params: Dict[str, Any] = {}
+        llm_model: Optional[str] = None
+
         for name, config in providers.items():
             if config.get('enabled'):
-                active_provider_name = name
-                active_provider_config = config
+                prefix = "ollama" if name == "ollama" else name.split('_')[0]
+                llm_model = f"{prefix}/{config.get('model')}"
+                llm_params['temperature'] = config.get('temperature', 0.5)
+                if name == "ollama":
+                    llm_params['api_base'] = config.get('host', 'http://localhost:11434')
+                api_key_env = config.get('api_key_env')
+                if api_key_env:
+                    llm_params['api_key'] = os.getenv(api_key_env)
+                logger.info(f"Using {name} LLM: {llm_model}")
                 break
-        
-        if active_provider_name and active_provider_config:
-            # Map common names to LiteLLM prefixes if necessary
-            prefix = "ollama" if active_provider_name == "ollama" else active_provider_name.split('_')[0]
-            llm_model = f"{prefix}/{active_provider_config.get('model')}"
-            
-            llm_params['temperature'] = active_provider_config.get('temperature', 0.5)
-            
-            if active_provider_name == "ollama":
-                llm_params['api_base'] = active_provider_config.get('host', 'http://localhost:11434')
-            
-            # Handle API key if environment variable is specified
-            api_key_env = active_provider_config.get('api_key_env')
-            if api_key_env:
-                llm_params['api_key'] = os.getenv(api_key_env)
-            
-            logger.info(f"Using {active_provider_name} LLM: {llm_model}")
-        
-        if llm_model:
-            self.llm = ChatLiteLLM(model=llm_model, **llm_params)
-            logger.info(f"LLM initialized with model: {llm_model}")
-        else:
-            logger.error("No enabled LLM provider found in ai_config.yaml. RAG functionality will be limited.")
-            raise ValueError("No active LLM configuration found.")
-        
-        # Load prompt templates from config/prompts.yaml
+
+        if not llm_model:
+            raise ValueError("No active LLM configuration found in ai_config.yaml.")
+
+        self._llm_model = llm_model
+        self._llm_params = llm_params
+
+        # Load prompt templates (plain strings — no langchain_core dependency)
         from threat_analysis.ai_engine.prompt_loader import get as _get_prompt
-        rag_system = _get_prompt("rag", "system")
-        rag_human = _get_prompt("rag", "human_template")
-
-        # Define Prompt Template
-        self.prompt = ChatPromptTemplate.from_messages([
-            ("system", rag_system),
-            ("human", rag_human),
-        ])
-
-        # Build the full LCEL chain:
-        #   prompt → llm → StrOutputParser (AIMessage → str) → _parse_threat_list (str → List[Dict])
-        self.rag_chain = (
-            self.prompt
-            | self.llm
-            | StrOutputParser()
-            | RunnableLambda(_parse_threat_list)
-        )
+        self._rag_system_prompt: str = _get_prompt("rag", "system")
+        self._rag_human_template: str = _get_prompt("rag", "human_template")
 
         logger.info("RAGThreatGenerator components initialized.")
 
@@ -162,26 +149,28 @@ class RAGThreatGenerator:
                 threat_intel = "\n".join(context_data.get("threat_intelligence", []))
                 return {
                     "system_description": system_desc,
-                    "user_threat_intelligence": threat_intel
+                    "user_threat_intelligence": threat_intel,
                 }
         except json.JSONDecodeError as e:
             logger.error(f"Error decoding user context JSON from {self.user_context_path}: {e}")
             return {"system_description": "N/A", "user_threat_intelligence": "N/A"}
         except Exception as e:
-            logger.error(f"An unexpected error occurred loading user context from {self.user_context_path}: {e}")
+            logger.error(f"Unexpected error loading user context: {e}")
             return {"system_description": "N/A", "user_threat_intelligence": "N/A"}
 
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
 
     def generate_threats(self, threat_model_markdown: str, k: int = 5) -> List[Dict[str, str]]:
-        """
-        Generates contextualized threats using RAG.
+        """Generates contextualized threats using RAG.
 
         Args:
-            threat_model_markdown: The content of the threat model in Markdown format.
-            k: The number of relevant documents to retrieve from the vector store.
+            threat_model_markdown: Threat model content in Markdown format.
+            k: Number of documents to retrieve from the vector store.
 
         Returns:
-            A list of dictionaries, each representing a generated threat.
+            A list of dicts, each representing a generated threat.
         """
         logger.debug("Generating threats using RAG...")
 
@@ -189,32 +178,62 @@ class RAGThreatGenerator:
         system_description = user_context["system_description"]
         user_threat_intelligence = user_context["user_threat_intelligence"]
 
-        # Formulate query for retriever
-        query = f"System: {system_description}\nThreat Model:\n{threat_model_markdown}\nUser Threat Intel:\n{user_threat_intelligence}"
-        
-        # Retrieve relevant documents
-        logger.debug(f"Retrieving {k} relevant documents from vector store...")
-        retrieved_docs = self.vector_store.similarity_search(query, k=k)
-        context_text = "\n\n".join([doc.page_content for doc in retrieved_docs])
-        logger.debug(f"Retrieved {len(retrieved_docs)} documents.")
+        # --- Retrieval ---
+        query = (
+            f"System: {system_description}\n"
+            f"Threat Model:\n{threat_model_markdown}\n"
+            f"User Threat Intel:\n{user_threat_intelligence}"
+        )
+        logger.debug("Retrieving %d relevant documents from vector store...", k)
+
+        # Embed the query and search chromadb directly (no langchain wrapper)
+        query_embedding = self.embeddings.embed_query(query)
+        results = self._chroma_collection.query(
+            query_embeddings=[query_embedding],
+            n_results=k,
+        )
+        documents: List[str] = results.get("documents", [[]])[0]
+        context_text = "\n\n".join(documents)
+        logger.debug("Retrieved %d documents.", len(documents))
+
+        # --- Generation ---
+        human_message = self._rag_human_template.format(
+            system_description=system_description,
+            user_threat_intelligence=user_threat_intelligence,
+            threat_model_markdown=threat_model_markdown,
+            context=context_text,
+        )
+        messages = [
+            {"role": "system", "content": self._rag_system_prompt},
+            {"role": "user", "content": human_message},
+        ]
 
         try:
-            generated_threats = self.rag_chain.invoke({
-                "system_description": system_description,
-                "user_threat_intelligence": user_threat_intelligence,
-                "threat_model_markdown": threat_model_markdown,
-                "context": context_text,
-            })
+            import litellm
+            response = litellm.completion(
+                model=self._llm_model,
+                messages=messages,
+                **self._llm_params,
+            )
+            raw_text: str = response.choices[0].message.content
+        except Exception as e:
+            logger.error(f"Error during LLM call in RAG generation: {e}")
+            return []
 
+        # --- Parsing ---
+        try:
+            extracted = extract_json_from_llm_response(raw_text)
+            if not extracted:
+                raise ValueError(f"No valid JSON found in LLM response. Raw: {raw_text[:300]}")
+            generated_threats = json.loads(extracted)
             if not isinstance(generated_threats, list):
-                logger.error(f"RAG chain returned unexpected type: {type(generated_threats)}")
+                logger.error("RAG LLM returned unexpected type: %s", type(generated_threats))
                 return []
-
-            logger.debug(f"Threat generation completed: {len(generated_threats)} threats.")
+            logger.debug("Threat generation completed: %d threats.", len(generated_threats))
             return generated_threats
         except ValueError as e:
-            logger.error(f"RAG chain output parsing failed: {e}")
+            logger.error(f"RAG output parsing failed: {e}")
             return []
         except Exception as e:
-            logger.error(f"Error during RAG threat generation: {e}")
+            logger.error(f"Unexpected error parsing RAG output: {e}")
             return []

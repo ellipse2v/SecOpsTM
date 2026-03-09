@@ -892,16 +892,20 @@
         {% endif %}
 
         {% if attack_chains %}
+        {% set _max_chains = 10 %}
         <h2>⛓️ Attack Chain Analysis</h2>
         <div class="card" style="padding:1.5rem;">
             <p style="color:var(--text-secondary);margin:0 0 1rem;font-size:0.875rem;">
                 Each row represents a potential <strong>pivot chain</strong>: an attacker compromises the
                 <em>Entry Point</em> component via its highest-severity threat, then traverses the dataflow
                 to exploit the <em>Target</em> component. Chains are ranked by average severity.
+                {% if attack_chains|length > _max_chains %}
+                Showing top {{ _max_chains }} of {{ attack_chains|length }} chains.
+                {% endif %}
             </p>
-            <div style="overflow-x:auto;">
+            <div style="max-height:420px;overflow-y:auto;overflow-x:auto;">
             <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
-                <thead>
+                <thead style="position:sticky;top:0;z-index:1;background:var(--background-card);">
                     <tr style="background:var(--background-main);text-align:left;">
                         <th style="padding:8px 12px;border-bottom:2px solid var(--border-color);">#</th>
                         <th style="padding:8px 12px;border-bottom:2px solid var(--border-color);">Chain Score</th>
@@ -913,7 +917,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for chain in attack_chains %}
+                    {% for chain in attack_chains[:_max_chains] %}
                     {% set label_lower = chain.chain_label | lower %}
                     <tr style="border-bottom:1px solid var(--border-color);">
                         <td style="padding:8px 12px;color:var(--text-secondary);">{{ loop.index }}</td>

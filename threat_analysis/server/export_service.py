@@ -84,7 +84,8 @@ class ExportService:
             output_filename = "diagram.html"
             output_path = output_dir / output_filename
             graph_metadata = self.diagram_service._extract_graph_metadata_for_frontend(threat_model)
-            self.diagram_generator._generate_html_with_legend(svg_path_temp, output_path, threat_model, graph_metadata)
+            severity_map = self.report_generator._compute_severity_map(threat_model)
+            self.diagram_generator._generate_html_with_legend(svg_path_temp, output_path, threat_model, graph_metadata, severity_map)
             return str(output_path), output_filename
         elif export_format == "report":
             grouped_threats = threat_model.process_threats()

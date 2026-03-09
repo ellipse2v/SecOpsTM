@@ -24,12 +24,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 # --- Pre-emptive Mocking to avoid litellm/dotenv crashes ---
 # This must happen before any imports that might trigger litellm
 mock_litellm = MagicMock()
-mock_langchain_litellm = MagicMock()
 sys.modules['dotenv'] = MagicMock()
 sys.modules['litellm'] = mock_litellm
 sys.modules['litellm.types'] = MagicMock()
 sys.modules['litellm.types.utils'] = MagicMock()
-sys.modules['langchain_litellm'] = mock_langchain_litellm
 sys.modules['langchain_chroma'] = MagicMock()
 sys.modules['langchain_huggingface'] = MagicMock()
 sys.modules['chromadb'] = MagicMock()
@@ -134,9 +132,7 @@ def mock_provider():
 
 @pytest.fixture
 def mock_chat_litellm():
-    """Mocks ChatLiteLLM for RAGThreatGenerator."""
-    mock_llm = MagicMock()
-    # The generator expects a response object with a .content attribute that is a JSON string
+    """Mocks litellm.completion for RAGThreatGenerator._call_litellm."""
     threats_json = json.dumps([
         {
             "name": "Global Phishing Threat",
@@ -156,12 +152,9 @@ def mock_chat_litellm():
         }
     ])
     mock_response = MagicMock()
-    mock_response.content = f"```json\n{threats_json}\n```"
-    mock_llm.invoke.return_value = mock_response
-    
-    # Set it in the sys.modules mock
-    mock_langchain_litellm.ChatLiteLLM.return_value = mock_llm
-    return mock_llm
+    mock_response.choices[0].message.content = f"```json\n{threats_json}\n```"
+    mock_litellm.completion.return_value = mock_response
+    return mock_litellm
 
 
 @pytest.mark.asyncio
@@ -174,9 +167,11 @@ async def test_rag_threat_generator_initialization(mock_chat_litellm):
             ai_config_path=str(TEST_AI_CONFIG_PATH)
         )
         assert rag_generator is not None
-        assert rag_generator.vector_store is not None
-        # Check that ChatLiteLLM was called
-        assert mock_langchain_litellm.ChatLiteLLM.called
+        # chromadb collection replaces langchain vector_store
+        assert rag_generator._chroma_collection is not None
+        # LLM model was configured (uses litellm.completion directly)
+        assert rag_generator._llm_model is not None
+        assert "ollama" in rag_generator._llm_model
 
 
 @pytest.mark.asyncio
@@ -189,22 +184,38 @@ async def test_rag_threat_generator_generates_threats(mock_chat_litellm):
                 user_context_path=str(TEST_USER_CONTEXT_PATH),
                 ai_config_path=str(TEST_AI_CONFIG_PATH)
             )
-            rag_generator.vector_store = MagicMock()
-            rag_generator.vector_store.similarity_search.return_value = [MagicMock(page_content="context")]
+            # Set up attributes that _initialize_components would have created
+            mock_collection = MagicMock()
+            mock_collection.query.return_value = {"documents": [["context chunk 1"]]}
+            rag_generator._chroma_collection = mock_collection
+            mock_embeddings = MagicMock()
+            mock_embeddings.embed_query.return_value = [0.1, 0.2, 0.3]
+            rag_generator.embeddings = mock_embeddings
+            rag_generator._llm_model = "ollama/test-model"
+            rag_generator._llm_params = {"temperature": 0.5}
+            rag_generator._rag_system_prompt = "You are a security expert."
+            rag_generator._rag_human_template = (
+                "System: {system_description}\n"
+                "Intel: {user_threat_intelligence}\n"
+                "Model: {threat_model_markdown}\n"
+                "Context: {context}"
+            )
 
             expected_threats = [
                 {"name": "T1", "category": "Spoofing", "source": "LLM"},
                 {"name": "T2", "category": "Tampering", "source": "LLM"},
             ]
-            # Mock the fully-assembled chain stored on the instance
-            rag_generator.rag_chain = MagicMock()
-            rag_generator.rag_chain.invoke.return_value = expected_threats
+            # Mock litellm.completion to return JSON threats
+            mock_litellm.completion.return_value.choices[0].message.content = (
+                f"```json\n{json.dumps(expected_threats)}\n```"
+            )
 
             threats = rag_generator.generate_threats("This is a test threat model.")
 
             assert isinstance(threats, list)
             assert len(threats) == 2
-            rag_generator.rag_chain.invoke.assert_called_once()
+            mock_collection.query.assert_called_once()
+            mock_litellm.completion.assert_called_once()
 
 
 @pytest.mark.asyncio

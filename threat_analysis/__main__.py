@@ -637,14 +637,37 @@ class ColoredFormatter(logging.Formatter):
         'WARNING': '\033[93m',  # Yellow
         'ERROR': '\033[91m',    # Red
         'CRITICAL': '\033[95m', # Magenta
-        'INFO': '\033[0m',      # Reset
+        'INFO': '\033[0m',      # Reset (Default)
         'DEBUG': '\033[0m',     # Reset
     }
+    GREEN_CODE = '\033[92m'
     RESET_CODE = '\033[0m'
 
+    # Keywords that trigger green color for INFO logs
+    AI_INIT_KEYWORDS = [
+        "Initializing RAGThreatGenerator",
+        "Initializing embedding provider",
+        "Load pretrained SentenceTransformer",
+        "Using mistral LLM",
+        "LLM initialized with model",
+        "RAGThreatGenerator components initialized",
+        "RAG service initialized",
+        "AI services initialized",
+        "Background AI initialization complete",
+        "Starting AI initialization"
+    ]
+
     def format(self, record):
+        color = self.COLOR_CODES.get(record.levelname, self.RESET_CODE)
+        
+        # Selectively apply green to specific AI initialization INFO logs
+        if record.levelname == 'INFO':
+            msg = record.getMessage()
+            if any(keyword in msg for keyword in self.AI_INIT_KEYWORDS):
+                color = self.GREEN_CODE
+                
         log_message = super().format(record)
-        return f"{self.COLOR_CODES.get(record.levelname, self.RESET_CODE)}{log_message}{self.RESET_CODE}"
+        return f"{color}{log_message}{self.RESET_CODE}"
 
 # --- Main entry point ---
 def main():

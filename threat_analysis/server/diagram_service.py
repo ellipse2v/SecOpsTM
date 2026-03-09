@@ -260,8 +260,8 @@ class DiagramService:
                 svg_content = f.read()
             static_path_base = str(PROJECT_ROOT / 'threat_analysis' / 'server' / 'static')
             svg_content = svg_content.replace(static_path_base, '/static')
-            legend_html = self.diagram_generator._generate_legend_html(threat_model)
-            # severity_map left empty in live preview (no process_threats call)
+            # No severity section in editor preview: threats have not been generated yet
+            legend_html = self.diagram_generator._generate_legend_html(threat_model, show_severity_section=False)
             full_html = self.diagram_generator._create_complete_html(svg_content, legend_html, threat_model, severity_map={})
             graph_metadata = self._extract_graph_metadata_for_frontend(threat_model)
             logging.debug(f"Generated graph_metadata for frontend: {json.dumps(graph_metadata, indent=2)}")

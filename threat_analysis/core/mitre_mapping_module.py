@@ -179,10 +179,8 @@ class MitreMapping:
 
         direct_capec_ids = threat.get("capec_ids", [])
         if not direct_capec_ids:
-            normalized_stride = stride_category.replace(" ", "")
-            if "DenialOfService" in normalized_stride:
-                 normalized_stride = "DenialOfService"
-            capec_list = self.stride_to_capec.get(normalized_stride, [])
+            # stride_to_capec.json keys use full names with spaces (e.g. "Elevation of Privilege")
+            capec_list = self.stride_to_capec.get(stride_category, [])
             direct_capec_ids = [c['capec_id'] for c in capec_list]
             for capec_info in capec_list:
                 if capec_info['capec_id'] not in found_capecs:

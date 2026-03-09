@@ -293,7 +293,7 @@ def run_server(model_filepath: Optional[str] = None, project_path: Optional[str]
         "\n🚀 Starting Threat Model Server. Open your browser to: http://127.0.0.1:5000/\n"
     )
     logging.info(f"[{time.time() - start_time:.4f}s] Starting Flask app...")
-    app.run(debug=os.environ.get("FLASK_DEBUG", "false").lower() == "true", port=5000)
+    app.run(debug=os.environ.get("FLASK_DEBUG", "false").lower() == "true", port=5000, threaded=True)
 
 
 @app.route("/static/<path:filename>")
@@ -376,8 +376,11 @@ def ai_status_stream():
         q = ai_status_broadcaster.subscribe()
         try:
             while True:
-                # Block until an event is available
-                event_data = q.get()
+                try:
+                    event_data = q.get(timeout=30)
+                except Exception:
+                    yield ": keepalive\n\n"
+                    continue
                 yield event_data
         finally:
             ai_status_broadcaster.unsubscribe(q)
@@ -390,8 +393,11 @@ def progress_stream():
         q = progress_broadcaster.subscribe()
         try:
             while True:
-                # Block until an event is available
-                event_data = q.get()
+                try:
+                    event_data = q.get(timeout=30)
+                except Exception:
+                    yield ": keepalive\n\n"
+                    continue
                 yield event_data
         finally:
             progress_broadcaster.unsubscribe(q)

@@ -245,7 +245,6 @@ class ReportGenerator:
         try:
             total_threats_analyzed = threat_model.mitre_analysis_results.get('total_threats', 0)
             total_mitre_techniques_mapped = threat_model.mitre_analysis_results.get('mitre_techniques_count', 0)
-            stride_distribution = threat_model.mitre_analysis_results.get('stride_distribution', {})
 
             if all_detailed_threats is None:
                 all_detailed_threats = self._get_all_threats_with_mitre_info(grouped_threats, threat_model)
@@ -255,7 +254,14 @@ class ReportGenerator:
                  all_detailed_threats = asyncio.run(self._enrich_threats_with_ai(threat_model, all_detailed_threats, progress_callback=progress_callback))
                  ai_added = len(all_detailed_threats) - original_count
                  logging.info(f"AI enrichment complete. Added {ai_added} new threats.")
-            
+
+            # Recompute STRIDE distribution from the full threat list (pytm + AI + LLM)
+            stride_distribution: Dict[str, int] = {}
+            for t in all_detailed_threats:
+                cat = t.get('stride_category', '')
+                if cat in self._VALID_STRIDE:
+                    stride_distribution[cat] = stride_distribution.get(cat, 0) + 1
+
             self.all_detailed_threats = all_detailed_threats
             summary_stats = self.generate_summary_stats(all_detailed_threats)
             stride_categories = sorted(
@@ -845,6 +851,9 @@ class ReportGenerator:
             'mitre_techniques_count': total_mitre_techniques_mapped,
             'stride_distribution': all_stride_distribution
         }
+        # Aggregate dataflows from all sub-models so AttackChainAnalyzer can find chains
+        for model in all_models:
+            dummy_model.dataflows.extend(model.dataflows)
 
         self.generate_html_report(
             threat_model=dummy_model,
@@ -906,12 +915,19 @@ class ReportGenerator:
         all_processed_models = []
         if progress_callback: progress_callback(20, f"Processing {total_models} models...")
         
-        # Internal helper to track progress across recursion
-        processed_count = [0]
+        # Internal helper to track progress across recursion.
+        # Each model has _SUB_STEPS granular steps; fractional progress is emitted between models.
+        _SUB_STEPS = 6
+        processed_count = [0]    # full models completed
+        sub_step_count = [0]     # sub-steps within current model
         def tracked_progress_callback(message, is_new_model=False):
             if is_new_model:
                 processed_count[0] += 1
-            percent = 20 + int((min(processed_count[0], total_models) / total_models) * 70) # Map to 20-90% range
+                sub_step_count[0] = 0
+            else:
+                sub_step_count[0] = min(sub_step_count[0] + 1, _SUB_STEPS)
+            effective = (processed_count[0] - 1) + sub_step_count[0] / _SUB_STEPS
+            percent = 20 + int((min(max(effective, 0), total_models) / total_models) * 70)
             if progress_callback: progress_callback(percent, message)
 
         self._recursively_generate_reports(
@@ -1001,7 +1017,7 @@ class ReportGenerator:
         Recursively generates reports for each model in the project.
         """
         model_name = model_path.stem
-        if progress_callback: progress_callback(f"Generating reports for {model_name}...", is_new_model=True)
+        if progress_callback: progress_callback(f"Loading model: {model_name}...", is_new_model=True)
 
         try:
             with open(model_path, "r", encoding="utf-8") as f:
@@ -1015,20 +1031,24 @@ class ReportGenerator:
                     cve_service=self.cve_service,
                     validate=True
                 )
-            
+
             if not threat_model:
                 logging.error(f"Failed to create or use threat model for {model_path}")
                 return
 
+            if progress_callback: progress_callback(f"Running STRIDE analysis: {model_name}...")
             grouped_threats = threat_model.process_threats()
             all_project_models.append(threat_model)
 
-            self.generate_html_report(threat_model, grouped_threats, output_dir / f"{model_name}_threat_report.html", progress_callback=progress_callback)
+            if progress_callback: progress_callback(f"Generating HTML report: {model_name}...")
+            self.generate_html_report(threat_model, grouped_threats, output_dir / f"{model_name}_threat_report.html", progress_callback=None)
+            if progress_callback: progress_callback(f"Generating JSON export: {model_name}...")
             self.generate_json_export(threat_model, grouped_threats, output_dir / f"{model_name}.json")
             try:
                 self.generate_remediation_checklist(threat_model, grouped_threats, output_dir / f"{model_name}_remediation_checklist.csv")
             except Exception as e:
                 logging.warning(f"Could not generate remediation checklist for {model_name}: {e}")
+            if progress_callback: progress_callback(f"Generating diagram: {model_name}...")
             self.generate_diagram_html(threat_model, output_dir, breadcrumb, project_protocols, project_protocol_styles)
 
             # Save markdown model and generate metadata for graphical editor
@@ -1039,6 +1059,7 @@ class ReportGenerator:
             diagram_generator = DiagramGenerator()
             diagram_generator.generate_metadata(threat_model, markdown_content, str(md_output_path))
 
+            if progress_callback: progress_callback(f"Generating STIX report: {model_name}...")
             try:
                 stix_output_file = output_dir / f"{model_name}_stix_report.json"
                 all_detailed_threats = threat_model.get_all_threats_details()
@@ -1053,6 +1074,7 @@ class ReportGenerator:
             except Exception as e:
                 logging.error(f"❌ Failed to generate STIX report for {model_name}: {e}")
 
+            if progress_callback: progress_callback(f"Generating ATT&CK Navigator: {model_name}...")
             try:
                 navigator_output_file = output_dir / f"{model_name}_attack_navigator_layer.json"
                 all_detailed_threats = threat_model.get_all_threats_details()
@@ -1124,6 +1146,8 @@ class ReportGenerator:
         _ORDER = {'CRITICAL': 4, 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1}
         result: Dict[str, str] = {}
 
+        _IMPACT_MAP = {5: 'CRITICAL', 4: 'HIGH', 3: 'MEDIUM', 2: 'LOW', 1: 'LOW'}
+
         for pt in threat_model.mitre_analysis_results.get('processed_threats', []):
             target = pt.get('target')
             if target is None:
@@ -1135,6 +1159,12 @@ class ReportGenerator:
 
             sev_info = pt.get('severity_info') or {}
             level = (sev_info.get('level') or '').upper()
+            if level not in _ORDER:
+                # Fallback: derive severity from original_threat impact (pytm threats)
+                original = pt.get('original_threat')
+                if original is not None:
+                    impact = getattr(original, 'impact', 0) or 0
+                    level = _IMPACT_MAP.get(int(impact), '')
             if level not in _ORDER:
                 continue
 
@@ -1153,7 +1183,6 @@ class ReportGenerator:
         for df in threat_model.dataflows:
             all_elements.append((df, getattr(df, 'name', '')))
 
-        _IMPACT = {5: 'CRITICAL', 4: 'HIGH', 3: 'MEDIUM', 2: 'LOW', 1: 'LOW'}
         for element_obj, element_name in all_elements:
             if element_obj is None or not element_name:
                 continue
@@ -1162,7 +1191,7 @@ class ReportGenerator:
                 default=0,
             )
             if max_impact > 0:
-                level = _IMPACT.get(max_impact, 'LOW')
+                level = _IMPACT_MAP.get(max_impact, 'LOW')
                 sid = _san(element_name)
                 if _ORDER.get(level, 0) > _ORDER.get(result.get(sid, ''), 0):
                     result[sid] = level
