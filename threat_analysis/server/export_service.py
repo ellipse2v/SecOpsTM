@@ -207,7 +207,17 @@ class ExportService:
             stix_bundle = stix_generator.generate_stix_bundle()
             stix_filename = f"stix_report_{timestamp}.json"
             (export_path / stix_filename).write_text(json.dumps(stix_bundle, indent=4), encoding="utf-8")
-            
+
+            try:
+                attack_flow_gen = AttackFlowGenerator(
+                    threats=all_detailed_threats,
+                    model_name=str(threat_model.tm.name),
+                )
+                attack_flow_gen.generate_and_save_flows(str(export_path))
+                logging.info("Attack Flow files generated in %s/afb", export_path)
+            except Exception as e:
+                logging.error("Failed to generate Attack Flow: %s", e)
+
             result["reports"] = {
                 "html": "stride_mitre_report.html",
                 "json": "mitre_analysis.json",

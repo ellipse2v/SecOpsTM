@@ -21,6 +21,8 @@ def get_embeddings(ai_config: dict):
     cfg = ai_config.get("embedding", {})
     provider = cfg.get("provider", "huggingface")
     model = cfg.get("model", "all-MiniLM-L6-v2")
+    api_base = cfg.get("api_base", "") or ""
+    ssl_verify = cfg.get("ssl_verify", True)
 
     logger.info(f"Initializing embedding provider: {provider} with model: {model}")
 
@@ -33,12 +35,27 @@ def get_embeddings(ai_config: dict):
         )
     elif provider == "google":
         from langchain_google_genai import GoogleGenerativeAIEmbeddings
-        return GoogleGenerativeAIEmbeddings(model=model)
+        kwargs = {"model": model}
+        if api_base:
+            kwargs["transport"] = "rest"
+            # api_base not directly supported by langchain_google_genai; log a warning
+            logger.warning("api_base not supported for Google embeddings provider; ignoring.")
+        return GoogleGenerativeAIEmbeddings(**kwargs)
     elif provider == "mistral":
         from langchain_mistralai import MistralAIEmbeddings
-        return MistralAIEmbeddings(model=model)
+        kwargs = {"model": model}
+        if api_base:
+            kwargs["mistral_api_url"] = api_base
+        return MistralAIEmbeddings(**kwargs)
     elif provider == "ollama":
         from langchain_ollama import OllamaEmbeddings
-        return OllamaEmbeddings(model=model)
+        base_url = api_base or "http://localhost:11434"
+        return OllamaEmbeddings(model=model, base_url=base_url)
+    elif provider == "openai":
+        from langchain_openai import OpenAIEmbeddings
+        kwargs = {"model": model}
+        if api_base:
+            kwargs["base_url"] = api_base
+        return OpenAIEmbeddings(**kwargs)
     else:
         raise ValueError(f"Unknown embedding provider: {provider}")

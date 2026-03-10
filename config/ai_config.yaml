@@ -8,6 +8,7 @@ ai_providers:
     temperature: 0.3
     max_tokens: 4096
     timeout: 30
+    ssl_verify: true  # true | false | "/path/to/ca-bundle.crt"  (false = disable SSL for enterprise self-signed certs)
 
   gemini:
     enabled: false
@@ -17,12 +18,14 @@ ai_providers:
     temperature: 0.3
     max_tokens: 4096
     timeout: 30
+    ssl_verify: true  # true | false | "/path/to/ca-bundle.crt"  (false = disable SSL for enterprise self-signed certs)
 
   openai:
     enabled: false
     model: "gpt-4o-mini"
     api_key_env: "OPENAI_API_KEY"
     api_base: ""  # Set your internal enterprise host here
+    ssl_verify: true  # true | false | "/path/to/ca-bundle.crt"  (false = disable SSL for enterprise self-signed certs)
 
 
   ollama:
@@ -33,6 +36,7 @@ ai_providers:
     num_ctx: 4096
     num_predict: 4096
     timeout: 60
+    ssl_verify: true  # true | false | "/path/to/ca-bundle.crt"  (false = disable SSL for enterprise self-signed certs)
 
 # Threat generation settings
 threat_generation:
@@ -44,19 +48,21 @@ threat_generation:
   # Delay (seconds) between per-component LLM calls.
   # Set to 1.5 for Gemini free tier, 0.0 for paid/Ollama.
   rate_limit_sleep: 0.0
-  
+
 # Embedding configuration (Shared between Vector Store and RAG)
 embedding:
   provider: huggingface        # huggingface | google | mistral | ollama
   model: all-MiniLM-L6-v2
   device: cpu                  # cpu | cuda
+  api_base: ""                 # Override API host for embedding (enterprise: e.g. http://mistral.internal:8000/v1)
+  ssl_verify: true             # true | false | "/path/to/ca-bundle.crt"
 
 # RAG configuration (Phase 2)
 rag:
   enabled: true
   vector_db: "chroma"
   top_k_examples: 5
-  
+
 # Attack Flow generation
 attack_flows:
   enabled: true
@@ -64,7 +70,7 @@ attack_flows:
   max_depth: 7
   include_detection_points: true
   generate_for_categories: ["Tampering", "Information Disclosure", "Elevation of Privilege"]
-  
+
 # Fine-tuning (Phase 3 optionnel)
 fine_tuning:
   enabled: false

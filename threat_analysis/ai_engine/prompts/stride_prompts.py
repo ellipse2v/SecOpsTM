@@ -67,6 +67,8 @@ def build_component_prompt(component: Dict, context: Dict) -> str:
         "component_template",
         comp_type=component.get("type", "Unknown"),
         comp_name=component.get("name", "Unnamed"),
+        machine_type=component.get("machine_type", "unknown"),
+        technology_tags=component.get("technology_tags", "N/A"),
         description=component.get("description", "No description provided"),
         trust_boundary=component.get("trust_boundary", "Unknown"),
         authentication=component.get("authentication", "Unknown"),
@@ -80,6 +82,12 @@ def build_component_prompt(component: Dict, context: Dict) -> str:
                 else "No"
             )
         ),
+        cia_triad=component.get("cia_triad", "Confidentiality: unknown | Integrity: unknown | Availability: unknown"),
+        security_controls=component.get("security_controls", "N/A"),
+        business_value=component.get("business_value", "Not specified"),
+        extra_properties=component.get("extra_properties", "None"),
+        inbound_flows=component.get("inbound_flows", "  None"),
+        outbound_flows=component.get("outbound_flows", "  None"),
         deployment=context.get("deployment_environment", "Unknown"),
         system_desc=context.get("system_description", ""),
         data_sensitivity=context.get("data_sensitivity", "Medium"),

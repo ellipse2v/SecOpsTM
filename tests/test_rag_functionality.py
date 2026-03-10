@@ -133,6 +133,11 @@ def mock_provider():
 @pytest.fixture
 def mock_chat_litellm():
     """Mocks litellm.completion for RAGThreatGenerator._call_litellm."""
+    # Re-register mock_litellm in sys.modules — other test files (e.g. test_litellm_provider.py)
+    # replace sys.modules['litellm'] at module level with a different MagicMock during collection,
+    # which breaks the mock chain used by RAGThreatGenerator.generate_threats().
+    sys.modules['litellm'] = mock_litellm
+
     threats_json = json.dumps([
         {
             "name": "Global Phishing Threat",
@@ -152,6 +157,8 @@ def mock_chat_litellm():
         }
     ])
     mock_response = MagicMock()
+    mock_response.choices = [MagicMock()]
+    mock_response.choices[0].message = MagicMock()
     mock_response.choices[0].message.content = f"```json\n{threats_json}\n```"
     mock_litellm.completion.return_value = mock_response
     return mock_litellm
@@ -206,9 +213,12 @@ async def test_rag_threat_generator_generates_threats(mock_chat_litellm):
                 {"name": "T2", "category": "Tampering", "source": "LLM"},
             ]
             # Mock litellm.completion to return JSON threats
-            mock_litellm.completion.return_value.choices[0].message.content = (
-                f"```json\n{json.dumps(expected_threats)}\n```"
-            )
+            # Use a real list for choices to avoid MagicMock __getitem__ inconsistencies
+            mock_resp = MagicMock()
+            mock_resp.choices = [MagicMock()]
+            mock_resp.choices[0].message = MagicMock()
+            mock_resp.choices[0].message.content = f"```json\n{json.dumps(expected_threats)}\n```"
+            mock_litellm.completion.return_value = mock_resp
 
             threats = rag_generator.generate_threats("This is a test threat model.")
 

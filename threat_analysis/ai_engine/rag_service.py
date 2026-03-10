@@ -121,6 +121,13 @@ class RAGThreatGenerator:
                 api_key_env = config.get('api_key_env')
                 if api_key_env:
                     llm_params['api_key'] = os.getenv(api_key_env)
+                ssl_verify = config.get('ssl_verify', True)
+                if ssl_verify is not True:
+                    llm_params['ssl_verify'] = ssl_verify
+                    if ssl_verify is False:
+                        logger.warning("SSL verification DISABLED for RAG LLM calls.")
+                    else:
+                        logger.warning("Using custom SSL cert for RAG LLM: %s", ssl_verify)
                 logger.info(f"Using {name} LLM: {llm_model}")
                 break
 

@@ -266,6 +266,10 @@ class AIService:
                 impact=impact,
                 source="LLM" # Explicitly set source
             )
+            new_threat.capec_ids = [
+                c for c in threat_json.get('capec_ids', [])
+                if isinstance(c, str) and c.upper().startswith('CAPEC-')
+            ]
             new_threat.ai_details = threat_json # Store original AI details
             new_threat.confidence = float(threat_json.get('confidence', 0.75))
             pytm_rag_threats.append(new_threat)
@@ -318,6 +322,70 @@ class AIService:
         total_elements = len(all_elements)
         processed_elements = 0
 
+        # Build lookup: object → props dict for rich attribute extraction
+        _server_props_map = {s['object']: s for s in threat_model.servers}
+        _actor_props_map = {a['object']: a for a in threat_model.actors}
+        _boundary_props_map = {
+            b_info['boundary']: b_info
+            for b_info in threat_model.boundaries.values()
+            if b_info.get('boundary') is not None
+        }
+
+        # Keys already handled explicitly — remaining props go to extra_properties
+        _KNOWN_PROPS = {
+            'name', 'object', 'boundary', 'business_value', 'type', 'machine',
+            'waf', 'ids', 'ips', 'redundant', 'confidentiality', 'integrity',
+            'availability', 'encryption', 'auth_protocol', 'mfa_enabled', 'tags',
+            'description', 'submodel', 'color', 'isTrusted', 'authenticity',
+            'businessValue', 'is_public', 'is_authenticated', 'is_encrypted',
+            'protocol', 'type_',
+        }
+
+        def _flow_desc(df) -> str:
+            """Rich single-line description of a dataflow including all security attributes."""
+            parts = [f"{df.source.name} \u2192 {df.sink.name}"]
+            if getattr(df, 'protocol', None):
+                parts.append(f"[{df.protocol}]")
+            flags = []
+            if getattr(df, 'is_encrypted', False):
+                flags.append("encrypted")
+            if getattr(df, 'vpn', False):
+                flags.append("VPN")
+            # Prefer detailed auth type over binary boolean
+            auth_type = getattr(df, 'authentication', None)
+            if auth_type and str(auth_type).lower() not in ('none', 'false', ''):
+                flags.append(f"auth={auth_type}")
+            elif getattr(df, 'is_authenticated', False):
+                flags.append("authenticated")
+            authz_type = getattr(df, 'authorization', None)
+            if authz_type and str(authz_type).lower() not in ('none', 'false', ''):
+                flags.append(f"authz={authz_type}")
+            if getattr(df, 'ip_filtered', False):
+                flags.append("IP-filtered")
+            if getattr(df, 'readonly', False):
+                flags.append("read-only")
+            if flags:
+                parts.append(f"({', '.join(flags)})")
+            # Data objects with classification
+            data_objs = getattr(df, 'data', []) or []
+            if data_objs:
+                labels = []
+                for d in data_objs:
+                    cls = getattr(d, 'classification', None)
+                    if cls is not None:
+                        cls_name = cls.name if hasattr(cls, 'name') else str(cls)
+                        labels.append(f"{d.name}:{cls_name}")
+                    else:
+                        labels.append(d.name)
+                parts.append(f"data=[{', '.join(labels)}]")
+            # Trust crossing
+            src_trusted = getattr(getattr(df.source, 'inBoundary', None), 'isTrusted', None)
+            sink_trusted = getattr(getattr(df.sink, 'inBoundary', None), 'isTrusted', None)
+            if src_trusted is not None and sink_trusted is not None and src_trusted != sink_trusted:
+                direction = "trusted\u2192untrusted" if src_trusted else "untrusted\u2192trusted"
+                parts.append(f"[TRUST CROSSING: {direction}]")
+            return " ".join(parts)
+
         # P1 fix: single connection check before the loop instead of one per element.
         if not self.provider:
             logging.error("AI provider not initialized.")
@@ -339,13 +407,23 @@ class AIService:
                 }
                 ai_status_event_queue.put(f"event: ai_progress\ndata: {json.dumps(data)}\n\n")
 
+            # Pull rich attributes from props dict (server/actor/boundary) or object (dataflow)
+            props = (
+                _server_props_map.get(element)
+                or _actor_props_map.get(element)
+                or _boundary_props_map.get(element)
+                or {}
+            )
+
             # A1 + A3: enrich with boundary context.
             # For boundary objects themselves, isTrusted is a direct attribute.
             is_boundary_element = element.__class__.__name__ in ("SecOpsBoundary", "Boundary")
             if is_boundary_element:
                 trusted = getattr(element, 'isTrusted', False)
-                trust_boundary_str = f"Self ({'TRUSTED' if trusted else 'UNTRUSTED'})"
-                elem_type = f"Trust Boundary ({'Trusted' if trusted else 'Untrusted'})"
+                b_type = props.get('type', '')
+                type_prefix = f"{b_type}, " if b_type else ""
+                trust_boundary_str = f"Self ({type_prefix}{'TRUSTED' if trusted else 'UNTRUSTED'})"
+                elem_type = f"Trust Boundary ({type_prefix}{'Trusted' if trusted else 'Untrusted'})"
             else:
                 boundary_obj = getattr(element, 'inBoundary', None)
                 if boundary_obj:
@@ -355,19 +433,98 @@ class AIService:
                     )
                 else:
                     trust_boundary_str = "None assigned"
+                # Critical fix: use DSL type= first, then pytm stereotype, then class name
                 elem_type = (
-                    element.stereotype if hasattr(element, "stereotype")
-                    else element.__class__.__name__
+                    props.get('type')
+                    or (element.stereotype if getattr(element, 'stereotype', None) else None)
+                    or element.__class__.__name__
                 )
+
+            # Machine type
+            machine_type = str(props.get('machine', getattr(element, 'machine', 'unknown')))
+
+            # CIA triad
+            conf = str(props.get('confidentiality', getattr(element, 'confidentiality', 'unknown')))
+            integ = str(props.get('integrity', getattr(element, 'integrity', 'unknown')))
+            avail = str(props.get('availability', getattr(element, 'availability', 'unknown')))
+            cia_triad = f"Confidentiality: {conf} | Integrity: {integ} | Availability: {avail}"
+
+            # Security controls
+            waf = props.get('waf', getattr(element, 'waf', False))
+            ids_ctrl = props.get('ids', getattr(element, 'ids', False))
+            ips_ctrl = props.get('ips', getattr(element, 'ips', False))
+            redundant = props.get('redundant', getattr(element, 'redundant', False))
+            enc_rest = str(props.get('encryption', getattr(element, 'encryption', 'unknown')))
+            auth_proto = str(props.get('auth_protocol', getattr(element, 'auth_protocol', 'N/A')))
+            mfa = props.get('mfa_enabled', getattr(element, 'mfa_enabled', None))
+            controls_parts = [
+                f"WAF: {'Yes' if waf else 'No'}",
+                f"IDS: {'Yes' if ids_ctrl else 'No'}",
+                f"IPS: {'Yes' if ips_ctrl else 'No'}",
+                f"Redundant: {'Yes' if redundant else 'No'}",
+                f"Encryption at rest: {enc_rest}",
+                f"Auth protocol: {auth_proto}",
+            ]
+            if mfa is not None:
+                controls_parts.append(f"MFA: {'Yes' if mfa else 'No'}")
+            security_controls = " | ".join(controls_parts)
+
+            # Technology tags
+            raw_tags = props.get('tags', getattr(element, 'tags', None))
+            if isinstance(raw_tags, list):
+                technology_tags = ", ".join(str(t) for t in raw_tags) if raw_tags else "N/A"
+            elif isinstance(raw_tags, str):
+                technology_tags = raw_tags.strip('[]') or "N/A"
+            else:
+                technology_tags = "N/A"
+
+            # Authentication detail (prefer actor authenticity or dataflow auth type over bool)
+            authenticity = props.get('authenticity', None)
+            auth_detail = (
+                authenticity
+                if authenticity
+                else ("Yes" if getattr(element, 'is_authenticated', False) else "No")
+            )
+
+            # Business value
+            business_value = props.get('business_value', getattr(element, 'businessValue', None))
+
+            # Extra properties: all remaining DSL kwargs not already explicitly handled
+            extra_props = {k: v for k, v in props.items() if k not in _KNOWN_PROPS}
+            extra_properties = (
+                " | ".join(f"{k}={v}" for k, v in extra_props.items())
+                if extra_props else "None"
+            )
+
+            # Description: props first (server/actor description kwarg), then pytm attribute
+            description = (
+                props.get('description', '')
+                or getattr(element, 'description', '')
+                or ""
+            )
+
+            # Connected dataflows
+            inbound = [_flow_desc(df) for df in threat_model.dataflows
+                       if getattr(df, 'sink', None) is element]
+            outbound = [_flow_desc(df) for df in threat_model.dataflows
+                        if getattr(df, 'source', None) is element]
 
             component_details = {
                 "name": element.name,
                 "type": elem_type,
-                "description": getattr(element, 'description', ''),
+                "machine_type": machine_type,
+                "technology_tags": technology_tags,
+                "description": description,
                 "protocol": getattr(element, "protocol", None),
                 "trust_boundary": trust_boundary_str,
                 "is_public": getattr(element, 'is_public', False),
-                "authentication": "Yes" if getattr(element, 'is_authenticated', False) else "No",
+                "authentication": auth_detail,
+                "cia_triad": cia_triad,
+                "security_controls": security_controls,
+                "business_value": str(business_value) if business_value else "Not specified",
+                "extra_properties": extra_properties,
+                "inbound_flows": "\n".join(f"  - {f}" for f in inbound) if inbound else "  None",
+                "outbound_flows": "\n".join(f"  - {f}" for f in outbound) if outbound else "  None",
             }
             logging.debug(f"Generating AI threats for component: {element.name}")
 
@@ -399,6 +556,12 @@ class AIService:
                     impact=severity,
                     source="AI" # Explicitly mark source for component-level AI threats
                 )
+                # Store CAPEC IDs from LLM — used by map_threat_to_mitre() to derive
+                # ATT&CK technique IDs from the validated static mapping (no hallucinated T-IDs).
+                new_threat.capec_ids = [
+                    c for c in threat_json.get('capec_ids', [])
+                    if isinstance(c, str) and c.upper().startswith('CAPEC-')
+                ]
                 # Add extra details for reporting if needed
                 new_threat.ai_details = threat_json
 

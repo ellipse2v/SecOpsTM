@@ -30,10 +30,11 @@ class LiteLLMClient:
         self.model_name = ""
         self.stream = False
         self.ai_online = False
-        self.client = None 
+        self.client = None
         self.provider_config = {}
         self.api_base = None
-        self._litellm_module = None 
+        self.ssl_verify = True
+        self._litellm_module = None
 
     @staticmethod
     async def create():
@@ -101,6 +102,13 @@ class LiteLLMClient:
                 if self.api_base:
                     logging.info(f"[{time.time() - start_time:.4f}s] Custom API base configured for {provider_name}: {self.api_base}")
 
+                # Handle SSL verification setting
+                self.ssl_verify = self.provider_config.get('ssl_verify', True)
+                if self.ssl_verify is False:
+                    logging.warning("SSL verification DISABLED for %s (ssl_verify: false in ai_config.yaml).", provider_name)
+                elif isinstance(self.ssl_verify, str):
+                    logging.info("Using custom SSL certificate: %s", self.ssl_verify)
+
                 logging.info(f"[{time.time() - start_time:.4f}s] Checking AI server status...")
                 self.ai_online = await self.check_connection()
                 if self.ai_online:
@@ -122,13 +130,17 @@ class LiteLLMClient:
             return False
         try:
             logging.debug(f"[{time.time() - check_start_time:.4f}s] Pinging AI model {self.model_name}...")
+            extra_kwargs = {}
+            if self.ssl_verify is not True:
+                extra_kwargs['ssl_verify'] = self.ssl_verify
             await self._litellm_module.acompletion(
-                model=self.model_name, 
+                model=self.model_name,
                 messages=[{"role": "user", "content": "hi"}],
-                max_tokens=1, 
-                timeout=self.provider_config.get('timeout', 10),    
+                max_tokens=1,
+                timeout=self.provider_config.get('timeout', 10),
                 stream=False,
-                api_base=self.api_base
+                api_base=self.api_base,
+                **extra_kwargs
             )
             logging.debug(f"[{time.time() - check_start_time:.4f}s] AI model {self.model_name} responded successfully.")
             return True
@@ -161,9 +173,12 @@ class LiteLLMClient:
             "api_base": self.api_base
         }
 
+        if self.ssl_verify is not True:
+            completion_params['ssl_verify'] = self.ssl_verify
+
         if output_format == "json":
             messages[0]["content"] += "\n\nYour output MUST be a valid JSON object."
-            
+
             provider_name = self.model_name.split('/')[0]
             if provider_name in ["openai", "azure", "groq"]:
                 completion_params["response_format"] = {"type": "json_object"}

@@ -35,7 +35,6 @@ from .utils import extract_name_from_object, get_target_name
 import yaml
 import asyncio
 
-_CVE_RE = re.compile(r'^CVE-\d{4}-\d+$', re.IGNORECASE)
 
 project_root = Path(__file__).resolve().parents[2]
 if str(project_root) not in sys.path:
@@ -45,6 +44,7 @@ from threat_analysis.core.model_factory import create_threat_model
 from threat_analysis.generation.diagram_generator import DiagramGenerator
 from threat_analysis.generation.stix_generator import StixGenerator
 from threat_analysis.generation.attack_navigator_generator import AttackNavigatorGenerator
+from threat_analysis.generation.attack_flow_generator import AttackFlowGenerator
 from threat_analysis.core.models_module import ThreatModel
 from threat_analysis.core.mitre_mapping_module import MitreMapping
 from threat_analysis.core.attack_chain import AttackChainAnalyzer
@@ -191,15 +191,25 @@ class ReportGenerator:
                             likelihood=threat.get("business_impact", {}).get("likelihood_score")
                         )
 
+                        # Derive MITRE techniques from CAPEC IDs (never use LLM-generated T-IDs)
+                        raw_capecs = [
+                            c for c in threat.get('capec_ids', [])
+                            if isinstance(c, str) and c.upper().startswith('CAPEC-')
+                        ]
+                        mapping = self.mitre_mapping.map_threat_to_mitre({
+                            "stride_category": stride_category,
+                            "capec_ids": raw_capecs,
+                            "description": threat.get("description", ""),
+                        })
                         component_threats.append({
                             "type": stride_category,
                             "description": threat.get("description"),
                             "target": target_name,
                             "severity": severity_info,
-                            "mitre_techniques": [{"id": tech, "name": ""} for tech in threat.get("mitre_techniques", [])],
+                            "mitre_techniques": mapping.get("techniques", []),
                             "stride_category": stride_category,
-                            "capecs": [], # AI doesn't generate CAPECs in this version
-                            "cve": [p for p in threat.get("real_world_precedents", []) if isinstance(p, str) and _CVE_RE.match(p.strip())],
+                            "capecs": mapping.get("capecs", []),
+                            "cve": [], # CVEs come exclusively from CVEService (VOC mapping), never from LLM output
                             "confidence": threat.get("confidence", 0.8),
                             "source": "AI"
                         })
@@ -1086,6 +1096,17 @@ class ReportGenerator:
                 logging.info(f"ATT&CK Navigator layer generated for {model_name} at {navigator_output_file}")
             except Exception as e:
                 logging.error(f"❌ Failed to generate ATT&CK Navigator layer for {model_name}: {e}")
+
+            try:
+                all_detailed_threats = threat_model.get_all_threats_details()
+                attack_flow_gen = AttackFlowGenerator(
+                    threats=all_detailed_threats,
+                    model_name=threat_model.tm.name,
+                )
+                attack_flow_gen.generate_and_save_flows(str(output_dir))
+                logging.info(f"Attack Flow files generated for {model_name} in {output_dir / 'afb'}")
+            except Exception as e:
+                logging.error(f"❌ Failed to generate Attack Flow for {model_name}: {e}")
 
             for server_props in threat_model.servers:
                 if 'submodel' in server_props:

@@ -60,6 +60,18 @@ dsl_generation:
 # ---------------------------------------------------------------------------
 stride_analysis:
   system: |
+    CRITICAL RULE — STRICT TECHNOLOGY SCOPE:
+    Generate threats ONLY for the exact component type and technologies listed in the
+    "Technology Tags" field. DO NOT assume, invent, or extrapolate frameworks, platforms,
+    or stacks not explicitly listed:
+    - A firewall is NOT running Kubernetes, Docker, or any application framework.
+    - A physical machine tagged [cisco-asa] generates Cisco ASA / network-level threats.
+    - A virtual machine tagged [apache, centos] generates Apache / Linux threats only.
+    - An auth-server tagged [windows-server] generates Active Directory / LDAP threats.
+    - An on-prem component with machine=physical generates NO cloud-native (AWS/GCP/Azure/k8s) threats.
+    If Technology Tags is "N/A", infer only from the component Type and Name — never add
+    technologies beyond what can be reasonably inferred from those two fields alone.
+
     You are an elite threat modeling expert with deep mastery of:
     - STRIDE methodology applied to real-world architectures
     - MITRE ATT&CK Enterprise v14+ (tactics, techniques, sub-techniques)
@@ -84,17 +96,39 @@ stride_analysis:
   component_template: |
     # STRIDE Threat Analysis — <<comp_name>>
 
-    ## Component
+    ## Component Identity
     | Field | Value |
     |---|---|
     | Type | <<comp_type>> |
     | Name | <<comp_name>> |
+    | Machine | <<machine_type>> |
+    | Technology Tags | <<technology_tags>> |
     | Description | <<description>> |
+    | Business Value | <<business_value>> |
+
+    ## Network Position
+    | Field | Value |
+    |---|---|
     | Trust Boundary | <<trust_boundary>> |
-    | Authentication | <<authentication>> |
-    | Protocol | <<protocol>> |
     | Internet-Facing | <<internet_facing>> |
-    | Deployment | <<deployment>> |
+    | Protocol | <<protocol>> |
+    | Authentication method | <<authentication>> |
+
+    ## CIA Requirements
+    <<cia_triad>>
+
+    ## Security Controls in Place
+    <<security_controls>>
+
+    ## Additional DSL Properties
+    <<extra_properties>>
+
+    ## Connected Flows
+    **Inbound** (source → <<comp_name>>):
+    <<inbound_flows>>
+
+    **Outbound** (<<comp_name>> → destination):
+    <<outbound_flows>>
 
     ## System Context
     <<system_desc>>
@@ -106,9 +140,15 @@ stride_analysis:
     | Compliance Requirements | <<compliance>> |
     | User Base | <<user_base>> |
     | External Integrations | <<integrations>> |
+    | Deployment | <<deployment>> |
 
     ## Your Task
-    Identify 3 to 5 realistic STRIDE threats for this component. For each threat provide:
+    Identify 3 to 5 realistic STRIDE threats for <<comp_name>>.
+    ⚠️ REMINDER: Type=«<<comp_type>>», Tags=«<<technology_tags>>», Machine=«<<machine_type>>».
+    Generate ONLY threats relevant to these exact technologies. Do NOT add threats for
+    technologies not listed above. Use the flows and CIA requirements to calibrate severity.
+
+    For each threat provide:
 
     1. **category** — one of: Spoofing, Tampering, Repudiation, Information Disclosure,
        Denial of Service, Elevation of Privilege
@@ -120,13 +160,16 @@ stride_analysis:
     6. **business_impact** — severity (Critical/High/Medium/Low), financial, regulatory,
        reputational, operational sub-fields
     7. **likelihood** — Low/Medium/High with one-sentence rationale
-    8. **mitre_techniques** — array of ATT&CK v14 technique IDs (e.g. ["T1078.004"])
+    8. **capec_ids** — array of 1 to 3 CAPEC IDs from the MITRE CAPEC taxonomy that best
+       describe this specific attack pattern (e.g. ["CAPEC-66", "CAPEC-115"]).
+       STRICT RULE: only use real CAPEC IDs that exist in the MITRE CAPEC taxonomy.
+       Match the CAPEC to the STRIDE category of this threat. Return [] if uncertain.
+       DO NOT generate ATT&CK technique IDs (T-XXXX) — those are derived automatically.
     9. **cwe_ids** — array of numeric CWE IDs (e.g. ["89", "287"]) — used for VOC scoring
     10. **d3fend_techniques** — array of D3FEND technique IDs (e.g. ["D3-MFA"]) that counter
         this threat; empty array if none apply
-    11. **real_world_precedents** — CVE IDs or named breaches (e.g. ["CVE-2021-44228"])
-    12. **detection_opportunities** — specific log sources or behavioral signals
-    13. **confidence** — float 0.0–1.0 reflecting your certainty this threat is exploitable
+    11. **detection_opportunities** — specific log sources or behavioral signals
+    12. **confidence** — float 0.0–1.0 reflecting your certainty this threat is exploitable
 
     ## Output
     Return ONLY valid JSON (no markdown wrapper, no preamble):
@@ -148,10 +191,9 @@ stride_analysis:
           },
           "likelihood": "Medium",
           "likelihood_rationale": "One sentence.",
-          "mitre_techniques": ["T1190", "T1552.001"],
+          "capec_ids": ["CAPEC-66", "CAPEC-115"],
           "cwe_ids": ["89", "287"],
           "d3fend_techniques": ["D3-NTF", "D3-OAM"],
-          "real_world_precedents": ["CVE-2021-44228"],
           "detection_opportunities": ["WAF logs — rule 942100", "auth failure rate spike"],
           "confidence": 0.82
         }
@@ -320,6 +362,10 @@ rag:
     - **likelihood**: high / medium / low
     - **impact**: high / medium / low
     - **source**: always "LLM"
+    - **capec_ids**: 1 to 3 CAPEC IDs from the MITRE CAPEC taxonomy that best describe
+      the attack pattern (e.g. ["CAPEC-22", "CAPEC-115"]). Only use real CAPEC IDs.
+      DO NOT generate ATT&CK T-IDs — those are derived automatically from CAPECs.
+      Return [] if uncertain.
     - **confidence**: float 0.0–1.0 — your certainty this cross-component path is exploitable
       given the described architecture (1.0 = confirmed pattern, 0.5 = plausible, <0.4 = speculative)
 
@@ -330,6 +376,7 @@ rag:
         "description": "Multi-hop attack description…",
         "affected_components": ["ComponentA", "ComponentB"],
         "category": "Elevation of Privilege",
+        "capec_ids": ["CAPEC-22", "CAPEC-115"],
         "likelihood": "medium",
         "impact": "high",
         "source": "LLM",

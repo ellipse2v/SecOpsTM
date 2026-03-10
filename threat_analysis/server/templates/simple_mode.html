@@ -278,15 +278,54 @@
             display: flex;
             flex-direction: column;
             flex-grow: 1;
+            min-height: 0;
         }
+        .tab-bar-wrapper {
+            display: flex;
+            align-items: stretch;
+            border-bottom: 1px solid #d1d5da;
+            background-color: #f0f2f5;
+            flex-shrink: 0;
+            position: relative;
+        }
+        body.dark-mode .tab-bar-wrapper {
+            border-bottom-color: #444;
+            background-color: #1a1a1a;
+        }
+        .tab-bar-scroll-btn {
+            flex-shrink: 0;
+            width: 22px;
+            background: none;
+            border: none;
+            border-bottom: none;
+            cursor: pointer;
+            font-size: 12px;
+            color: #666;
+            padding: 0;
+            display: none; /* shown by JS when overflow detected */
+            align-items: center;
+            justify-content: center;
+            z-index: 1;
+        }
+        body.dark-mode .tab-bar-scroll-btn { color: #aaa; }
+        .tab-bar-scroll-btn:hover { color: #0366d6; background: rgba(0,0,0,.05); }
+        body.dark-mode .tab-bar-scroll-btn:hover { color: #58a6ff; }
         .tab-bar {
             display: flex;
-            border-bottom: 1px solid #d1d5da;
+            flex: 1 1 auto;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: thin;          /* Firefox */
+            scrollbar-color: #c1c1c1 transparent;
+            scroll-behavior: smooth;
         }
-        body.dark-mode .tab-bar {
-            border-bottom-color: #444;
-        }
+        .tab-bar::-webkit-scrollbar { height: 3px; }
+        .tab-bar::-webkit-scrollbar-track { background: transparent; }
+        .tab-bar::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 2px; }
+        body.dark-mode .tab-bar { scrollbar-color: #555 transparent; }
+        body.dark-mode .tab-bar::-webkit-scrollbar-thumb { background: #555; }
         .tab-button {
+            flex-shrink: 0;
             padding: 10px 15px;
             cursor: pointer;
             border: none;
@@ -294,6 +333,7 @@
             border-bottom: 1px solid #d1d5da;
             margin-bottom: -1px;
             position: relative;
+            white-space: nowrap;
         }
         body.dark-mode .tab-button {
             background-color: #1a1a1a;
@@ -656,7 +696,11 @@
         <div id="editor-split" class="editor-pane">
             <div id="drop-overlay" class="drop-overlay">Drop .md file here to load</div>
             <div class="tab-container">
-                <div class="tab-bar" id="tab-bar"></div>
+                <div class="tab-bar-wrapper" id="tab-bar-wrapper">
+                    <button class="tab-bar-scroll-btn" id="tab-scroll-left" title="Scroll tabs left" onclick="TabBar.scrollLeft()">&#8249;</button>
+                    <div class="tab-bar" id="tab-bar"></div>
+                    <button class="tab-bar-scroll-btn" id="tab-scroll-right" title="Scroll tabs right" onclick="TabBar.scrollRight()">&#8250;</button>
+                </div>
                 <div class="tab-content-area" id="tab-content-area"></div>
             </div>
         </div>
@@ -800,6 +844,36 @@
             currentlySelectedElementId = null;
         }
 
+        // --- Tab bar scroll navigation ---
+        const TabBar = {
+            _bar: null,
+            _leftBtn: null,
+            _rightBtn: null,
+            init() {
+                this._bar = document.getElementById('tab-bar');
+                this._leftBtn = document.getElementById('tab-scroll-left');
+                this._rightBtn = document.getElementById('tab-scroll-right');
+                this._bar.addEventListener('scroll', () => this.updateButtons());
+                new ResizeObserver(() => this.updateButtons()).observe(this._bar);
+            },
+            updateButtons() {
+                const b = this._bar;
+                if (!b) return;
+                const hasOverflow = b.scrollWidth > b.clientWidth + 1;
+                // Show left button only when scrolled right; show right button when overflow exists and not at end
+                this._leftBtn.style.display  = (hasOverflow && b.scrollLeft > 0) ? 'flex' : 'none';
+                this._rightBtn.style.display = hasOverflow ? 'flex' : 'none';
+            },
+            scrollLeft()  { this._bar.scrollBy({ left: -120, behavior: 'smooth' }); },
+            scrollRight() { this._bar.scrollBy({ left:  120, behavior: 'smooth' }); },
+            scrollToActive() {
+                if (!this._bar) return;
+                const active = this._bar.querySelector('.tab-button.active');
+                if (active) active.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+                this.updateButtons();
+            },
+        };
+
         const TabManager = {
             editors: [],
             tabCount: 0,
@@ -839,6 +913,7 @@
                 }
                 tabButton.onclick = () => this.switchTab(tabIndex);
                 tabBar.appendChild(tabButton);
+                TabBar.updateButtons();
 
                 // Create Tab Pane
                 const tabPane = document.createElement('div');
@@ -914,6 +989,7 @@
                 if (this.editors[tabIndex]) {
                     this.editors[tabIndex].editor.refresh();
                 }
+                TabBar.scrollToActive();
                 updatePreview();
             },
 
@@ -1435,6 +1511,7 @@
 
         // Initialize Tabs
         TabManager.init();
+        TabBar.init();
         
         // Other functions (saveProjectToServer, exportFile, etc.) would need to be updated
         // to use the active editor's content or all tabs' content as appropriate.

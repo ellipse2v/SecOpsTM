@@ -55,7 +55,8 @@ def test_get_embeddings_ollama():
     ai_config = {"embedding": {"provider": "ollama", "model": "test-ollama"}}
     with patch("langchain_ollama.OllamaEmbeddings") as mock_ollama:
         get_embeddings(ai_config)
-        mock_ollama.assert_called_once_with(model="test-ollama")
+        # api_base defaults to "http://localhost:11434" when not set
+        mock_ollama.assert_called_once_with(model="test-ollama", base_url="http://localhost:11434")
 
 def test_get_embeddings_unknown():
     ai_config = {"embedding": {"provider": "unknown"}}

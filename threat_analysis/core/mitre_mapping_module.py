@@ -177,14 +177,16 @@ class MitreMapping:
         found_capecs = {}
         stride_category = threat.get("stride_category", "")
 
-        direct_capec_ids = threat.get("capec_ids", [])
-        if not direct_capec_ids:
-            # stride_to_capec.json keys use full names with spaces (e.g. "Elevation of Privilege")
+        explicit_capec_ids = threat.get("capec_ids", [])
+        if not explicit_capec_ids:
+            # No CAPEC IDs provided — derive from STRIDE category
             capec_list = self.stride_to_capec.get(stride_category, [])
             direct_capec_ids = [c['capec_id'] for c in capec_list]
             for capec_info in capec_list:
                 if capec_info['capec_id'] not in found_capecs:
                     found_capecs[capec_info['capec_id']] = capec_info
+        else:
+            direct_capec_ids = list(explicit_capec_ids)
 
         for capec_id in direct_capec_ids:
             if capec_id not in found_capecs:
@@ -222,6 +224,31 @@ class MitreMapping:
 
                     found_techniques[tech_id] = technique_data
         
+        # Fallback: if explicit CAPEC IDs were provided but none mapped to ATT&CK techniques,
+        # fall back to the stride_category lookup so reports are never empty.
+        if explicit_capec_ids and not found_techniques and stride_category:
+            capec_list = self.stride_to_capec.get(stride_category, [])
+            for capec_info in capec_list:
+                cid = capec_info['capec_id']
+                if cid not in found_capecs:
+                    found_capecs[cid] = capec_info
+                for tech_info in self.capec_to_mitre_map.get(cid, []):
+                    tech_id = tech_info.get('id')
+                    if tech_id and tech_id in self.all_attack_techniques and tech_id not in found_techniques:
+                        technique_data = self.all_attack_techniques[tech_id].copy()
+                        technique_data['fromMitre'] = tech_info.get('fromMitre', 'yes')
+                        technique_data['mitre_mitigations'] = self.technique_to_mitigation_map.get(tech_id, [])
+                        d3fend_list = []
+                        for mm in technique_data['mitre_mitigations']:
+                            if mm.get('id'):
+                                d3fend_list.extend(self._get_d3fend_mitigations_for_mitre_id(mm['id']))
+                        technique_data['defend_mitigations'] = d3fend_list
+                        framework_mitigations = get_framework_mitigation_suggestions([tech_id])
+                        technique_data['owasp_mitigations'] = [m for m in framework_mitigations if m.get('framework') == 'OWASP ASVS']
+                        technique_data['nist_mitigations'] = [m for m in framework_mitigations if m.get('framework') == 'NIST']
+                        technique_data['cis_mitigations'] = [m for m in framework_mitigations if m.get('framework') == 'CIS']
+                        found_techniques[tech_id] = technique_data
+
         return {
             "techniques": list(found_techniques.values()),
             "capecs": list(found_capecs.values())
