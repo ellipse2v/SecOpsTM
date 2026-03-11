@@ -130,9 +130,8 @@ class LiteLLMClient:
             return False
         try:
             logging.debug(f"[{time.time() - check_start_time:.4f}s] Pinging AI model {self.model_name}...")
-            extra_kwargs = {}
             if self.ssl_verify is not True:
-                extra_kwargs['ssl_verify'] = self.ssl_verify
+                self._litellm_module.ssl_verify = self.ssl_verify
             await self._litellm_module.acompletion(
                 model=self.model_name,
                 messages=[{"role": "user", "content": "hi"}],
@@ -140,7 +139,6 @@ class LiteLLMClient:
                 timeout=self.provider_config.get('timeout', 10),
                 stream=False,
                 api_base=self.api_base,
-                **extra_kwargs
             )
             logging.debug(f"[{time.time() - check_start_time:.4f}s] AI model {self.model_name} responded successfully.")
             return True
@@ -174,7 +172,7 @@ class LiteLLMClient:
         }
 
         if self.ssl_verify is not True:
-            completion_params['ssl_verify'] = self.ssl_verify
+            self._litellm_module.ssl_verify = self.ssl_verify
 
         if output_format == "json":
             messages[0]["content"] += "\n\nYour output MUST be a valid JSON object."
