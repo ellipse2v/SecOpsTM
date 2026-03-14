@@ -55,24 +55,49 @@ digraph ThreatModel {
   {% endfor %}
 
   {% if ghost_connections %}
-  subgraph cluster__external_parent {
-    label="↑ External connections (parent model)";
+  {% set incoming_ghosts = ghost_connections | selectattr("direction", "equalto", "incoming") | list %}
+  {% set outgoing_ghosts = ghost_connections | selectattr("direction", "equalto", "outgoing") | list %}
+  {% if incoming_ghosts %}
+  subgraph cluster__external_parent_in {
+    label="External connections in (parent model)";
     style="dashed,filled";
-    fillcolor="#f5f5f5";
-    color="#888888";
+    fillcolor="#e8f5e9";
+    color="#66bb6a";
     penwidth=1;
     fontsize=9;
-    fontcolor="#666666";
-    {% for ghost in ghost_connections %}
-    "{{ ghost.node_id }}" [label="{{ ghost.node_label }}", shape=ellipse, style="dashed,filled", fillcolor="#eeeeee", color="#aaaaaa", fontcolor="#555555", fontsize=9];
+    fontcolor="#2e7d32";
+    {% set ns = namespace(seen=[]) %}
+    {% for ghost in incoming_ghosts %}
+    {% if ghost.node_id not in ns.seen %}
+    {% set ns.seen = ns.seen + [ghost.node_id] %}
+    "{{ ghost.node_id }}" [label="{{ ghost.node_label }}", shape=ellipse, style="dashed,filled", fillcolor="#c8e6c9", color="#66bb6a", fontcolor="#1b5e20", fontsize=9];
+    {% endif %}
     {% endfor %}
   }
-  {% for ghost in ghost_connections %}
-  {% if ghost.direction == "incoming" %}
-  "{{ ghost.node_id }}" -> "{{ ghost.internal_node }}" [style=dashed, color="#aaaaaa", label="{{ ghost.protocol }}", fontsize=7, arrowsize=0.7];
-  {% else %}
-  "{{ ghost.internal_node }}" -> "{{ ghost.node_id }}" [style=dashed, color="#aaaaaa", label="{{ ghost.protocol }}", fontsize=7, arrowsize=0.7];
-  {% endif %}
+  {% for ghost in incoming_ghosts %}
+  "{{ ghost.node_id }}" -> "{{ ghost.internal_node }}" [style=dashed, color="#66bb6a", label="{{ ghost.protocol }}", fontsize=7, arrowsize=0.7];
   {% endfor %}
+  {% endif %}
+  {% if outgoing_ghosts %}
+  subgraph cluster__external_parent_out {
+    label="External connections out (parent model)";
+    style="dashed,filled";
+    fillcolor="#fff3e0";
+    color="#ffa726";
+    penwidth=1;
+    fontsize=9;
+    fontcolor="#e65100";
+    {% set ns = namespace(seen=[]) %}
+    {% for ghost in outgoing_ghosts %}
+    {% if ghost.node_id not in ns.seen %}
+    {% set ns.seen = ns.seen + [ghost.node_id] %}
+    "{{ ghost.node_id }}" [label="{{ ghost.node_label }}", shape=ellipse, style="dashed,filled", fillcolor="#ffe0b2", color="#ffa726", fontcolor="#bf360c", fontsize=9];
+    {% endif %}
+    {% endfor %}
+  }
+  {% for ghost in outgoing_ghosts %}
+  "{{ ghost.internal_node }}" -> "{{ ghost.node_id }}" [style=dashed, color="#ffa726", label="{{ ghost.protocol }}", fontsize=7, arrowsize=0.7];
+  {% endfor %}
+  {% endif %}
   {% endif %}
 }
