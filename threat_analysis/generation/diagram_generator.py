@@ -41,13 +41,13 @@ class DiagramGenerator:
         self.supported_formats = ["svg", "png", "pdf", "ps"]
         self.template_env = Environment(loader=FileSystemLoader(Path(__file__).parent.parent / "templates"))
     
-    def generate_dot_file_from_model(self, threat_model, output_file: str, project_protocol_styles: Optional[Dict] = None) -> Optional[str]:
+    def generate_dot_file_from_model(self, threat_model, output_file: str, project_protocol_styles: Optional[Dict] = None, external_connections: Optional[List[Dict]] = None) -> Optional[str]:
         """
         Generates DOT code from the threat model, saves it to a file,
         and returns the DOT code as a string.
         """
         try:
-            dot_code = self._generate_manual_dot(threat_model, project_protocol_styles)
+            dot_code = self._generate_manual_dot(threat_model, project_protocol_styles, external_connections=external_connections)
             
             if not dot_code or not dot_code.strip():
                 logging.error("❌ Unable to generate DOT code from model. DOT code is empty.")
@@ -553,7 +553,7 @@ class DiagramGenerator:
         
         return False
 
-    def _generate_manual_dot(self, threat_model, project_protocol_styles: Optional[Dict] = None) -> str:
+    def _generate_manual_dot(self, threat_model, project_protocol_styles: Optional[Dict] = None, external_connections: Optional[List[Dict]] = None) -> str:
         """Generates DOT code from ThreatModel components using Jinja2 template."""
         template = self.template_env.get_template("threat_model.dot.j2")
 
@@ -561,14 +561,70 @@ class DiagramGenerator:
         actors_outside_boundaries_data = self._prepare_nodes_data(threat_model, "actor")
         servers_outside_boundaries_data = self._prepare_nodes_data(threat_model, "server")
         dataflows_data = self._prepare_dataflows_data(threat_model, project_protocol_styles)
+        ghost_connections = self._build_ghost_connections(threat_model, external_connections or [])
 
         context = {
             "boundaries": boundaries_data,
             "actors_outside_boundaries": actors_outside_boundaries_data,
             "servers_outside_boundaries": servers_outside_boundaries_data,
             "dataflows": dataflows_data,
+            "ghost_connections": ghost_connections,
         }
         return template.render(context)
+
+    def _build_ghost_connections(self, threat_model, external_connections: List[Dict]) -> List[Dict]:
+        """Builds ghost node data for external (parent model) connections.
+
+        For incoming connections, wires to root servers of the child model (no incoming
+        dataflows within the child). For outgoing, wires from leaf servers (no outgoing
+        dataflows within the child). Falls back to the first server if none found.
+        """
+        if not external_connections:
+            return []
+
+        # Build intra-child sink and source sets
+        child_sinks: set = set()
+        child_sources: set = set()
+        all_server_names: List[str] = []
+        for s in getattr(threat_model, "servers", []):
+            n = s.get("name", "") if isinstance(s, dict) else getattr(s, "name", "")
+            if n:
+                all_server_names.append(n)
+        for df in getattr(threat_model, "dataflows", []):
+            src = getattr(df, "source", None)
+            snk = getattr(df, "sink", None)
+            src_n = src.name if hasattr(src, "name") else str(src)
+            snk_n = snk.name if hasattr(snk, "name") else str(snk)
+            child_sources.add(src_n)
+            child_sinks.add(snk_n)
+
+        root_servers = [n for n in all_server_names if n not in child_sinks] or all_server_names[:1]
+        leaf_servers = [n for n in all_server_names if n not in child_sources] or all_server_names[-1:]
+
+        ghost_nodes: List[Dict] = []
+        seen_ids: set = set()
+        for conn in external_connections:
+            peer = conn["peer"]
+            direction = conn["direction"]
+            protocol = conn.get("protocol", "") or ""
+            node_id = f"__ghost_{self._sanitize_name(peer)}_{direction}"
+            if node_id in seen_ids:
+                continue
+            seen_ids.add(node_id)
+            enc = "🔒" if conn.get("is_encrypted") else ""
+            auth = "🔑" if conn.get("is_authenticated") else ""
+            badges = " ".join(filter(None, [enc, auth]))
+            node_label = f"{peer}{chr(10)}{badges}".strip()
+            internal_nodes = root_servers if direction == "incoming" else leaf_servers
+            for internal in internal_nodes:
+                ghost_nodes.append({
+                    "node_id": node_id,
+                    "node_label": node_label,
+                    "direction": direction,
+                    "protocol": protocol,
+                    "internal_node": self._escape_label(internal),
+                })
+        return ghost_nodes
 
     def _prepare_boundaries_data(self, threat_model) -> List[Dict]:
         """Prepares hierarchical boundary data for the Jinja2 template."""

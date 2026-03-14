@@ -1,0 +1,49 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "device",
+      "name": "File Server"
+    }
+  },
+  "components": [
+    {
+      "type": "operating-system",
+      "name": "Windows Server 2019",
+      "version": "10.0.17763",
+      "purl": "pkg:generic/microsoft/windows-server@10.0.17763"
+    },
+    {
+      "type": "application",
+      "name": "Windows File Services",
+      "version": "10.0.17763"
+    }
+  ],
+  "services": [
+    {"name": "SMB", "endpoints": ["tcp://0.0.0.0:445"]},
+    {"name": "NETBIOS", "endpoints": ["tcp://0.0.0.0:139"]},
+    {"name": "DFS", "endpoints": ["tcp://0.0.0.0:445"]}
+  ],
+  "vulnerabilities": [
+    {
+      "id": "CVE-2020-0796",
+      "description": "SMBGhost — Windows SMBv3 integer overflow enabling unauthenticated remote code execution",
+      "ratings": [{"severity": "critical", "score": 10.0, "method": "CVSSv3"}],
+      "affects": [{"ref": "File Server"}]
+    },
+    {
+      "id": "CVE-2017-0144",
+      "description": "EternalBlue — Windows SMBv1 remote code execution via crafted transaction request",
+      "ratings": [{"severity": "critical", "score": 9.8, "method": "CVSSv3"}],
+      "affects": [{"ref": "File Server"}]
+    }
+  ],
+  "properties": [
+    {"name": "secopstm:patch_level", "value": "outdated"},
+    {"name": "secopstm:detection_level", "value": "low"},
+    {"name": "secopstm:credentials_stored", "value": "false"},
+    {"name": "secopstm:notes", "value": "SMBv1 still enabled for legacy printer compatibility. Network share ACLs not reviewed in 2 years."}
+  ]
+}

@@ -158,6 +158,113 @@ ReportSerializer.serialize(threat_model, all_threats)
     → validated versioned dict
 ```
 
+## Goal-Driven Attack Flow Engine (GDAF)
+
+The GDAF is a top-down attack scenario generator implemented in three cooperating modules.
+
+### Key Components
+
+1. **`threat_analysis/core/gdaf_engine.py`** — `GDAFEngine`, `AttackScenario`, `AttackHop`
+   - Reads `attack_objectives`, `threat_actors`, and `risk_criteria` from a YAML context file.
+   - `_build_graph()` creates a dict-based directed graph: nodes are actors/servers, edges are dataflows with metadata (protocol, `is_encrypted`, `is_authenticated`, `authentication`).
+   - `_find_entry_points()` selects start nodes from the graph based on the actor's `entry_preference` (`internet-facing` → untrusted boundary actors; `insider` → trusted actors with edges).
+   - `_bfs_paths()` performs bounded BFS (max_hops, max 20 raw paths per pair) to enumerate paths from entry points to target nodes.
+   - `_build_scenario()` converts a raw BFS path into an `AttackScenario` by calling `AssetTechniqueMapper.get_techniques()` for each hop, computing `hop_score` and `path_score`, and classifying risk level.
+
+2. **`threat_analysis/core/asset_technique_mapper.py`** — `AssetTechniqueMapper`, `ScoredTechnique`
+   - Loads `enterprise-attack.json` once (class-level cache, lazy).
+   - `get_techniques(asset_type, asset_attrs, hop_position, actor_known_ttps, actor_capable_tactics, top_k)` returns the top-k ranked MITRE techniques for the given asset.
+   - Scoring is a sum of additive bonuses: platform match (+0.5), primary tactic (+0.4), hop position tactic (+0.3), key technique for asset type (+0.6), actor known TTP (+0.5), vulnerability signals (+0.2–0.3 each).
+   - `_normalize_type()` maps fuzzy DSL type strings to canonical keys in `ASSET_TYPE_TO_PLATFORMS` and `ASSET_TYPE_TO_TACTICS`.
+
+3. **`threat_analysis/generation/attack_flow_builder.py`** — `AttackFlowBuilder`
+   - Serializes `AttackScenario` objects to Attack Flow `.afb` JSON files.
+   - One file per scenario, written to `output/gdaf/<objective_id>/<actor_id>_<scenario_id>.afb`.
+   - Produces a `gdaf_summary.json` collecting all scenarios.
+
+### Data Flow
+
+```
+GDAFEngine.__init__(threat_model, context_path, extra_models)
+    → _load_context()          reads YAML: attack_objectives, threat_actors, risk_criteria
+    → AssetTechniqueMapper()   loads enterprise-attack.json (lazy, cached)
+
+GDAFEngine.run()
+    → _build_graph()
+        for each model in [main] + extra_models:
+            add actors and servers as nodes
+            add dataflows as directed edges
+        second pass: add bridging edges for servers with _submodel_tm
+    → for each objective × actor:
+        _find_entry_points(actor)
+        for each entry → target:
+            _bfs_paths(graph, entry, target, max_hops)
+            for each path:
+                _build_scenario(path, objective, actor, graph, acceptable_risk)
+                    for each hop:
+                        AssetTechniqueMapper.get_techniques(...)
+                        compute hop_score (avg_technique_score × hop_weight)
+                    path_score = mean(hop_scores) + target_cia_bonus
+                    classify → CRITICAL / HIGH / MEDIUM / LOW
+    → return List[AttackScenario] (sorted by score, top max_paths_per_objective kept)
+```
+
+### GDAF and Sub-model Bridging
+
+When `_build_graph()` finds a server with `server_props['_submodel_tm']` (set by
+`_recursively_generate_reports()` for servers with `submodel=` in the DSL), it adds two sets
+of bridging edges:
+
+- **Entry bridge**: `parent_server → sub_root_servers` — represents internal access after
+  compromising the parent node. Root servers are those that are not the sink of any sub-model
+  dataflow.
+- **Exit bridge**: `sub_leaf_servers → original_targets` — leaf servers (not the source of any
+  sub-model dataflow) inherit the parent's outgoing edges, allowing attack paths to exit the
+  component after traversing its internals.
+
+This mechanism enables GDAF to trace paths that span multiple files in a project, crossing into
+sub-model internals transparently.
+
+---
+
+## Sub-model Drill-down
+
+Sub-model drill-down connects a server in a parent model to a child threat model file via the
+`submodel=./path/to/model.md` DSL keyword. The child IS the parent server at higher detail.
+
+### Parent diagram (hyperlink nodes)
+
+`_recursively_generate_reports()` in `report_generator.py` pre-creates the sub-model's
+`ThreatModel` and stores it in `server_props['_submodel_tm']`. `DiagramGenerator` renders the
+parent server as a hyperlink pointing to the child's diagram HTML file.
+
+### Child diagram (ghost connections)
+
+`_collect_parent_connections()` in `report_generator.py` collects all dataflows in the parent
+model that connect to the parent server. These are passed as `external_connections` to
+`DiagramGenerator._generate_manual_dot()`.
+
+`_build_ghost_connections()` in `diagram_generator.py` generates a ghost cluster at the edge of
+the child diagram:
+
+- **Ghost nodes** — dashed gray rectangles representing external peers from the parent model.
+  Lock/key badges indicate encryption and authentication status.
+- **Ghost edges** — incoming connections wire to the child model's root servers (servers with no
+  incoming dataflows within the child model). Outgoing connections wire from the child model's
+  leaf servers (servers with no outgoing dataflows).
+- **Cluster label** — "External connections (parent model)" clearly marks the ghost region.
+
+The ghost cluster is rendered at the end of the DOT template (`threat_model.dot.j2`) after the
+main graph content.
+
+### GDAF integration
+
+See [GDAF and Sub-model Bridging](#gdaf-and-sub-model-bridging) above. The same
+`_submodel_tm` reference that drives ghost node rendering also drives bridging edge injection
+in `GDAFEngine._build_graph()`.
+
+---
+
 ## AI Provider Architecture
 
 The framework uses a pluggable AI provider architecture to support various Large Language Models (LLMs) for threat generation and enrichment.

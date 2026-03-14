@@ -46,4 +46,4 @@ def test_update_diagram_logic(threat_model_service):
 def test_export_files_logic(threat_model_service):
     with patch.object(threat_model_service.export_service, 'export_files_logic') as mock_export:
         threat_model_service.export_files_logic("markdown", "svg")
-        mock_export.assert_called_once_with("markdown", "svg")
+        mock_export.assert_called_once_with("markdown", "svg", model_file_path=None)

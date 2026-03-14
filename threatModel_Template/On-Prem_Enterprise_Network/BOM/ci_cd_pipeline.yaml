@@ -1,0 +1,14 @@
+asset: "CI CD Pipeline"
+os_version: "ubuntu_20.04"
+software_version: "Jenkins 2.387.1 / JDK 11.0.17"
+patch_level: outdated
+known_cves:
+  - CVE-2023-27898
+  - CVE-2023-27905
+running_services:
+  - HTTPS
+  - HTTP
+  - SSH
+detection_level: medium
+credentials_stored: false
+notes: "Jenkins CI/CD server with 47 pipelines. CVE-2023-27898 (XSS leading to RCE via crafted plugin) unpatched. Build agents run with excessive host permissions. Secrets stored in Jenkins credential store — not in external vault."

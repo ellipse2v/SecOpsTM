@@ -1,0 +1,14 @@
+asset: "Backup Server"
+os_version: "ubuntu_20.04"
+software_version: "Veeam Backup & Replication 11.0.1.1261"
+patch_level: outdated
+known_cves:
+  - CVE-2023-27532
+  - CVE-2022-26500
+running_services:
+  - TCP
+  - SSH
+  - HTTPS
+detection_level: low
+credentials_stored: false
+notes: "Veeam B&R storing full database and server backups. CVE-2023-27532 (unauthenticated RCE via Veeam backup service port 9401) unpatched. Backup encryption not enabled. Backups not air-gapped — directly reachable from Core Database Cluster."

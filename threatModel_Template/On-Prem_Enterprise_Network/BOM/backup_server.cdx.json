@@ -1,0 +1,50 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "device",
+      "name": "Backup Server"
+    }
+  },
+  "components": [
+    {
+      "type": "operating-system",
+      "name": "Ubuntu",
+      "version": "20.04",
+      "purl": "pkg:generic/canonical/ubuntu@20.04"
+    },
+    {
+      "type": "application",
+      "name": "Veeam Backup",
+      "version": "11.0.1.1261",
+      "purl": "pkg:generic/veeam/backup-replication@11.0.1.1261"
+    }
+  ],
+  "services": [
+    {"name": "HTTPS", "endpoints": ["tcp://0.0.0.0:9443"]},
+    {"name": "TCP", "endpoints": ["tcp://0.0.0.0:2500-3300"]},
+    {"name": "SMB", "endpoints": ["tcp://0.0.0.0:445"]}
+  ],
+  "vulnerabilities": [
+    {
+      "id": "CVE-2022-26500",
+      "description": "Veeam Backup & Replication remote code execution via deserialization in .NET remoting service",
+      "ratings": [{"severity": "critical", "score": 9.8, "method": "CVSSv3"}],
+      "affects": [{"ref": "Backup Server"}]
+    },
+    {
+      "id": "CVE-2022-26501",
+      "description": "Veeam Backup & Replication unauthenticated remote code execution via exposed .NET remoting service",
+      "ratings": [{"severity": "critical", "score": 9.8, "method": "CVSSv3"}],
+      "affects": [{"ref": "Backup Server"}]
+    }
+  ],
+  "properties": [
+    {"name": "secopstm:patch_level", "value": "critical"},
+    {"name": "secopstm:detection_level", "value": "none"},
+    {"name": "secopstm:credentials_stored", "value": "true"},
+    {"name": "secopstm:notes", "value": "CRITICAL: Unauthenticated RCE in Veeam Backup. Stores credentials for all backup targets. No monitoring."}
+  ]
+}

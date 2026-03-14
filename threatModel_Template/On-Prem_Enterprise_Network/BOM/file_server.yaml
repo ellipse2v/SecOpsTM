@@ -1,0 +1,14 @@
+asset: "File Server"
+os_version: "windows_server_2016"
+software_version: "Windows Server 2016 Build 14393.5850"
+patch_level: outdated
+known_cves:
+  - CVE-2017-0144
+  - CVE-2021-36942
+running_services:
+  - SMB
+  - RPC
+  - WinRM
+detection_level: low
+credentials_stored: false
+notes: "Windows file server hosting department shares via SMB 2/3. EternalBlue (MS17-010) patched, but SMB signing not enforced, enabling NTLM relay attacks (CVE-2021-36942). No ransomware honeypots deployed."

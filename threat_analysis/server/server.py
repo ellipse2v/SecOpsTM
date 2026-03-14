@@ -204,6 +204,7 @@ if attempt == max_attempts:
 
 initial_markdown_content = ""
 initial_project_path = None
+initial_model_file_path: Optional[str] = None
 
 DEFAULT_EMPTY_MARKDOWN = """# Threat Model: New Model
 
@@ -250,6 +251,7 @@ def run_server(model_filepath: Optional[str] = None, project_path: Optional[str]
 
     global initial_markdown_content
     global initial_project_path
+    global initial_model_file_path
     effective_model_path = None
 
     if project_path and os.path.isdir(project_path):
@@ -266,6 +268,7 @@ def run_server(model_filepath: Optional[str] = None, project_path: Optional[str]
         try:
             with open(effective_model_path, "r", encoding="utf-8") as f:
                 initial_markdown_content = f.read()
+            initial_model_file_path = os.path.abspath(effective_model_path)
             logging.info(f"[{time.time() - start_time:.4f}s] Loaded initial threat model from {effective_model_path}")
         except Exception as e:
             logging.error(f"[{time.time() - start_time:.4f}s] Error loading initial model from {effective_model_path}: {e}")
@@ -609,7 +612,8 @@ def export_files():
 
     try:
         output_path, output_filename = get_threat_model_service().export_files_logic(
-            markdown_content=markdown_content, export_format=export_format
+            markdown_content=markdown_content, export_format=export_format,
+            model_file_path=initial_model_file_path,
         )
         absolute_output_directory = os.path.join(project_root, os.path.dirname(output_path))
         
@@ -647,7 +651,8 @@ def export_all_files():
     try:
         submodels = request.json.get("submodels", [])
         zip_buffer, timestamp = get_threat_model_service().export_all_files_logic(
-            markdown_content=markdown_content, submodels=submodels
+            markdown_content=markdown_content, submodels=submodels,
+            model_file_path=initial_model_file_path,
         )
         return send_file(
             zip_buffer,
@@ -689,7 +694,9 @@ def export_navigator_stix_files():
 
     try:
         submodels = request.json.get("submodels", [])
-        zip_buffer, timestamp = get_threat_model_service().export_navigator_stix_logic(markdown_content, submodels=submodels)
+        zip_buffer, timestamp = get_threat_model_service().export_navigator_stix_logic(
+            markdown_content, submodels=submodels, model_file_path=initial_model_file_path,
+        )
         if not zip_buffer:
             return jsonify({"error": "Failed to generate navigator and STIX files."}), 500
         logging.info(f"Generated zip buffer size: {zip_buffer.getbuffer().nbytes} bytes")
@@ -750,7 +757,9 @@ def export_attack_flow():
 
         markdown_content = convert_json_to_markdown(json_data)
 
-        zip_buffer, timestamp = get_threat_model_service().export_attack_flow_logic(markdown_content)
+        zip_buffer, timestamp = get_threat_model_service().export_attack_flow_logic(
+            markdown_content, model_file_path=initial_model_file_path,
+        )
 
 
 

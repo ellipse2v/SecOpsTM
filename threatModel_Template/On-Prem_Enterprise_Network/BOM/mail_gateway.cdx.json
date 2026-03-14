@@ -1,0 +1,44 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "device",
+      "name": "Mail Gateway"
+    }
+  },
+  "components": [
+    {
+      "type": "operating-system",
+      "name": "Debian",
+      "version": "10",
+      "purl": "pkg:generic/debian/debian@10"
+    },
+    {
+      "type": "application",
+      "name": "Postfix",
+      "version": "3.4.14",
+      "purl": "pkg:generic/postfix/postfix@3.4.14"
+    }
+  ],
+  "services": [
+    {"name": "SMTP", "endpoints": ["tcp://0.0.0.0:25"]},
+    {"name": "SMTPS", "endpoints": ["tcp://0.0.0.0:465"]},
+    {"name": "IMAP", "endpoints": ["tcp://0.0.0.0:143"]}
+  ],
+  "vulnerabilities": [
+    {
+      "id": "CVE-2020-4788",
+      "description": "Postfix information exposure via logging of sensitive mail header data",
+      "ratings": [{"severity": "medium", "score": 5.3, "method": "CVSSv3"}],
+      "affects": [{"ref": "Mail Gateway"}]
+    }
+  ],
+  "properties": [
+    {"name": "secopstm:patch_level", "value": "current"},
+    {"name": "secopstm:detection_level", "value": "medium"},
+    {"name": "secopstm:credentials_stored", "value": "false"},
+    {"name": "secopstm:notes", "value": "SPF/DKIM/DMARC configured. No attachment sandboxing."}
+  ]
+}

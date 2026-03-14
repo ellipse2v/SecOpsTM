@@ -47,6 +47,7 @@ class SecOpsTMFramework:
 
     def __init__(
         self, markdown_content: str, model_name: str, model_description: str, model_file_path: str,
+        original_model_path: Optional[str] = None,
         implemented_mitigations_path: Optional[str] = None,
         cve_service: 'CVEService' = None, # Use forward reference for lazy loading
         ai_config_path: Optional[Path] = None,
@@ -58,6 +59,7 @@ class SecOpsTMFramework:
         self.model_name = model_name
         self.model_description = model_description
         self.model_file_path = model_file_path
+        self.original_model_path = original_model_path or model_file_path
         self.cve_service = cve_service
 
         # --- Output path management ---
@@ -162,6 +164,7 @@ class SecOpsTMFramework:
                 model_description=self.model_description,
                 cve_service=self.cve_service, # type: ignore
                 validate=True,
+                model_file_path=self.original_model_path,
             )
             if not threat_model:
                 raise RuntimeError("create_threat_model returned None")
@@ -562,6 +565,7 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
         model_name=get_model_name(markdown_content_for_analysis), # Derive from content
         model_description="Threat model generated from markdown file", # Derive or default
         model_file_path=str(base_model_filepath),
+        original_model_path=str(original_model_path) if not iac_plugin_used else None,
         implemented_mitigations_path=str(implemented_mitigations_path) if implemented_mitigations_path else None,
         cve_service=cve_service,
         ai_config_path=ai_config_path,
@@ -722,13 +726,26 @@ def main():
         output_dir = Path(config.OUTPUT_BASE_DIR) / project_path.name
         output_dir.mkdir(parents=True, exist_ok=True)
 
+        # Resolve root model file: main.md (multi-model project) or model.md (single-model directory)
+        _root_model_file = project_path / "main.md"
+        if not _root_model_file.exists() and (project_path / "model.md").exists():
+            _root_model_file = project_path / "model.md"
+            logging.info("Project mode: using model.md (single-model directory with data)")
+
         implemented_mitigations_path, _ = resolve_path(
             args.implemented_mitigations_file, project_path, "implemented_mitigations.txt"
         )
+        # Also check project cve/ subdir
+        _cve_subdir = project_path / "cve"
+        _cve_arg = args.cve_definitions_file
+        if not _cve_arg and _cve_subdir.exists():
+            _cve_candidates = list(_cve_subdir.glob("*.yml")) + list(_cve_subdir.glob("*.yaml"))
+            if _cve_candidates:
+                _cve_arg = str(_cve_candidates[0])
         cve_definitions_path, is_cve_path_explicit = resolve_path(
-            args.cve_definitions_file, project_path, "cve_definitions.yml"
+            _cve_arg, project_path, "cve_definitions.yml"
         )
-        
+
         # Lazy import CVEService
         cve_service_module = importlib.import_module("threat_analysis.core.cve_service")
         CVEService = cve_service_module.CVEService
@@ -739,12 +756,12 @@ def main():
         # Lazy import SeverityCalculator
         severity_calculator_module = importlib.import_module("threat_analysis.severity_calculator_module")
         SeverityCalculator = severity_calculator_module.SeverityCalculator
-        severity_calculator = SeverityCalculator(markdown_file_path=str(project_path / "main.md"))
+        severity_calculator = SeverityCalculator(markdown_file_path=str(_root_model_file))
         
         # Lazy import MitreMapping
         mitre_mapping_module = importlib.import_module("threat_analysis.core.mitre_mapping_module")
         MitreMapping = mitre_mapping_module.MitreMapping
-        mitre_mapping = MitreMapping(threat_model_path=str(project_path / "main.md"))
+        mitre_mapping = MitreMapping(threat_model_path=str(_root_model_file))
 
         ai_config_path = PROJECT_ROOT / (args.ai_config_file if hasattr(args, 'ai_config_file') else "config/ai_config.yaml")
         context_path = PROJECT_ROOT / (args.ai_context_file if hasattr(args, 'ai_context_file') else "config/context.yaml")

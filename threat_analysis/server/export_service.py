@@ -21,6 +21,7 @@ import tempfile
 from io import BytesIO
 import json
 from pathlib import Path
+from typing import Optional
 import asyncio
 import queue
 
@@ -49,7 +50,61 @@ class ExportService:
         timestamp = datetime.datetime.now().strftime(TIMESTAMP_FORMAT)
         return Path(OUTPUT_BASE_DIR_TPL) / timestamp
 
-    def export_files_logic(self, markdown_content: str, export_format: str):
+    def _resolve_gdaf_context(self, threat_model) -> Optional[str]:
+        """Resolve the GDAF context file path for a given threat model.
+
+        Priority order:
+        1. `gdaf_context` key in the model's ## Context DSL section
+        2. `{model_parent}/context/` directory (first .yaml/.yml found)
+        3. `config/context.yaml` (project default fallback)
+
+        Returns the resolved path as a string, or None if no context file is found.
+        """
+        ctx_cfg = getattr(threat_model, "context_config", {})
+        dsl_path = ctx_cfg.get("gdaf_context")
+        if dsl_path:
+            p = Path(dsl_path)
+            if p.exists():
+                logging.info("GDAF: using context from DSL ## Context: %s", p)
+                return str(p)
+            logging.warning("GDAF: gdaf_context '%s' declared in ## Context but file not found", dsl_path)
+        # Check model parent context/ subdirectory
+        model_path = getattr(threat_model, "_model_file_path", None)
+        if model_path:
+            context_dir = Path(model_path).parent / "context"
+            if context_dir.exists():
+                yaml_files = list(context_dir.glob("*.yaml")) + list(context_dir.glob("*.yml"))
+                if yaml_files:
+                    logging.info("GDAF: using context from model context/ dir: %s", yaml_files[0])
+                    return str(yaml_files[0])
+        # Fallback: project default
+        fallback = Path("config/context.yaml")
+        if fallback.exists():
+            return str(fallback)
+        return None
+
+    def _resolve_bom_directory(self, threat_model) -> Optional[str]:
+        """Resolve BOM directory: DSL ## Context bom_directory → {model_parent}/BOM/ → None."""
+        ctx_cfg = getattr(threat_model, "context_config", {})
+        dsl_path = ctx_cfg.get("bom_directory")
+        if dsl_path:
+            p = Path(dsl_path)
+            if p.exists():
+                logging.info("BOM: using directory from DSL ## Context: %s", p)
+                return str(p)
+            logging.warning("BOM: bom_directory '%s' declared in ## Context but not found", dsl_path)
+        # Auto-discover from model file parent
+        model_path = getattr(threat_model, "_model_file_path", None)
+        if model_path:
+            bom_dir = Path(model_path).parent / "BOM"
+            if bom_dir.exists() and bom_dir.is_dir():
+                n_files = len(list(bom_dir.glob("*.json")) + list(bom_dir.glob("*.yaml")) + list(bom_dir.glob("*.yml")))
+                logging.info("BOM: auto-discovered %s (%d asset file(s))", bom_dir, n_files)
+                return str(bom_dir)
+        return None
+
+    def export_files_logic(self, markdown_content: str, export_format: str,
+                           model_file_path: Optional[str] = None):
         logging.info(f"Entering export_files_logic for format: {export_format}")
         if not markdown_content or not export_format:
             raise ValueError("Missing markdown content or export format")
@@ -57,6 +112,7 @@ class ExportService:
         threat_model = create_threat_model(
             markdown_content=markdown_content, model_name="ExportedThreatModel",
             model_description="Exported from web interface", cve_service=self.cve_service, validate=True,
+            model_file_path=model_file_path,
         )
         if not threat_model:
             raise RuntimeError("Failed to create or validate threat model")
@@ -102,7 +158,7 @@ class ExportService:
         else:
             raise ValueError(f"Invalid export format: {export_format}")
 
-    def generate_full_project_export(self, markdown_content: str, export_path: Path, submodels: list | None = None, progress_callback = None, project_root: Path | None = None):
+    def generate_full_project_export(self, markdown_content: str, export_path: Path, submodels: list | None = None, progress_callback = None, project_root: Path | None = None, model_file_path: Optional[str] = None):
         export_path = Path(export_path)
         timestamp = datetime.datetime.now().strftime(TIMESTAMP_FORMAT)
         result = {
@@ -153,11 +209,34 @@ class ExportService:
                     "html": f"{model_name}_diagram.html",
                     "svg": f"{model_name}.svg"
                 }
+
+                # GDAF in project mode: unified graph across main + all sub-models
+                try:
+                    from threat_analysis.core.gdaf_engine import GDAFEngine
+                    from threat_analysis.generation.attack_flow_builder import AttackFlowBuilder
+                    _context_path = self._resolve_gdaf_context(main_threat_model)
+                    if _context_path:
+                        _extra = getattr(main_threat_model, "sub_models", [])
+                        _bom_dir = self._resolve_bom_directory(main_threat_model)
+                        _gdaf = GDAFEngine(main_threat_model, _context_path, extra_models=_extra, bom_directory=_bom_dir)
+                        _scenarios = _gdaf.run()
+                        if _scenarios:
+                            _builder = AttackFlowBuilder(_scenarios, model_name=str(model_name))
+                            _builder.generate_and_save(str(export_path))
+                            logging.info(
+                                "GDAF (project): %d scenarios from %d model(s) in %s/gdaf",
+                                len(_scenarios), 1 + len(_extra), export_path,
+                            )
+                        else:
+                            logging.info("GDAF (project): no scenarios produced")
+                except Exception as _gdaf_exc:
+                    logging.warning("GDAF (project) generation skipped (non-fatal): %s", _gdaf_exc)
         else:
             logging.info("--- Starting Single-File Generation (Server Mode) ---")
             threat_model = create_threat_model(
                 markdown_content=markdown_content, model_name="ExportedThreatModel",
-                model_description="Exported from web interface", cve_service=self.cve_service, validate=True
+                model_description="Exported from web interface", cve_service=self.cve_service, validate=True,
+                model_file_path=model_file_path,
             )
             if not threat_model:
                 raise RuntimeError("Failed to create or validate threat model")
@@ -218,6 +297,24 @@ class ExportService:
             except Exception as e:
                 logging.error("Failed to generate Attack Flow: %s", e)
 
+            # GDAF: Goal-Driven Attack Flow (objective-based, requires context with attack_objectives)
+            try:
+                from threat_analysis.core.gdaf_engine import GDAFEngine
+                from threat_analysis.generation.attack_flow_builder import AttackFlowBuilder
+                _context_path = self._resolve_gdaf_context(threat_model)
+                if _context_path:
+                    _bom_dir = self._resolve_bom_directory(threat_model)
+                    _gdaf = GDAFEngine(threat_model, _context_path, bom_directory=_bom_dir)
+                    _scenarios = _gdaf.run()
+                    if _scenarios:
+                        _builder = AttackFlowBuilder(_scenarios, model_name=str(threat_model.tm.name))
+                        _builder.generate_and_save(str(export_path))
+                        logging.info("GDAF: generated %d attack scenarios in %s/gdaf", len(_scenarios), export_path)
+                    else:
+                        logging.info("GDAF: no scenarios produced (check context attack_objectives/threat_actors)")
+            except Exception as e:
+                logging.warning("GDAF generation skipped (non-fatal): %s", e)
+
             result["reports"] = {
                 "html": "stride_mitre_report.html",
                 "json": "mitre_analysis.json",
@@ -232,7 +329,8 @@ class ExportService:
             
         return result
 
-    def export_all_files_logic(self, markdown_content: str, submodels: list | None = None):
+    def export_all_files_logic(self, markdown_content: str, submodels: list | None = None,
+                               model_file_path: Optional[str] = None):
         logging.info("Entering export_all_files_logic.")
         if not markdown_content:
             raise ValueError("Missing markdown content")
@@ -244,9 +342,11 @@ class ExportService:
         os.makedirs(export_path, exist_ok=True)
 
         if submodels and len(submodels) > 0:
-            self.generate_full_project_export(markdown_content, export_path, submodels=submodels)
+            self.generate_full_project_export(markdown_content, export_path, submodels=submodels,
+                                              model_file_path=model_file_path)
         else:
-            self.generate_full_project_export(markdown_content, export_path)
+            self.generate_full_project_export(markdown_content, export_path,
+                                              model_file_path=model_file_path)
         
         threat_model_temp = create_threat_model(markdown_content=markdown_content, model_name="temp", model_description="temp", cve_service=self.cve_service)
         element_positions = self.diagram_service._generate_positions_from_graphviz(threat_model_temp) if threat_model_temp else {}
@@ -268,7 +368,8 @@ class ExportService:
         shutil.rmtree(export_path)
         return zip_buffer, timestamp
 
-    def export_navigator_stix_logic(self, markdown_content: str, submodels: list | None = None):
+    def export_navigator_stix_logic(self, markdown_content: str, submodels: list | None = None,
+                                    model_file_path: Optional[str] = None):
         logging.info("Entering export_navigator_stix_logic.")
         if not markdown_content: raise ValueError("Missing markdown content")
 
@@ -279,6 +380,7 @@ class ExportService:
         threat_model = create_threat_model(
             markdown_content=markdown_content, model_name="ExportedThreatModel",
             model_description="Exported for STIX/Navigator", cve_service=self.cve_service, validate=True,
+            model_file_path=model_file_path,
         )
         if not threat_model:
             raise RuntimeError("Failed to create threat model")
@@ -312,7 +414,8 @@ class ExportService:
         shutil.rmtree(output_dir)
         return zip_buffer, timestamp
     
-    def export_attack_flow_logic(self, markdown_content: str):
+    def export_attack_flow_logic(self, markdown_content: str,
+                                 model_file_path: Optional[str] = None):
         logging.info("Entering export_attack_flow_logic.")
         if not markdown_content:
             raise ValueError("Missing markdown content")
@@ -322,6 +425,7 @@ class ExportService:
             threat_model = create_threat_model(
                 markdown_content=markdown_content, model_name="ExportedThreatModel",
                 model_description="Exported from web interface", cve_service=self.cve_service, validate=True,
+                model_file_path=model_file_path,
             )
             if not threat_model:
                 raise RuntimeError("Failed to create or validate threat model")

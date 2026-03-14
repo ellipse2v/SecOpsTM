@@ -65,6 +65,9 @@ class ModelParser:
         """
         lines = markdown_content.splitlines()
         
+        # Pass 0: Parse ## Context (standalone key=value block, no list items)
+        self._parse_context_section(lines)
+
         # First Pass: Parse Boundaries, Actors, Servers, and Data
         element_sections = {
             "## Boundaries": self._parse_boundary,
@@ -327,6 +330,47 @@ class ModelParser:
         except (ValueError, TypeError):
             logging.warning(f"⚠️ Warning: Malformed severity multiplier value for '{name}': {params_str}")
 
+    def _parse_context_section(self, lines: List[str]) -> None:
+        """Pass 0: parse the ## Context section into threat_model.context_config.
+
+        Accepts two syntaxes per line (after the section header):
+          key=value
+          - key=value
+          - key: value
+
+        Values are coerced: "true"/"false" → bool, numeric strings → float/int,
+        everything else stays a string.
+        """
+        in_context = False
+        kv_re = re.compile(r'^-?\s*([A-Za-z_][A-Za-z0-9_]*)[\s=:]\s*(.+)$')
+        for line in lines:
+            stripped = line.strip()
+            if stripped == "## Context":
+                in_context = True
+                continue
+            if in_context:
+                if stripped.startswith("## "):
+                    break  # next section
+                if not stripped or stripped.startswith("#"):
+                    continue
+                m = kv_re.match(stripped)
+                if m:
+                    key, raw = m.group(1).strip(), m.group(2).strip().strip('"').strip("'")
+                    if raw.lower() == "true":
+                        val: Any = True
+                    elif raw.lower() == "false":
+                        val = False
+                    else:
+                        try:
+                            val = int(raw)
+                        except ValueError:
+                            try:
+                                val = float(raw)
+                            except ValueError:
+                                val = raw
+                    self.threat_model.context_config[key] = val
+                    logging.info("Context: %s = %r", key, val)
+
     def _parse_custom_mitre(self, name: str, params_str: str):
         """Parses a custom MITRE mapping from a name and a parameter string."""
         logging.debug(f"Parsing custom MITRE mapping '{name}' with params: {params_str}")
@@ -336,6 +380,6 @@ class ModelParser:
             tactics = mapping_dict.get('tactics', [])
             techniques = mapping_dict.get('techniques', [])
             self.threat_model.add_custom_mitre_mapping(name, tactics, techniques)
-            logging.info(f"   - Added Custom MITRE Mapping: {name} (Tactics: {len(tactics)}, Techniques: {len(techniques)})")
+            logging.debug("Custom MITRE mapping added: %s (tactics: %d, techniques: %d)", name, len(tactics), len(techniques))
         except (SyntaxError, ValueError, AttributeError) as e: # Added AttributeError for safety
             logging.error(f"Error evaluating custom MITRE mapping for '{name}': {e}")

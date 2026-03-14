@@ -26,17 +26,32 @@ Three independent threat engines feed into a **unified, deduplicated** output:
 - **Cross-model RAG analysis**: In project mode, the RAG pipeline receives the full project context (main model + all sub-models) for cross-boundary threat detection that individual model analysis cannot surface.
 - **Trust context in prompts**: Each component prompt includes its boundary's trust level (`TRUSTED` / `UNTRUSTED`) so the LLM can tailor threat scenarios to the actual exposure level.
 
+## Goal-Driven Attack Flows (GDAF)
+
+GDAF is a top-down attack scenario generator that works from attacker objectives and actor profiles through the system graph, assigning MITRE ATT&CK techniques to each hop. It complements the bottom-up `AttackChainAnalyzer` (which starts from threats) by answering: **"What path would a specific adversary take to reach this target?"**
+
+- **Objective-driven**: Define business-impact objectives (`OBJ-DOMAIN-COMPROMISE`, `OBJ-FINANCIAL-EXFIL`, etc.) and threat actor profiles in a YAML context file.
+- **Graph traversal**: BFS from actor entry points to target assets. Entry points are selected automatically based on trust boundaries (`internet-facing` / `insider` / `supply-chain` preference).
+- **Per-hop MITRE techniques**: `AssetTechniqueMapper` scores techniques from `enterprise-attack.json` using platform match, asset-specific primary tactics, hop position (entry / intermediate / target), actor known TTPs, and vulnerability signals (no auth, no encryption, no MFA, legacy).
+- **Risk scoring**: `path_score = mean(hop_scores) + target_CIA_bonus`. Risk levels: CRITICAL ≥ 4.0, HIGH ≥ 2.8, MEDIUM ≥ 1.8, LOW < 1.8.
+- **Output**: One `.afb` Attack Flow file per scenario + `gdaf_summary.json`. Files are valid for import in the Attack Flow Builder.
+- **Project mode**: In multi-model projects, the attack graph spans all sub-models. Servers with `submodel=` references get bridging edges so paths can traverse into component internals.
+- **Fully offline**: Only reads `enterprise-attack.json` from disk — no network calls.
+
+See [docs/gdaf.md](gdaf.md) for the complete reference including the context YAML schema, scoring algorithm, and asset type table.
+
 ## Reporting & Export
 
 - **HTML report**: Integrated threat statistics, STRIDE/MITRE mapping, D3FEND mitigations, severity breakdown, source tagging (`pytm` / `AI` / `LLM`), risk signals (`CVE`, `CWE⚠`, `NET`, `D3F`), executive summary with KPIs + top-5 risks, interactive severity filter (CRITICAL/HIGH/MEDIUM/LOW), risk matrix 5×5.
 - **⛓️ Attack Chain Analysis**: Dedicated section in the HTML report identifying multi-step attack paths that chain threats across dataflows. Each chain shows entry point, pivot component, attack scores, and CRITICAL/HIGH/MEDIUM/LOW severity label.
 - **Versioned JSON export** (`schema_version: "1.0"`): Stable structure for SIEM, dashboards, and ticketing tools. Schema defined at `threat_analysis/schemas/v1/threat_model_report.schema.json`. Threats carry stable IDs (`T-0001`).
 - **STIX 2.1** bundle and **ATT&CK Navigator** layer (JSON).
-- **Attack Flow** `.afb` files for key STRIDE objectives.
+- **Attack Flow** `.afb` files for key STRIDE objectives and GDAF scenarios.
 - **Remediation Checklist**: CSV export of all actionable mitigations, one row per threat-technique pair.
 - **Visual Diagrams**: DOT, SVG, and interactive HTML with threat highlights.
   - **Trust Boundary Colors**: Trusted zones rendered green solid (`#2e7d32`), untrusted zones red dashed (`#c62828`) — baked into the DOT template and exported SVG.
   - **Severity Heat Map Overlay**: Interactive toggle in diagram HTML. Applies per-component severity colour (CRITICAL → red, HIGH → orange, MEDIUM → yellow, LOW → teal) over the original diagram; hover tooltip shows severity + "View threats →" deep-link to the HTML report.
+  - **Sub-model Drill-down**: Server nodes with a `submodel=` reference become hyperlinks in the parent diagram. Clicking navigates to the child diagram, which shows the server's internal architecture plus a ghost cluster of external connections from the parent model.
 
 ## CLI & CI Integration
 

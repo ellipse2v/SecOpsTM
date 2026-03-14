@@ -1,0 +1,50 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "device",
+      "name": "Internal Firewall"
+    }
+  },
+  "components": [
+    {
+      "type": "operating-system",
+      "name": "FortiOS",
+      "version": "7.0.5",
+      "purl": "pkg:generic/fortinet/fortios@7.0.5"
+    },
+    {
+      "type": "application",
+      "name": "FortiGate 600E",
+      "version": "7.0.5",
+      "purl": "pkg:generic/fortinet/fortigate-600e@7.0.5"
+    }
+  ],
+  "services": [
+    {"name": "FW-MGMT", "endpoints": ["tcp://0.0.0.0:443"]},
+    {"name": "SYSLOG", "endpoints": ["udp://0.0.0.0:514"]},
+    {"name": "HA", "endpoints": ["tcp://0.0.0.0:704"]}
+  ],
+  "vulnerabilities": [
+    {
+      "id": "CVE-2022-40684",
+      "description": "FortiGate authentication bypass on management interface — unauthenticated admin access",
+      "ratings": [{"severity": "critical", "score": 9.8, "method": "CVSSv3"}],
+      "affects": [{"ref": "Internal Firewall"}]
+    },
+    {
+      "id": "CVE-2023-27997",
+      "description": "FortiGate SSL-VPN heap buffer overflow — pre-authentication remote code execution",
+      "ratings": [{"severity": "critical", "score": 9.8, "method": "CVSSv3"}],
+      "affects": [{"ref": "Internal Firewall"}]
+    }
+  ],
+  "properties": [
+    {"name": "secopstm:patch_level", "value": "critical"},
+    {"name": "secopstm:detection_level", "value": "high"},
+    {"name": "secopstm:credentials_stored", "value": "false"},
+    {"name": "secopstm:notes", "value": "CRITICAL: CVE-2022-40684 auth bypass exploited in the wild. Patch immediately."}
+  ]
+}

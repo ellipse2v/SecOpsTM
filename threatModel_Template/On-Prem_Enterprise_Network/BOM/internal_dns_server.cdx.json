@@ -1,0 +1,50 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "device",
+      "name": "Internal DNS Server"
+    }
+  },
+  "components": [
+    {
+      "type": "operating-system",
+      "name": "Windows Server 2019",
+      "version": "10.0.17763",
+      "purl": "pkg:generic/microsoft/windows-server@10.0.17763"
+    },
+    {
+      "type": "application",
+      "name": "Microsoft DNS",
+      "version": "10.0.17763",
+      "purl": "pkg:generic/microsoft/dns@10.0.17763"
+    }
+  ],
+  "services": [
+    {"name": "DNS", "endpoints": ["udp://0.0.0.0:53"]},
+    {"name": "DNS-TCP", "endpoints": ["tcp://0.0.0.0:53"]},
+    {"name": "RPC", "endpoints": ["tcp://0.0.0.0:135"]}
+  ],
+  "vulnerabilities": [
+    {
+      "id": "CVE-2020-1350",
+      "description": "SIGRed — Windows DNS Server heap buffer overflow enabling unauthenticated RCE via crafted DNS response",
+      "ratings": [{"severity": "critical", "score": 10.0, "method": "CVSSv3"}],
+      "affects": [{"ref": "Internal DNS Server"}]
+    },
+    {
+      "id": "CVE-2021-24078",
+      "description": "Windows DNS Server remote code execution via malformed DNS records",
+      "ratings": [{"severity": "high", "score": 9.8, "method": "CVSSv3"}],
+      "affects": [{"ref": "Internal DNS Server"}]
+    }
+  ],
+  "properties": [
+    {"name": "secopstm:patch_level", "value": "outdated"},
+    {"name": "secopstm:detection_level", "value": "low"},
+    {"name": "secopstm:credentials_stored", "value": "false"},
+    {"name": "secopstm:notes", "value": "SIGRed vulnerability exists if DNS TCP queries allowed. Zone transfer not restricted."}
+  ]
+}

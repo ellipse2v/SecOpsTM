@@ -1,0 +1,63 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "device",
+      "name": "SIEM Server"
+    }
+  },
+  "components": [
+    {
+      "type": "operating-system",
+      "name": "Ubuntu",
+      "version": "22.04",
+      "purl": "pkg:generic/canonical/ubuntu@22.04"
+    },
+    {
+      "type": "application",
+      "name": "Elasticsearch",
+      "version": "8.5.0",
+      "purl": "pkg:generic/elastic/elasticsearch@8.5.0"
+    },
+    {
+      "type": "application",
+      "name": "Kibana",
+      "version": "8.5.0",
+      "purl": "pkg:generic/elastic/kibana@8.5.0"
+    },
+    {
+      "type": "application",
+      "name": "Logstash",
+      "version": "8.5.0",
+      "purl": "pkg:generic/elastic/logstash@8.5.0"
+    }
+  ],
+  "services": [
+    {"name": "HTTPS", "endpoints": ["tcp://0.0.0.0:443"]},
+    {"name": "Elasticsearch", "endpoints": ["tcp://0.0.0.0:9200"]},
+    {"name": "Logstash", "endpoints": ["tcp://0.0.0.0:5044"]},
+    {"name": "SYSLOG", "endpoints": ["udp://0.0.0.0:514"]}
+  ],
+  "vulnerabilities": [
+    {
+      "id": "CVE-2021-44228",
+      "description": "Log4Shell — Apache Log4j2 JNDI injection enabling unauthenticated remote code execution (affects Logstash)",
+      "ratings": [{"severity": "critical", "score": 10.0, "method": "CVSSv3"}],
+      "affects": [{"ref": "SIEM Server"}]
+    },
+    {
+      "id": "CVE-2022-25856",
+      "description": "Kibana server-side request forgery via crafted URL in import/export",
+      "ratings": [{"severity": "medium", "score": 5.3, "method": "CVSSv3"}],
+      "affects": [{"ref": "SIEM Server"}]
+    }
+  ],
+  "properties": [
+    {"name": "secopstm:patch_level", "value": "outdated"},
+    {"name": "secopstm:detection_level", "value": "high"},
+    {"name": "secopstm:credentials_stored", "value": "false"},
+    {"name": "secopstm:notes", "value": "Log4Shell in Logstash! SIEM itself is unmonitored. Attacker who compromises SIEM can erase traces."}
+  ]
+}

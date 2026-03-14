@@ -54,6 +54,35 @@ from threat_analysis.core.threat_consolidator import ThreatConsolidator
 from threat_analysis.core.report_serializer import ReportSerializer
 from threat_analysis.severity_calculator_module import RiskContext
 
+def _get_bom_loader(threat_model: Any) -> Optional[Any]:
+    """Return a BOMLoader for the model's BOM directory, or None if unavailable.
+
+    Resolution order (mirrors ExportService._resolve_bom_directory):
+    1. ``threat_model.context_config['bom_directory']`` (DSL ## Context key)
+    2. ``{model_parent}/BOM/`` auto-discovered from ``_model_file_path``
+    """
+    try:
+        from threat_analysis.core.bom_loader import BOMLoader
+    except ImportError:
+        return None
+
+    ctx_cfg = getattr(threat_model, "context_config", {})
+    dsl_path = ctx_cfg.get("bom_directory")
+    if dsl_path and Path(dsl_path).is_dir():
+        logging.info("BOM (scoring): using directory from DSL ## Context: %s", dsl_path)
+        return BOMLoader(dsl_path)
+
+    model_path = getattr(threat_model, "_model_file_path", None)
+    if model_path:
+        bom_dir = Path(model_path).parent / "BOM"
+        if bom_dir.is_dir():
+            n_files = len(list(bom_dir.glob("*.json")) + list(bom_dir.glob("*.yaml")) + list(bom_dir.glob("*.yml")))
+            logging.info("BOM (scoring): auto-discovered %s (%d asset file(s)) — known_cves will augment CVE scoring", bom_dir, n_files)
+            return BOMLoader(str(bom_dir))
+
+    return None
+
+
 def _is_network_exposed(target: Any) -> bool:
     """Return True when the target is reachable without authentication or encryption.
 
@@ -437,6 +466,9 @@ class ReportGenerator:
         """Gathers detailed information for all threats, including MITRE ATT&CK mapping and severity."""
         pytm_threat_dicts = []
 
+        # Load BOM once for CVE augmentation (offline, graceful if absent)
+        _bom_loader = _get_bom_loader(threat_model)
+
         # Process threats from grouped_threats (PyTM and custom threats)
         for threat_type, threats in grouped_threats.items():
             for item in threats:
@@ -505,7 +537,14 @@ class ReportGenerator:
 
                 threat_capecs = {capec['capec_id'] for capec in capecs}
                 for name_to_check in target_names_to_check:
-                    equipment_cves = self.cve_service.get_cves_for_equipment(name_to_check)
+                    equipment_cves = list(self.cve_service.get_cves_for_equipment(name_to_check))
+                    # Augment with BOM known_cves when available
+                    if _bom_loader:
+                        bom_data = _bom_loader.get(name_to_check)
+                        if bom_data:
+                            for _cve in (bom_data.get("known_cves") or []):
+                                if _cve and _cve not in equipment_cves:
+                                    equipment_cves.append(_cve)
                     for cve_id in equipment_cves:
                         cve_capecs = self.cve_service.get_capecs_for_cve(cve_id.upper())
                         if threat_capecs.intersection(cve_capecs):
@@ -592,7 +631,15 @@ class ReportGenerator:
                 ai_cve_ids: set = set()
                 ai_cwe_ids: List[str] = []
                 ai_threat_capecs = {c['capec_id'] for c in ai_capecs}
-                for cve_id in self.cve_service.get_cves_for_equipment(target_name):
+                _ai_equipment_cves = list(self.cve_service.get_cves_for_equipment(target_name))
+                # Augment with BOM known_cves when available
+                if _bom_loader:
+                    _ai_bom = _bom_loader.get(target_name)
+                    if _ai_bom:
+                        for _cve in (_ai_bom.get("known_cves") or []):
+                            if _cve and _cve not in _ai_equipment_cves:
+                                _ai_equipment_cves.append(_cve)
+                for cve_id in _ai_equipment_cves:
                     if ai_threat_capecs.intersection(
                         self.cve_service.get_capecs_for_cve(cve_id.upper())
                     ):
@@ -903,7 +950,13 @@ class ReportGenerator:
         all_models = self._get_all_project_models(project_path)
         project_protocols, project_protocol_styles = self._aggregate_project_data(all_models)
 
+        # Resolve root model file: main.md (multi-model project) or model.md (single model with data)
         main_model_path = project_path / "main.md"
+        if not main_model_path.exists():
+            fallback = project_path / "model.md"
+            if fallback.exists():
+                main_model_path = fallback
+                logging.info("generate_project_reports: using model.md (single-model directory)")
         main_threat_model = None
         try:
             with open(main_model_path, "r", encoding="utf-8") as f:
@@ -913,7 +966,8 @@ class ReportGenerator:
                 model_name=main_model_path.stem,
                 model_description=f"Threat model for {main_model_path.stem}",
                 cve_service=self.cve_service,
-                validate=True
+                validate=True,
+                model_file_path=str(main_model_path),
             )
         except Exception as e:
             logging.error(f"Failed to create main threat model for project: {e}")
@@ -1022,7 +1076,35 @@ class ReportGenerator:
 
         return project_protocols, project_protocol_styles
 
-    def _recursively_generate_reports(self, model_path: Path, project_path: Path, output_dir: Path, breadcrumb: List[tuple[str, str]], project_protocols: set, project_protocol_styles: dict, all_project_models: List[ThreatModel], threat_model: Optional[ThreatModel] = None, progress_callback = None):
+    def _collect_parent_connections(self, parent_tm: ThreatModel, server_name: str) -> List[Dict]:
+        """Returns incoming/outgoing dataflow stubs for server_name in parent_tm."""
+        result = []
+        for df in parent_tm.dataflows:
+            src = df.source
+            snk = df.sink
+            src_name = src.name if hasattr(src, "name") else str(src)
+            snk_name = snk.name if hasattr(snk, "name") else str(snk)
+            if snk_name.lower() == server_name.lower():
+                result.append({
+                    "direction": "incoming",
+                    "peer": src_name,
+                    "protocol": getattr(df, "protocol", "") or "",
+                    "is_encrypted": bool(getattr(df, "is_encrypted", False)),
+                    "is_authenticated": bool(getattr(df, "is_authenticated", False)),
+                    "name": getattr(df, "name", ""),
+                })
+            elif src_name.lower() == server_name.lower():
+                result.append({
+                    "direction": "outgoing",
+                    "peer": snk_name,
+                    "protocol": getattr(df, "protocol", "") or "",
+                    "is_encrypted": bool(getattr(df, "is_encrypted", False)),
+                    "is_authenticated": bool(getattr(df, "is_authenticated", False)),
+                    "name": getattr(df, "name", ""),
+                })
+        return result
+
+    def _recursively_generate_reports(self, model_path: Path, project_path: Path, output_dir: Path, breadcrumb: List[tuple[str, str]], project_protocols: set, project_protocol_styles: dict, all_project_models: List[ThreatModel], threat_model: Optional[ThreatModel] = None, progress_callback = None, parent_connections: Optional[List[Dict]] = None):
         """
         Recursively generates reports for each model in the project.
         """
@@ -1059,7 +1141,7 @@ class ReportGenerator:
             except Exception as e:
                 logging.warning(f"Could not generate remediation checklist for {model_name}: {e}")
             if progress_callback: progress_callback(f"Generating diagram: {model_name}...")
-            self.generate_diagram_html(threat_model, output_dir, breadcrumb, project_protocols, project_protocol_styles)
+            self.generate_diagram_html(threat_model, output_dir, breadcrumb, project_protocols, project_protocol_styles, external_connections=parent_connections)
 
             # Save markdown model and generate metadata for graphical editor
             md_output_path = output_dir / f"{model_name}.md"
@@ -1120,32 +1202,45 @@ class ReportGenerator:
                             sub_output_dir.mkdir(parents=True, exist_ok=True)
 
                             sub_model_display_name = submodel_relative_parent.name if str(submodel_relative_parent) != '.' else submodel_path.stem
-                            
-                            # Create a relative link for the breadcrumb, ensuring it's relative to the project output root.
+
                             current_model_breadcrumb_path = Path(breadcrumb[-1][1])
                             current_model_dir = current_model_breadcrumb_path.parent
-                            
                             submodel_rel_path = Path(submodel_path_str)
-                            
-                            # Combine the current model's directory with the submodel's relative path
-                            # and then replace the filename to get the correct diagram link.
                             new_link_path_obj = (current_model_dir / submodel_rel_path).with_name(f"{submodel_rel_path.stem}_diagram.html")
-                            
-                            # Normalize the path to handle cases like "." or ".." and ensure forward slashes
                             breadcrumb_link = Path(os.path.normpath(str(new_link_path_obj))).as_posix()
-
                             new_breadcrumb = breadcrumb + [(sub_model_display_name, breadcrumb_link)]
 
-                            self._recursively_generate_reports(
-                                model_path=submodel_path,
-                                project_path=project_path,
-                                output_dir=sub_output_dir,
-                                breadcrumb=new_breadcrumb,
-                                project_protocols=project_protocols,
-                                project_protocol_styles=project_protocol_styles,
-                                all_project_models=all_project_models,
-                                progress_callback=progress_callback
+                            # Pre-create the sub-model so we can:
+                            # 1. Store _submodel_tm in server_props for GDAF bridging
+                            # 2. Collect parent connections for the child's diagram
+                            with open(submodel_path, "r", encoding="utf-8") as f:
+                                sub_md = f.read()
+                            sub_tm = create_threat_model(
+                                markdown_content=sub_md,
+                                model_name=submodel_path.stem,
+                                model_description=f"Sub-model of {server_props['name']}",
+                                cve_service=self.cve_service,
+                                validate=True,
                             )
+                            if sub_tm:
+                                # Store reference for GDAF attack-path bridging
+                                server_props['_submodel_tm'] = sub_tm
+                                # Collect incoming/outgoing dataflows of the parent server
+                                parent_conns = self._collect_parent_connections(
+                                    threat_model, server_props['name']
+                                )
+                                self._recursively_generate_reports(
+                                    model_path=submodel_path,
+                                    threat_model=sub_tm,
+                                    project_path=project_path,
+                                    output_dir=sub_output_dir,
+                                    breadcrumb=new_breadcrumb,
+                                    project_protocols=project_protocols,
+                                    project_protocol_styles=project_protocol_styles,
+                                    all_project_models=all_project_models,
+                                    progress_callback=progress_callback,
+                                    parent_connections=parent_conns,
+                                )
                     except ValueError as e:
                         logging.warning(f"Skipping submodel referenced in '{model_path.name}' because it was not found: {e}")
                         continue
@@ -1219,14 +1314,15 @@ class ReportGenerator:
 
         return result
 
-    def generate_diagram_html(self, threat_model: ThreatModel, output_dir: Path, breadcrumb: List[tuple[str, str]], project_protocols: set, project_protocol_styles: dict):
+    def generate_diagram_html(self, threat_model: ThreatModel, output_dir: Path, breadcrumb: List[tuple[str, str]], project_protocols: set, project_protocol_styles: dict, external_connections: Optional[List[Dict]] = None):
         """
         Generates an HTML file containing just the diagram for navigation.
+        external_connections: stubs from parent model (incoming/outgoing) rendered as ghost nodes.
         """
         diagram_generator = DiagramGenerator()
         model_name = threat_model.tm.name
 
-        dot_code = diagram_generator.generate_dot_file_from_model(threat_model, str(output_dir / f"{model_name}.dot"), project_protocol_styles)
+        dot_code = diagram_generator.generate_dot_file_from_model(threat_model, str(output_dir / f"{model_name}.dot"), project_protocol_styles, external_connections=external_connections)
         if not dot_code:
             logging.error(f"Failed to generate DOT code for {model_name}")
             return

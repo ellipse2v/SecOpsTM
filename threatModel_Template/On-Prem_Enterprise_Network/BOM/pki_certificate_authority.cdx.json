@@ -1,0 +1,49 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "device",
+      "name": "PKI Certificate Authority"
+    }
+  },
+  "components": [
+    {
+      "type": "operating-system",
+      "name": "Windows Server 2019",
+      "version": "10.0.17763",
+      "purl": "pkg:generic/microsoft/windows-server@10.0.17763"
+    },
+    {
+      "type": "application",
+      "name": "Microsoft Certificate Services (AD CS)",
+      "version": "10.0.17763"
+    }
+  ],
+  "services": [
+    {"name": "RPC", "endpoints": ["tcp://0.0.0.0:135"]},
+    {"name": "HTTPS", "endpoints": ["tcp://0.0.0.0:443"]},
+    {"name": "LDAP", "endpoints": ["tcp://0.0.0.0:389"]}
+  ],
+  "vulnerabilities": [
+    {
+      "id": "CVE-2022-26923",
+      "description": "AD CS Certifried — privilege escalation to domain admin via certificate request spoofing",
+      "ratings": [{"severity": "critical", "score": 8.8, "method": "CVSSv3"}],
+      "affects": [{"ref": "PKI Certificate Authority"}]
+    },
+    {
+      "id": "CVE-2021-36942",
+      "description": "PetitPotam — unauthenticated NTLM relay attack forcing domain controller to authenticate to AD CS",
+      "ratings": [{"severity": "high", "score": 7.5, "method": "CVSSv3"}],
+      "affects": [{"ref": "PKI Certificate Authority"}]
+    }
+  ],
+  "properties": [
+    {"name": "secopstm:patch_level", "value": "outdated"},
+    {"name": "secopstm:detection_level", "value": "low"},
+    {"name": "secopstm:credentials_stored", "value": "true"},
+    {"name": "secopstm:notes", "value": "ESC1 and ESC8 AD CS misconfigurations not remediated. PetitPotam relay path available."}
+  ]
+}

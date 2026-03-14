@@ -1,0 +1,55 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "device",
+      "name": "PLC Controller"
+    }
+  },
+  "components": [
+    {
+      "type": "operating-system",
+      "name": "SIMATIC S7-300 Firmware",
+      "version": "v3.3.17",
+      "purl": "pkg:generic/siemens/s7-300-firmware@3.3.17"
+    },
+    {
+      "type": "application",
+      "name": "Step 7",
+      "version": "v5.6",
+      "purl": "pkg:generic/siemens/step7@5.6"
+    },
+    {
+      "type": "application",
+      "name": "Modbus/TCP stack",
+      "version": "1.0"
+    }
+  ],
+  "services": [
+    {"name": "Modbus", "endpoints": ["tcp://0.0.0.0:502"]},
+    {"name": "S7", "endpoints": ["tcp://0.0.0.0:102"]},
+    {"name": "HTTP", "endpoints": ["tcp://0.0.0.0:80"]}
+  ],
+  "vulnerabilities": [
+    {
+      "id": "CVE-2019-13945",
+      "description": "Siemens S7 denial of service via specially crafted packet to port 102",
+      "ratings": [{"severity": "high", "score": 8.6, "method": "CVSSv3"}],
+      "affects": [{"ref": "PLC Controller"}]
+    },
+    {
+      "id": "CVE-2016-9158",
+      "description": "Siemens S7 authentication bypass via replay of session credentials",
+      "ratings": [{"severity": "high", "score": 7.5, "method": "CVSSv3"}],
+      "affects": [{"ref": "PLC Controller"}]
+    }
+  ],
+  "properties": [
+    {"name": "secopstm:patch_level", "value": "outdated"},
+    {"name": "secopstm:detection_level", "value": "none"},
+    {"name": "secopstm:credentials_stored", "value": "false"},
+    {"name": "secopstm:notes", "value": "No authentication on Modbus. S7 protocol authentication trivially bypassed. Physical access to PLC room not logged."}
+  ]
+}

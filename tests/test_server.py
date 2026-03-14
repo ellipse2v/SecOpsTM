@@ -15,7 +15,7 @@
 import pytest
 import json
 import os
-from unittest.mock import patch, MagicMock, mock_open
+from unittest.mock import patch, MagicMock, mock_open, ANY
 from io import BytesIO
 import base64
 import sys
@@ -98,7 +98,8 @@ def test_export_api_success(client, export_format):
 
             assert response.status_code == 200
             mock_service.export_files_logic.assert_called_once_with(
-                markdown_content=markdown_payload['markdown'], export_format=export_format
+                markdown_content=markdown_payload['markdown'], export_format=export_format,
+                model_file_path=None,
             )
             mock_send.assert_called_once_with("/fake/path/to", "mock_file.ext", as_attachment=True)
     finally:
@@ -119,7 +120,8 @@ def test_export_api_invalid_format(client):
         assert 'error' in json_data
         assert json_data['error'] == 'Invalid export format'
         mock_service.export_files_logic.assert_called_once_with(
-            markdown_content=markdown_payload['markdown'], export_format=markdown_payload['format']
+            markdown_content=markdown_payload['markdown'], export_format=markdown_payload['format'],
+            model_file_path=None,
         )
 
 def test_export_api_missing_data(client):
@@ -206,7 +208,7 @@ def test_export_all_api_success(client):
 
         assert response.status_code == 200
         mock_service.export_all_files_logic.assert_called_once_with(
-            markdown_content=mock_markdown, submodels=[]
+            markdown_content=mock_markdown, submodels=[], model_file_path=ANY,
         )
         mock_send_file.assert_called_once()
 

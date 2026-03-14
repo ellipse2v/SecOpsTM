@@ -1,0 +1,60 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "device",
+      "name": "Primary Domain Controller",
+      "version": "Windows Server 2019 Build 17763.2628"
+    }
+  },
+  "components": [
+    {
+      "type": "operating-system",
+      "name": "Windows Server 2019",
+      "version": "10.0.17763.2628",
+      "purl": "pkg:generic/microsoft/windows-server@10.0.17763.2628"
+    },
+    {
+      "type": "application",
+      "name": "Active Directory Domain Services",
+      "version": "10.0.17763",
+      "purl": "pkg:generic/microsoft/active-directory@10.0.17763"
+    }
+  ],
+  "services": [
+    {"name": "LDAP", "endpoints": ["tcp://0.0.0.0:389"]},
+    {"name": "LDAPS", "endpoints": ["tcp://0.0.0.0:636"]},
+    {"name": "Kerberos", "endpoints": ["udp://0.0.0.0:88"]},
+    {"name": "DNS", "endpoints": ["udp://0.0.0.0:53"]},
+    {"name": "RPC", "endpoints": ["tcp://0.0.0.0:135"]},
+    {"name": "WinRM", "endpoints": ["tcp://0.0.0.0:5985"]}
+  ],
+  "vulnerabilities": [
+    {
+      "id": "CVE-2020-1472",
+      "description": "Zerologon — elevation of privilege via Netlogon Remote Protocol cryptographic flaw",
+      "ratings": [{"severity": "critical", "score": 10.0, "method": "CVSSv3"}],
+      "affects": [{"ref": "Primary Domain Controller"}]
+    },
+    {
+      "id": "CVE-2021-42278",
+      "description": "Active Directory sAMAccountName spoofing — privilege escalation to domain admin",
+      "ratings": [{"severity": "high", "score": 7.5, "method": "CVSSv3"}],
+      "affects": [{"ref": "Primary Domain Controller"}]
+    },
+    {
+      "id": "CVE-2021-42287",
+      "description": "noPac — Active Directory privilege escalation via KDC name impersonation",
+      "ratings": [{"severity": "high", "score": 7.5, "method": "CVSSv3"}],
+      "affects": [{"ref": "Primary Domain Controller"}]
+    }
+  ],
+  "properties": [
+    {"name": "secopstm:patch_level", "value": "outdated"},
+    {"name": "secopstm:detection_level", "value": "medium"},
+    {"name": "secopstm:credentials_stored", "value": "true"},
+    {"name": "secopstm:notes", "value": "Zerologon patched but noPac (CVE-2021-42278/42287) still exploitable. No EDR. MFA disabled."}
+  ]
+}

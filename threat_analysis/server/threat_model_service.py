@@ -109,20 +109,28 @@ class ThreatModelService:
     def update_diagram_logic(self, markdown_content: str, submodels: list | None = None):
         return self.diagram_service.update_diagram_logic(markdown_content, submodels)
 
-    def export_files_logic(self, markdown_content: str, export_format: str):
-        return self.export_service.export_files_logic(markdown_content, export_format)
+    def export_files_logic(self, markdown_content: str, export_format: str,
+                           model_file_path: Optional[str] = None):
+        return self.export_service.export_files_logic(markdown_content, export_format,
+                                                      model_file_path=model_file_path)
 
-    def export_all_files_logic(self, markdown_content: str, submodels: list | None = None):
-        return self.export_service.export_all_files_logic(markdown_content, submodels)
+    def export_all_files_logic(self, markdown_content: str, submodels: list | None = None,
+                               model_file_path: Optional[str] = None):
+        return self.export_service.export_all_files_logic(markdown_content, submodels,
+                                                          model_file_path=model_file_path)
 
-    def generate_full_project_export(self, markdown_content: str, export_path: Path, submodels: list | None = None, progress_callback = None, project_root: Path | None = None):
-        return self.export_service.generate_full_project_export(markdown_content, export_path, submodels, progress_callback=progress_callback, project_root=project_root)
+    def generate_full_project_export(self, markdown_content: str, export_path: Path, submodels: list | None = None, progress_callback = None, project_root: Path | None = None, model_file_path: Optional[str] = None):
+        return self.export_service.generate_full_project_export(markdown_content, export_path, submodels, progress_callback=progress_callback, project_root=project_root, model_file_path=model_file_path)
 
-    def export_navigator_stix_logic(self, markdown_content: str, submodels: list | None = None):
-        return self.export_service.export_navigator_stix_logic(markdown_content, submodels)
-    
-    def export_attack_flow_logic(self, markdown_content: str):
-        return self.export_service.export_attack_flow_logic(markdown_content)
+    def export_navigator_stix_logic(self, markdown_content: str, submodels: list | None = None,
+                                    model_file_path: Optional[str] = None):
+        return self.export_service.export_navigator_stix_logic(markdown_content, submodels,
+                                                               model_file_path=model_file_path)
+
+    def export_attack_flow_logic(self, markdown_content: str,
+                                 model_file_path: Optional[str] = None):
+        return self.export_service.export_attack_flow_logic(markdown_content,
+                                                            model_file_path=model_file_path)
 
     async def generate_markdown_from_prompt(self, prompt: str, markdown: Optional[str] = None):
         async for chunk in self.ai_service.generate_markdown_from_prompt(prompt, markdown):

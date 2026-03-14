@@ -1,0 +1,17 @@
+asset: "Primary Domain Controller"
+os_version: "windows_server_2019"
+software_version: "Windows Server 2019 Build 17763.2628"
+patch_level: outdated
+known_cves:
+  - CVE-2020-1472
+  - CVE-2021-42278
+  - CVE-2021-42287
+running_services:
+  - LDAP
+  - Kerberos
+  - RPC
+  - DNS
+  - WinRM
+detection_level: medium
+credentials_stored: true
+notes: "Zerologon (CVE-2020-1472) mitigated by patch but sAMAccount spoofing (CVE-2021-42278/42287) still present. No EDR deployed. Password spray attempts against LDAP not alerted. AD Recycle Bin enabled."

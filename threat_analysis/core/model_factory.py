@@ -31,6 +31,7 @@ def create_threat_model(
     model_description: str,
     cve_service: CVEService,
     validate: bool = True,
+    model_file_path: Optional[str] = None,
 ) -> Optional[ThreatModel]:
     """
     Creates, parses, and optionally validates a ThreatModel from Markdown content.
@@ -54,6 +55,8 @@ def create_threat_model(
         # The MitreMapping object is now created inside ThreatModel, so we get it from there
         parser = ModelParser(threat_model, threat_model.mitre_mapper)
         parser.parse_markdown(markdown_content)
+        if model_file_path:
+            threat_model._model_file_path = model_file_path
         logging.info(f"✅ Model '{model_name}' loaded successfully.")
 
         if validate:

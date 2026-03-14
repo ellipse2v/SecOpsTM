@@ -116,6 +116,10 @@ class ThreatModel:
             raise ValueError("A CVEService instance must be provided to ThreatModel.")
         self.cve_service = cve_service
         self.sub_models = []
+        # Populated by ModelParser when a ## Context section is present
+        self.context_config: Dict[str, Any] = {}
+        # Set by model_factory when loading from a file path
+        self._model_file_path: Optional[str] = None
 
     def add_boundary(self, name: str, color: str = "lightgray", parent_boundary_obj: Optional[Boundary] = None, business_value: Optional[str] = None, **kwargs) -> SecOpsBoundary:
         """Adds a boundary to the model with additional properties, including an optional parent.
@@ -242,7 +246,7 @@ class ThreatModel:
             add_protocol_style("HTTP", color="red", line_style="dashed", width=1)
         """
         self.protocol_styles[protocol_name] = style_kwargs
-        logging.info(f"✅ Protocol style added for {protocol_name}: {style_kwargs}")
+        logging.debug("Protocol style added for %s: %s", protocol_name, style_kwargs)
 
     def get_protocol_style(self, protocol_name: str) -> Optional[Dict[str, Any]]:
         """

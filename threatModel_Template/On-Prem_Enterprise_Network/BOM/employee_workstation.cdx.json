@@ -1,0 +1,49 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "device",
+      "name": "Employee Workstation"
+    }
+  },
+  "components": [
+    {
+      "type": "operating-system",
+      "name": "Windows 10",
+      "version": "21H2",
+      "purl": "pkg:generic/microsoft/windows@10.0.21H2"
+    },
+    {
+      "type": "application",
+      "name": "Microsoft Office 365, Chrome",
+      "version": "108"
+    }
+  ],
+  "services": [
+    {"name": "RDP", "endpoints": ["tcp://0.0.0.0:3389"]},
+    {"name": "SMB", "endpoints": ["tcp://0.0.0.0:445"]},
+    {"name": "WMI", "endpoints": ["tcp://0.0.0.0:135"]}
+  ],
+  "vulnerabilities": [
+    {
+      "id": "CVE-2022-30190",
+      "description": "Follina — MSDT remote code execution triggered via Office documents",
+      "ratings": [{"severity": "high", "score": 7.8, "method": "CVSSv3"}],
+      "affects": [{"ref": "Employee Workstation"}]
+    },
+    {
+      "id": "CVE-2021-34527",
+      "description": "PrintNightmare — Windows Print Spooler remote code execution with SYSTEM privileges",
+      "ratings": [{"severity": "critical", "score": 8.8, "method": "CVSSv3"}],
+      "affects": [{"ref": "Employee Workstation"}]
+    }
+  ],
+  "properties": [
+    {"name": "secopstm:patch_level", "value": "outdated"},
+    {"name": "secopstm:detection_level", "value": "medium"},
+    {"name": "secopstm:credentials_stored", "value": "false"},
+    {"name": "secopstm:notes", "value": "Local admin rights enabled for most users. No application whitelisting."}
+  ]
+}

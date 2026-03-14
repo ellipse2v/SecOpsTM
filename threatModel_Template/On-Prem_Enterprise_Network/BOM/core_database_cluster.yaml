@@ -1,0 +1,14 @@
+asset: "Core Database Cluster"
+os_version: "windows_server_2019"
+software_version: "SQL Server 2019 CU18 (15.0.4261.1)"
+patch_level: outdated
+known_cves:
+  - CVE-2023-21568
+  - CVE-2022-35256
+running_services:
+  - SQL
+  - RPC
+  - WinRM
+detection_level: medium
+credentials_stored: true
+notes: "SQL Server 2019 Always On Availability Group (2-node cluster). SA account enabled with weak password. xp_cmdshell disabled but available to dbo role. SQL Server Audit configured but logs not forwarded to SIEM."

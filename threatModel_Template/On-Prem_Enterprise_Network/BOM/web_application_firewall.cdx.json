@@ -1,0 +1,43 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "device",
+      "name": "Web Application Firewall"
+    }
+  },
+  "components": [
+    {
+      "type": "operating-system",
+      "name": "Linux",
+      "version": "5.4 (embedded)",
+      "purl": "pkg:generic/linux/kernel@5.4"
+    },
+    {
+      "type": "application",
+      "name": "ModSecurity",
+      "version": "2.9.3",
+      "purl": "pkg:generic/trustwave/modsecurity@2.9.3"
+    }
+  ],
+  "services": [
+    {"name": "HTTP", "endpoints": ["tcp://0.0.0.0:80"]},
+    {"name": "HTTPS", "endpoints": ["tcp://0.0.0.0:443"]}
+  ],
+  "vulnerabilities": [
+    {
+      "id": "CVE-2021-42717",
+      "description": "ModSecurity ReDoS via crafted HTTP request body — high CPU / service denial",
+      "ratings": [{"severity": "high", "score": 7.5, "method": "CVSSv3"}],
+      "affects": [{"ref": "Web Application Firewall"}]
+    }
+  ],
+  "properties": [
+    {"name": "secopstm:patch_level", "value": "outdated"},
+    {"name": "secopstm:detection_level", "value": "medium"},
+    {"name": "secopstm:credentials_stored", "value": "false"},
+    {"name": "secopstm:notes", "value": "WAF rules last updated 6 months ago. OWASP CRS 3.2 ruleset."}
+  ]
+}

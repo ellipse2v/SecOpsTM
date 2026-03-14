@@ -12,6 +12,7 @@ This documentation covers installation, basic usage, advanced customization, and
 -   [Usage](usage.md) — CLI flags, project mode, export formats
 -   [Features](features.md) — Full feature list: AI engines, diagrams, exports
 -   [Defining Threat Models](defining_threat_models.md) — Markdown DSL reference
+-   [Data Collection Guide](data_collection_guide.md) — What information to gather before threat modeling
 -   [Examples](examples.md) — Ready-to-use model templates
 -   [Extensibility](extensibility.md) — Custom threats, IaC plugins, mappings
 -   [Customizing LLM Prompts](customizing_prompts.md) — `config/prompts.yaml` reference
