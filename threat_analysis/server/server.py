@@ -33,6 +33,9 @@ from threat_analysis.server.events import ai_status_event_queue
 _threat_model_service = None
 _service_lock = threading.Lock()
 
+# Rate-limit AI generation: only one long-running LLM call at a time
+_ai_generation_lock = threading.Lock()
+
 class SSEBroadcaster:
     def __init__(self):
         self.listeners = []
@@ -420,10 +423,15 @@ async def generate_markdown_from_prompt():
         logging.warning("AI request rejected: service.ai_online is False")
         return jsonify({"error": "AI server is not available. This feature is disabled."}), 503
 
+    if not _ai_generation_lock.acquire(blocking=False):
+        logging.warning("AI generation already in progress — rejecting concurrent request")
+        return jsonify({"error": "AI generation already in progress. Please wait and retry."}), 429
+
     data = request.json
     prompt = data.get("prompt")
     markdown = data.get("markdown")  # Existing markdown
     if not prompt:
+        _ai_generation_lock.release()
         return jsonify({"error": "Prompt is missing"}), 400
 
     try:
@@ -434,14 +442,14 @@ async def generate_markdown_from_prompt():
                 logging.error(f"AI Service returned an error chunk: {chunk}")
                 return jsonify({"error": chunk}), 500
             full_chunks.append(chunk)
-        
+
         full_response = "".join(full_chunks)
         logging.info(f"AI generation complete. Response length: {len(full_response)}")
 
         extracted_markdown = None
         # Improved regex: makes 'markdown' optional and is non-greedy.
         match = re.search(r"```(?:markdown)?\n(.*?)\n```", full_response, re.DOTALL)
-        
+
         if match:
             extracted_markdown = match.group(1).strip()
         else:
@@ -449,14 +457,10 @@ async def generate_markdown_from_prompt():
             # Fallback: find the start of the threat model and clean up common AI chatter.
             model_start_index = full_response.find("# Threat Model:")
             if model_start_index != -1:
-                # Take everything from the start of the model
                 extracted_markdown = full_response[model_start_index:].strip()
-                
-                # Further cleanup: if there's a closing ```, remove anything after it.
                 end_block_index = extracted_markdown.rfind("```")
                 if end_block_index != -1:
                     extracted_markdown = extracted_markdown[:end_block_index].strip()
-
             else:
                 logging.error("Failed to extract valid DSL from AI response.")
                 return jsonify({
@@ -469,6 +473,8 @@ async def generate_markdown_from_prompt():
     except Exception as e:
         logging.exception(f"Exception during AI generation: {e}")
         return jsonify({"error": "An internal error occurred during AI generation. Check server logs for details."}), 500
+    finally:
+        _ai_generation_lock.release()
 
 
 
@@ -969,6 +975,26 @@ def generate_all():
                 os.makedirs(os.path.dirname(full_sub_path), exist_ok=True)
                 with open(full_sub_path, "w", encoding="utf-8") as f:
                     f.write(sub_content)
+
+        # 1b. Copy supporting directories (context/, BOM/) from the source project.
+        # These are not part of the editor content but are needed for GDAF and BOM scoring.
+        if initial_project_path:
+            import shutil as _shutil
+            src_root = Path(initial_project_path)
+            dst_root = Path(generation_dir)
+            for extra_name in ("context",):
+                src = src_root / extra_name
+                if src.is_dir():
+                    dst = dst_root / extra_name
+                    if not dst.exists():
+                        _shutil.copytree(str(src), str(dst))
+            # BOM directories may exist at root and inside each sub-model directory
+            for bom_dir in src_root.rglob("BOM"):
+                if bom_dir.is_dir():
+                    rel = bom_dir.relative_to(src_root)
+                    dst = dst_root / rel
+                    if not dst.exists():
+                        _shutil.copytree(str(bom_dir), str(dst))
 
         # 2. Save the active tab content to its ACTUAL path
         full_active_path = os.path.join(generation_dir, active_path.lstrip('./\\'))

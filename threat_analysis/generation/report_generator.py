@@ -48,8 +48,6 @@ from threat_analysis.generation.attack_flow_generator import AttackFlowGenerator
 from threat_analysis.core.models_module import ThreatModel
 from threat_analysis.core.mitre_mapping_module import MitreMapping
 from threat_analysis.core.attack_chain import AttackChainAnalyzer
-from threat_analysis.ai_engine.providers.ollama_provider import OllamaProvider
-from threat_analysis.ai_engine.providers.litellm_provider import LiteLLMProvider
 from threat_analysis.core.threat_consolidator import ThreatConsolidator
 from threat_analysis.core.report_serializer import ReportSerializer
 from threat_analysis.severity_calculator_module import RiskContext
@@ -68,11 +66,18 @@ def _get_bom_loader(threat_model: Any) -> Optional[Any]:
 
     ctx_cfg = getattr(threat_model, "context_config", {})
     dsl_path = ctx_cfg.get("bom_directory")
-    if dsl_path and Path(dsl_path).is_dir():
-        logging.info("BOM (scoring): using directory from DSL ## Context: %s", dsl_path)
-        return BOMLoader(dsl_path)
-
     model_path = getattr(threat_model, "_model_file_path", None)
+    if dsl_path:
+        # Resolve relative to model file directory first (fixes CLI single-model mode)
+        if model_path:
+            p = Path(model_path).parent / dsl_path
+            if p.is_dir():
+                logging.info("BOM (scoring): using directory from DSL ## Context: %s", p)
+                return BOMLoader(str(p))
+        if Path(dsl_path).is_dir():
+            logging.info("BOM (scoring): using directory from DSL ## Context: %s", dsl_path)
+            return BOMLoader(dsl_path)
+
     if model_path:
         bom_dir = Path(model_path).parent / "BOM"
         if bom_dir.is_dir():
@@ -140,16 +145,18 @@ class ReportGenerator:
         if ai_config_path and ai_config_path.exists():
             with open(ai_config_path, "r", encoding="utf-8") as f:
                 ai_config = yaml.safe_load(f)
-            
-            # Look for enabled provider
+
+            # Look for enabled provider (lazy imports to avoid ~64s cold start in CLI)
             providers = ai_config.get("ai_providers", {})
             for provider_name, provider_config in providers.items():
                 if provider_config.get("enabled"):
                     logging.info(f"AI Provider '{provider_name}' enabled for report enrichment.")
                     if provider_name in ["ollama", "mistral_local"]:
+                        from threat_analysis.ai_engine.providers.ollama_provider import OllamaProvider  # noqa: PLC0415
                         self.ai_provider = OllamaProvider(provider_config)
                     else:
                         logging.info(f"Initializing LiteLLMProvider for '{provider_name}'")
+                        from threat_analysis.ai_engine.providers.litellm_provider import LiteLLMProvider  # noqa: PLC0415
                         self.ai_provider = LiteLLMProvider(provider_config)
                     break
             
@@ -182,11 +189,11 @@ class ReportGenerator:
         # Combine all components to enrich: servers, actors, and boundaries
         components_to_enrich = []
         for server in threat_model.servers:
-            components_to_enrich.append({"name": server.get("name"), "type": "Server", "description": server.get("description", "")})
+            components_to_enrich.append({"name": server.get("name"), "type": "Server", "description": server.get("description", ""), "business_value": server.get("business_value")})
         for actor in threat_model.actors:
-            components_to_enrich.append({"name": actor.get("name"), "type": "Actor", "description": actor.get("description", "")})
+            components_to_enrich.append({"name": actor.get("name"), "type": "Actor", "description": actor.get("description", ""), "business_value": actor.get("business_value")})
         for b_name, b_info in threat_model.boundaries.items():
-            components_to_enrich.append({"name": b_name, "type": "Boundary", "description": b_info.get("description", "")})
+            components_to_enrich.append({"name": b_name, "type": "Boundary", "description": b_info.get("description", ""), "business_value": b_info.get("business_value")})
 
         total_components = len(components_to_enrich)
         if total_components == 0:
@@ -239,6 +246,7 @@ class ReportGenerator:
                             "stride_category": stride_category,
                             "capecs": mapping.get("capecs", []),
                             "cve": [], # CVEs come exclusively from CVEService (VOC mapping), never from LLM output
+                            "business_value": component.get("business_value"),
                             "confidence": threat.get("confidence", 0.8),
                             "source": "AI"
                         })
@@ -302,6 +310,9 @@ class ReportGenerator:
                     stride_distribution[cat] = stride_distribution.get(cat, 0) + 1
 
             self.all_detailed_threats = all_detailed_threats
+            # Cache the final enriched threat list on the model so generate_global_project_report
+            # can include AI-enriched threats without re-running the enrichment pipeline.
+            threat_model._report_all_detailed_threats = all_detailed_threats
             summary_stats = self.generate_summary_stats(all_detailed_threats)
             stride_categories = sorted(
                 c for c in self._VALID_STRIDE
@@ -891,8 +902,12 @@ class ReportGenerator:
         all_stride_distribution = defaultdict(int)
 
         for model in all_models:
-            grouped_threats = model.grouped_threats
-            threats_details = self._get_all_threats_with_mitre_info(grouped_threats, model)
+            if hasattr(model, '_report_all_detailed_threats') and model._report_all_detailed_threats:
+                # Use the already-enriched threat list (includes AI/LLM threats) cached by generate_html_report
+                threats_details = model._report_all_detailed_threats
+            else:
+                grouped_threats = model.grouped_threats
+                threats_details = self._get_all_threats_with_mitre_info(grouped_threats, model)
             all_threats_details.extend(threats_details)
 
             total_threats_analyzed += model.mitre_analysis_results.get('total_threats', 0)

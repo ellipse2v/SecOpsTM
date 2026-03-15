@@ -47,6 +47,10 @@ class ModelParser:
             "SECRET": Classification.SECRET,
             "TOP_SECRET": Classification.TOP_SECRET,
             "RESTRICTED": Classification.RESTRICTED,
+            "SENSITIVE": Classification.SENSITIVE,
+            # Common aliases
+            "CONFIDENTIAL": Classification.SENSITIVE,  # CONFIDENTIAL ≈ SENSITIVE in pytm
+            "INTERNAL": Classification.RESTRICTED,
         }
 
         self.lifetime_map = {
@@ -271,11 +275,22 @@ class ModelParser:
             if enum_str not in self.classification_map:
                 logging.warning(f"⚠️ Warning: Classification '{enum_str}' not recognized for Data '{name}'. Set to UNKNOWN.")
 
-        if "credentialsLife" in data_kwargs and isinstance(data_kwargs["credentialsLife"], str):
-            enum_str = data_kwargs["credentialsLife"].upper()
-            data_kwargs["credentialsLife"] = self.lifetime_map.get(enum_str, Lifetime.UNKNOWN)
-            if enum_str not in self.lifetime_map:
-                logging.warning(f"⚠️ Warning: Lifetime '{enum_str}' not recognized for Data '{name}'. Set to UNKNOWN.")
+        if "credentialsLife" in data_kwargs:
+            raw_cl = data_kwargs["credentialsLife"]
+            if isinstance(raw_cl, Lifetime):
+                pass  # already the right type
+            elif isinstance(raw_cl, str):
+                enum_str = raw_cl.upper()
+                data_kwargs["credentialsLife"] = self.lifetime_map.get(enum_str, Lifetime.UNKNOWN)
+                if enum_str not in self.lifetime_map:
+                    logging.warning(f"⚠️ Warning: Lifetime '{raw_cl}' not recognized for Data '{name}'. Set to UNKNOWN.")
+            else:
+                # integer or other non-string — discard to avoid pytm TypeError
+                logging.warning(
+                    f"⚠️ Warning: credentialsLife for Data '{name}' has a non-string value ({raw_cl!r}). "
+                    "Use a Lifetime keyword (NONE, SHORT, LONG, AUTO, MANUAL, HARDCODED). Defaulting to NONE."
+                )
+                data_kwargs["credentialsLife"] = Lifetime.NONE
             
         self.threat_model.add_data(name, **data_kwargs)
         
@@ -342,7 +357,7 @@ class ModelParser:
         everything else stays a string.
         """
         in_context = False
-        kv_re = re.compile(r'^-?\s*([A-Za-z_][A-Za-z0-9_]*)[\s=:]\s*(.+)$')
+        kv_re = re.compile(r'^-?\s*([A-Za-z_][A-Za-z0-9_]*)[\s=:]+(.+)$')
         for line in lines:
             stripped = line.strip()
             if stripped == "## Context":

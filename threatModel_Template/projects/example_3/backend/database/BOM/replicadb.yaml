@@ -1,0 +1,14 @@
+asset: "ReplicaDB"
+os_version: "Ubuntu 22.04 LTS"
+software_version: "PostgreSQL 15.4"
+patch_level: current
+known_cves:
+  - CVE-2023-39417
+running_services:
+  - postgresql
+  - pg-bouncer
+  - node-exporter
+  - pgaudit
+detection_level: medium
+credentials_stored: false
+notes: "Streaming replica of PrimaryDB. Read-only connections only. Replication user uses client certificate auth over TLS. pg_audit enabled in read-only mode. Same CVE exposure as primary — mitigated identically. Failover tested monthly via pg_ctl promote simulation."

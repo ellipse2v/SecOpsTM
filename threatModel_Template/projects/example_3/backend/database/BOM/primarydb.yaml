@@ -1,0 +1,14 @@
+asset: "PrimaryDB"
+os_version: "Ubuntu 22.04 LTS"
+software_version: "PostgreSQL 15.4"
+patch_level: current
+known_cves:
+  - CVE-2023-39417
+running_services:
+  - postgresql
+  - pg-bouncer
+  - node-exporter
+  - pgaudit
+detection_level: high
+credentials_stored: true
+notes: "CVE-2023-39417 (SQL injection via extension CREATE FUNCTION) — mitigated by disabling extension creation for app users. pg_audit enabled — logs all DDL and writes. Encryption at rest: LUKS on data volume. Connection pooling via PgBouncer (pool_mode=transaction). Backup: daily encrypted snapshot to S3. No public network access."

@@ -241,12 +241,7 @@ class DiagramService:
             validator = ModelValidator(threat_model)
             errors = validator.validate()
             if errors:
-                logging.warning(f"update_diagram_logic: Model validation failed with errors: {errors}")
-                error_html = "<div class='validation-errors'><h3>Validation Errors:</h3><ul>"
-                for error in errors:
-                    error_html += f"<li>{error}</li>"
-                error_html += "</ul></div>"
-                return {"diagram_html": error_html, "diagram_svg": "", "legend_html": "", "validation_errors": errors}
+                logging.warning(f"update_diagram_logic: Model has validation warnings: {errors}")
             self.element_positions = self._generate_positions_from_graphviz(threat_model)
             dot_code = self.diagram_generator._generate_manual_dot(threat_model)
             if not dot_code:
@@ -266,10 +261,13 @@ class DiagramService:
             graph_metadata = self._extract_graph_metadata_for_frontend(threat_model)
             logging.debug(f"Generated graph_metadata for frontend: {json.dumps(graph_metadata, indent=2)}")
             logging.info("update_diagram_logic: Successfully updated diagram.")
-            return {
+            result = {
                 "diagram_html": full_html, "diagram_svg": svg_content,
                 "legend_html": legend_html, "graph_metadata": graph_metadata,
             }
+            if errors:
+                result["validation_errors"] = errors
+            return result
 
     def _merge_with_ui_positions(self, base_positions: dict, ui_positions: dict) -> dict:
         if 'boundaries' in ui_positions:

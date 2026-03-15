@@ -104,7 +104,8 @@ class GDAFEngine:
         self.threat_model = threat_model
         # All models whose nodes/edges should be merged into the unified graph
         self._all_models: List[Any] = [threat_model] + (extra_models or [])
-        self.context = self._load_context(context_path)
+        ctx = self._load_context(context_path)
+        self.context = ctx if ctx else self._auto_context(threat_model)
         self.mapper = AssetTechniqueMapper()
         self._bom = BOMLoader(bom_directory)
         self._graph: Optional[Dict] = None  # built lazily
@@ -642,3 +643,57 @@ class GDAFEngine:
         except Exception as exc:
             logger.error("GDAF: failed to load context %s: %s", context_path, exc)
             return {}
+
+    @staticmethod
+    def _auto_context(threat_model: Any) -> Dict:
+        """Generate a minimal GDAF context from the ThreatModel when no YAML is provided.
+
+        Targets the servers with the highest combined CIA score; uses a single generic
+        adversary so that attack paths are always evaluated even without a hand-crafted
+        context file.
+        """
+        logger.info("GDAF: no context file — auto-generating minimal context from ThreatModel")
+
+        # Score servers by CIA values to identify crown-jewel targets
+        _LEVEL = {"critical": 3, "high": 2, "medium": 1, "low": 0}
+        scored = []
+        for s in threat_model.servers:
+            props = s if isinstance(s, dict) else vars(s) if hasattr(s, "__dict__") else {}
+            name = props.get("name") or getattr(s, "name", "")
+            if not name:
+                continue
+            c = _LEVEL.get(str(props.get("confidentiality", "low")).lower(), 0)
+            i = _LEVEL.get(str(props.get("integrity", "low")).lower(), 0)
+            a = _LEVEL.get(str(props.get("availability", "low")).lower(), 0)
+            scored.append((c + i + a, name))
+
+        scored.sort(reverse=True)
+        top_targets = [name for _, name in scored[:3]] or ["*"]
+
+        objectives = [
+            {
+                "id": "OBJ-AUTO-001",
+                "name": "Compromise high-value assets",
+                "description": "Auto-generated objective: reach the highest-CIA servers",
+                "target_asset_names": top_targets,
+                "target_types": ["database", "server"],
+                "mitre_final_tactic": "impact",
+                "business_impact": "Data breach / service disruption",
+            }
+        ]
+        actors = [
+            {
+                "id": "ACT-AUTO-001",
+                "name": "Generic External Adversary",
+                "sophistication": "medium",
+                "objectives": ["OBJ-AUTO-001"],
+                "initial_access": "internet",
+                "assumed_breach": False,
+            }
+        ]
+        risk_criteria = {"max_hops": 7, "max_paths_per_objective": 3, "acceptable_risk_score": 5.0}
+        return {
+            "attack_objectives": objectives,
+            "threat_actors": actors,
+            "risk_criteria": risk_criteria,
+        }

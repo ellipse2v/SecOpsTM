@@ -87,47 +87,13 @@ class SecOpsTMFramework:
         )
         # --- End of output path management ---
 
-        # Lazy imports for components
-        cve_service_module = importlib.import_module("threat_analysis.core.cve_service")
-        CVEService = cve_service_module.CVEService
+        self._implemented_mitigations_path = implemented_mitigations_path
+        self._ai_config_path = ai_config_path
+        self._context_path = context_path
+        self._cve_definitions_path = cve_definitions_path
+        self._initialize_components()
 
-        mitre_mapping_module = importlib.import_module("threat_analysis.core.mitre_mapping_module")
-        MitreMapping = mitre_mapping_module.MitreMapping
-
-        severity_calculator_module = importlib.import_module("threat_analysis.severity_calculator_module")
-        SeverityCalculator = severity_calculator_module.SeverityCalculator
-
-        report_generator_module = importlib.import_module("threat_analysis.generation.report_generator")
-        ReportGenerator = report_generator_module.ReportGenerator
-
-        diagram_generator_module = importlib.import_module("threat_analysis.generation.diagram_generator")
-        DiagramGenerator = diagram_generator_module.DiagramGenerator
-
-        # Component initialization
-        # Ensure self.cve_service is initialized first as others may depend on it
-        self.cve_service = cve_service if cve_service else CVEService(
-            PROJECT_ROOT, 
-            cve_definitions_path, 
-            is_path_explicit=bool(cve_definitions_path) # Determine if explicit path was provided
-        )
-
-        self.mitre_mapper = MitreMapping(threat_model_path=self.model_file_path)
-        self.threat_model = self._load_and_validate_model(self.markdown_content)
-
-        self.severity_calculator = SeverityCalculator(
-            markdown_file_path=str(Path("threatModel_Template/threat_model.md")) # Hardcoded path instead of config
-        )
-        self.report_generator = ReportGenerator(
-            self.severity_calculator, self.mitre_mapper,
-            implemented_mitigations_path=Path(implemented_mitigations_path) if implemented_mitigations_path else None,
-            cve_service=self.cve_service,
-            ai_config_path=ai_config_path,
-            context_path=context_path,
-            threat_model_ref=self.threat_model,
-        )
-        self.diagram_generator = DiagramGenerator()
-
-        logging.info(f"🚀 Analysis framework initialized: {model_name}")
+        logging.info(f"🚀 Analysis framework initialized: {self.model_name}")
 
         # NEW: Diagnostic to check if the model has been populated
         model_stats = self.threat_model.get_statistics()
@@ -147,6 +113,49 @@ class SecOpsTMFramework:
         self.grouped_threats = {}
         self.custom_threats_list = []
         self.elements_with_custom_threats = set()
+
+    def _initialize_components(self) -> None:
+        """Instantiate all heavy components (CVEService, MitreMapping, ReportGenerator, etc.).
+
+        Extracted from ``__init__`` to allow unit-testing of individual components without
+        constructing the entire framework object.
+        """
+        cve_service_module = importlib.import_module("threat_analysis.core.cve_service")
+        CVEService = cve_service_module.CVEService
+
+        mitre_mapping_module = importlib.import_module("threat_analysis.core.mitre_mapping_module")
+        MitreMapping = mitre_mapping_module.MitreMapping
+
+        severity_calculator_module = importlib.import_module("threat_analysis.severity_calculator_module")
+        SeverityCalculator = severity_calculator_module.SeverityCalculator
+
+        report_generator_module = importlib.import_module("threat_analysis.generation.report_generator")
+        ReportGenerator = report_generator_module.ReportGenerator
+
+        diagram_generator_module = importlib.import_module("threat_analysis.generation.diagram_generator")
+        DiagramGenerator = diagram_generator_module.DiagramGenerator
+
+        self.cve_service = self.cve_service if self.cve_service else CVEService(
+            PROJECT_ROOT,
+            self._cve_definitions_path,
+            is_path_explicit=bool(self._cve_definitions_path),
+        )
+
+        self.mitre_mapper = MitreMapping(threat_model_path=self.model_file_path)
+        self.threat_model = self._load_and_validate_model(self.markdown_content)
+
+        self.severity_calculator = SeverityCalculator(
+            markdown_file_path=str(Path("threatModel_Template/threat_model.md"))
+        )
+        self.report_generator = ReportGenerator(
+            self.severity_calculator, self.mitre_mapper,
+            implemented_mitigations_path=Path(self._implemented_mitigations_path) if self._implemented_mitigations_path else None,
+            cve_service=self.cve_service,
+            ai_config_path=self._ai_config_path,
+            context_path=self._context_path,
+            threat_model_ref=self.threat_model,
+        )
+        self.diagram_generator = DiagramGenerator()
 
     def _load_and_validate_model(self, markdown_content: str) -> 'ThreatModel': # Use forward reference for type hint
         """Loads and validates the threat model from the Markdown DSL content."""
@@ -477,9 +486,77 @@ class CustomArgumentParser:
             action="store_true",
             help="Print JSON report to stdout (implies --output-format json). Useful for CI pipelines.",
         )
+        self.parser.add_argument(
+            "--diff",
+            nargs=2,
+            metavar=("OLD_REPORT", "NEW_REPORT"),
+            help="Compare two JSON reports and print added/resolved/changed threats. "
+                 "Example: --diff output/report_old.json output/report_new.json",
+        )
 
     def parse_args(self):
         return self.parser.parse_known_args()
+
+def diff_threat_reports(old_path: str, new_path: str) -> int:
+    """Compare two versioned JSON threat reports and print a human-readable diff.
+
+    Threats are keyed by ``(target, stride_category, name)``.  Returns an exit
+    code: 0 if no differences, 1 if differences were found.
+    """
+    import json as _json
+
+    def _load(path: str) -> Dict:
+        with open(path, "r", encoding="utf-8") as f:
+            return _json.load(f)
+
+    def _key(t: Dict) -> Tuple:
+        return (
+            t.get("target", ""),
+            t.get("stride_category", ""),
+            t.get("name", ""),
+        )
+
+    try:
+        old_report = _load(old_path)
+        new_report = _load(new_path)
+    except (OSError, ValueError) as exc:
+        logging.error("--diff: failed to load reports: %s", exc)
+        return 2
+
+    old_threats: Dict[Tuple, Dict] = {_key(t): t for t in old_report.get("threats", [])}
+    new_threats: Dict[Tuple, Dict] = {_key(t): t for t in new_report.get("threats", [])}
+
+    added = [t for k, t in new_threats.items() if k not in old_threats]
+    resolved = [t for k, t in old_threats.items() if k not in new_threats]
+    changed = [
+        (old_threats[k], new_threats[k])
+        for k in old_threats
+        if k in new_threats and old_threats[k].get("severity") != new_threats[k].get("severity")
+    ]
+
+    has_diff = bool(added or resolved or changed)
+    if not has_diff:
+        print("No threat differences between the two reports.")
+        return 0
+
+    if added:
+        print(f"\n[+] {len(added)} NEW threat(s):")
+        for t in added:
+            print(f"    [{t.get('severity','?')}] {t.get('name','')} → {t.get('target','')} ({t.get('stride_category','')})")
+
+    if resolved:
+        print(f"\n[-] {len(resolved)} RESOLVED threat(s):")
+        for t in resolved:
+            print(f"    [{t.get('severity','?')}] {t.get('name','')} → {t.get('target','')} ({t.get('stride_category','')})")
+
+    if changed:
+        print(f"\n[~] {len(changed)} SEVERITY CHANGE(s):")
+        for old_t, new_t in changed:
+            print(f"    {old_t.get('name','')} → {old_t.get('target','')}: "
+                  f"{old_t.get('severity','?')} → {new_t.get('severity','?')}")
+
+    return 1
+
 
 def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 'IaCPlugin']):
     """Runs the analysis for a single threat model file or an IaC input."""
@@ -711,6 +788,10 @@ def main():
     sys.argv = [sys.argv[0]] + remaining_argv
 
     logging.info(f"[{time.time() - _start_time_main:.4f}s] Starting main execution path.")
+    if getattr(args, "diff", None):
+        old_path, new_path = args.diff
+        sys.exit(diff_threat_reports(old_path, new_path))
+
     if args.server: # Use the new --server argument
         try:
             run_server(model_filepath=args.model_file, project_path=args.project)

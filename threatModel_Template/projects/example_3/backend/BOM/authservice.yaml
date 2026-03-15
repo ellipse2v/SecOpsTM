@@ -1,0 +1,14 @@
+asset: "AuthService"
+os_version: "Ubuntu 22.04 LTS"
+software_version: "Keycloak 22.0.5"
+patch_level: outdated
+known_cves:
+  - CVE-2023-6134
+  - CVE-2023-6291
+running_services:
+  - keycloak
+  - postgresql-client
+  - node-exporter
+detection_level: high
+credentials_stored: true
+notes: "Keycloak IdP. CVE-2023-6134 (reflected XSS in login page) and CVE-2023-6291 (redirect URI bypass) — both patched in 22.0.7, upgrade required. Brute-force protection enabled (5 attempts). MFA enforced for admin realm. User realm allows password-only — consider enforcing MFA for all users."

@@ -204,11 +204,16 @@ class RAGThreatGenerator:
         logger.debug("Retrieved %d documents.", len(documents))
 
         # --- Generation ---
+        # Escape braces in user-provided values so str.format() doesn't misinterpret
+        # JSON-like content (e.g. {"key": "value"} in descriptions) as format specifiers.
+        def _esc(s: str) -> str:
+            return s.replace("{", "{{").replace("}", "}}")
+
         human_message = self._rag_human_template.format(
-            system_description=system_description,
-            user_threat_intelligence=user_threat_intelligence,
-            threat_model_markdown=threat_model_markdown,
-            context=context_text,
+            system_description=_esc(system_description),
+            user_threat_intelligence=_esc(user_threat_intelligence),
+            threat_model_markdown=_esc(threat_model_markdown),
+            context=_esc(context_text),
         )
         messages = [
             {"role": "system", "content": self._rag_system_prompt},

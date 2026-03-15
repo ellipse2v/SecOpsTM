@@ -1,0 +1,11 @@
+asset: "ShippingService_1"
+os_version: "Ubuntu 22.04 LTS"
+software_version: "Go 1.21 / chi 5.0.10"
+patch_level: current
+known_cves: []
+running_services:
+  - shipping-service
+  - node-exporter
+detection_level: medium
+credentials_stored: true
+notes: "Calls external logistics provider REST API over HTTPS. API key stored in Kubernetes Secret (not Vault). Recommendation: migrate to Vault for consistent secrets management. Contains customer shipping addresses in-memory during processing — GDPR relevant. No persistent storage of PII beyond request lifetime."

@@ -1,0 +1,13 @@
+asset: "GatewayInstance_1"
+os_version: "Ubuntu 22.04 LTS"
+software_version: "Kong Gateway 3.4.2"
+patch_level: outdated
+known_cves:
+  - CVE-2023-49107
+running_services:
+  - kong
+  - kong-admin-api
+  - node-exporter
+detection_level: high
+credentials_stored: true
+notes: "CVE-2023-49107 (Kong Admin API exposed without auth in older builds) — Admin API restricted to 127.0.0.1 in current config, confirm on all nodes. JWT plugin active. Rate limiting: 1000 req/min per consumer. Plugin: bot-detection enabled. Upgrade to 3.5+ recommended."

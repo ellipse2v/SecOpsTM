@@ -1,0 +1,12 @@
+asset: "NotificationService"
+os_version: "Ubuntu 22.04 LTS"
+software_version: "Node.js 20.9 LTS / Express 4.18.2"
+patch_level: outdated
+known_cves:
+  - CVE-2023-30584
+running_services:
+  - node-express
+  - node-exporter
+detection_level: low
+credentials_stored: true
+notes: "CVE-2023-30584 (Node.js path traversal in older versions) — check if route handlers use user-supplied paths. SendGrid and Twilio API keys stored in environment variables (not Vault). Recommendation: migrate to Vault. Low detection coverage — no runtime protection or EDR. Handles PII (customer email, phone) — ensure transient only, not logged. Not redundant — single instance."

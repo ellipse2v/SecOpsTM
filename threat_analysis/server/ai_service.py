@@ -221,13 +221,18 @@ class AIService:
             md = f"# Threat Model: {header}\n\n"
             md += f"## Description\n\n{tm.tm.description}\n\n"
             md += "## Components\n\n"
-            elements = (
-                [a['object'] for a in tm.actors]
-                + [s['object'] for s in tm.servers]
-                + tm.dataflows
-            )
+            # Actors and servers may be stored as dicts (with 'object' key) or as objects
+            def _to_obj(item):
+                if isinstance(item, dict):
+                    return item.get('object') or item.get('name')
+                return item
+
+            actors_objs = [_to_obj(a) for a in tm.actors]
+            servers_objs = [_to_obj(s) for s in tm.servers]
+            elements = [e for e in (actors_objs + servers_objs + list(tm.dataflows)) if e is not None]
             for element in elements:
-                md += f"### {element.name}\n\n"
+                name = getattr(element, 'name', str(element))
+                md += f"### {name}\n\n"
                 md += f"- **Type:** {element.stereotype if hasattr(element, 'stereotype') else element.__class__.__name__}\n"
                 md += f"- **Description:** {getattr(element, 'description', '')}\n"
                 if hasattr(element, 'protocol'):
@@ -252,27 +257,30 @@ class AIService:
         likelihood_map = {"high": 5, "medium": 3, "low": 1}
 
         for threat_json in rag_generated_threats_json:
-            description = f"(RAG-LLM) {threat_json.get('name', 'N/A')}: {threat_json.get('description', '')}"
-            
-            # Map likelihood and impact strings to numerical values expected by PyTM
-            likelihood = likelihood_map.get(threat_json.get('likelihood', 'medium').lower(), 3)
-            impact = severity_map.get(threat_json.get('impact', 'medium').lower(), 3) # Using severity_map for impact
-            
-            new_threat = ExtendedThreat( # Use ExtendedThreat here
-                SID=threat_json.get('name', 'Generic RAG Threat'),
-                description=description,
-                category=threat_json.get('category', 'Generic RAG Threat'),
-                likelihood=likelihood,
-                impact=impact,
-                source="LLM" # Explicitly set source
-            )
-            new_threat.capec_ids = [
-                c for c in threat_json.get('capec_ids', [])
-                if isinstance(c, str) and c.upper().startswith('CAPEC-')
-            ]
-            new_threat.ai_details = threat_json # Store original AI details
-            new_threat.confidence = float(threat_json.get('confidence', 0.75))
-            pytm_rag_threats.append(new_threat)
+            if not isinstance(threat_json, dict):
+                logging.warning("RAG: skipping non-dict item in threat list: %r", threat_json)
+                continue
+            try:
+                description = f"(RAG-LLM) {threat_json.get('name', 'N/A')}: {threat_json.get('description', '')}"
+                likelihood = likelihood_map.get(threat_json.get('likelihood', 'medium').lower(), 3)
+                impact = severity_map.get(threat_json.get('impact', 'medium').lower(), 3)
+                new_threat = ExtendedThreat(
+                    SID=threat_json.get('name', 'Generic RAG Threat'),
+                    description=description,
+                    category=threat_json.get('category', 'Generic RAG Threat'),
+                    likelihood=likelihood,
+                    impact=impact,
+                    source="LLM",
+                )
+                new_threat.capec_ids = [
+                    c for c in threat_json.get('capec_ids', [])
+                    if isinstance(c, str) and c.upper().startswith('CAPEC-')
+                ]
+                new_threat.ai_details = threat_json
+                new_threat.confidence = float(threat_json.get('confidence', 0.75))
+                pytm_rag_threats.append(new_threat)
+            except Exception as exc:
+                logging.warning("RAG: failed to build ExtendedThreat from %r: %s", threat_json, exc)
 
         logging.debug(f"Generated {len(pytm_rag_threats)} system-level RAG threats.")
         return pytm_rag_threats

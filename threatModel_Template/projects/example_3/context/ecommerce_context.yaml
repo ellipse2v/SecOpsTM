@@ -1,0 +1,200 @@
+# SecOpsTM GDAF Context — EcoShop E-commerce Platform
+# Defines attack objectives, threat actor profiles, and risk parameters
+# for use by the GDAFEngine (Graph-based Distributed Attack Flow) engine.
+
+system_description: "EcoShop is a B2C e-commerce platform serving EU and US markets.
+  Microservices architecture with React frontend, Kong API gateway, OAuth 2.0 auth,
+  PostgreSQL database cluster, and RabbitMQ event bus. Approximately 100,000 daily
+  active users (peak 1M during promotions). PCI-DSS Level 1 and GDPR regulated."
+sector: "retail"
+data_sensitivity: "SECRET"
+internet_facing: true
+compliance_requirements:
+  - "PCI-DSS Level 1"
+  - "GDPR"
+  - "SOC 2 Type II"
+deployment_environment: "Hybrid (Cloud-native on-prem Kubernetes)"
+integrations:
+  - "Stripe Payment API"
+  - "SendGrid Email"
+  - "Twilio SMS"
+  - "OAuth 2.0 IdP (Keycloak)"
+  - "Logistics Provider REST API"
+
+# Attack objectives — what an attacker wants to achieve
+attack_objectives:
+  - id: "OBJ-PAYMENT-THEFT"
+    name: "Payment Card Data Theft"
+    description: "Exfiltrate payment card data or payment tokens to enable fraudulent transactions"
+    target_asset_names:
+      - "PaymentService_1"
+      - "PaymentService_2"
+      - "PrimaryDB"
+    target_types: ["application-server", "database"]
+    attacker_intent: "Sell stolen card data on underground markets or conduct fraudulent transactions"
+    business_impact: "PCI-DSS Level 1 audit failure, card brand fines (up to $100k/month), customer liability, brand damage"
+    mitre_final_tactic: "exfiltration"
+    min_severity_score: 7.0
+
+  - id: "OBJ-ACCOUNT-TAKEOVER"
+    name: "Customer Account Takeover"
+    description: "Compromise customer credentials or JWT tokens to take control of accounts"
+    target_asset_names:
+      - "AuthService"
+      - "GatewayInstance_1"
+      - "GatewayInstance_2"
+    target_types: ["application-server", "api-gateway"]
+    attacker_intent: "Fraudulent purchases, stored card misuse, personal data extraction, or account resale"
+    business_impact: "Customer trust loss, chargebacks, GDPR data breach notification obligation"
+    mitre_final_tactic: "credential-access"
+    min_severity_score: 6.0
+
+  - id: "OBJ-DATA-EXFILTRATION"
+    name: "Customer PII Exfiltration"
+    description: "Mass extraction of customer personal data (name, email, address, order history)"
+    target_asset_names:
+      - "PrimaryDB"
+      - "ReplicaDB"
+      - "ProductDB"
+    target_types: ["database"]
+    attacker_intent: "Data sale, ransomware leverage, or regulatory notification coercion"
+    business_impact: "GDPR Article 83 fines (up to 4% of global turnover), mandatory 72-hour DPA notification"
+    mitre_final_tactic: "exfiltration"
+    min_severity_score: 6.5
+
+  - id: "OBJ-PLATFORM-DISRUPTION"
+    name: "Platform Availability Attack"
+    description: "Disrupt the e-commerce platform to cause revenue loss during peak sales periods"
+    target_asset_names:
+      - "LoadBalancer"
+      - "OrderQueue"
+      - "WebServer"
+    target_types: ["load-balancer", "message-queue", "web-server"]
+    attacker_intent: "Financial damage, ransomware leverage, or competitive sabotage"
+    business_impact: "Revenue loss during promotions (estimated $500k/hour at peak), SLA breach, customer churn"
+    mitre_final_tactic: "impact"
+    min_severity_score: 5.0
+
+  - id: "OBJ-API-ABUSE"
+    name: "API Gateway Bypass or Abuse"
+    description: "Bypass API gateway controls (rate limiting, authentication) to reach internal services directly"
+    target_asset_names:
+      - "GatewayInstance_1"
+      - "GatewayInstance_2"
+      - "CoreSwitch"
+    target_types: ["api-gateway", "switch"]
+    attacker_intent: "Bypass rate limiting for credential stuffing, reach internal APIs without auth"
+    business_impact: "Credential stuffing at scale, internal API exposure, data scraping"
+    mitre_final_tactic: "initial-access"
+    min_severity_score: 5.5
+
+# Threat actor profiles
+threat_actors:
+  - id: "TA-CYBERCRIMINAL"
+    name: "Financially Motivated Cybercriminal"
+    sophistication: "medium"
+    objectives:
+      - "OBJ-PAYMENT-THEFT"
+      - "OBJ-ACCOUNT-TAKEOVER"
+      - "OBJ-PLATFORM-DISRUPTION"
+    entry_preference: "internet-facing"
+    description: "Cybercriminal group specializing in e-commerce fraud. Uses credential
+      stuffing, carding, and web skimming. Often buys initial access from access brokers."
+    known_ttps:
+      - "T1190"     # Exploit Public-Facing Application
+      - "T1078"     # Valid Accounts
+      - "T1539"     # Steal Web Session Cookie
+      - "T1550.001" # Application Access Token
+      - "T1566.002" # Spearphishing Link
+      - "T1498"     # Network Denial of Service
+    capable_tactics:
+      - "initial-access"
+      - "execution"
+      - "persistence"
+      - "credential-access"
+      - "collection"
+      - "exfiltration"
+      - "impact"
+
+  - id: "TA-SKIMMER"
+    name: "Web Skimmer (Magecart-style)"
+    sophistication: "low"
+    objectives:
+      - "OBJ-PAYMENT-THEFT"
+    entry_preference: "supply-chain"
+    description: "JavaScript-based skimmer injected via compromised CDN or third-party
+      script. Captures payment card data at checkout form before submission."
+    known_ttps:
+      - "T1195.002" # Compromise Software Supply Chain
+      - "T1059.007" # JavaScript
+      - "T1204.001" # Malicious Link
+    capable_tactics:
+      - "initial-access"
+      - "execution"
+      - "collection"
+      - "exfiltration"
+
+  - id: "TA-INSIDER"
+    name: "Malicious Insider or Contractor"
+    sophistication: "low"
+    objectives:
+      - "OBJ-DATA-EXFILTRATION"
+      - "OBJ-PAYMENT-THEFT"
+    entry_preference: "insider"
+    description: "Disgruntled employee or contractor with legitimate access to backend
+      systems or databases. May exfiltrate data for personal gain or sell access."
+    known_ttps:
+      - "T1078"     # Valid Accounts
+      - "T1213"     # Data from Information Repositories
+      - "T1048"     # Exfiltration Over Alternative Protocol
+      - "T1052.001" # Exfiltration over USB
+    capable_tactics:
+      - "initial-access"
+      - "collection"
+      - "exfiltration"
+
+  - id: "TA-AUTOMATED-BOT"
+    name: "Automated Bot / Credential Stuffing"
+    sophistication: "low"
+    objectives:
+      - "OBJ-ACCOUNT-TAKEOVER"
+      - "OBJ-API-ABUSE"
+      - "OBJ-PLATFORM-DISRUPTION"
+    entry_preference: "internet-facing"
+    description: "Automated tooling using leaked credential lists to perform credential
+      stuffing at scale. Also used for inventory hoarding, scalping, and API scraping."
+    known_ttps:
+      - "T1110.004" # Credential Stuffing
+      - "T1499.002" # Service Exhaustion Flood
+      - "T1589.001" # Gather Victim Identity Information
+    capable_tactics:
+      - "initial-access"
+      - "credential-access"
+      - "impact"
+
+# Risk criteria
+risk_criteria:
+  likelihood_factors:
+    internet_exposure: 2.5
+    missing_authentication: 2.0
+    cleartext_protocol: 1.8
+    no_mfa: 1.5
+    legacy_system: 1.2
+  impact_data_sensitivity:
+    public: 0.2
+    restricted: 0.8
+    confidential: 1.2
+    secret: 2.0
+    top_secret: 3.0
+  acceptable_risk_score: 4.5
+  max_hops: 6
+  max_paths_per_objective: 3
+  gdaf_min_technique_score: 0.75
+
+# Business goals to protect
+business_goals_to_protect:
+  - "PCI-DSS Level 1 compliance — zero cardholder data exposure"
+  - "Customer PII confidentiality — GDPR Article 5 compliance"
+  - "Platform availability during peak sales (Black Friday, Cyber Monday)"
+  - "Customer account integrity — prevent unauthorized access and fraudulent orders"
+  - "API integrity — prevent bypass of gateway controls and internal service exposure"

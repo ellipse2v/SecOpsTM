@@ -55,6 +55,7 @@ class ExportService:
 
         Priority order:
         1. `gdaf_context` key in the model's ## Context DSL section
+           (resolved relative to model file directory, then CWD)
         2. `{model_parent}/context/` directory (first .yaml/.yml found)
         3. `config/context.yaml` (project default fallback)
 
@@ -62,14 +63,20 @@ class ExportService:
         """
         ctx_cfg = getattr(threat_model, "context_config", {})
         dsl_path = ctx_cfg.get("gdaf_context")
+        model_path = getattr(threat_model, "_model_file_path", None)
         if dsl_path:
+            # Resolve relative to model file directory first (fixes CLI single-model mode)
+            if model_path:
+                p = Path(model_path).parent / dsl_path
+                if p.exists():
+                    logging.info("GDAF: using context from DSL ## Context: %s", p)
+                    return str(p)
             p = Path(dsl_path)
             if p.exists():
                 logging.info("GDAF: using context from DSL ## Context: %s", p)
                 return str(p)
             logging.warning("GDAF: gdaf_context '%s' declared in ## Context but file not found", dsl_path)
         # Check model parent context/ subdirectory
-        model_path = getattr(threat_model, "_model_file_path", None)
         if model_path:
             context_dir = Path(model_path).parent / "context"
             if context_dir.exists():
@@ -87,14 +94,20 @@ class ExportService:
         """Resolve BOM directory: DSL ## Context bom_directory → {model_parent}/BOM/ → None."""
         ctx_cfg = getattr(threat_model, "context_config", {})
         dsl_path = ctx_cfg.get("bom_directory")
+        model_path = getattr(threat_model, "_model_file_path", None)
         if dsl_path:
+            # Resolve relative to model file directory first (fixes CLI single-model mode)
+            if model_path:
+                p = Path(model_path).parent / dsl_path
+                if p.exists():
+                    logging.info("BOM: using directory from DSL ## Context: %s", p)
+                    return str(p)
             p = Path(dsl_path)
             if p.exists():
                 logging.info("BOM: using directory from DSL ## Context: %s", p)
                 return str(p)
             logging.warning("BOM: bom_directory '%s' declared in ## Context but not found", dsl_path)
         # Auto-discover from model file parent
-        model_path = getattr(threat_model, "_model_file_path", None)
         if model_path:
             bom_dir = Path(model_path).parent / "BOM"
             if bom_dir.exists() and bom_dir.is_dir():

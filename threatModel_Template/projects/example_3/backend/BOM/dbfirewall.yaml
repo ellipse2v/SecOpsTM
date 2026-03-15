@@ -1,0 +1,12 @@
+asset: "DBFirewall"
+os_version: "Ubuntu 22.04 LTS"
+software_version: "pfSense 2.7.2 + pgsql-proxy 1.2.0"
+patch_level: current
+known_cves: []
+running_services:
+  - pfsense
+  - pgsql-proxy
+  - node-exporter
+detection_level: high
+credentials_stored: true
+notes: "Software firewall + PostgreSQL protocol proxy. Whitelist-only ACL: exactly 3 allowed source IPs (OrderService, AuthService replica, monitoring). Deep packet inspection of PostgreSQL wire protocol — blocks non-query commands. Logs all connection attempts to SIEM."

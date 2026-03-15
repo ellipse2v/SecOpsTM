@@ -1,0 +1,11 @@
+asset: "PaymentService_1"
+os_version: "Ubuntu 22.04 LTS"
+software_version: "Python 3.11 / FastAPI 0.103.2 + stripe-python 6.7.0"
+patch_level: current
+known_cves: []
+running_services:
+  - fastapi-uvicorn
+  - node-exporter
+detection_level: high
+credentials_stored: false
+notes: "PCI-DSS in-scope service. Never stores raw PAN — Stripe tokenization only. Stripe API key stored in Vault (HashiCorp). Outbound HTTPS only to api.stripe.com. No card number appears in logs (log scrubbing middleware). Active instance — handles primary payment flow."
