@@ -636,6 +636,34 @@
             background-color: #555;
             color: #aaa;
         }
+        /* DSL validation banner */
+        #dsl-validation-banner {
+            margin: 4px 0 0 0;
+            padding: 6px 12px;
+            font-size: 12px;
+            border-left: 3px solid;
+            border-radius: 0 3px 3px 0;
+        }
+        .validation-banner.error {
+            background: #fff0f0;
+            border-color: #c62828;
+            color: #c62828;
+        }
+        .validation-banner.warning {
+            background: #fffbe6;
+            border-color: #f57c00;
+            color: #7a5000;
+        }
+        body.dark-mode .validation-banner.error {
+            background: #3a1a1a;
+            color: #ff8a80;
+            border-color: #ff5252;
+        }
+        body.dark-mode .validation-banner.warning {
+            background: #2a2000;
+            color: #ffcc80;
+            border-color: #ffab40;
+        }
     </style>
     <script src="/static/js/split.min.js"></script>
     <script src="/static/js/svg-pan-zoom.min.js"></script>
@@ -659,6 +687,7 @@
                     <button onclick="TabManager.triggerLoadSubmodel()">📂 Load Sub-model</button>
                     <input type="file" id="loadSubmodelInput" accept=".md" style="display: none;" onchange="TabManager.loadSubmodel(event)">
                     <button onclick="TabManager.loadProject()">📂 Load Project</button>
+                    <span id="project-load-badges" style="font-size:11px; margin-left:2px;"></span>
                     <hr style="margin: 4px 10px; border: 0; border-top: 1px solid #eee;">
                     <button onclick="saveProjectToServer()">💾 Save Project to Server</button>
                     <button onclick="TabManager.clearAllTabs()">🗑️ Clear All</button>
@@ -701,6 +730,7 @@
                     <div class="tab-bar" id="tab-bar"></div>
                     <button class="tab-bar-scroll-btn" id="tab-scroll-right" title="Scroll tabs right" onclick="TabBar.scrollRight()">&#8250;</button>
                 </div>
+                <div id="dsl-validation-banner" style="display:none;" aria-live="polite"></div>
                 <div class="tab-content-area" id="tab-content-area"></div>
             </div>
         </div>
@@ -736,6 +766,7 @@
     <script>
         let panZoomInstance;
         let debounceTimer;
+        let _validateTimer = null;
         const svgContainer = document.getElementById('svg-container');
         const svgWrapper = document.getElementById('svg-wrapper');
         const legendContainer = document.getElementById('legend-container');
@@ -877,6 +908,7 @@
         const TabManager = {
             editors: [],
             tabCount: 0,
+            extraFiles: [],
 
             init: function() {
                 const models = JSON.parse(atob("{{ initial_models | e }}"));
@@ -939,6 +971,8 @@
                 editor.on('change', () => {
                     clearTimeout(debounceTimer);
                     debounceTimer = setTimeout(updatePreview, 500);
+                    clearTimeout(_validateTimer);
+                    _validateTimer = setTimeout(validateDSL, 800);
                 });
 
                 this.editors[tabIndex] = { editor, path, tabButton, tabPane };
@@ -1113,76 +1147,75 @@
 
             loadProject: async function() {
                 try {
-                    // Use the File System Access API to open a directory
                     const dirHandle = await window.showDirectoryPicker();
                     const models = [];
+                    const extraFiles = []; // BOM/*.yaml, context/*.yaml, etc.
 
-                    // Recursively read files from the selected directory
-                    async function processDirectory(directoryHandle) {
-                        for await (const entry of directoryHandle.values()) {
-                            if (entry.kind === 'file' && (entry.name.endsWith('.md'))) {
-                                const file = await entry.getFile();
-                                const content = await file.text();
-                                // Create a relative path from the project root
-                                const rootPath = dirHandle.name;
-                                let relativePath = file.name; // Fallback
-                                try {
-                                    // This is a bit of a trick to get a relative path, might not be perfect
-                                    const fullPathParts = await dirHandle.resolve(entry);
-                                    if (fullPathParts) {
-                                       relativePath = fullPathParts.join('/');
+                    async function processDirectory(handle, relPath) {
+                        for await (const entry of handle.values()) {
+                            const entryRel = relPath ? `${relPath}/${entry.name}` : entry.name;
+                            if (entry.kind === 'file') {
+                                const name = entry.name.toLowerCase();
+                                if (name.endsWith('.md')) {
+                                    const file = await entry.getFile();
+                                    models.push({ path: entryRel, content: await file.text() });
+                                } else if (name.endsWith('.yaml') || name.endsWith('.yml') || name.endsWith('.json')) {
+                                    // Only include files inside BOM/ or context/ directories
+                                    const parts = entryRel.split('/');
+                                    const inBomOrContext = parts.some(p => p === 'BOM' || p === 'context');
+                                    if (inBomOrContext) {
+                                        const file = await entry.getFile();
+                                        extraFiles.push({ path: entryRel, content: await file.text() });
                                     }
-                                } catch(e) { console.warn("Could not resolve file path, using name as fallback.", e); }
-                                
-                                models.push({
-                                    path: relativePath,
-                                    content: content
-                                });
+                                }
                             } else if (entry.kind === 'directory') {
-                                await processDirectory(entry);
+                                await processDirectory(entry, entryRel);
                             }
                         }
                     }
 
-                    await processDirectory(dirHandle);
+                    await processDirectory(dirHandle, '');
 
                     if (models.length === 0) {
-                        alert('No markdown files (.md) found in the selected directory or its subdirectories.');
+                        alert('No markdown files (.md) found in the selected directory.');
                         return;
                     }
 
+                    // Store extra files for use in generate_all
+                    TabManager.extraFiles = extraFiles;
+
                     // Clear existing tabs
                     this.editors.forEach((editorData, index) => {
-                        if (editorData) {
-                            editorData.tabButton.remove();
-                            editorData.tabPane.remove();
-                            this.editors[index] = null;
-                        }
+                        if (editorData) { editorData.tabButton.remove(); editorData.tabPane.remove(); this.editors[index] = null; }
                     });
-                    this.editors = []; // Reset the array
+                    this.editors = [];
                     this.tabCount = 0;
                     document.getElementById('tab-bar').innerHTML = '';
                     document.getElementById('tab-content-area').innerHTML = '';
 
-
-                    // Add new tabs for the loaded project
+                    // Add tabs for .md files
                     models.forEach((model, index) => {
                         this.addTab(model.path, model.content, index !== 0 || models.length > 1);
                     });
-                    
-                    if (models.length > 0) {
-                        this.switchTab(0); // Switch to the first tab
+                    if (models.length > 0) this.switchTab(0);
+
+                    // Show BOM/context badges
+                    const hasBom = extraFiles.some(f => f.path.includes('/BOM/') || f.path.startsWith('BOM/'));
+                    const hasContext = extraFiles.some(f => f.path.includes('/context/') || f.path.startsWith('context/'));
+                    const badgesEl = document.getElementById('project-load-badges');
+                    if (badgesEl) {
+                        const badges = [];
+                        if (hasBom) badges.push('<span style="background:#e8f5e9;color:#2e7d32;padding:2px 5px;border-radius:3px;border:1px solid #2e7d32;">BOM \u2713</span>');
+                        if (hasContext) badges.push('<span style="background:#e3f2fd;color:#1565c0;padding:2px 5px;border-radius:3px;border:1px solid #1565c0;">Context \u2713</span>');
+                        badgesEl.innerHTML = badges.join(' ');
                     }
 
-                    alert('Project loaded successfully!');
+                    console.log('Project loaded: ' + models.length + ' .md file(s), ' + extraFiles.length + ' BOM/context file(s) from "' + dirHandle.name + '"');
 
                 } catch (error) {
-                    // Handle cases where the user cancels the dialog or API is not supported
-                    if (error.name === 'AbortError') {
-                        console.log('User cancelled the directory selection.');
-                    } else {
+                    if (error.name !== 'AbortError') {
                         console.error('Error loading project:', error);
-                        alert(`Failed to load project: ${error.message}\n\nNote: This feature requires a modern browser that supports the File System Access API.`);
+                        alert(`Failed to load project: ${error.message}\n\nNote: This feature requires a modern browser (Chrome/Edge).`);
                     }
                 }
             },
@@ -1373,10 +1406,22 @@
                         async function processDirectory(directoryHandle, currentRelativePath) {
                             for await (const entry of directoryHandle.values()) {
                                 const newRelativePath = currentRelativePath ? `${currentRelativePath}/${entry.name}` : entry.name;
-                                if (entry.kind === 'file' && entry.name.endsWith('.md')) {
-                                    const file = await entry.getFile();
-                                    const content = await file.text();
-                                    inMemoryFiles.push({ path: newRelativePath, content: content });
+                                if (entry.kind === 'file') {
+                                    const name = entry.name.toLowerCase();
+                                    if (name.endsWith('.md')) {
+                                        const file = await entry.getFile();
+                                        const content = await file.text();
+                                        inMemoryFiles.push({ path: newRelativePath, content: content });
+                                    } else if (name.endsWith('.yaml') || name.endsWith('.yml') || name.endsWith('.json')) {
+                                        const parts = newRelativePath.split('/');
+                                        if (parts.some(p => p === 'BOM' || p === 'context')) {
+                                            const file = await entry.getFile();
+                                            TabManager.extraFiles = TabManager.extraFiles || [];
+                                            if (!TabManager.extraFiles.some(f => f.path === newRelativePath)) {
+                                                TabManager.extraFiles.push({ path: newRelativePath, content: await file.text() });
+                                            }
+                                        }
+                                    }
                                 } else if (entry.kind === 'directory') {
                                     await processDirectory(entry, newRelativePath);
                                 }
@@ -1629,10 +1674,11 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ 
+                    body: JSON.stringify({
                         markdown: mainModelContent,
                         path: mainModelPath,
-                        submodels: submodels 
+                        submodels: submodels,
+                        extra_files: TabManager.extraFiles || []
                     }),
                 });
 
@@ -1826,6 +1872,41 @@
                 aiButton.title = 'AI connection lost. Refresh to try again.';
             };
         })();
+
+        // --- DSL Validation (debounced) ---
+        function validateDSL() {
+            const activeEditor = TabManager.getActiveEditor();
+            if (!activeEditor) return;
+            const content = activeEditor.getValue();
+            if (!content || !content.trim()) {
+                const banner = document.getElementById('dsl-validation-banner');
+                if (banner) banner.style.display = 'none';
+                return;
+            }
+            fetch('/api/validate_markdown', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({markdown_content: content})
+            })
+            .then(r => r.json())
+            .then(data => {
+                const banner = document.getElementById('dsl-validation-banner');
+                if (!banner) return;
+                const allMessages = [
+                    ...(data.errors || []).map(e => '\u274C ' + e),
+                    ...(data.warnings || []).map(w => '\u26A0\uFE0F ' + w)
+                ];
+                if (allMessages.length === 0) {
+                    banner.style.display = 'none';
+                } else {
+                    banner.style.display = 'block';
+                    banner.className = 'validation-banner ' + ((data.errors && data.errors.length > 0) ? 'error' : 'warning');
+                    banner.innerHTML = allMessages.join('<br>');
+                }
+            })
+            .catch(() => { /* ignore network errors silently */ });
+        }
+
     </script>
 </body>
 </html>

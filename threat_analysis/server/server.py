@@ -346,7 +346,7 @@ def simple_mode():
         DEFAULT_EMPTY_MARKDOWN=json.dumps(DEFAULT_EMPTY_MARKDOWN),
         model_name=model_name,
         ai_online=get_threat_model_service().ai_online,
-        initial_models=initial_models_b64
+        initial_models=initial_models_b64,
     )
 
 
@@ -976,11 +976,30 @@ def generate_all():
                 with open(full_sub_path, "w", encoding="utf-8") as f:
                     f.write(sub_content)
 
-        # 1b. Copy supporting directories (context/, BOM/) from the source project.
+        # 1b. Write extra files (BOM/*.yaml, context/*.yaml) sent directly by the client
+        extra_files = data.get("extra_files", [])
+        for ef in extra_files:
+            ef_path = ef.get("path", "").lstrip('./\\')
+            ef_content = ef.get("content", "")
+            if ef_path and ef_content:
+                full_ef_path = os.path.join(generation_dir, ef_path)
+                os.makedirs(os.path.dirname(full_ef_path), exist_ok=True)
+                with open(full_ef_path, "w", encoding="utf-8") as f:
+                    f.write(ef_content)
+
+        # 1c. Copy supporting directories (context/, BOM/) from the source project.
         # These are not part of the editor content but are needed for GDAF and BOM scoring.
-        if initial_project_path:
+        # Fallback: derive source root from initial_model_file_path when project path not set
+        # (e.g. when the user loaded files via the browser directory picker and then used
+        # the "Project Path" field to point at the same directory).
+        _src_project = initial_project_path or (
+            str(Path(initial_model_file_path).parent)
+            if initial_model_file_path and Path(initial_model_file_path).parent.is_dir()
+            else None
+        )
+        if _src_project:
             import shutil as _shutil
-            src_root = Path(initial_project_path)
+            src_root = Path(_src_project)
             dst_root = Path(generation_dir)
             for extra_name in ("context",):
                 src = src_root / extra_name
@@ -1174,7 +1193,7 @@ def export_metadata():
     try:
         # Get the current element positions from the service
         metadata = get_threat_model_service().get_element_positions()
-        
+
         # Create a response with the metadata
         response = make_response(json.dumps(metadata, indent=2))
         response.headers["Content-Disposition"] = "attachment; filename=element_positions.json"
@@ -1183,3 +1202,199 @@ def export_metadata():
     except Exception as e:
         logging.error(f"Error during metadata export: {e}", exc_info=True)
         return jsonify({"error": "An internal error occurred. Check server logs for details."}), 500
+
+
+@app.route("/api/export_json", methods=["POST"])
+async def export_json():
+    """Export threat model as validated JSON report (schema v1.0)."""
+    data = await request.get_json()
+    if not data:
+        return jsonify({"error": "Missing request body"}), 400
+
+    markdown_content = data.get("markdown_content") or data.get("markdown", "")
+    if not markdown_content:
+        return jsonify({"error": "Missing markdown_content"}), 400
+
+    try:
+        from threat_analysis.core.model_factory import create_threat_model
+        import tempfile
+
+        threat_model = create_threat_model(
+            markdown_content=markdown_content,
+            model_name=get_model_name(markdown_content),
+            model_description="JSON export from web interface",
+            cve_service=get_threat_model_service().cve_service,
+            validate=True,
+            model_file_path=initial_model_file_path,
+        )
+        if not threat_model:
+            return jsonify({"error": "Failed to create threat model"}), 400
+
+        grouped_threats = threat_model.process_threats()
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            json_path = Path(tmp_dir) / "threat_model.json"
+            get_threat_model_service().report_generator.generate_json_export(
+                threat_model, grouped_threats, json_path
+            )
+            with open(json_path, "r", encoding="utf-8") as f:
+                json_content = f.read()
+
+        response = make_response(json_content)
+        response.headers["Content-Type"] = "application/json"
+        response.headers["Content-Disposition"] = 'attachment; filename="threat_model.json"'
+        return response
+
+    except ValueError as e:
+        logging.error(f"Validation error during JSON export: {e}")
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        logging.error(f"Unexpected error during JSON export: {e}", exc_info=True)
+        return jsonify({"error": "An internal error occurred. Check server logs for details."}), 500
+
+
+@app.route("/api/validate_markdown", methods=["POST"])
+async def validate_markdown():
+    """Fast structural validation of DSL markdown (no threat processing)."""
+    data = await request.get_json()
+    if not data:
+        return jsonify({"error": "Missing request body"}), 400
+
+    markdown_content = data.get("markdown_content") or data.get("markdown", "")
+    if not markdown_content:
+        return jsonify({"valid": False, "errors": ["Empty markdown content"], "warnings": [],
+                        "component_count": {"actors": 0, "servers": 0, "dataflows": 0, "boundaries": 0}}), 200
+
+    try:
+        from threat_analysis.core.model_factory import create_threat_model
+        from threat_analysis.core.model_validator import ModelValidator
+
+        threat_model = create_threat_model(
+            markdown_content=markdown_content,
+            model_name="ValidationCheck",
+            model_description="",
+            cve_service=get_threat_model_service().cve_service,
+            validate=False,  # Skip heavy validation; we run ModelValidator manually below
+            model_file_path=None,
+        )
+        if not threat_model:
+            return jsonify({
+                "valid": False,
+                "errors": ["Failed to parse the threat model. Check DSL syntax."],
+                "warnings": [],
+                "component_count": {"actors": 0, "servers": 0, "dataflows": 0, "boundaries": 0},
+            }), 200
+
+        validator = ModelValidator(threat_model)
+        errors = validator.validate()
+        warnings: List[str] = []
+
+        # Soft warnings: unused boundaries already emitted as errors by validator;
+        # extract them to downgrade to warnings for the UI
+        hard_errors = []
+        for e in errors:
+            if "defined but not used" in e:
+                warnings.append(e)
+            else:
+                hard_errors.append(e)
+
+        component_count = {
+            "actors": len(threat_model.actors),
+            "servers": len(threat_model.servers),
+            "dataflows": len(threat_model.dataflows),
+            "boundaries": len(threat_model.boundaries),
+        }
+
+        return jsonify({
+            "valid": len(hard_errors) == 0,
+            "errors": hard_errors,
+            "warnings": warnings,
+            "component_count": component_count,
+        })
+
+    except Exception as e:
+        logging.error(f"Unexpected error during markdown validation: {e}", exc_info=True)
+        return jsonify({
+            "valid": False,
+            "errors": ["An internal error occurred during validation."],
+            "warnings": [],
+            "component_count": {"actors": 0, "servers": 0, "dataflows": 0, "boundaries": 0},
+        }), 200
+
+
+@app.route("/api/set_project_path", methods=["POST"])
+async def set_project_path():
+    """Set the project base path for BOM/context auto-discovery."""
+    global initial_model_file_path, initial_project_path
+
+    data = await request.get_json()
+    if not data:
+        return jsonify({"success": False, "error": "Missing request body"}), 400
+
+    path_str = data.get("path", "").strip()
+    if not path_str:
+        return jsonify({"success": False, "error": "Missing path"}), 400
+
+    try:
+        path_obj = Path(path_str)
+        if not path_obj.is_dir():
+            return jsonify({"success": False, "error": "Path does not exist or is not a directory"}), 400
+
+        # Accept paths anywhere on disk (not restricted to PROJECT_ROOT) because users
+        # may have their models outside the installation directory.
+        resolved = str(path_obj.resolve())
+
+        bom_available = (path_obj / "BOM").is_dir()
+        context_available = (path_obj / "context").is_dir()
+
+        # Point initial_model_file_path at a plausible model file within the directory so
+        # that ExportService auto-discovery of BOM/ and context/ is activated.
+        for candidate in ("main.md", "model.md"):
+            candidate_path = path_obj / candidate
+            if candidate_path.exists():
+                initial_model_file_path = str(candidate_path.resolve())
+                break
+        else:
+            # No .md found — use a synthetic path so the parent dir is set correctly
+            initial_model_file_path = str(path_obj.resolve() / "main.md")
+
+        initial_project_path = resolved
+        logging.info("Project path set to: %s (bom=%s, context=%s)", resolved, bom_available, context_available)
+        return jsonify({
+            "success": True,
+            "path": resolved,
+            "bom_available": bom_available,
+            "context_available": context_available,
+        })
+
+    except Exception as e:
+        logging.error(f"Error setting project path: {e}", exc_info=True)
+        return jsonify({"success": False, "error": "An internal error occurred. Check server logs for details."}), 500
+
+
+@app.route("/diff")
+def diff_page():
+    """Serves the visual report diff page."""
+    return render_template("diff.html")
+
+
+@app.route("/api/diff_reports", methods=["POST"])
+async def diff_reports():
+    """Compare two JSON threat reports and return added/resolved/changed threats."""
+    data = await request.get_json()
+    if not data:
+        return jsonify({"error": "Missing request body"}), 400
+
+    old_report = data.get("old_report")
+    new_report = data.get("new_report")
+
+    if not old_report or not new_report:
+        return jsonify({"error": "Both old_report and new_report are required"}), 400
+
+    try:
+        from threat_analysis.utils import compare_threat_reports
+        result = compare_threat_reports(old_report, new_report)
+        return jsonify(result)
+    except Exception:
+        logging.error("Error comparing threat reports", exc_info=True)
+        return jsonify({"error": "Failed to compare reports"}), 500

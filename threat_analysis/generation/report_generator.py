@@ -328,6 +328,51 @@ class ReportGenerator:
                 all_detailed_threats, threat_model.dataflows
             )
 
+            # Build a serialised summary of GDAF scenarios for the HTML template.
+            # Uses getattr for safety — works even if gdaf_scenarios was never populated.
+            gdaf_data = []
+            for scenario in getattr(threat_model, 'gdaf_scenarios', [])[:10]:
+                hops_summary = []
+                for hop in getattr(scenario, 'hops', []):
+                    tech_ids = [
+                        getattr(t, 'id', str(t))
+                        for t in getattr(hop, 'techniques', [])[:3]
+                    ]
+                    tech_names = [
+                        getattr(t, 'name', str(t))
+                        for t in getattr(hop, 'techniques', [])[:3]
+                    ]
+                    hops_summary.append({
+                        "node": getattr(hop, 'asset_name', str(hop)),
+                        "asset_type": getattr(hop, 'asset_type', ''),
+                        "protocol": getattr(hop, 'protocol', ''),
+                        "is_encrypted": getattr(hop, 'is_encrypted', False),
+                        "is_authenticated": getattr(hop, 'is_authenticated', False),
+                        "hop_score": getattr(hop, 'hop_score', 0.0),
+                        "hop_position": getattr(hop, 'hop_position', ''),
+                        "techniques": [
+                            f"{tid} — {tname}"
+                            for tid, tname in zip(tech_ids, tech_names)
+                        ],
+                    })
+                gdaf_data.append({
+                    "scenario_id": getattr(scenario, 'scenario_id', ''),
+                    "objective": getattr(scenario, 'objective_name', 'Unknown'),
+                    "objective_description": getattr(scenario, 'objective_description', ''),
+                    "business_impact": getattr(scenario, 'objective_business_impact', ''),
+                    "actor": getattr(scenario, 'actor_name', ''),
+                    "actor_sophistication": getattr(scenario, 'actor_sophistication', ''),
+                    "entry_point": getattr(scenario, 'entry_point', ''),
+                    "target_asset": getattr(scenario, 'target_asset', ''),
+                    "path": " → ".join(h["node"] for h in hops_summary),
+                    "score": round(float(getattr(scenario, 'path_score', 0)), 2),
+                    "risk_level": getattr(scenario, 'risk_level', 'LOW'),
+                    "hop_count": len(hops_summary),
+                    "hops": hops_summary,
+                    "detection_coverage": round(float(getattr(scenario, 'detection_coverage', 0.0)), 2),
+                    "unacceptable_risk": bool(getattr(scenario, 'unacceptable_risk', False)),
+                })
+
             template = self.env.get_template('report_template.html')
             html = template.render(
                 title="STRIDE & MITRE ATT&CK Report",
@@ -343,6 +388,7 @@ class ReportGenerator:
                 severity_calculation_note=self.severity_calculator.get_calculation_explanation(),
                 implemented_mitigation_ids=self.implemented_mitigations,
                 attack_chains=attack_chains,
+                gdaf_scenarios=gdaf_data,
             )
 
             with open(output_file, "w", encoding="utf-8") as f:

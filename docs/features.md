@@ -25,6 +25,8 @@ Three independent threat engines feed into a **unified, deduplicated** output:
 - **Boundary-level AI threats**: Trust boundaries (`SecOpsBoundary`) are included as AI analysis targets, generating threats specific to boundary crossing, privilege escalation, and lateral movement.
 - **Cross-model RAG analysis**: In project mode, the RAG pipeline receives the full project context (main model + all sub-models) for cross-boundary threat detection that individual model analysis cannot surface.
 - **Trust context in prompts**: Each component prompt includes its boundary's trust level (`TRUSTED` / `UNTRUSTED`) so the LLM can tailor threat scenarios to the actual exposure level.
+- **Configurable parallelism**: Component-level AI enrichment runs concurrently, controlled by `max_concurrent_ai_requests` in `config/ai_config.yaml` under `threat_generation:`. Set to `1` for Gemini free tier (15 RPM), `3`–`5` for paid plans or Ollama.
+- **AI config validation**: On startup, `AIService` validates `ai_config.yaml` and logs explicit warnings for missing `model` fields, no enabled provider, or invalid values. Degradation is always graceful — no exception is raised.
 
 ## Goal-Driven Attack Flows (GDAF)
 
@@ -35,6 +37,7 @@ GDAF is a top-down attack scenario generator that works from attacker objectives
 - **Per-hop MITRE techniques**: `AssetTechniqueMapper` scores techniques from `enterprise-attack.json` using platform match, asset-specific primary tactics, hop position (entry / intermediate / target), actor known TTPs, and vulnerability signals (no auth, no encryption, no MFA, legacy).
 - **Risk scoring**: `path_score = mean(hop_scores) + target_CIA_bonus`. Risk levels: CRITICAL ≥ 4.0, HIGH ≥ 2.8, MEDIUM ≥ 1.8, LOW < 1.8.
 - **Output**: One `.afb` Attack Flow file per scenario + `gdaf_summary.json`. Files are valid for import in the Attack Flow Builder.
+- **GDAF in the HTML report**: GDAF scenarios appear in the HTML threat report as a collapsible `<details>` accordion (closed by default), placed after the Attack Chain Analysis section. The table shows Risk level (CRITICAL/HIGH/MEDIUM/LOW badge), Objective, Actor and sophistication, Attack Path (`A → B → C`), Score, Hop count, and Detection coverage. Each row is expandable to show per-hop details: node name, asset type, protocol, cleartext/no-auth flags, and assigned MITRE ATT&CK techniques.
 - **Project mode**: In multi-model projects, the attack graph spans all sub-models. Servers with `submodel=` references get bridging edges so paths can traverse into component internals.
 - **Fully offline**: Only reads `enterprise-attack.json` from disk — no network calls.
 
@@ -44,7 +47,10 @@ See [docs/gdaf.md](gdaf.md) for the complete reference including the context YAM
 
 - **HTML report**: Integrated threat statistics, STRIDE/MITRE mapping, D3FEND mitigations, severity breakdown, source tagging (`pytm` / `AI` / `LLM`), risk signals (`CVE`, `CWE⚠`, `NET`, `D3F`), executive summary with KPIs + top-5 risks, interactive severity filter (CRITICAL/HIGH/MEDIUM/LOW), risk matrix 5×5.
 - **⛓️ Attack Chain Analysis**: Dedicated section in the HTML report identifying multi-step attack paths that chain threats across dataflows. Each chain shows entry point, pivot component, attack scores, and CRITICAL/HIGH/MEDIUM/LOW severity label.
+- **GDAF scenarios accordion**: GDAF attack scenarios are embedded in the HTML report as an expandable section between Attack Chain Analysis and Severity Calculation Explained. Only shown when GDAF scenarios have been generated (requires a valid context YAML with `attack_objectives` and `threat_actors`).
+- **Report diff page** (`/diff`): Web page served at `/diff` that accepts two JSON exports (paste or file upload) and displays a visual comparison — new threats `[+]`, resolved threats `[-]`, severity changes `[~]` — with counts by category at the top. Also available via CLI: `secopstm --diff old_report.json new_report.json`.
 - **Versioned JSON export** (`schema_version: "1.0"`): Stable structure for SIEM, dashboards, and ticketing tools. Schema defined at `threat_analysis/schemas/v1/threat_model_report.schema.json`. Threats carry stable IDs (`T-0001`).
+- **JSON export REST API** (`POST /api/export_json`): Returns the versioned JSON report directly from the API without generating a ZIP bundle. Accepts `{"markdown_content": "..."}` and returns the schema-validated report.
 - **STIX 2.1** bundle and **ATT&CK Navigator** layer (JSON).
 - **Attack Flow** `.afb` files for key STRIDE objectives and GDAF scenarios.
 - **Remediation Checklist**: CSV export of all actionable mitigations, one row per threat-technique pair.
@@ -64,13 +70,16 @@ See [docs/gdaf.md](gdaf.md) for the complete reference including the context YAM
   ```
 - **`--output-format {all,html,json,stix}`**: Control which artifacts are generated.
 - **`--stdout`**: Print the JSON report to stdout — pipe directly to `jq`, upload to a SIEM, or fail a CI gate on critical threat count.
+- **`--diff old.json new.json`**: Compare two JSON exports on the command line. Prints new threats `[+]`, resolved threats `[-]`, and severity changes `[~]`.
 
 ## Interactive Web Editor
 
 - **Real-time Editing**: Live diagram preview that updates as you type.
+- **DSL Validation**: A validation banner below the editor updates automatically 800 ms after the last keystroke. Turns red on structural errors, orange on warnings; also reports the number of components detected.
 - **Interactive Diagrams**: Click to highlight, interactive legend (filter by protocol), sub-model navigation.
 - **Severity Heat Map**: Toggle button in diagram HTML applies colour-coded severity overlay; tooltip links directly to the threat report anchor for that component.
 - **Project Mode**: Tabbed interface for multi-file projects; "Generate All" produces unified, cross-linked reports with cross-model RAG analysis.
+- **Load Project button** (Simple Mode): The "📂 Load Project" button opens a directory picker. It automatically reads all `.md` files into editor tabs and detects `BOM/` and `context/` subdirectories. When found, **BOM ✓** and **Context ✓** badges appear next to the button, and BOM/context files are sent to the server automatically on "Generate All". No manual path entry required.
 - **Graphical Editor**: Visual drag-and-drop canvas for building models without writing Markdown.
 - **Reports are fully self-contained** and work offline.
 
@@ -78,5 +87,6 @@ See [docs/gdaf.md](gdaf.md) for the complete reference including the context YAM
 
 - **PyTM Compatibility**: Supports PyTM's model structure and can be extended with PyTM's features.
 - **IaC Plugins**: Ansible (inventory + playbook parsing). Plugin architecture supports adding new IaC sources.
+  - **Terraform** (`TerraformPlugin`): Available in `threat_analysis/iac_plugins/terraform_plugin.py`. Parses `.tf` files and `terraform.tfstate`; covers 50+ AWS, Azure, and GCP resource types. CLI integration is in progress — currently usable via the Python API.
 - **Custom MITRE Mappings**: Override or extend the built-in CAPEC→ATT&CK mapping.
 - **All mappings and calculations are modular** and easy to override.

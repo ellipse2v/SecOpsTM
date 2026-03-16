@@ -16,7 +16,7 @@ import os
 import re
 import json
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 # Define project root
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -78,6 +78,48 @@ def resolve_path(
     if is_explicit:
         return Path(path), True
     return base_dir / default_filename, False
+
+def compare_threat_reports(old: dict, new: dict) -> dict:
+    """Compare two versioned JSON threat reports.
+
+    Threats are keyed by ``(target, stride_category, name)``.
+
+    Returns a dict with keys:
+    - ``added``:   list of threat dicts present in *new* but not in *old*
+    - ``resolved``: list of threat dicts present in *old* but not in *new*
+    - ``changed``: list of dicts ``{"old": ..., "new": ...}`` where severity changed
+    - ``summary``: ``{"added": N, "resolved": N, "changed": N}``
+    """
+
+    def _key(t: dict) -> tuple:
+        return (
+            t.get("target", ""),
+            t.get("stride_category", ""),
+            t.get("name", ""),
+        )
+
+    old_threats: Dict[tuple, dict] = {_key(t): t for t in old.get("threats", [])}
+    new_threats: Dict[tuple, dict] = {_key(t): t for t in new.get("threats", [])}
+
+    added: List[dict] = [t for k, t in new_threats.items() if k not in old_threats]
+    resolved: List[dict] = [t for k, t in old_threats.items() if k not in new_threats]
+    changed: List[dict] = [
+        {"old": old_threats[k], "new": new_threats[k]}
+        for k in old_threats
+        if k in new_threats and old_threats[k].get("severity") != new_threats[k].get("severity")
+    ]
+
+    return {
+        "added": added,
+        "resolved": resolved,
+        "changed": changed,
+        "summary": {
+            "added": len(added),
+            "resolved": len(resolved),
+            "changed": len(changed),
+        },
+    }
+
 
 def _validate_path_within_project(input_path: str, base_dir: Path = PROJECT_ROOT) -> Path:
     """

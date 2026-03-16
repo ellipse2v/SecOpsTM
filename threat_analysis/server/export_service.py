@@ -234,6 +234,7 @@ class ExportService:
                         _gdaf = GDAFEngine(main_threat_model, _context_path, extra_models=_extra, bom_directory=_bom_dir)
                         _scenarios = _gdaf.run()
                         if _scenarios:
+                            main_threat_model.gdaf_scenarios = _scenarios
                             _builder = AttackFlowBuilder(_scenarios, model_name=str(model_name))
                             _builder.generate_and_save(str(export_path))
                             logging.info(
@@ -277,9 +278,6 @@ class ExportService:
                 svg_filepath, html_diagram_path, threat_model, graph_metadata, severity_map,
                 report_url="stride_mitre_report.html",
             )
-            report_path = export_path / "stride_mitre_report.html"
-            self.report_generator.generate_html_report(threat_model, grouped_threats, report_path, progress_callback=single_file_progress_cb)
-            
             json_report_path = export_path / "mitre_analysis.json"
             self.report_generator.generate_json_export(threat_model, grouped_threats, json_report_path)
 
@@ -294,7 +292,7 @@ class ExportService:
             navigator_generator = AttackNavigatorGenerator(threat_model_name=str(threat_model.tm.name), all_detailed_threats=all_detailed_threats)
             navigator_filename = JSON_NAVIGATOR_FILENAME_TPL.format(timestamp=timestamp)
             navigator_generator.save_layer_to_file(str(export_path / navigator_filename))
-            
+
             stix_generator = StixGenerator(threat_model=threat_model, all_detailed_threats=all_detailed_threats)
             stix_bundle = stix_generator.generate_stix_bundle()
             stix_filename = f"stix_report_{timestamp}.json"
@@ -311,6 +309,7 @@ class ExportService:
                 logging.error("Failed to generate Attack Flow: %s", e)
 
             # GDAF: Goal-Driven Attack Flow (objective-based, requires context with attack_objectives)
+            # Run BEFORE the HTML report so that gdaf_scenarios are available in the report.
             try:
                 from threat_analysis.core.gdaf_engine import GDAFEngine
                 from threat_analysis.generation.attack_flow_builder import AttackFlowBuilder
@@ -320,6 +319,7 @@ class ExportService:
                     _gdaf = GDAFEngine(threat_model, _context_path, bom_directory=_bom_dir)
                     _scenarios = _gdaf.run()
                     if _scenarios:
+                        threat_model.gdaf_scenarios = _scenarios
                         _builder = AttackFlowBuilder(_scenarios, model_name=str(threat_model.tm.name))
                         _builder.generate_and_save(str(export_path))
                         logging.info("GDAF: generated %d attack scenarios in %s/gdaf", len(_scenarios), export_path)
@@ -327,6 +327,10 @@ class ExportService:
                         logging.info("GDAF: no scenarios produced (check context attack_objectives/threat_actors)")
             except Exception as e:
                 logging.warning("GDAF generation skipped (non-fatal): %s", e)
+
+            # HTML report generated last so it includes GDAF scenarios
+            report_path = export_path / "stride_mitre_report.html"
+            self.report_generator.generate_html_report(threat_model, grouped_threats, report_path, progress_callback=single_file_progress_cb)
 
             result["reports"] = {
                 "html": "stride_mitre_report.html",

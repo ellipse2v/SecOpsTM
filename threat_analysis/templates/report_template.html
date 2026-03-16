@@ -767,6 +767,103 @@
                 padding: 0.75rem 0.5rem;
             }
         }
+
+        /* ── GDAF Attack Scenarios ── */
+        .gdaf-section {
+            margin: 16px 0;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--background-card);
+            box-shadow: var(--shadow-light);
+        }
+        .gdaf-section > summary {
+            padding: 12px 20px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            background: var(--background-main);
+            border-radius: 8px;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            user-select: none;
+        }
+        .gdaf-section > summary::-webkit-details-marker { display: none; }
+        .gdaf-section[open] > summary {
+            border-radius: 8px 8px 0 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .gdaf-summary-arrow::before { content: "▶"; font-size: 0.7rem; color: var(--text-secondary); transition: transform 0.2s; }
+        .gdaf-section[open] .gdaf-summary-arrow::before { transform: rotate(90deg); display: inline-block; }
+        .gdaf-content { padding: 16px 20px; }
+        .gdaf-description {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin: 0 0 1rem;
+        }
+        .gdaf-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        .gdaf-table th {
+            background: var(--background-main);
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 2px solid var(--border-color);
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            position: sticky;
+            top: 0;
+        }
+        .gdaf-table td { padding: 8px 12px; border-bottom: 1px solid var(--border-color); vertical-align: top; }
+        .gdaf-row { cursor: pointer; }
+        .gdaf-row:hover { background: var(--background-main); }
+        .gdaf-path { font-family: 'Consolas', 'Courier New', monospace; font-size: 0.78rem; color: var(--text-secondary); word-break: break-word; }
+        .gdaf-hop {
+            padding: 4px 10px;
+            margin: 3px 0;
+            background: var(--background-main);
+            border-left: 3px solid var(--primary-color);
+            font-size: 0.8rem;
+            border-radius: 0 4px 4px 0;
+        }
+        .gdaf-hop-tech { color: var(--text-secondary); font-size: 0.75rem; margin-top: 2px; }
+        .gdaf-detail-row td { background: #fafbff; padding: 8px 20px; }
+        .gdaf-badge-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary-color);
+            color: #fff;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            min-width: 22px;
+            height: 22px;
+            padding: 0 7px;
+        }
+        .gdaf-hint { font-size: 0.78rem; color: var(--text-secondary); font-weight: normal; margin-left: auto; }
+        .gdaf-score-critical { color: #dc2626; font-weight: 700; }
+        .gdaf-score-high     { color: #ea580c; font-weight: 700; }
+        .gdaf-score-medium   { color: #d97706; font-weight: 700; }
+        .gdaf-score-low      { color: #16a34a; font-weight: 700; }
+        .gdaf-risk-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+        .gdaf-risk-CRITICAL { background: linear-gradient(135deg,#dc2626,#b91c1c); color:#fff; }
+        .gdaf-risk-HIGH     { background: linear-gradient(135deg,#ea580c,#dc2626); color:#fff; }
+        .gdaf-risk-MEDIUM   { background: linear-gradient(135deg,#d97706,#ea580c); color:#fff; }
+        .gdaf-risk-LOW      { background: linear-gradient(135deg,#16a34a,#15803d); color:#fff; }
+        .gdaf-unacceptable  { border-left: 3px solid #dc2626 !important; }
+        .gdaf-hop-meta { font-size: 0.72rem; color: var(--text-secondary); margin-top: 1px; }
     </style>
 </head>
 <body>
@@ -946,6 +1043,95 @@
             </table>
             </div>
         </div>
+        {% endif %}
+
+        {% if gdaf_scenarios %}
+        <details class="gdaf-section">
+          <summary>
+            <span class="gdaf-summary-arrow"></span>
+            ⚡ GDAF Attack Scenarios
+            <span class="gdaf-badge-count">{{ gdaf_scenarios | length }}</span>
+            <span class="gdaf-hint">Goal-Driven Attack Flows — click to expand</span>
+          </summary>
+          <div class="gdaf-content">
+            <p class="gdaf-description">
+              Objective-based attack paths computed by the <strong>Goal-Driven Attack Flow engine</strong>.
+              Each scenario models a complete adversary journey from entry point to high-value target,
+              with MITRE ATT&amp;CK techniques assigned per hop. Sorted by path score (highest risk first).
+            </p>
+            <div style="max-height:480px; overflow-y:auto; overflow-x:auto;">
+            <table class="gdaf-table">
+              <thead>
+                <tr>
+                  <th style="width:22px;">#</th>
+                  <th>Risk</th>
+                  <th>Objective</th>
+                  <th>Actor</th>
+                  <th>Attack Path</th>
+                  <th>Score</th>
+                  <th>Hops</th>
+                  <th>Detection</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for s in gdaf_scenarios %}
+                {% set row_class = 'gdaf-row' + (' gdaf-unacceptable' if s.unacceptable_risk else '') %}
+                <tr class="{{ row_class }}" onclick="toggleGdafDetail('gdaf-detail-{{ loop.index }}')" title="Click to see per-hop techniques">
+                  <td style="color:var(--text-secondary);">{{ loop.index }}</td>
+                  <td><span class="gdaf-risk-badge gdaf-risk-{{ s.risk_level }}">{{ s.risk_level }}</span></td>
+                  <td>
+                    <div style="font-weight:600;">{{ s.objective }}</div>
+                    {% if s.objective_description %}
+                    <div style="font-size:0.75rem;color:var(--text-secondary);">{{ s.objective_description | truncate(80) }}</div>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div>{{ s.actor }}</div>
+                    <div style="font-size:0.75rem;color:var(--text-secondary);">{{ s.actor_sophistication }}</div>
+                  </td>
+                  <td class="gdaf-path">{{ s.path }}</td>
+                  <td class="gdaf-score-{{ s.risk_level | lower }}">{{ s.score }}</td>
+                  <td style="text-align:center;">{{ s.hop_count }}</td>
+                  <td style="text-align:center;font-size:0.8rem;">{{ "%.0f%%"|format(s.detection_coverage * 100) }}</td>
+                </tr>
+                <tr id="gdaf-detail-{{ loop.index }}" style="display:none;">
+                  <td colspan="8" class="gdaf-detail-row" style="padding:10px 20px 10px 32px;">
+                    {% if s.business_impact %}
+                    <div style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:8px;">
+                      <strong>Business impact:</strong> {{ s.business_impact }}
+                    </div>
+                    {% endif %}
+                    <div style="font-size:0.78rem;font-weight:600;color:var(--text-secondary);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em;">Attack hops</div>
+                    {% for hop in s.hops %}
+                    <div class="gdaf-hop">
+                      <div>
+                        <span style="font-weight:600;">{{ hop.node }}</span>
+                        {% if hop.asset_type %}<span style="font-size:0.72rem;color:var(--text-secondary);margin-left:6px;">[{{ hop.asset_type }}]</span>{% endif %}
+                        {% if hop.hop_position %}<span style="font-size:0.72rem;color:var(--text-secondary);margin-left:4px;">({{ hop.hop_position }})</span>{% endif %}
+                      </div>
+                      {% if hop.protocol %}
+                      <div class="gdaf-hop-meta">
+                        Protocol: <strong>{{ hop.protocol }}</strong>
+                        {% if not hop.is_encrypted %} · <span style="color:#ea580c;">cleartext</span>{% endif %}
+                        {% if not hop.is_authenticated %} · <span style="color:#ea580c;">no auth</span>{% endif %}
+                        · hop score: {{ hop.hop_score }}
+                      </div>
+                      {% endif %}
+                      {% if hop.techniques %}
+                      <div class="gdaf-hop-tech">
+                        Techniques: {{ hop.techniques | join(' &nbsp;|&nbsp; ') }}
+                      </div>
+                      {% endif %}
+                    </div>
+                    {% endfor %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            </div>
+          </div>
+        </details>
         {% endif %}
 
         <h2>📖 Severity Calculation Explained</h2>
@@ -1402,6 +1588,12 @@
                 filterThreats();
             }
         });
+
+        function toggleGdafDetail(id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'table-row' : 'none';
+        }
 
         function toggleThreatVisibility(category) {
             var threats = document.querySelectorAll(`.threat-${category}`);

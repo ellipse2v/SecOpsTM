@@ -31,8 +31,7 @@ import traceback
 
 from threat_analysis import config # Re-add config import
 from threat_analysis.server.server import run_server, get_model_name # Re-add this import
-from threat_analysis.utils import resolve_path, _validate_path_within_project
-from threat_analysis.utils import resolve_path, _validate_path_within_project
+from threat_analysis.utils import resolve_path, _validate_path_within_project, compare_threat_reports
 
 # Import library modules
 # Lazy imports will be handled within methods
@@ -500,42 +499,26 @@ class CustomArgumentParser:
 def diff_threat_reports(old_path: str, new_path: str) -> int:
     """Compare two versioned JSON threat reports and print a human-readable diff.
 
-    Threats are keyed by ``(target, stride_category, name)``.  Returns an exit
-    code: 0 if no differences, 1 if differences were found.
+    Delegates comparison logic to ``compare_threat_reports`` in ``threat_analysis.utils``.
+    Returns exit code: 0 if no differences, 1 if differences were found, 2 on I/O error.
     """
     import json as _json
 
-    def _load(path: str) -> Dict:
-        with open(path, "r", encoding="utf-8") as f:
-            return _json.load(f)
-
-    def _key(t: Dict) -> Tuple:
-        return (
-            t.get("target", ""),
-            t.get("stride_category", ""),
-            t.get("name", ""),
-        )
-
     try:
-        old_report = _load(old_path)
-        new_report = _load(new_path)
+        with open(old_path, "r", encoding="utf-8") as f:
+            old_report = _json.load(f)
+        with open(new_path, "r", encoding="utf-8") as f:
+            new_report = _json.load(f)
     except (OSError, ValueError) as exc:
         logging.error("--diff: failed to load reports: %s", exc)
         return 2
 
-    old_threats: Dict[Tuple, Dict] = {_key(t): t for t in old_report.get("threats", [])}
-    new_threats: Dict[Tuple, Dict] = {_key(t): t for t in new_report.get("threats", [])}
+    result = compare_threat_reports(old_report, new_report)
+    added = result["added"]
+    resolved = result["resolved"]
+    changed_pairs = result["changed"]
 
-    added = [t for k, t in new_threats.items() if k not in old_threats]
-    resolved = [t for k, t in old_threats.items() if k not in new_threats]
-    changed = [
-        (old_threats[k], new_threats[k])
-        for k in old_threats
-        if k in new_threats and old_threats[k].get("severity") != new_threats[k].get("severity")
-    ]
-
-    has_diff = bool(added or resolved or changed)
-    if not has_diff:
+    if not (added or resolved or changed_pairs):
         print("No threat differences between the two reports.")
         return 0
 
@@ -549,9 +532,11 @@ def diff_threat_reports(old_path: str, new_path: str) -> int:
         for t in resolved:
             print(f"    [{t.get('severity','?')}] {t.get('name','')} → {t.get('target','')} ({t.get('stride_category','')})")
 
-    if changed:
-        print(f"\n[~] {len(changed)} SEVERITY CHANGE(s):")
-        for old_t, new_t in changed:
+    if changed_pairs:
+        print(f"\n[~] {len(changed_pairs)} SEVERITY CHANGE(s):")
+        for entry in changed_pairs:
+            old_t = entry["old"]
+            new_t = entry["new"]
             print(f"    {old_t.get('name','')} → {old_t.get('target','')}: "
                   f"{old_t.get('severity','?')} → {new_t.get('severity','?')}")
 

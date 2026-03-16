@@ -1,0 +1,544 @@
+<!--
+ Copyright 2025 ellipse2v
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecOpsTM &mdash; Report Diff</title>
+    <style>
+        :root {
+            --primary: #2c974b;
+            --primary-dark: #1e6b34;
+            --danger: #c62828;
+            --warning: #f57c00;
+            --info: #1565c0;
+            --bg: #f0f2f5;
+            --card-bg: #ffffff;
+            --border: #d1d5da;
+            --text: #24292e;
+            --muted: #586069;
+            --added-bg: #e6ffed;
+            --added-border: #34d058;
+            --resolved-bg: #ffeef0;
+            --resolved-border: #d73a49;
+            --changed-bg: #fff8e1;
+            --changed-border: #f57c00;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+        }
+
+        .header {
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.3em;
+            color: var(--primary);
+        }
+
+        .header a {
+            font-size: 13px;
+            color: var(--muted);
+            text-decoration: none;
+        }
+
+        .header a:hover { color: var(--primary); }
+
+        .main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Input area */
+        .input-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .input-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .input-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 0.95em;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .input-card textarea {
+            width: 100%;
+            height: 200px;
+            resize: vertical;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 8px;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            font-size: 12px;
+            background: #f6f8fa;
+            color: var(--text);
+        }
+
+        .input-card textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(44, 151, 75, 0.15);
+        }
+
+        .file-upload-label {
+            display: inline-block;
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--muted);
+            cursor: pointer;
+        }
+
+        .file-upload-label:hover { color: var(--primary); }
+
+        .file-upload-input { display: none; }
+
+        /* Actions */
+        .actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 18px;
+            border-radius: 6px;
+            border: none;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.15s;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: #fff;
+        }
+
+        .btn-primary:hover { background-color: var(--primary-dark); }
+
+        .btn-secondary {
+            background-color: #f3f4f6;
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover { background-color: #e9ebed; }
+
+        #compare-error {
+            color: var(--danger);
+            font-size: 13px;
+        }
+
+        /* Summary bar */
+        #summary-bar {
+            display: none;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px 20px;
+            margin-bottom: 20px;
+            display: none;
+            align-items: center;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .summary-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .badge-pill {
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .pill-added   { background: var(--added-bg);    color: #22863a; border: 1px solid var(--added-border); }
+        .pill-resolved{ background: var(--resolved-bg); color: var(--danger); border: 1px solid var(--resolved-border); }
+        .pill-changed { background: var(--changed-bg);  color: var(--warning); border: 1px solid var(--changed-border); }
+
+        /* Section headers */
+        .section {
+            margin-bottom: 28px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            border-radius: 6px 6px 0 0;
+            font-weight: 600;
+            font-size: 14px;
+            border: 1px solid transparent;
+        }
+
+        .section-header.added    { background: var(--added-bg);    border-color: var(--added-border);    color: #22863a; }
+        .section-header.resolved { background: var(--resolved-bg); border-color: var(--resolved-border); color: var(--danger); }
+        .section-header.changed  { background: var(--changed-bg);  border-color: var(--changed-border);  color: var(--warning); }
+
+        .threat-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            overflow: hidden;
+            font-size: 13px;
+        }
+
+        .threat-table th {
+            background: #f6f8fa;
+            padding: 8px 12px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--muted);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .threat-table td {
+            padding: 9px 12px;
+            vertical-align: top;
+            border-bottom: 1px solid #eaecef;
+        }
+
+        .threat-table tr:last-child td { border-bottom: none; }
+
+        .threat-table tr:hover td { background: #f8fafc; }
+
+        .severity-badge {
+            display: inline-block;
+            padding: 1px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .sev-CRITICAL { background: #5f0d0d; color: #fff; }
+        .sev-HIGH     { background: #c62828; color: #fff; }
+        .sev-MEDIUM   { background: #e65100; color: #fff; }
+        .sev-LOW      { background: #2e7d32; color: #fff; }
+        .sev-unknown  { background: #78909c; color: #fff; }
+
+        .sev-arrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 32px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        #results { display: none; }
+
+        #no-diff-msg {
+            display: none;
+            background: var(--added-bg);
+            border: 1px solid var(--added-border);
+            border-radius: 6px;
+            padding: 16px 20px;
+            color: #22863a;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>SecOpsTM &mdash; Report Diff</h1>
+    <a href="/">&larr; Back to editor</a>
+</div>
+
+<div class="main">
+    <div class="input-grid">
+        <div class="input-card">
+            <h3>Old Report (baseline)</h3>
+            <textarea id="old-report-text" placeholder='Paste JSON report here, or use the "Load file" link below...'></textarea>
+            <label class="file-upload-label">
+                Load file&hellip;
+                <input type="file" class="file-upload-input" accept=".json" onchange="loadFile(this, 'old-report-text')">
+            </label>
+        </div>
+        <div class="input-card">
+            <h3>New Report (current)</h3>
+            <textarea id="new-report-text" placeholder='Paste JSON report here, or use the "Load file" link below...'></textarea>
+            <label class="file-upload-label">
+                Load file&hellip;
+                <input type="file" class="file-upload-input" accept=".json" onchange="loadFile(this, 'new-report-text')">
+            </label>
+        </div>
+    </div>
+
+    <div class="actions">
+        <button class="btn btn-primary" onclick="runCompare()">Compare reports</button>
+        <button class="btn btn-secondary" onclick="resetAll()">Reset</button>
+        <span id="compare-error"></span>
+    </div>
+
+    <div id="no-diff-msg">No threat differences found between the two reports.</div>
+
+    <div id="summary-bar">
+        <span class="summary-badge">
+            <span class="badge-pill pill-added" id="sum-added">0</span> new
+        </span>
+        <span class="summary-badge">
+            <span class="badge-pill pill-resolved" id="sum-resolved">0</span> resolved
+        </span>
+        <span class="summary-badge">
+            <span class="badge-pill pill-changed" id="sum-changed">0</span> severity changed
+        </span>
+    </div>
+
+    <div id="results">
+        <!-- Added -->
+        <div class="section" id="section-added" style="display:none">
+            <div class="section-header added">
+                [+] New threats
+                <span class="badge-pill pill-added" id="count-added">0</span>
+            </div>
+            <table class="threat-table">
+                <thead>
+                    <tr>
+                        <th>Severity</th>
+                        <th>Name</th>
+                        <th>Target</th>
+                        <th>STRIDE</th>
+                        <th>Source</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-added"></tbody>
+            </table>
+        </div>
+
+        <!-- Resolved -->
+        <div class="section" id="section-resolved" style="display:none">
+            <div class="section-header resolved">
+                [-] Resolved threats
+                <span class="badge-pill pill-resolved" id="count-resolved">0</span>
+            </div>
+            <table class="threat-table">
+                <thead>
+                    <tr>
+                        <th>Severity</th>
+                        <th>Name</th>
+                        <th>Target</th>
+                        <th>STRIDE</th>
+                        <th>Source</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-resolved"></tbody>
+            </table>
+        </div>
+
+        <!-- Changed -->
+        <div class="section" id="section-changed" style="display:none">
+            <div class="section-header changed">
+                [~] Severity changes
+                <span class="badge-pill pill-changed" id="count-changed">0</span>
+            </div>
+            <table class="threat-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Target</th>
+                        <th>STRIDE</th>
+                        <th>Severity change</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-changed"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    function loadFile(input, targetId) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById(targetId).value = e.target.result;
+        };
+        reader.readAsText(file);
+        input.value = '';
+    }
+
+    function sevBadge(sev) {
+        const s = (sev || 'unknown').toUpperCase();
+        const cls = ['CRITICAL','HIGH','MEDIUM','LOW'].includes(s) ? 'sev-' + s : 'sev-unknown';
+        return `<span class="severity-badge ${cls}">${s}</span>`;
+    }
+
+    function threatRow(t) {
+        return `<tr>
+            <td>${sevBadge(t.severity)}</td>
+            <td>${escHtml(t.name || '')}</td>
+            <td>${escHtml(t.target || '')}</td>
+            <td>${escHtml(t.stride_category || '')}</td>
+            <td>${escHtml(t.source || '')}</td>
+        </tr>`;
+    }
+
+    function changedRow(entry) {
+        const o = entry.old, n = entry.new;
+        return `<tr>
+            <td>${escHtml(o.name || '')}</td>
+            <td>${escHtml(o.target || '')}</td>
+            <td>${escHtml(o.stride_category || '')}</td>
+            <td><span class="sev-arrow">${sevBadge(o.severity)} &rarr; ${sevBadge(n.severity)}</span></td>
+        </tr>`;
+    }
+
+    function escHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function parseReport(textareaId) {
+        const raw = document.getElementById(textareaId).value.trim();
+        if (!raw) return null;
+        try {
+            return JSON.parse(raw);
+        } catch(e) {
+            return null;
+        }
+    }
+
+    function runCompare() {
+        const errEl = document.getElementById('compare-error');
+        errEl.textContent = '';
+
+        const oldReport = parseReport('old-report-text');
+        const newReport = parseReport('new-report-text');
+
+        if (!oldReport) { errEl.textContent = 'Old report is missing or invalid JSON.'; return; }
+        if (!newReport) { errEl.textContent = 'New report is missing or invalid JSON.'; return; }
+
+        fetch('/api/diff_reports', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({old_report: oldReport, new_report: newReport})
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) { errEl.textContent = 'Server error: ' + data.error; return; }
+            renderResults(data);
+        })
+        .catch(e => { errEl.textContent = 'Network error: ' + e.message; });
+    }
+
+    function renderResults(data) {
+        const added = data.added || [];
+        const resolved = data.resolved || [];
+        const changed = data.changed || [];
+        const summary = data.summary || {};
+
+        const noDiff = document.getElementById('no-diff-msg');
+        const results = document.getElementById('results');
+        const summaryBar = document.getElementById('summary-bar');
+
+        if (!added.length && !resolved.length && !changed.length) {
+            noDiff.style.display = 'block';
+            results.style.display = 'none';
+            summaryBar.style.display = 'none';
+            return;
+        }
+
+        noDiff.style.display = 'none';
+        results.style.display = 'block';
+        summaryBar.style.display = 'flex';
+
+        document.getElementById('sum-added').textContent = summary.added || 0;
+        document.getElementById('sum-resolved').textContent = summary.resolved || 0;
+        document.getElementById('sum-changed').textContent = summary.changed || 0;
+
+        // Added section
+        const secAdded = document.getElementById('section-added');
+        secAdded.style.display = added.length ? 'block' : 'none';
+        document.getElementById('count-added').textContent = added.length;
+        document.getElementById('tbody-added').innerHTML = added.map(threatRow).join('');
+
+        // Resolved section
+        const secResolved = document.getElementById('section-resolved');
+        secResolved.style.display = resolved.length ? 'block' : 'none';
+        document.getElementById('count-resolved').textContent = resolved.length;
+        document.getElementById('tbody-resolved').innerHTML = resolved.map(threatRow).join('');
+
+        // Changed section
+        const secChanged = document.getElementById('section-changed');
+        secChanged.style.display = changed.length ? 'block' : 'none';
+        document.getElementById('count-changed').textContent = changed.length;
+        document.getElementById('tbody-changed').innerHTML = changed.map(changedRow).join('');
+    }
+
+    function resetAll() {
+        document.getElementById('old-report-text').value = '';
+        document.getElementById('new-report-text').value = '';
+        document.getElementById('compare-error').textContent = '';
+        document.getElementById('no-diff-msg').style.display = 'none';
+        document.getElementById('results').style.display = 'none';
+        document.getElementById('summary-bar').style.display = 'none';
+    }
+</script>
+</body>
+</html>

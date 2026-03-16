@@ -155,7 +155,7 @@ class TestMakeActionNode:
         tech = _make_tech()
         result = builder._make_action_node(tech)
         # 8 angles: 0, 45, 90, 135, 180, 225, 270, 315
-        assert len(result["anchors"]) == 8
+        assert len(result["anchors"]) == 12
 
 
 # ---------------------------------------------------------------------------
@@ -167,7 +167,7 @@ class TestMakeAssetNode:
         builder = AttackFlowBuilder([], "TestModel")
         result = builder._make_asset_node("WebServer", "A web server")
         assert result["node"]["id"] == "asset"
-        assert len(result["anchors"]) == 8
+        assert len(result["anchors"]) == 12
 
     def test_name_in_properties(self):
         builder = AttackFlowBuilder([], "TestModel")
@@ -187,16 +187,17 @@ class TestMakeAssetNode:
 # ---------------------------------------------------------------------------
 
 class TestMakeObjectiveNode:
-    def test_node_id_is_objective(self):
+    def test_node_id_is_asset(self):
+        # "objective" is not a valid AFB v2 template type — must use "asset"
         builder = AttackFlowBuilder([], "TestModel")
         result = builder._make_objective_node("Compromise DB", "Steal data")
-        assert result["node"]["id"] == "objective"
+        assert result["node"]["id"] == "asset"
 
-    def test_name_and_description(self):
+    def test_name_has_objective_prefix(self):
         builder = AttackFlowBuilder([], "TestModel")
         result = builder._make_objective_node("Goal", "Impact")
         props = dict(result["node"]["properties"])
-        assert props["name"] == "Goal"
+        assert props["name"] == "[Objective] Goal"
         assert props["description"] == "Impact"
 
 

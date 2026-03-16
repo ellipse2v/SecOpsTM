@@ -15,6 +15,7 @@
 import os
 import json
 import logging
+import threading
 from typing import List, Dict, Any, Optional
 import yaml
 from threat_analysis.utils import extract_json_from_llm_response
@@ -31,7 +32,15 @@ class RAGThreatGenerator:
     Uses chromadb and litellm directly — no langchain_core / langchain_chroma imports —
     to avoid the 270–310 s cold-start penalty those packages incur on WSL2 due to
     network calls (LangSmith telemetry, model pricing fetch) at import time.
+
+    The chromadb PersistentClient and its collection are shared across all instances
+    via class-level singletons protected by a threading.Lock.  This avoids re-opening
+    the SQLite database on every instantiation in multi-request server scenarios.
     """
+
+    _chroma_client = None
+    _chroma_collection = None
+    _chroma_lock = threading.Lock()
 
     def __init__(
         self,
@@ -86,24 +95,34 @@ class RAGThreatGenerator:
         self.embeddings = get_embeddings(ai_config)
         logger.debug("Embeddings initialized: %.1fs", _time.monotonic() - _t); _t = _time.monotonic()
 
-        # Initialize chromadb directly (no langchain_chroma wrapper)
+        # Initialize chromadb directly (no langchain_chroma wrapper).
+        # Use a class-level singleton so the PersistentClient (SQLite) is opened only
+        # once, even when RAGThreatGenerator is instantiated multiple times (e.g. in
+        # multi-request server mode).
         if not os.path.exists(self.vector_store_dir):
             raise FileNotFoundError(
                 f"Vector store not found at {self.vector_store_dir}. "
                 "Please run tooling/build_vector_store.py first."
             )
 
-        chroma_client = chromadb.PersistentClient(
-            path=self.vector_store_dir,
-            settings=Settings(anonymized_telemetry=False),
-        )
-        # langchain_chroma builds the collection named "langchain" by default
-        self._chroma_collection = chroma_client.get_collection(_CHROMA_COLLECTION_NAME)
-        logger.info(
-            "Vector store loaded: collection '%s' (%d docs)",
-            _CHROMA_COLLECTION_NAME,
-            self._chroma_collection.count(),
-        )
+        with RAGThreatGenerator._chroma_lock:
+            if RAGThreatGenerator._chroma_client is None:
+                RAGThreatGenerator._chroma_client = chromadb.PersistentClient(
+                    path=self.vector_store_dir,
+                    settings=Settings(anonymized_telemetry=False),
+                )
+                # langchain_chroma builds the collection named "langchain" by default
+                RAGThreatGenerator._chroma_collection = (
+                    RAGThreatGenerator._chroma_client.get_collection(_CHROMA_COLLECTION_NAME)
+                )
+                logger.info(
+                    "Vector store loaded (singleton): collection '%s' (%d docs)",
+                    _CHROMA_COLLECTION_NAME,
+                    RAGThreatGenerator._chroma_collection.count(),
+                )
+            else:
+                logger.debug("Reusing existing ChromaDB singleton for collection '%s'.", _CHROMA_COLLECTION_NAME)
+        self.collection = RAGThreatGenerator._chroma_collection
         logger.debug("Vector store ready: %.1fs", _time.monotonic() - _t); _t = _time.monotonic()
 
         # LLM configuration
@@ -195,7 +214,7 @@ class RAGThreatGenerator:
 
         # Embed the query and search chromadb directly (no langchain wrapper)
         query_embedding = self.embeddings.embed_query(query)
-        results = self._chroma_collection.query(
+        results = self.collection.query(
             query_embeddings=[query_embedding],
             n_results=k,
         )

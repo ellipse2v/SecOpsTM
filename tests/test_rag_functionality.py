@@ -191,10 +191,11 @@ async def test_rag_threat_generator_generates_threats(mock_chat_litellm):
                 user_context_path=str(TEST_USER_CONTEXT_PATH),
                 ai_config_path=str(TEST_AI_CONFIG_PATH)
             )
-            # Set up attributes that _initialize_components would have created
+            # Set up attributes that _initialize_components would have created.
+            # self.collection is the instance reference to the class-level singleton.
             mock_collection = MagicMock()
             mock_collection.query.return_value = {"documents": [["context chunk 1"]]}
-            rag_generator._chroma_collection = mock_collection
+            rag_generator.collection = mock_collection
             mock_embeddings = MagicMock()
             mock_embeddings.embed_query.return_value = [0.1, 0.2, 0.3]
             rag_generator.embeddings = mock_embeddings

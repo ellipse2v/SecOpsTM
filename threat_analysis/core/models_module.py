@@ -120,6 +120,8 @@ class ThreatModel:
         self.context_config: Dict[str, Any] = {}
         # Set by model_factory when loading from a file path
         self._model_file_path: Optional[str] = None
+        # Populated by ExportService after GDAFEngine.run() — displayed in the HTML report
+        self.gdaf_scenarios: List[Any] = []
 
     def add_boundary(self, name: str, color: str = "lightgray", parent_boundary_obj: Optional[Boundary] = None, business_value: Optional[str] = None, **kwargs) -> SecOpsBoundary:
         """Adds a boundary to the model with additional properties, including an optional parent.

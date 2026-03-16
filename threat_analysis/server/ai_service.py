@@ -43,7 +43,79 @@ class AIService:
         self.rate_limit_sleep: float = self.ai_config.get(
             "threat_generation", {}
         ).get("rate_limit_sleep", 0.0)
+        self.max_concurrent: int = self.ai_config.get(
+            "threat_generation", {}
+        ).get("max_concurrent_ai_requests", 1)
+        # Semaphore is created in init_ai() where the event loop is active.
+        self._ai_semaphore: Optional[asyncio.Semaphore] = None
 
+
+    @staticmethod
+    def _validate_ai_config(config: Dict[str, Any]) -> List[str]:
+        """Validates AI configuration structure and returns a list of warning messages.
+
+        Uses only stdlib Python — no jsonschema dependency.
+        Designed for graceful degradation: warnings are logged, no exceptions raised.
+
+        Args:
+            config: Parsed ai_config.yaml as a dict.
+
+        Returns:
+            A list of human-readable warning strings (empty list means config is valid).
+        """
+        warnings: List[str] = []
+
+        providers = config.get("ai_providers")
+        if not isinstance(providers, dict) or not providers:
+            warnings.append(
+                "ai_providers is missing or empty — no LLM provider is configured."
+            )
+        else:
+            enabled_providers = [
+                name for name, cfg in providers.items()
+                if isinstance(cfg, dict) and cfg.get("enabled")
+            ]
+            if not enabled_providers:
+                warnings.append(
+                    "No provider has 'enabled: true' — AI features will be unavailable."
+                )
+            for name in enabled_providers:
+                cfg = providers[name]
+                if not cfg.get("model"):
+                    warnings.append(
+                        f"Provider '{name}' is enabled but has no 'model' defined."
+                    )
+
+        threat_gen = config.get("threat_generation", {})
+        if isinstance(threat_gen, dict):
+            rate_sleep = threat_gen.get("rate_limit_sleep")
+            if rate_sleep is not None:
+                try:
+                    if float(rate_sleep) < 0:
+                        warnings.append(
+                            f"threat_generation.rate_limit_sleep={rate_sleep!r} is negative; "
+                            "expected a non-negative number."
+                        )
+                except (TypeError, ValueError):
+                    warnings.append(
+                        f"threat_generation.rate_limit_sleep={rate_sleep!r} is not a valid number."
+                    )
+
+            max_concurrent = threat_gen.get("max_concurrent_ai_requests")
+            if max_concurrent is not None:
+                try:
+                    if int(max_concurrent) < 1:
+                        warnings.append(
+                            f"threat_generation.max_concurrent_ai_requests={max_concurrent!r} "
+                            "must be >= 1."
+                        )
+                except (TypeError, ValueError):
+                    warnings.append(
+                        f"threat_generation.max_concurrent_ai_requests={max_concurrent!r} "
+                        "is not a valid integer."
+                    )
+
+        return warnings
 
     def _load_ai_config(self, config_path: str) -> Dict[str, Any]:
         """Loads AI configuration from ai_config.yaml."""
@@ -52,10 +124,15 @@ class AIService:
             return {}
         try:
             with open(config_path, 'r', encoding='utf-8') as f:
-                return yaml.safe_load(f)
+                config = yaml.safe_load(f)
         except yaml.YAMLError as e:
             logging.error(f"Error parsing AI config YAML from {config_path}: {e}")
             return {}
+
+        for warning in self._validate_ai_config(config or {}):
+            logging.warning("[ai_config] %s", warning)
+
+        return config or {}
 
     def _load_context(self) -> Dict[str, Any]:
         """Loads config/context.yaml to enrich component prompts with business context."""
@@ -95,6 +172,10 @@ class AIService:
 
         self.provider = LiteLLMProvider(enabled_config)
         self.ai_online = await self.provider.check_connection()
+
+        # Semaphore must be created inside the active event loop (not in __init__).
+        self._ai_semaphore = asyncio.Semaphore(self.max_concurrent)
+        logging.info("AI semaphore initialized with max_concurrent=%d.", self.max_concurrent)
 
         # Collect RAG pre-warm result (or fall back to synchronous init)
         if rag_enabled and self.ai_online:
@@ -403,17 +484,21 @@ class AIService:
             self.ai_online = False
             return
 
-        for element in all_elements:
-            processed_elements += 1
-            progress = (processed_elements / total_elements) * 100
+        # Ensure semaphore is available (fallback in case init_ai was not awaited).
+        if self._ai_semaphore is None:
+            self._ai_semaphore = asyncio.Semaphore(self.max_concurrent)
 
-            if ai_status_event_queue:
-                data = {
-                    "status": "ai_enrichment_progress",
-                    "progress": progress,
-                    "message": f"Enriching {element.name} ({processed_elements}/{total_elements})...",
-                }
-                ai_status_event_queue.put(f"event: ai_progress\ndata: {json.dumps(data)}\n\n")
+        # Counter lock for thread-safe progress tracking across concurrent tasks.
+        _progress_lock = asyncio.Lock()
+
+        async def _enrich_one(element) -> None:
+            """Enriches a single element with AI-generated threats.
+
+            Uses _ai_semaphore to cap concurrent LLM requests (respects rate limits).
+            The rate_limit_sleep is intentionally kept INSIDE the semaphore block so
+            that the configured delay is always honoured even under concurrency.
+            """
+            nonlocal processed_elements
 
             # Pull rich attributes from props dict (server/actor/boundary) or object (dataflow)
             props = (
@@ -536,19 +621,34 @@ class AIService:
             }
             logging.debug(f"Generating AI threats for component: {element.name}")
 
-            ai_threats_json = await self.provider.generate_threats(component_details, context)
+            async with self._ai_semaphore:
+                ai_threats_json = await self.provider.generate_threats(component_details, context)
 
-            # Rate-limit pause (configurable via ai_config.yaml threat_generation.rate_limit_sleep)
-            if self.rate_limit_sleep > 0:
-                await asyncio.sleep(self.rate_limit_sleep)
+                # Rate-limit pause (configurable via ai_config.yaml threat_generation.rate_limit_sleep).
+                # Kept inside the semaphore block to honour the delay even under concurrency.
+                if self.rate_limit_sleep > 0:
+                    await asyncio.sleep(self.rate_limit_sleep)
+
+            # Update progress counter and emit SSE event (outside semaphore to avoid blocking).
+            async with _progress_lock:
+                processed_elements += 1
+                progress = (processed_elements / total_elements) * 100
+
+            if ai_status_event_queue:
+                data = {
+                    "status": "ai_enrichment_progress",
+                    "progress": progress,
+                    "message": f"Enriching {element.name} ({processed_elements}/{total_elements})...",
+                }
+                ai_status_event_queue.put(f"event: ai_progress\ndata: {json.dumps(data)}\n\n")
 
             if not ai_threats_json:
-                continue
+                return
 
             for threat_json in ai_threats_json:
                 # Convert the JSON threat to an ExtendedThreat object
-                description = f"(AI) {threat_json.get('title', 'N/A')}: {threat_json.get('description', '')}"
-                
+                threat_desc = f"(AI) {threat_json.get('title', 'N/A')}: {threat_json.get('description', '')}"
+
                 severity_map = {"critical": 5, "high": 4, "medium": 3, "low": 2, "info": 1}
                 likelihood_map = {"high": 5, "medium": 3, "low": 1}
 
@@ -556,13 +656,13 @@ class AIService:
                 severity = severity_map.get(business_impact.get('severity', 'medium').lower(), 3)
                 likelihood = likelihood_map.get(threat_json.get('likelihood', 'medium').lower(), 3)
 
-                new_threat = ExtendedThreat( # Use ExtendedThreat here
+                new_threat = ExtendedThreat(  # Use ExtendedThreat here
                     SID=threat_json.get('title', 'Unknown AI Threat'),
-                    description=description,
+                    description=threat_desc,
                     category=threat_json.get('category', 'Unknown'),
                     likelihood=likelihood,
                     impact=severity,
-                    source="AI" # Explicitly mark source for component-level AI threats
+                    source="AI"  # Explicitly mark source for component-level AI threats
                 )
                 # Store CAPEC IDs from LLM — used by map_threat_to_mitre() to derive
                 # ATT&CK technique IDs from the validated static mapping (no hallucinated T-IDs).
@@ -576,3 +676,6 @@ class AIService:
                 # Append the new threat to the element's threats list
                 element.threats.append(new_threat)
                 logging.info(f"Added AI threat '{threat_json.get('title')}' to {element.name}")
+
+        # Launch all element enrichments concurrently; _ai_semaphore limits actual parallelism.
+        await asyncio.gather(*[_enrich_one(elem) for elem in all_elements])

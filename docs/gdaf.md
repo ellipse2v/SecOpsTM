@@ -58,7 +58,39 @@ Each hop gets a `hop_score` based on the average technique score multiplied by a
 
 ### Step 7 — Output
 
-The top `max_paths_per_objective` scenarios per (actor, target) pair are emitted. `AttackFlowBuilder` serializes each scenario to an Attack Flow `.afb` file, and a `gdaf_summary.json` collects all scenarios.
+The top `max_paths_per_objective` scenarios per (actor, target) pair are emitted. `AttackFlowBuilder` serializes each scenario to an Attack Flow `.afb` file, and a `gdaf_summary.json` collects all scenarios. Scenarios are also rendered directly in the HTML threat report — see [GDAF in the HTML Report](#gdaf-in-the-html-report).
+
+---
+
+## GDAF in the HTML Report
+
+When GDAF scenarios are generated, they appear in the HTML threat report as a collapsible **"Goal-Driven Attack Scenarios (GDAF)"** `<details>` accordion, inserted between the *Attack Chain Analysis* section and the *Severity Calculation Explained* section. The accordion is closed by default to keep the report readable; click the header to expand it.
+
+The section is only shown when at least one GDAF scenario has been produced (i.e., a valid context YAML with `attack_objectives` and `threat_actors` was found and produced results). If no scenarios were generated, the section is omitted entirely.
+
+### Summary table
+
+Each scenario occupies one row:
+
+| Column | Content |
+|---|---|
+| **Risk** | Coloured badge: CRITICAL / HIGH / MEDIUM / LOW |
+| **Objective** | `objective_name` from the context YAML |
+| **Actor** | `actor_name` + sophistication level in parentheses |
+| **Attack Path** | Abbreviated hop chain: `Entry Node → Pivot → … → Target` |
+| **Score** | Numeric `path_score` (two decimal places) |
+| **Hops** | Total number of hops in the path |
+| **Detection** | `detection_coverage` percentage (from BOM `detection_level` averages) |
+
+### Hop details (row expansion)
+
+Clicking a row expands an inline detail panel showing one entry per hop:
+
+- **Node** — asset name
+- **Type** — normalized asset type (e.g., `web-server`, `domain-controller`)
+- **Protocol** — protocol of the incoming dataflow (if applicable)
+- **Flags** — `cleartext` if the dataflow is unencrypted, `no-auth` if unauthenticated
+- **Techniques** — MITRE ATT&CK technique IDs and names assigned to this hop, with links to `attack.mitre.org`
 
 ---
 
@@ -78,6 +110,8 @@ Resolution order:
 2. `config/context.yaml` (project-wide fallback)
 
 If neither exists, GDAF is silently skipped for that model.
+
+> **Web editor**: When using the **"📂 Load Project"** button in Simple Mode, any `context/` directory found inside the selected project folder is detected automatically. Its YAML files are uploaded to the server on "Generate All", and a **Context ✓** badge appears next to the button. The `gdaf_context` key in `## Context` still takes precedence if present.
 
 ### Top-level keys
 
@@ -475,6 +509,8 @@ Per-asset YAML files placed in a `BOM/` directory alongside the model file (or a
 ```
 
 BOM data overrides DSL values where both are present (e.g., `credentials_stored` in BOM takes precedence over the server DSL attribute).
+
+> **Web editor**: When using the **"📂 Load Project"** button in Simple Mode, the browser automatically detects any `BOM/` directory inside the selected project folder and uploads its YAML files to the server before generation. A **BOM ✓** badge appears next to the button confirming the directory was found. No `bom_directory` entry in `## Context` is required in this workflow.
 
 ### `internet_facing` on servers
 

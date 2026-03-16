@@ -59,6 +59,9 @@ class AttackFlowBuilder:
             file_path = obj_dir / filename
 
             flow_data = self._build_afb(scenario)
+            # Strip internal tracking keys before serialisation
+            for obj in flow_data.get("objects", []):
+                obj.pop("_anchors_list", None)
             try:
                 with open(file_path, "w", encoding="utf-8") as f:
                     json.dump(flow_data, f, indent=2)
@@ -166,7 +169,7 @@ class AttackFlowBuilder:
         now = datetime.now().astimezone()
         drawable_ids = [
             obj["instance"] for obj in all_objects
-            if obj.get("id") in ("action", "asset", "objective", "dynamic_line")
+            if obj.get("id") in ("action", "asset", "condition", "operator", "dynamic_line")
         ]
         flow_name = (
             f"{self.model_name} | {scenario.objective_name} | {scenario.actor_name}"
@@ -209,13 +212,14 @@ class AttackFlowBuilder:
     # Node factories
     # ------------------------------------------------------------------
 
-    def _make_anchors(self):
-        anchors = {}
-        anchor_objs = []
-        for angle in range(0, 360, 45):
+    def _make_anchors(self) -> tuple:
+        """Create 12 anchor objects (every 30°) matching the AFB corpus format."""
+        anchors: Dict[str, str] = {}
+        anchor_objs: List[Dict] = []
+        for angle in range(0, 360, 30):
             aid = str(uuid.uuid4())
             anchors[str(angle)] = aid
-            atype = "vertical_anchor" if angle in (90, 270) else "horizontal_anchor"
+            atype = "vertical_anchor" if angle % 90 == 0 and angle % 180 != 0 else "horizontal_anchor"
             anchor_objs.append({"id": atype, "instance": aid, "latches": []})
         return anchors, anchor_objs
 
@@ -223,7 +227,6 @@ class AttackFlowBuilder:
         """Create an AFB action node from a ScoredTechnique."""
         instance_id = str(uuid.uuid4())
         anchors, anchor_objs = self._make_anchors()
-        # Determine tactic ID from tactic name
         tactic_slug = tech.tactics[0] if tech.tactics else "unknown"
         node = {
             "id": "action",
@@ -234,6 +237,7 @@ class AttackFlowBuilder:
                 ["description", f"{tech.name} ({tech.id}) — {tech.rationale}"],
             ],
             "anchors": anchors,
+            "_anchors_list": anchor_objs,
         }
         return {"node": node, "anchors": anchor_objs}
 
@@ -248,20 +252,25 @@ class AttackFlowBuilder:
                 ["description", description],
             ],
             "anchors": anchors,
+            "_anchors_list": anchor_objs,
         }
         return {"node": node, "anchors": anchor_objs}
 
     def _make_objective_node(self, name: str, description: str) -> Dict:
+        # Attack Flow Builder does not have an "objective" template type.
+        # Valid types: action, asset, condition, operator.
+        # Represent the objective as an asset node with a visual prefix.
         instance_id = str(uuid.uuid4())
         anchors, anchor_objs = self._make_anchors()
         node = {
-            "id": "objective",
+            "id": "asset",
             "instance": instance_id,
             "properties": [
-                ["name", name],
+                ["name", f"[Objective] {name}"],
                 ["description", description],
             ],
             "anchors": anchors,
+            "_anchors_list": anchor_objs,
         }
         return {"node": node, "anchors": anchor_objs}
 
@@ -269,14 +278,35 @@ class AttackFlowBuilder:
         """Return flat list: [node, ...anchor_objs]"""
         return [node_dict["node"]] + node_dict["anchors"]
 
-    def _make_connection(self, source_node: Dict, target_node: Dict) -> List[Dict]:
+    def _make_connection(self, source_node: Dict, target_node: Dict,
+                         src_angle: int = 0, tgt_angle: int = 180) -> List[Dict]:
+        """Wire a connection using the nodes' existing anchors at the given angles.
+
+        Matches the approach in attack_flow_generator.py: latches are attached to
+        the anchor objects (via the ``latches`` list) so the AFB builder can resolve
+        connection endpoints correctly.
+        """
         line_id = str(uuid.uuid4())
         src_latch_id = str(uuid.uuid4())
         tgt_latch_id = str(uuid.uuid4())
         handle_id = str(uuid.uuid4())
 
+        # Attach latch UUIDs to the anchor objects so the builder can resolve them
+        src_anchors_list = source_node.get("_anchors_list", [])
+        src_anchor_uuid = source_node.get("anchors", {}).get(str(src_angle))
+        src_anchor_obj = next((a for a in src_anchors_list if a["instance"] == src_anchor_uuid), None)
+        if src_anchor_obj is not None:
+            src_anchor_obj.setdefault("latches", []).append(src_latch_id)
+
+        tgt_anchors_list = target_node.get("_anchors_list", [])
+        tgt_anchor_uuid = target_node.get("anchors", {}).get(str(tgt_angle))
+        tgt_anchor_obj = next((a for a in tgt_anchors_list if a["instance"] == tgt_anchor_uuid), None)
+        if tgt_anchor_obj is not None:
+            tgt_anchor_obj.setdefault("latches", []).append(tgt_latch_id)
+
         return [
-            {"id": "dynamic_line", "instance": line_id, "source": src_latch_id, "target": tgt_latch_id, "handles": [handle_id]},
+            {"id": "dynamic_line", "instance": line_id, "source": src_latch_id,
+             "target": tgt_latch_id, "handles": [handle_id]},
             {"id": "generic_latch", "instance": src_latch_id},
             {"id": "generic_latch", "instance": tgt_latch_id},
             {"id": "generic_handle", "instance": handle_id},
