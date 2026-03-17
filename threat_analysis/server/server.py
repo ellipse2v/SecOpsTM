@@ -1001,19 +1001,34 @@ def generate_all():
             import shutil as _shutil
             src_root = Path(_src_project)
             dst_root = Path(generation_dir)
+            logging.debug("generate_all: copying context/BOM from source root: %s", src_root)
             for extra_name in ("context",):
                 src = src_root / extra_name
                 if src.is_dir():
                     dst = dst_root / extra_name
                     if not dst.exists():
-                        _shutil.copytree(str(src), str(dst))
+                        try:
+                            _shutil.copytree(str(src), str(dst))
+                            logging.info("generate_all: copied %s → %s", src, dst)
+                        except Exception as _copy_err:
+                            logging.warning("generate_all: could not copy %s: %s", src, _copy_err)
             # BOM directories may exist at root and inside each sub-model directory
             for bom_dir in src_root.rglob("BOM"):
                 if bom_dir.is_dir():
                     rel = bom_dir.relative_to(src_root)
                     dst = dst_root / rel
                     if not dst.exists():
-                        _shutil.copytree(str(bom_dir), str(dst))
+                        try:
+                            _shutil.copytree(str(bom_dir), str(dst))
+                            logging.info("generate_all: copied BOM %s → %s", bom_dir, dst)
+                        except Exception as _copy_err:
+                            logging.warning("generate_all: could not copy BOM %s: %s", bom_dir, _copy_err)
+        else:
+            logging.info(
+                "generate_all: no source project path known (server started without --model / --project). "
+                "context/ and BOM/ files must be sent via extra_files by the browser. "
+                "Received %d extra_files.", len(extra_files)
+            )
 
         # 2. Save the active tab content to its ACTUAL path
         full_active_path = os.path.join(generation_dir, active_path.lstrip('./\\'))
@@ -1053,10 +1068,16 @@ def generate_all():
         def progress_cb(percent, message):
             progress_broadcaster.broadcast("progress", {"percent": percent, "message": message})
 
-        # Generate all reports and diagrams
-        # Use the actual reconstructed project folder
+        # Generate all reports and diagrams.
+        # Pass the generation_dir main.md as model_file_path so that single-model
+        # GDAF context resolution (which uses _model_file_path to anchor relative paths
+        # like "context/my_context.yaml") searches inside generation_dir, where
+        # step 1b/1c already wrote context/ and BOM/ files.
+        _gen_main_md = str(Path(generation_dir) / "main.md")
         result = get_threat_model_service().generate_full_project_export(
-            final_main_content, Path(generation_dir), submodels=submodels, progress_callback=progress_cb, project_root=Path(generation_dir)
+            final_main_content, Path(generation_dir), submodels=submodels,
+            progress_callback=progress_cb, project_root=Path(generation_dir),
+            model_file_path=_gen_main_md,
         )
         
         # Create a summary of generated files

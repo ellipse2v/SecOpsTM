@@ -89,7 +89,11 @@ def build_component_prompt(component: Dict, context: Dict) -> str:
         inbound_flows=component.get("inbound_flows", "  None"),
         outbound_flows=component.get("outbound_flows", "  None"),
         deployment=context.get("deployment_environment", "Unknown"),
-        system_desc=context.get("system_description", ""),
+        system_desc_section=(
+            f"## System Context\n    {context['system_description']}\n"
+            if context.get("system_description")
+            else ""
+        ),
         data_sensitivity=context.get("data_sensitivity", "Medium"),
         compliance=", ".join(compliance) if compliance else "None specified",
         user_base=context.get("user_base", "Unknown"),

@@ -203,8 +203,7 @@ async def test_rag_threat_generator_generates_threats(mock_chat_litellm):
             rag_generator._llm_params = {"temperature": 0.5}
             rag_generator._rag_system_prompt = "You are a security expert."
             rag_generator._rag_human_template = (
-                "System: {system_description}\n"
-                "Intel: {user_threat_intelligence}\n"
+                "{optional_context}\n"
                 "Model: {threat_model_markdown}\n"
                 "Context: {context}"
             )

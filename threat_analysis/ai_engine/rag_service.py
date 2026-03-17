@@ -165,24 +165,34 @@ class RAGThreatGenerator:
 
     def _load_user_context(self) -> Dict[str, Any]:
         """Loads user-defined system description and threat intelligence."""
+        _empty = {"system_description": "", "user_threat_intelligence": ""}
         if not os.path.exists(self.user_context_path):
-            logger.warning(f"User context file not found: {self.user_context_path}. Returning empty context.")
-            return {"system_description": "N/A", "user_threat_intelligence": "N/A"}
+            logger.info(
+                "No user context loaded (file not found: %s). "
+                "RAG threats will be based on architecture only.",
+                self.user_context_path,
+            )
+            return _empty
         try:
             with open(self.user_context_path, 'r', encoding='utf-8') as f:
                 context_data = json.load(f)
-                system_desc = context_data.get("system_description", "N/A")
+                system_desc = context_data.get("system_description", "")
                 threat_intel = "\n".join(context_data.get("threat_intelligence", []))
+                if not system_desc and not threat_intel:
+                    logger.info(
+                        "User context file loaded but contains no description or threat intelligence: %s",
+                        self.user_context_path,
+                    )
                 return {
                     "system_description": system_desc,
                     "user_threat_intelligence": threat_intel,
                 }
         except json.JSONDecodeError as e:
             logger.error(f"Error decoding user context JSON from {self.user_context_path}: {e}")
-            return {"system_description": "N/A", "user_threat_intelligence": "N/A"}
+            return _empty
         except Exception as e:
             logger.error(f"Unexpected error loading user context: {e}")
-            return {"system_description": "N/A", "user_threat_intelligence": "N/A"}
+            return _empty
 
     # ------------------------------------------------------------------
     # Public API
@@ -205,11 +215,13 @@ class RAGThreatGenerator:
         user_threat_intelligence = user_context["user_threat_intelligence"]
 
         # --- Retrieval ---
-        query = (
-            f"System: {system_description}\n"
-            f"Threat Model:\n{threat_model_markdown}\n"
-            f"User Threat Intel:\n{user_threat_intelligence}"
-        )
+        # Only include context fields in the query when they carry real content.
+        query_parts = [f"Threat Model:\n{threat_model_markdown}"]
+        if system_description:
+            query_parts.insert(0, f"System: {system_description}")
+        if user_threat_intelligence:
+            query_parts.append(f"User Threat Intel:\n{user_threat_intelligence}")
+        query = "\n".join(query_parts)
         logger.debug("Retrieving %d relevant documents from vector store...", k)
 
         # Embed the query and search chromadb directly (no langchain wrapper)
@@ -228,9 +240,16 @@ class RAGThreatGenerator:
         def _esc(s: str) -> str:
             return s.replace("{", "{{").replace("}", "}}")
 
+        # Build optional context sections — omit entirely when empty to avoid
+        # sending meaningless placeholder text to the LLM.
+        ctx_sections: List[str] = []
+        if system_description:
+            ctx_sections.append(f"## System Description\n{_esc(system_description)}")
+        if user_threat_intelligence:
+            ctx_sections.append(f"## User Threat Intelligence\n{_esc(user_threat_intelligence)}")
+
         human_message = self._rag_human_template.format(
-            system_description=_esc(system_description),
-            user_threat_intelligence=_esc(user_threat_intelligence),
+            optional_context="\n\n".join(ctx_sections),
             threat_model_markdown=_esc(threat_model_markdown),
             context=_esc(context_text),
         )
