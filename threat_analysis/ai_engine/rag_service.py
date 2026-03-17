@@ -240,7 +240,10 @@ class RAGThreatGenerator:
         ]
 
         try:
+            os.environ.setdefault("LITELLM_LOCAL_MODEL_COST_MAP", "True")
             import litellm
+            litellm.suppress_debug_info = True
+            litellm.set_verbose = False
             response = litellm.completion(
                 model=self._llm_model,
                 messages=messages,

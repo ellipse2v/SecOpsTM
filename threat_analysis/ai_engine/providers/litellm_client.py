@@ -60,9 +60,24 @@ class LiteLLMClient:
                     break
             
             if self.provider_config:
+                # Prevent LiteLLM from fetching the model cost map from the internet.
+                # Must be set BEFORE importing litellm so it is picked up during module init.
+                os.environ.setdefault("LITELLM_LOCAL_MODEL_COST_MAP", "True")
+
+                # Propagate SSL certificate to the underlying HTTP transports (httpx / requests)
+                # used by LiteLLM internally (e.g. for any residual network calls).
+                _ssl_cert = self.ai_config.get("ssl_cert_file") or self.provider_config.get("ssl_verify")
+                if isinstance(_ssl_cert, str) and os.path.isfile(_ssl_cert):
+                    os.environ.setdefault("SSL_CERT_FILE", _ssl_cert)
+                    os.environ.setdefault("REQUESTS_CA_BUNDLE", _ssl_cert)
+                    logging.info("Enterprise SSL cert applied to HTTP transports: %s", _ssl_cert)
+
                 # Dynamically import litellm only if an AI provider is enabled
                 try:
                     self._litellm_module = importlib.import_module("litellm")
+                    # Suppress LiteLLM's startup noise and telemetry-style network calls.
+                    self._litellm_module.suppress_debug_info = True
+                    self._litellm_module.set_verbose = False
                     logging.debug(f"[{time.time() - start_time:.4f}s] litellm module dynamically imported.")
                 except ImportError as e:
                     logging.error(f"[{time.time() - start_time:.4f}s] Failed to import litellm: {e}. AI features disabled.")
