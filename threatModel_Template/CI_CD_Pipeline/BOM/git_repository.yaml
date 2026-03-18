@@ -1,0 +1,20 @@
+# BOM: Git Repository
+asset: "Git Repository"
+software_version: "GitLab Community Edition 16.8.1"
+patch_level: outdated
+known_cves:
+  - CVE-2023-7028  # GitLab account takeover via password reset without user interaction
+  - CVE-2023-5009  # GitLab pipeline execution as arbitrary user via scan policies
+  - CVE-2024-0402  # GitLab arbitrary file write via workspace feature
+running_services:
+  - HTTPS
+  - SSH
+  - Git
+  - GitLab API (REST/GraphQL)
+detection_level: medium
+credentials_stored: true
+notes: >
+  Stores all source code, pipeline definitions (.gitlab-ci.yml), and branch protection
+  configurations. CVE-2023-7028 is critical — allows full account takeover without
+  user interaction; patch to 16.9.1+ immediately. SSH host keys and deploy tokens
+  are high-value targets for supply chain attackers.

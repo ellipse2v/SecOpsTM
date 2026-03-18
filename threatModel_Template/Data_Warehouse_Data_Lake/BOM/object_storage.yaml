@@ -1,0 +1,11 @@
+# BOM: ObjectStorage
+asset: "ObjectStorage"
+os_version: "managed_service"
+software_version: "AWS S3 or Azure Data Lake Storage Gen2 (managed)"
+patch_level: current
+known_cves: []
+running_services:
+  - HTTPS (S3/ADLS API)
+detection_level: medium
+credentials_stored: false
+notes: "Cloud object storage holding raw ingested data and intermediate ETL artifacts. Primary risk is misconfiguration: public bucket ACLs, overly broad IAM roles, or missing bucket policies. S3 Block Public Access may not be enforced at account level. No S3 server-side access logging enabled on all buckets. Data at rest encrypted with SSE-S3 (not SSE-KMS with customer-managed keys)."

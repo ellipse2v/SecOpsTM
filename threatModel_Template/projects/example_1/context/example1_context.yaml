@@ -1,0 +1,63 @@
+# GDAF Context: Example 1 — API Gateway + Microservice Drill-Down
+system_description: "Simple API gateway and microservice demonstration project showing sub-model drill-down capability. The top-level model exposes an APIService (api_gateway) that delegates to a sub-model containing a Database backend. A NormalService handles auxiliary business logic. This template demonstrates how SecOpsTM links parent and child threat models."
+sector: "Demo / SaaS API"
+data_sensitivity: "INTERNAL"
+internet_facing: true
+compliance_requirements:
+  - "OWASP API Security Top 10"
+deployment_environment: "Cloud-hosted, single region, containerized"
+
+attack_objectives:
+  - id: "OBJ-EX1-001"
+    name: "API Injection for Database Access"
+    description: "External attacker submits malicious payloads through the API gateway to the NormalService or APIService, exploiting insufficient input validation to perform injection attacks against the backend database in the sub-model."
+    target_asset_names:
+      - "APIService"
+      - "NormalService"
+    target_types: ["api_gateway"]
+    attacker_intent: "exfiltrate data from the backend database through the API layer"
+    business_impact: "data breach, loss of customer trust, API service downtime"
+    mitre_final_tactic: "exfiltration"
+    min_severity_score: 6.0
+
+  - id: "OBJ-EX1-002"
+    name: "Unauthorized API Access via Broken Authentication"
+    description: "Attacker exploits missing or weak authentication on the APIService or NormalService endpoints to access data without valid credentials, bypassing authorization controls."
+    target_asset_names:
+      - "APIService"
+      - "NormalService"
+    target_types: ["api_gateway"]
+    attacker_intent: "access protected API endpoints and retrieve sensitive data without authorization"
+    business_impact: "unauthorized data access, potential regulatory violation, service abuse"
+    mitre_final_tactic: "initial-access"
+    min_severity_score: 5.5
+
+threat_actors:
+  - id: "TA-EX1-001"
+    name: "Generic External Attacker"
+    sophistication: "medium"
+    objectives: ["OBJ-EX1-001", "OBJ-EX1-002"]
+    entry_preference: "internet-facing"
+    description: "Generic external attacker targeting the public-facing API service. Uses automated scanning tools and manual exploitation of OWASP API Security Top 10 vulnerabilities. Opportunistic but capable of chaining multiple weaknesses."
+    known_ttps:
+      - "T1190"   # Exploit Public-Facing Application
+      - "T1078"   # Valid Accounts
+      - "T1059"   # Command and Scripting Interpreter
+      - "T1041"   # Exfiltration Over C2 Channel
+    capable_tactics:
+      - "initial-access"
+      - "execution"
+      - "credential-access"
+      - "collection"
+      - "exfiltration"
+
+risk_criteria:
+  acceptable_risk_score: 4.0
+  max_hops: 4
+  max_paths_per_objective: 2
+  gdaf_min_technique_score: 0.7
+
+business_goals_to_protect:
+  - "API service availability and integrity"
+  - "Data confidentiality of backend database (sub-model)"
+  - "Authentication and authorization enforcement on all API endpoints"

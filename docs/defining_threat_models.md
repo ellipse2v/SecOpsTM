@@ -683,6 +683,53 @@ providing full context without duplicating definitions.
 In GDAF, bridging edges are automatically added: attacker paths can traverse from the parent
 server into the child model's internal topology, and back out through the parent's exit dataflows.
 
+### Ghost node mechanism — how child diagrams show parent connections
+
+The child model does **not** declare anything about its parent. Ghost nodes are built entirely
+from the parent's `## Dataflows` section at render time.
+
+**Algorithm:**
+
+1. `_collect_parent_connections(parent_tm, server_name)` scans every dataflow in the parent
+   and collects stubs where `source` or `sink` matches the sub-model server name (case-insensitive).
+   Each stub records the peer name, direction (`incoming` / `outgoing`), protocol, and
+   encryption/auth flags.
+
+2. Inside the child diagram, the generator classifies the child's own servers into:
+   - **root servers** — servers that receive no inbound dataflow within the child (entry points).
+   - **leaf servers** — servers that send no outbound dataflow within the child (exit points).
+
+3. Ghost nodes are placed:
+   - `incoming` stub → ghost node in the green **"External connections in"** cluster, wired
+     to the child's root servers.
+   - `outgoing` stub → ghost node in the orange **"External connections out"** cluster, wired
+     from the child's leaf servers.
+   - **Same peer in both directions** (reverse proxy pattern) → single ghost node in the
+     purple **"External connections bidirectional"** cluster, with arrows in both directions.
+
+**What must match:** the server name used in the parent's `## Dataflows` must equal the `submodel=`
+server name after `.lower().strip()`. The child model declares nothing — it is unaware of its parent.
+
+### Reverse proxy pattern
+
+When a reverse proxy sits in front of a backend and routes all traffic:
+
+```markdown
+# parent/main.md
+## Servers
+- **ReverseProxy**: boundary=DMZ, type=web-server
+- **BackendCluster**: boundary="App Zone", submodel=./backend/model.md
+
+## Dataflows
+- **ProxyToBackend**: from=ReverseProxy, to=BackendCluster, protocol=HTTP
+- **BackendToProxy**: from=BackendCluster, to=ReverseProxy, protocol=HTTP
+```
+
+In the child diagram (`backend/model.md`), `ReverseProxy` appears **once** in a single purple
+bidirectional ghost cluster with arrows in both directions — not duplicated across the green/orange
+clusters. The ghost is wired to the child's root servers (incoming) and from the child's leaf
+servers (outgoing), reflecting the actual traffic path.
+
 ---
 
 ## BOM Files (Bill of Materials)

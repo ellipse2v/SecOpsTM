@@ -1,0 +1,14 @@
+# BOM: Data Storage
+asset: "Data Storage"
+os_version: "managed_or_ubuntu_22.04"
+software_version: "InfluxDB 2.6.1 or AWS S3 (managed)"
+patch_level: outdated
+known_cves:
+  - CVE-2023-29009   # InfluxDB path traversal allows reading arbitrary files
+  - CVE-2022-36640   # InfluxDB SSRF via Flux queries
+running_services:
+  - HTTPS (InfluxDB API)
+  - Flux query engine
+detection_level: medium
+credentials_stored: false
+notes: "Time-series or object storage for raw IoT sensor data. InfluxDB self-hosted deployment not patched against path traversal (CVE-2023-29009). Flux query language allows powerful server-side data processing — query injection could exfiltrate data. Data retention policies not enforced, leading to unbounded storage growth with sensitive historical data."

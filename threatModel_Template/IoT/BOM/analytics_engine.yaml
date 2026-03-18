@@ -1,0 +1,15 @@
+# BOM: Analytics Engine
+asset: "Analytics Engine"
+os_version: "ubuntu_22.04"
+software_version: "Apache Spark 3.4.1 on Kubernetes"
+patch_level: outdated
+known_cves:
+  - CVE-2023-22946   # Apache Spark privilege escalation via malicious config in spark-submit
+  - CVE-2022-33891   # Apache Spark UI shell command injection via ACL bypass
+running_services:
+  - Spark UI (port 4040)
+  - HTTPS
+  - Spark REST API
+detection_level: low
+credentials_stored: false
+notes: "Apache Spark cluster used for stream and batch analytics on IoT data. Spark UI exposed without authentication in development configuration (CVE-2022-33891 shell injection). spark-submit from untrusted sources not restricted. Running on Kubernetes with overly broad pod security policies. Hadoop credential files in /etc may be readable by Spark jobs."

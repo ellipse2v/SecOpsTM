@@ -1,0 +1,15 @@
+# BOM: SparkCluster
+asset: "SparkCluster"
+os_version: "ubuntu_22.04"
+software_version: "Apache Spark 3.4.1 on Kubernetes"
+patch_level: outdated
+known_cves:
+  - CVE-2023-22946   # Apache Spark privilege escalation via spark-submit config injection
+  - CVE-2022-33891   # Apache Spark UI shell command injection (unauthenticated Spark UI)
+running_services:
+  - Spark UI (port 4040)
+  - HTTPS (REST API)
+  - Spark Thrift Server (JDBC port 10000)
+detection_level: low
+credentials_stored: false
+notes: "Apache Spark cluster running on Kubernetes for distributed data transformation. Spark Thrift Server exposed for JDBC access from BI tools — authentication may use plaintext passwords. Spark UI accessible without authentication from within the cluster network. Dynamic allocation enabled, creating ephemeral executors that may inherit service account permissions. No network policy restricting inter-pod communication."

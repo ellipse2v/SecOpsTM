@@ -1,0 +1,103 @@
+# GDAF Context: Traditional Enterprise Network
+system_description: "Medium-sized enterprise running a Windows Active Directory environment with a DMZ hosting public web services. Internal employees authenticate against the Domain Controller via Kerberos. File shares, internal applications, and an internet-facing web server in the DMZ are protected by a perimeter firewall. Primary concern is lateral movement, ransomware, and domain compromise."
+sector: "Enterprise / Corporate IT"
+data_sensitivity: "CONFIDENTIAL"
+internet_facing: true
+compliance_requirements:
+  - "ISO 27001"
+  - "NIST CSF"
+deployment_environment: "On-premise Windows domain, single site"
+
+attack_objectives:
+  - id: "OBJ-ENT-001"
+    name: "Domain Compromise via Kerberoasting"
+    description: "Attacker gains initial foothold through the DMZ web server, performs internal reconnaissance, and uses Kerberoasting to extract service account hashes. Cracks offline to obtain domain admin credentials and fully compromises Active Directory."
+    target_asset_names:
+      - "DomainController"
+    target_types: ["domain_controller"]
+    attacker_intent: "achieve domain admin privileges to enable ransomware deployment, data exfiltration, or persistent access"
+    business_impact: "complete Active Directory compromise, ability to create rogue accounts, unlock all internal systems"
+    mitre_final_tactic: "privilege-escalation"
+    min_severity_score: 8.0
+
+  - id: "OBJ-ENT-002"
+    name: "Ransomware Deployment via Lateral Movement"
+    description: "Cybercriminal group compromises a workstation or the DMZ web server, moves laterally using Pass-the-Hash or SMB exploitation, reaches the File Server and Domain Controller, then deploys ransomware encrypting all accessible shares."
+    target_asset_names:
+      - "File Server"
+      - "DomainController"
+    target_types: ["file_server", "domain_controller"]
+    attacker_intent: "encrypt business-critical data and extort ransom payment from the organization"
+    business_impact: "complete business disruption, data loss, ransom demand, regulatory notification obligations"
+    mitre_final_tactic: "impact"
+    min_severity_score: 8.5
+
+  - id: "OBJ-ENT-003"
+    name: "Sensitive Data Exfiltration from File Server"
+    description: "Attacker with valid domain credentials (phished or brute-forced) maps and exfiltrates confidential business documents, HR records, and intellectual property from the File Server before detection."
+    target_asset_names:
+      - "File Server"
+    target_types: ["file_server"]
+    attacker_intent: "steal intellectual property or sensitive business data for competitive advantage or resale"
+    business_impact: "IP theft, competitive disadvantage, potential regulatory breach under GDPR/NDA obligations"
+    mitre_final_tactic: "exfiltration"
+    min_severity_score: 6.5
+
+threat_actors:
+  - id: "TA-ENT-001"
+    name: "Cybercriminal Ransomware Group"
+    sophistication: "high"
+    objectives: ["OBJ-ENT-001", "OBJ-ENT-002"]
+    entry_preference: "internet-facing"
+    description: "Organized cybercriminal group specializing in ransomware-as-a-service. Gains initial access through the DMZ, performs systematic lateral movement using built-in Windows tools (living-off-the-land), disables endpoint detection before deploying ransomware."
+    known_ttps:
+      - "T1190"   # Exploit Public-Facing Application
+      - "T1558.003"  # Kerberoasting
+      - "T1550.002"  # Pass the Hash
+      - "T1021.002"  # SMB/Windows Admin Shares
+      - "T1486"   # Data Encrypted for Impact
+      - "T1562.001"  # Disable or Modify Tools
+      - "T1083"   # File and Directory Discovery
+    capable_tactics:
+      - "initial-access"
+      - "execution"
+      - "persistence"
+      - "privilege-escalation"
+      - "defense-evasion"
+      - "credential-access"
+      - "lateral-movement"
+      - "collection"
+      - "impact"
+
+  - id: "TA-ENT-002"
+    name: "Rogue System Administrator"
+    sophistication: "high"
+    objectives: ["OBJ-ENT-003", "OBJ-ENT-001"]
+    entry_preference: "internal"
+    description: "Disgruntled or bribed system administrator with legitimate privileged access to Active Directory and file shares. Abuses existing permissions to exfiltrate sensitive data or create backdoor accounts before departing."
+    known_ttps:
+      - "T1078.002"  # Valid Accounts: Domain Accounts
+      - "T1003.001"  # LSASS Memory (credential dumping)
+      - "T1136.002"  # Create Account: Domain Account
+      - "T1039"   # Data from Network Shared Drive
+      - "T1048"   # Exfiltration Over Alternative Protocol
+    capable_tactics:
+      - "initial-access"
+      - "persistence"
+      - "privilege-escalation"
+      - "credential-access"
+      - "collection"
+      - "exfiltration"
+
+risk_criteria:
+  acceptable_risk_score: 5.0
+  max_hops: 6
+  max_paths_per_objective: 3
+  gdaf_min_technique_score: 0.8
+
+business_goals_to_protect:
+  - "Active Directory integrity and domain admin accounts"
+  - "Business-critical file shares and intellectual property"
+  - "Internal application availability and data confidentiality"
+  - "DMZ web server integrity and public reputation"
+  - "Regulatory compliance under ISO 27001 and GDPR"

@@ -1,0 +1,24 @@
+# BOM: Authentication Service
+asset: "Authentication Service"
+software_version: "Keycloak 22.0.5 (containerized, with Okta federation)"
+patch_level: outdated
+known_cves:
+  - CVE-2023-6134  # Keycloak open redirect via crafted redirect_uri (phishing vector)
+  - CVE-2023-6544  # Keycloak authorization bypass in permissive policy realm configuration
+  - CVE-2024-1132  # Keycloak path traversal in redirect_uri validation bypass
+running_services:
+  - HTTPS (8443) — OIDC/SAML endpoints
+  - Admin Console (9443 — internal only, requires MFA)
+  - Management API (9990 — internal only)
+  - LDAP/AD federation connector
+detection_level: high
+credentials_stored: true
+notes: >
+  Central Identity Provider issuing OIDC tokens (JWT RS256) and SAML 2.0 assertions.
+  SAML signing key (RSA-4096) stored in Keycloak database — this is the highest-value
+  target in the entire Zero Trust architecture. Key rotation policy: annually (increase
+  frequency to quarterly). Hardware Security Module (HSM) integration is planned but
+  not yet implemented.
+  CVE-2024-1132 allows redirect_uri bypass that can be used for phishing — upgrade to
+  Keycloak 24.0.x immediately. MFA (TOTP + FIDO2) is mandatory for all users.
+  Audit events streamed to SIEM (detection: high). Admin console restricted to Trusted Network.

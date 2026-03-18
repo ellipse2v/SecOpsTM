@@ -1,0 +1,14 @@
+# BOM: BITools
+asset: "BITools"
+os_version: "ubuntu_22.04"
+software_version: "Tableau Server 2023.3 or Grafana 10.1.5"
+patch_level: outdated
+known_cves:
+  - CVE-2023-6152   # Grafana unauthorized role escalation via viewer-to-admin API
+  - CVE-2023-3128   # Grafana authentication bypass using Azure AD OAuth
+running_services:
+  - HTTPS
+  - Grafana UI (port 3000)
+detection_level: medium
+credentials_stored: true
+notes: "BI visualization layer (Tableau or Grafana). Grafana CVE-2023-6152 allows a Viewer-role user to escalate to Admin through a broken access control in the user preferences API. Data source credentials (Snowflake/BigQuery service accounts) stored in Grafana data source configurations — accessible to Admin users. Row-level security on published dashboards not consistently configured. Public dashboard sharing enabled."

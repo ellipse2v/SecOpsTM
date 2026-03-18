@@ -1,0 +1,14 @@
+# BOM: MonolithicApp
+asset: "MonolithicApp"
+os_version: "ubuntu_22.04"
+software_version: "PHP 8.1.27 / Laravel 10.x"
+patch_level: outdated
+known_cves:
+  - CVE-2023-28362   # Rails DoS via ReDoS in Accept header parsing (if Rails variant used)
+  - CVE-2023-40167   # Jetty HTTP parsing bypass (may affect embedded HTTP stacks)
+running_services:
+  - HTTP
+  - PHP-FPM
+detection_level: low
+credentials_stored: true
+notes: "Monolithic PHP/Laravel application. Database credentials stored in .env file on disk. Application-level session management without HttpOnly/Secure flags on all cookies. No CSP header configured. Debug mode potentially enabled in non-production tiers."

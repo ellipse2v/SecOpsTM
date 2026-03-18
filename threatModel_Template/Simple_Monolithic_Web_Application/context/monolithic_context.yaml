@@ -1,0 +1,93 @@
+# GDAF Context: Simple Monolithic Web Application
+system_description: "Small-to-medium business PHP/Rails/Django monolithic web application served through a load balancer with a relational database backend. The application handles user authentication, business logic, and data persistence in a single deployable unit. OWASP Top 10 threats are the primary concern."
+sector: "SMB / E-Commerce"
+data_sensitivity: "CONFIDENTIAL"
+internet_facing: true
+compliance_requirements:
+  - "OWASP Top 10"
+  - "GDPR (basic)"
+deployment_environment: "On-premise or VPS, single region"
+
+attack_objectives:
+  - id: "OBJ-MON-001"
+    name: "SQL Injection for Data Exfiltration"
+    description: "Attacker exploits unsanitized input fields in the monolithic application to inject SQL commands, dumping the entire customer database including PII and credentials."
+    target_asset_names:
+      - "DatabaseServer"
+      - "MonolithicApp"
+    target_types: ["database", "web_server"]
+    attacker_intent: "steal customer PII and hashed credentials for resale or account takeover"
+    business_impact: "GDPR breach notification, regulatory fines, customer churn, reputational damage"
+    mitre_final_tactic: "exfiltration"
+    min_severity_score: 7.0
+
+  - id: "OBJ-MON-002"
+    name: "Remote Code Execution via Code Injection"
+    description: "Attacker submits malicious payload through an HTTP form or API endpoint to achieve server-side code execution on the monolithic application server, enabling persistent backdoor installation."
+    target_asset_names:
+      - "MonolithicApp"
+    target_types: ["web_server"]
+    attacker_intent: "establish persistent access, pivot to internal systems, deploy crypto-miner or ransomware"
+    business_impact: "full application compromise, potential lateral movement to database, service downtime"
+    mitre_final_tactic: "execution"
+    min_severity_score: 7.5
+
+  - id: "OBJ-MON-003"
+    name: "Session Hijacking and Account Takeover"
+    description: "Attacker intercepts or predicts session tokens to impersonate legitimate users or administrators, accessing sensitive business data and admin functions."
+    target_asset_names:
+      - "MonolithicApp"
+      - "LoadBalancer"
+    target_types: ["web_server", "load_balancer"]
+    attacker_intent: "access privileged accounts, extract business data, perform fraudulent transactions"
+    business_impact: "financial fraud, data exposure, loss of admin control"
+    mitre_final_tactic: "credential-access"
+    min_severity_score: 6.0
+
+threat_actors:
+  - id: "TA-MON-001"
+    name: "Automated Web Scanner"
+    sophistication: "low"
+    objectives: ["OBJ-MON-001", "OBJ-MON-003"]
+    entry_preference: "internet-facing"
+    description: "Script kiddie or automated vulnerability scanner probing for common OWASP Top 10 flaws. Uses tools like sqlmap, Nikto, or commercial scanners. Opportunistic, not targeted."
+    known_ttps:
+      - "T1190"   # Exploit Public-Facing Application
+      - "T1592"   # Gather Victim Host Information
+      - "T1078"   # Valid Accounts (credential stuffing)
+    capable_tactics:
+      - "initial-access"
+      - "credential-access"
+      - "collection"
+
+  - id: "TA-MON-002"
+    name: "Targeted Web Attacker"
+    sophistication: "medium"
+    objectives: ["OBJ-MON-001", "OBJ-MON-002", "OBJ-MON-003"]
+    entry_preference: "internet-facing"
+    description: "Motivated attacker specifically targeting this application for financial gain or competitive espionage. Performs manual code review of public endpoints, crafts custom injection payloads, and chains vulnerabilities for maximum impact."
+    known_ttps:
+      - "T1190"   # Exploit Public-Facing Application
+      - "T1059"   # Command and Scripting Interpreter
+      - "T1505.003"  # Web Shell
+      - "T1560"   # Archive Collected Data
+      - "T1041"   # Exfiltration Over C2 Channel
+    capable_tactics:
+      - "initial-access"
+      - "execution"
+      - "persistence"
+      - "credential-access"
+      - "collection"
+      - "exfiltration"
+
+risk_criteria:
+  acceptable_risk_score: 4.0
+  max_hops: 4
+  max_paths_per_objective: 3
+  gdaf_min_technique_score: 0.7
+
+business_goals_to_protect:
+  - "Customer PII and account credentials in the database"
+  - "Application availability and uptime SLA"
+  - "Admin panel and privileged functionality"
+  - "Payment or transaction data processed by the application"

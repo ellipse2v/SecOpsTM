@@ -1,0 +1,20 @@
+# BOM: Authorization Service
+asset: "Authorization Service"
+software_version: "Open Policy Agent (OPA) 0.57.1"
+patch_level: current
+known_cves: []
+running_services:
+  - OPA REST API (8181 — internal only)
+  - OPA gRPC (8282 — internal only)
+  - Prometheus metrics (8282/metrics)
+detection_level: high
+credentials_stored: false
+notes: >
+  OPA instance evaluating Rego policies for all access decisions. Policies are stored in
+  a dedicated Git repository with branch protection and mandatory code review.
+  Policy bundle updates are fetched from a signed OPA bundle server (not the public bundle registry).
+  OPA decision logs are streamed to SIEM for audit trail (all allow/deny decisions recorded).
+  No direct user input reaches OPA — all claims come from validated JWT tokens signed by
+  the Authentication Service. Watch for Rego policy logic errors that create unintended
+  allow rules (common pattern: default allow = false must be explicit in every policy file).
+  OPA 0.57 is a recent release; no critical CVEs. Keep updated within the 0.57.x series.

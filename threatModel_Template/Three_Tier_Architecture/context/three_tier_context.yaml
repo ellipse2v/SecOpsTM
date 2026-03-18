@@ -1,0 +1,161 @@
+# GDAF Context: Three-Tier Architecture
+
+system_description: >
+  Corporate intranet portal serving 2000+ internal employees. Built on a classic
+  three-tier architecture: an Nginx web server (presentation tier) behind an HAProxy
+  load balancer, a Tomcat/Node.js application server (business logic tier), and a
+  MySQL database server (data tier). The application handles employee HR data, payroll
+  information, internal documents, and ticketing. Accessible from the corporate network
+  and via VPN for remote users.
+sector: "Corporate / Internal IT"
+data_sensitivity: "high"
+internet_facing: false
+compliance_requirements:
+  - "ISO 27001"
+  - "GDPR (employee PII)"
+  - "SOX (financial data)"
+  - "OWASP Top 10"
+deployment_environment: "on-premises (corporate data center)"
+
+attack_objectives:
+  - id: "OBJ-3T-001"
+    name: "SQL Injection to Database Exfiltration"
+    description: >
+      Attacker exploits an unsanitized input field in the web application (login form,
+      search box, or URL parameter) to inject SQL commands that dump the entire employee
+      database — including HR records, salary data, hashed passwords, and sensitive
+      business documents. UNION-based or blind time-based SQLi techniques used to
+      enumerate and exfiltrate data.
+    target_asset_names:
+      - "DatabaseServer"
+    target_types: ["database", "mysql", "sql"]
+    attacker_intent: "collection, exfiltration"
+    business_impact: "Mass employee PII breach; HR and payroll data exposed; GDPR/SOX violations; reputational damage"
+    mitre_final_tactic: "exfiltration"
+    min_severity_score: 8.5
+
+  - id: "OBJ-3T-002"
+    name: "Stored XSS to Session Token Theft"
+    description: >
+      Attacker injects a persistent JavaScript payload into a user-controllable field
+      (e.g. ticketing system comment, user profile) that executes in the browsers of
+      other employees who view the content. The payload harvests their session cookies
+      or localStorage tokens and exfiltrates them to an attacker-controlled endpoint,
+      enabling account takeover.
+    target_asset_names:
+      - "Client Web Browser"
+      - "WebServer"
+    target_types: ["client_browser", "web_server", "xss"]
+    attacker_intent: "credential-access, initial-access"
+    business_impact: "Privileged account takeover (IT admin, HR manager); access to all data visible to victim user"
+    mitre_final_tactic: "credential-access"
+    min_severity_score: 7.5
+
+  - id: "OBJ-3T-003"
+    name: "Application Server Remote Code Execution"
+    description: >
+      Attacker exploits a deserialization vulnerability, file upload bypass, or
+      server-side template injection in the application tier to achieve Remote Code
+      Execution on the application server. From there, attacker can pivot to the database
+      using credentials stored in the application configuration files.
+    target_asset_names:
+      - "AppServer"
+      - "DatabaseServer"
+    target_types: ["app_server", "tomcat", "rce"]
+    attacker_intent: "execution, lateral-movement, collection"
+    business_impact: "Full application server compromise; database credential extraction; pivot to database for full data dump"
+    mitre_final_tactic: "execution"
+    min_severity_score: 9.0
+
+  - id: "OBJ-3T-004"
+    name: "Unauthorized Database Direct Access by Privileged Insider"
+    description: >
+      A database administrator or developer with direct database access (MySQL client,
+      Adminer, or phpMyAdmin) queries or exports sensitive tables (employee salaries,
+      HR performance reviews, payroll) outside of normal business hours without
+      authorization, bypassing application-layer audit controls.
+    target_asset_names:
+      - "DatabaseServer"
+    target_types: ["database", "mysql", "insider"]
+    attacker_intent: "collection, exfiltration"
+    business_impact: "Unauthorized access to employee PII; GDPR breach; legal liability; insider data theft"
+    mitre_final_tactic: "collection"
+    min_severity_score: 7.0
+
+threat_actors:
+  - id: "TA-3T-001"
+    name: "External Web Attacker (OWASP Top 10 Exploitation)"
+    sophistication: "medium"
+    objectives: ["OBJ-3T-001", "OBJ-3T-002", "OBJ-3T-003"]
+    entry_preference: "internet-facing"
+    description: >
+      External attacker targeting the web application with automated scanners (Nikto, OWASP ZAP,
+      sqlmap, XSStrike) and manual exploitation techniques. Motivated by data theft, ransomware
+      deployment, or competitive intelligence. Entry via VPN portal brute force or exploitation
+      of a public-facing weakness. Knowledge of common web vulnerabilities (OWASP Top 10).
+    known_ttps:
+      - "T1190"  # Exploit Public-Facing Application
+      - "T1059"  # Command and Scripting Interpreter (SQLi, SSTI)
+      - "T1185"  # Browser Session Hijacking (XSS)
+      - "T1110"  # Brute Force (login page)
+      - "T1505"  # Server Software Component (webshell upload)
+      - "T1552"  # Unsecured Credentials (config file with DB password)
+    capable_tactics:
+      - "initial-access"
+      - "execution"
+      - "persistence"
+      - "credential-access"
+      - "lateral-movement"
+      - "collection"
+      - "exfiltration"
+
+  - id: "TA-3T-002"
+    name: "Insider DB Administrator (Unauthorized Access)"
+    sophistication: "medium"
+    objectives: ["OBJ-3T-004"]
+    entry_preference: "insider"
+    description: >
+      Database administrator or senior developer with direct MySQL access credentials.
+      May use legitimate tools (MySQL Workbench, mysqldump) to exfiltrate sensitive tables
+      for personal gain or in preparation for leaving the organization. Aware of monitoring
+      gaps — operations performed outside business hours or on non-production replica.
+    known_ttps:
+      - "T1078"  # Valid Accounts
+      - "T1048"  # Exfiltration Over Alternative Protocol
+      - "T1005"  # Data from Local System (direct DB query)
+    capable_tactics:
+      - "collection"
+      - "exfiltration"
+
+  - id: "TA-3T-003"
+    name: "Ransomware Operator (Opportunistic)"
+    sophistication: "low"
+    objectives: ["OBJ-3T-003", "OBJ-3T-001"]
+    entry_preference: "internet-facing"
+    description: >
+      Ransomware group targeting intranet portals accessible via VPN or exposed admin
+      interfaces. Initial access via phishing or exploitation of unpatched web server CVEs.
+      Goal is to encrypt the database server and all application data for extortion.
+      Targets backup systems and shadow copies to prevent recovery.
+    known_ttps:
+      - "T1566"  # Phishing
+      - "T1486"  # Data Encrypted for Impact
+      - "T1490"  # Inhibit System Recovery
+      - "T1070"  # Indicator Removal (delete logs)
+    capable_tactics:
+      - "initial-access"
+      - "execution"
+      - "impact"
+
+risk_criteria:
+  acceptable_risk_score: 5.0
+  max_hops: 5
+  max_paths_per_objective: 3
+  gdaf_min_technique_score: 0.75
+
+business_goals_to_protect:
+  - "Confidentiality of employee HR and payroll data stored in the database"
+  - "Integrity of application data (no SQL injection, no tampering with HR records)"
+  - "Prevention of XSS attacks that could lead to admin session takeover"
+  - "Isolation between presentation tier and database tier (no direct DB access from WebServer)"
+  - "Audit trail for all database accesses to detect insider exfiltration"

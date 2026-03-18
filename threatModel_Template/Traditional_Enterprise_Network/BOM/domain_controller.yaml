@@ -1,0 +1,19 @@
+# BOM: DomainController
+asset: "DomainController"
+os_version: "windows_server_2019"
+software_version: "Active Directory Domain Services 10.0.17763"
+patch_level: outdated
+known_cves:
+  - CVE-2020-1472   # Zerologon - Netlogon privilege escalation to domain admin
+  - CVE-2021-42278  # Active Directory sAMAccountName spoofing
+  - CVE-2021-42287  # Active Directory privilege escalation (noPac chain)
+running_services:
+  - Kerberos
+  - LDAP
+  - LDAPS
+  - RPC
+  - SMB
+  - DNS
+detection_level: medium
+credentials_stored: true
+notes: "Primary domain controller. Zerologon (CVE-2020-1472) patch may not be applied if AV/patch management is delayed. Stores all domain user hashes (NTDS.dit). LAPS not configured on all workstations. Privileged Access Workstation policy not enforced for admin sessions."

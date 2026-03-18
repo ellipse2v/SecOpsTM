@@ -1,0 +1,13 @@
+# BOM: BackendDatabase
+asset: "BackendDatabase"
+os_version: "ubuntu_22.04"
+software_version: "PostgreSQL 15.4"
+patch_level: outdated
+known_cves:
+  - CVE-2023-39417   # PostgreSQL extension script injection (allows privilege escalation)
+  - CVE-2023-2454    # PostgreSQL schema permission bypass
+running_services:
+  - PostgreSQL
+detection_level: medium
+credentials_stored: true
+notes: "PostgreSQL database storing user financial data, transaction history, and PII. Database user for the application has broad permissions (not least-privilege). No column-level encryption for payment card data. Audit logging enabled but not forwarded to SIEM in real time. Backups encrypted at rest."

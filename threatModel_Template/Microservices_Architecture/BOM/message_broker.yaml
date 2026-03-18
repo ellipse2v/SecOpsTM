@@ -1,0 +1,21 @@
+# BOM: MessageBroker
+asset: "MessageBroker"
+software_version: "Apache Kafka 3.5.1 (KRaft mode, no ZooKeeper)"
+patch_level: outdated
+known_cves:
+  - CVE-2023-25194  # Apache Kafka Connect RCE via JNDI injection in connector configuration
+running_services:
+  - Kafka broker (9092 — PLAINTEXT, internal; 9093 — SSL)
+  - Kafka Connect REST API (8083 — internal)
+  - Kafka JMX (9999 — management, internal only)
+detection_level: low
+credentials_stored: false
+notes: >
+  Message broker for async event streaming between UserService (producer) and
+  ProductService (consumer). CVE-2023-25194 affects Kafka Connect REST API — if any
+  Connect worker is deployed, restrict the Connect REST API to localhost and patch to
+  Kafka 3.4.1+/3.5.2+. SASL/SCRAM-SHA-256 authentication is enabled for producers/consumers.
+  PLAINTEXT listener on 9092 should be disabled; only SSL (9093) should be used in production.
+  No audit logging to SIEM; only local broker logs (detection: low).
+  Topic ACLs are configured but use a wildcard allow for the application service account.
+  Upgrade to Kafka 3.6.x recommended.

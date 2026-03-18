@@ -1,0 +1,21 @@
+# BOM: ServiceDiscovery
+asset: "ServiceDiscovery"
+software_version: "HashiCorp Consul 1.16.2"
+patch_level: outdated
+known_cves:
+  - CVE-2023-0845  # Consul agent RCE via crafted xDS requests to Envoy sidecar management interface
+running_services:
+  - Consul HTTP API (8500 — internal)
+  - Consul DNS (8600 — internal)
+  - Consul gRPC (8502 — xDS for Envoy)
+  - Consul UI (8500 — should be disabled in production)
+detection_level: low
+credentials_stored: false
+notes: >
+  Service registry and health check service for dynamic microservice routing.
+  CVE-2023-0845 allows RCE via a crafted xDS configuration request — patch to Consul 1.16.3+.
+  Consul ACL system is enabled but some service tokens have overly broad node:write permissions.
+  KV store is used for feature flags (not secrets) — verify no credentials are stored.
+  Consul UI should be disabled in production or restricted to management VLAN only.
+  No integration with SIEM; audit logging not enabled (detection: low).
+  Upgrade to Consul 1.17.x recommended.

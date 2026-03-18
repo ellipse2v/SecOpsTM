@@ -1,0 +1,14 @@
+# BOM: DataLakehouse
+asset: "DataLakehouse"
+os_version: "managed_service"
+software_version: "Delta Lake 2.4 / Apache Iceberg 1.3 on Databricks Runtime 13.3"
+patch_level: outdated
+known_cves:
+  - CVE-2022-35737   # SQLite integer overflow (used in some embedded Databricks components)
+  - CVE-2023-22946   # Apache Spark (underlying engine) privilege escalation
+running_services:
+  - Databricks HTTPS API
+  - Delta sharing protocol
+detection_level: medium
+credentials_stored: false
+notes: "Delta Lake or Apache Iceberg lakehouse layer on Databricks. Delta sharing protocol may expose curated tables to external consumers if tokens are not rotated. Fine-grained access control (Unity Catalog) not fully configured — column masking and row filters not applied to all PII columns. Databricks cluster auto-termination policies not enforced, keeping secrets in memory longer than necessary."

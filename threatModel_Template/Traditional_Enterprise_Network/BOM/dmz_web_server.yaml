@@ -1,0 +1,15 @@
+# BOM: DMZWebServer
+asset: "DMZWebServer"
+os_version: "ubuntu_20.04"
+software_version: "Apache 2.4.57"
+patch_level: outdated
+known_cves:
+  - CVE-2023-25690   # Apache mod_proxy HTTP request smuggling / SSRF
+  - CVE-2023-27522   # Apache HTTP Server mod_proxy_uwsgi HTTP response splitting
+running_services:
+  - HTTPS
+  - HTTP
+  - SSH
+detection_level: medium
+credentials_stored: false
+notes: "Internet-facing web server in the DMZ. mod_proxy enabled and potentially misconfigured, exposing CVE-2023-25690 (SSRF / request smuggling). No WAF in front of Apache. SSH port 22 accessible from internet for admin access. Serves as the primary attack entry point in the threat model."

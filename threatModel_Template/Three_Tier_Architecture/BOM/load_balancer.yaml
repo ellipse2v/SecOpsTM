@@ -1,0 +1,19 @@
+# BOM: Load Balancer
+asset: "Load Balancer"
+software_version: "HAProxy 2.8.3"
+patch_level: current
+known_cves: []
+running_services:
+  - HTTPS (443)
+  - HTTP (80) — redirect to HTTPS
+  - HAProxy stats page (8404 — internal management network only)
+detection_level: low
+credentials_stored: false
+notes: >
+  HAProxy load balancer distributing traffic across WebServer instances.
+  TLS termination occurs here; TLS 1.2/1.3 only. PROXY protocol v2 forwards real
+  client IPs to the web tier for accurate access logging.
+  Stats endpoint is restricted to the management VLAN (10.10.0.0/24).
+  HAProxy 2.8 LTS — no critical CVEs. Access logs are local only (not forwarded to SIEM —
+  detection: low). Upgrading SIEM integration for the load balancer is recommended.
+  No WAF at this layer — WAF rules are applied at the WebServer (Nginx ModSecurity).

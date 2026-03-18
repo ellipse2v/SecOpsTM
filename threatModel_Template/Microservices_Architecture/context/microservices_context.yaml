@@ -1,0 +1,164 @@
+# GDAF Context: Microservices Architecture
+
+system_description: >
+  Online retail platform built on Kubernetes-based microservices with a service mesh
+  (Istio/Linkerd). Traffic flows from users through HAProxy load balancer, a Kong API
+  Gateway, synchronously to a Spring Boot UserService, which publishes events to an
+  Apache Kafka message broker. A Go-based ProductService consumes those events.
+  A Consul service discovery registry enables dynamic routing. Both services share access
+  to a PostgreSQL database. Service-to-service communication uses mTLS via the service mesh.
+sector: "E-commerce / Retail"
+data_sensitivity: "high"
+internet_facing: true
+compliance_requirements:
+  - "PCI DSS v4.0"
+  - "GDPR"
+  - "OWASP API Security Top 10"
+deployment_environment: "Kubernetes (on-premises + cloud burst)"
+
+attack_objectives:
+  - id: "OBJ-MS-001"
+    name: "API Gateway Bypass and Rate Limit Evasion"
+    description: >
+      Attacker identifies misconfigured API Gateway routes that forward unauthenticated or
+      improperly validated requests directly to microservices. Exploits missing rate limits
+      or JWT validation gaps to perform account enumeration, credential stuffing, or scraping
+      of the product catalog without authentication.
+    target_asset_names:
+      - "APIGateway"
+    target_types: ["api_gateway", "kong", "envoy"]
+    attacker_intent: "initial-access, credential-access, collection"
+    business_impact: "User account takeover; business logic abuse; customer data scraping for competitor intelligence"
+    mitre_final_tactic: "initial-access"
+    min_severity_score: 7.0
+
+  - id: "OBJ-MS-002"
+    name: "Message Queue Poisoning via Kafka Topic Injection"
+    description: >
+      Attacker who has compromised the UserService (or any authenticated Kafka producer)
+      publishes crafted messages to the Kafka order-events topic, injecting malicious
+      payloads that trigger unvalidated deserialization in the ProductService consumer,
+      leading to remote code execution or data manipulation.
+    target_asset_names:
+      - "MessageBroker"
+      - "ProductService"
+    target_types: ["message_broker", "kafka", "microservice"]
+    attacker_intent: "execution, lateral-movement"
+    business_impact: "Arbitrary code execution in ProductService; inventory manipulation; fraudulent order processing"
+    mitre_final_tactic: "execution"
+    min_severity_score: 8.0
+
+  - id: "OBJ-MS-003"
+    name: "Lateral Movement via Service Mesh mTLS Certificate Theft"
+    description: >
+      Attacker who has foothold in one microservice steals the mTLS client certificate
+      (from the sidecar proxy secret mount or certificate rotation endpoint) and uses it
+      to impersonate the service and make authenticated calls to all other services in the
+      mesh, including the database and the service discovery registry.
+    target_asset_names:
+      - "UserService"
+      - "AppDatabase"
+      - "ServiceDiscovery"
+    target_types: ["microservice", "service_mesh", "mtls"]
+    attacker_intent: "lateral-movement, credential-access, collection"
+    business_impact: "Full service mesh lateral movement; database dump; service discovery poisoning to redirect traffic"
+    mitre_final_tactic: "lateral-movement"
+    min_severity_score: 8.5
+
+  - id: "OBJ-MS-004"
+    name: "Database Credential Exfiltration and Direct SQL Access"
+    description: >
+      Attacker extracts PostgreSQL credentials from Kubernetes secrets, Consul KV store,
+      or Spring Boot application configuration (environment variables) and uses them to
+      directly query the database via port-forward or a compromised pod — bypassing all
+      application-layer access controls and audit logging.
+    target_asset_names:
+      - "AppDatabase"
+    target_types: ["database", "postgresql", "sql"]
+    attacker_intent: "collection, exfiltration"
+    business_impact: "Complete dump of user accounts, order history, payment tokens, and product pricing data"
+    mitre_final_tactic: "exfiltration"
+    min_severity_score: 9.0
+
+threat_actors:
+  - id: "TA-MS-001"
+    name: "API Abuser (Automated Bot)"
+    sophistication: "low"
+    objectives: ["OBJ-MS-001"]
+    entry_preference: "internet-facing"
+    description: >
+      Automated attacker running off-the-shelf API abuse tools (Axeman, ffuf, wfuzz) and
+      credential stuffing lists. Targets exposed API endpoints for account takeover, price
+      scraping, inventory hoarding (scalper bots), and checkout abuse. High volume, low
+      sophistication. Easily detected but resilient via IP rotation.
+    known_ttps:
+      - "T1190"  # Exploit Public-Facing Application
+      - "T1110"  # Brute Force
+      - "T1498"  # Network Denial of Service
+      - "T1526"  # Cloud Service Discovery
+    capable_tactics:
+      - "initial-access"
+      - "credential-access"
+      - "collection"
+      - "impact"
+
+  - id: "TA-MS-002"
+    name: "Skilled Attacker (Service Mesh Lateral Movement)"
+    sophistication: "high"
+    objectives: ["OBJ-MS-002", "OBJ-MS-003", "OBJ-MS-004"]
+    entry_preference: "internet-facing"
+    description: >
+      Skilled adversary with knowledge of Kubernetes internals, Kafka security models,
+      and mTLS certificate theft techniques. Initial access via a public-facing CVE
+      (Kong plugin RCE, Kafka JNDI injection). Then performs environment enumeration,
+      secret extraction from Kubernetes API, and lateral movement across the service mesh.
+      Uses low-and-slow techniques to avoid anomaly detection.
+    known_ttps:
+      - "T1190"  # Exploit Public-Facing Application (CVE in Kong/Kafka)
+      - "T1552"  # Unsecured Credentials (K8s secrets, env vars)
+      - "T1550"  # Use Alternate Authentication Material (stolen mTLS cert)
+      - "T1021"  # Remote Services (kubectl exec, port-forward)
+      - "T1082"  # System Information Discovery
+      - "T1046"  # Network Service Discovery (Consul enumeration)
+    capable_tactics:
+      - "initial-access"
+      - "execution"
+      - "persistence"
+      - "privilege-escalation"
+      - "defense-evasion"
+      - "credential-access"
+      - "discovery"
+      - "lateral-movement"
+      - "collection"
+      - "exfiltration"
+
+  - id: "TA-MS-003"
+    name: "Malicious Insider (Developer/Operator)"
+    sophistication: "medium"
+    objectives: ["OBJ-MS-004"]
+    entry_preference: "insider"
+    description: >
+      Developer or SRE with kubectl access and knowledge of Kubernetes secret locations.
+      Can perform kubectl port-forward to the database pod and exfiltrate data directly
+      without triggering application-layer alerts. Insider threat motivated by data resale
+      or competitive intelligence.
+    known_ttps:
+      - "T1078"  # Valid Accounts
+      - "T1048"  # Exfiltration Over Alternative Protocol
+      - "T1530"  # Data from Cloud Storage Object
+    capable_tactics:
+      - "collection"
+      - "exfiltration"
+
+risk_criteria:
+  acceptable_risk_score: 5.0
+  max_hops: 6
+  max_paths_per_objective: 3
+  gdaf_min_technique_score: 0.75
+
+business_goals_to_protect:
+  - "Integrity of Kafka message stream (no unauthenticated producers or message tampering)"
+  - "mTLS enforcement across all service-to-service communication in the mesh"
+  - "Confidentiality of PostgreSQL credentials (no plaintext in config files or env vars)"
+  - "API Gateway as the sole entry point (no direct microservice exposure)"
+  - "Customer PII and payment data in the database must not be exfiltrated"

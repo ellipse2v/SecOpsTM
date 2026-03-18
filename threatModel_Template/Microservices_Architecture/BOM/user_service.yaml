@@ -1,0 +1,21 @@
+# BOM: UserService
+asset: "UserService"
+software_version: "Spring Boot 3.1.5 (JVM 21, OpenJDK, containerized Alpine)"
+patch_level: outdated
+known_cves:
+  - CVE-2023-34055  # Spring Boot Actuator DoS via crafted multipart request (unbounded memory)
+  - CVE-2023-20883  # Spring Boot Actuator information disclosure via /heapdump endpoint
+running_services:
+  - HTTP (8080 — internal, behind API Gateway)
+  - Spring Boot Actuator (8081 — metrics, health; management.endpoints.web.exposure.include must be restricted)
+  - gRPC (9090 — internal)
+detection_level: medium
+credentials_stored: true
+notes: >
+  User authentication, profile management, and session handling service. Stores bcrypt-hashed
+  passwords and issues JWT tokens. Kafka producer for user-action events.
+  CVE-2023-20883: if /actuator/heapdump is exposed, attackers can extract JWT signing keys,
+  DB passwords, and session tokens from heap dump — restrict actuator endpoints immediately.
+  Spring Boot 3.1.x — upgrade to 3.2.x for security fixes.
+  Database credentials injected via Kubernetes secret (env var DB_PASSWORD).
+  mTLS client certificate mounted at /etc/ssl/certs/service.crt (Istio sidecar).

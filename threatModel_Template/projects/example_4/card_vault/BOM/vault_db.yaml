@@ -1,0 +1,10 @@
+asset: VaultDB
+os_version: RHEL 8.8
+software_version: PostgreSQL 15.4
+patch_level: current
+known_cves:
+  - CVE-2023-39417
+running_services: [postgresql, pgaudit, pg_activity, patroni]
+detection_level: high
+credentials_stored: true
+notes: "AES-256 TDE via pgcrypto. pgAudit enabled for all DML on card_data schema. Patroni HA with streaming replication. CVE-2023-39417 (SQL injection in extensions) — no user-installable extensions policy enforced."

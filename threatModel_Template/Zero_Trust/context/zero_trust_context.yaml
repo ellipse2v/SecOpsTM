@@ -1,0 +1,175 @@
+# GDAF Context: Zero Trust Architecture
+
+system_description: >
+  Enterprise Zero Trust Network Access (ZTNA) deployment for a remote workforce of 5000+
+  employees. Users access corporate resources exclusively through identity-based policies —
+  no implicit network trust. An Okta/Keycloak-based Authentication Service issues OIDC/SAML
+  tokens. An OPA-based Authorization Service evaluates fine-grained policies. An Envoy-based
+  Policy Enforcement Point (PEP) mediates all access to workload microservices. Administrators
+  manage the Policy Engine from the Trusted Network via HTTPS with MFA.
+sector: "Enterprise IT / Financial Services"
+data_sensitivity: "critical"
+internet_facing: true
+compliance_requirements:
+  - "NIST SP 800-207 (Zero Trust Architecture)"
+  - "CISA Zero Trust Maturity Model"
+  - "ISO 27001"
+  - "SOX"
+  - "PCI DSS v4.0"
+deployment_environment: "hybrid (on-premises IdP + cloud workloads)"
+
+attack_objectives:
+  - id: "OBJ-ZT-001"
+    name: "Golden SAML / Identity Provider Compromise"
+    description: >
+      Nation-state attacker compromises the Identity Provider (or steals its SAML signing key)
+      to forge authentication assertions for any user in the organization — including
+      administrators. This 'Golden SAML' attack (as used in SolarWinds/SUNBURST) bypasses
+      MFA and all downstream authorization controls because the signed assertion is indistinguishable
+      from a legitimate one.
+    target_asset_names:
+      - "Authentication Service"
+    target_types: ["authentication_service", "idp", "saml", "oidc"]
+    attacker_intent: "initial-access, persistence, privilege-escalation"
+    business_impact: "Complete bypass of all identity-based Zero Trust controls; attacker can impersonate any user including executives and system admins"
+    mitre_final_tactic: "privilege-escalation"
+    min_severity_score: 9.5
+
+  - id: "OBJ-ZT-002"
+    name: "Policy Engine Manipulation via Admin Interface"
+    description: >
+      Attacker who has compromised an administrator account (via phishing or credential theft)
+      uses the Policy Engine admin API to add permissive policies (e.g. allow all traffic from
+      a specific IP or user group) or to disable existing deny rules, effectively disabling
+      Zero Trust enforcement for a targeted access path.
+    target_asset_names:
+      - "Policy Engine"
+    target_types: ["policy_engine", "pep", "opa"]
+    attacker_intent: "defense-evasion, persistence"
+    business_impact: "Zero Trust enforcement degraded or disabled for targeted workloads; attacker gains persistent access path that survives credential rotation"
+    mitre_final_tactic: "defense-evasion"
+    min_severity_score: 8.5
+
+  - id: "OBJ-ZT-003"
+    name: "OAuth2/OIDC Token Replay and Session Hijacking"
+    description: >
+      Attacker intercepts or steals a valid OIDC access token (via XSS, insecure token
+      storage in browser localStorage, or network eavesdropping on a misconfigured TLS endpoint)
+      and replays it to the Policy Engine to gain access to workloads for the duration of
+      the token's validity (typically 1 hour). If refresh tokens are also stolen, access
+      is persistent until the session is explicitly revoked.
+    target_asset_names:
+      - "Authentication Service"
+      - "Policy Engine"
+    target_types: ["authentication_service", "token", "session"]
+    attacker_intent: "credential-access, lateral-movement"
+    business_impact: "Unauthorized access to all workloads authorized for the victim user; sensitive data exfiltration"
+    mitre_final_tactic: "credential-access"
+    min_severity_score: 7.5
+
+  - id: "OBJ-ZT-004"
+    name: "Authorization Policy Bypass via Attribute Manipulation"
+    description: >
+      Attacker who has a low-privilege valid token manipulates user-controlled claims
+      (e.g. department, role, or group membership attributes) that are trusted by the
+      OPA policy without server-side verification, causing the Authorization Service to
+      grant elevated access to privileged workloads.
+    target_asset_names:
+      - "Authorization Service"
+      - "Microservice A"
+    target_types: ["authorization_service", "opa", "policy", "microservice"]
+    attacker_intent: "privilege-escalation, lateral-movement"
+    business_impact: "Privilege escalation from standard user to admin-level access; lateral movement to sensitive workloads"
+    mitre_final_tactic: "privilege-escalation"
+    min_severity_score: 8.0
+
+threat_actors:
+  - id: "TA-ZT-001"
+    name: "Nation-State APT (Identity Infrastructure Attack)"
+    sophistication: "nation-state"
+    objectives: ["OBJ-ZT-001", "OBJ-ZT-002"]
+    entry_preference: "supply-chain"
+    description: >
+      Advanced Persistent Threat group specializing in identity infrastructure attacks
+      (Cozy Bear / APT29 / Midnight Blizzard pattern). Targets SSO/SAML providers through
+      supply chain compromise, spear phishing of IdP admins, or exploitation of CVEs in
+      authentication middleware. Ultimate goal is persistent, undetected access to all
+      corporate resources via forged tokens. Highly patient; may maintain access for months
+      before executing primary objective.
+    known_ttps:
+      - "T1195"   # Supply Chain Compromise
+      - "T1556"   # Modify Authentication Process
+      - "T1606"   # Forge Web Credentials (SAML tokens)
+      - "T1078"   # Valid Accounts
+      - "T1098"   # Account Manipulation (persist admin access)
+      - "T1027"   # Obfuscated Files or Information (hide malicious policy)
+      - "T1562"   # Impair Defenses (disable IdP audit logging)
+    capable_tactics:
+      - "initial-access"
+      - "execution"
+      - "persistence"
+      - "privilege-escalation"
+      - "defense-evasion"
+      - "credential-access"
+      - "lateral-movement"
+      - "collection"
+      - "exfiltration"
+
+  - id: "TA-ZT-002"
+    name: "Credential Thief (OAuth Token Theft)"
+    sophistication: "medium"
+    objectives: ["OBJ-ZT-003", "OBJ-ZT-004"]
+    entry_preference: "internet-facing"
+    description: >
+      Financially motivated attacker targeting OAuth2/OIDC tokens via phishing pages that
+      mimic the corporate login portal, browser extension compromise, or exploitation of
+      an XSS vulnerability in a web application that stores tokens in localStorage.
+      Resells stolen session tokens on darkweb markets or uses them for corporate espionage.
+    known_ttps:
+      - "T1528"  # Steal Application Access Token
+      - "T1566"  # Phishing (credential harvesting)
+      - "T1185"  # Browser Session Hijacking
+      - "T1539"  # Steal Web Session Cookie
+      - "T1134"  # Access Token Manipulation
+    capable_tactics:
+      - "initial-access"
+      - "credential-access"
+      - "lateral-movement"
+      - "collection"
+      - "exfiltration"
+
+  - id: "TA-ZT-003"
+    name: "Compromised Administrator (Insider / Phished Admin)"
+    sophistication: "medium"
+    objectives: ["OBJ-ZT-002", "OBJ-ZT-001"]
+    entry_preference: "insider"
+    description: >
+      An administrator account compromised through targeted spear phishing or MFA bypass
+      (SIM swapping, push fatigue MFA bombing). The attacker uses the admin's legitimate
+      access to the Policy Engine to add backdoor policies or to export SAML signing
+      certificates. May operate under the assumption that admin-level access is never
+      monitored in the "trusted" network segment.
+    known_ttps:
+      - "T1078"  # Valid Accounts (compromised admin)
+      - "T1621"  # Multi-Factor Authentication Request Generation (MFA fatigue)
+      - "T1098"  # Account Manipulation
+      - "T1552"  # Unsecured Credentials (export signing certs)
+    capable_tactics:
+      - "initial-access"
+      - "persistence"
+      - "privilege-escalation"
+      - "defense-evasion"
+      - "credential-access"
+
+risk_criteria:
+  acceptable_risk_score: 4.0
+  max_hops: 5
+  max_paths_per_objective: 4
+  gdaf_min_technique_score: 0.85
+
+business_goals_to_protect:
+  - "Inviolability of the IdP — SAML/OIDC signing keys must never be extractable"
+  - "Integrity of Policy Engine rules — all policy changes must be audited and require MFA"
+  - "Short token lifetimes and rapid revocation capability for stolen tokens"
+  - "Zero implicit trust — even admin actions from Trusted Network require authentication"
+  - "Complete audit trail of all authorization decisions for SOX/PCI compliance"

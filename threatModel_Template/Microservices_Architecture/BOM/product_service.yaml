@@ -1,0 +1,19 @@
+# BOM: ProductService
+asset: "ProductService"
+software_version: "Go 1.21.4 (compiled binary, Alpine Linux 3.18 container)"
+patch_level: current
+known_cves: []
+running_services:
+  - HTTP (8080 — internal)
+  - gRPC (9090 — internal)
+  - Kafka consumer group (product-events-group)
+detection_level: medium
+credentials_stored: false
+notes: >
+  Product catalog management service written in Go. Kafka consumer for order and
+  inventory events published by UserService. Go 1.21 is the current stable branch;
+  no known critical CVEs. Binary compiled with CGO_ENABLED=0 for minimal attack surface.
+  Container runs as non-root (UID 1001). No filesystem writes except /tmp.
+  Kafka consumer uses SASL/SCRAM-SHA-256 authentication to the broker.
+  Deserialization uses protobuf — ensure schema validation is strict (reject unknown fields).
+  No direct database access in current design; reads product data via UserService gRPC API.

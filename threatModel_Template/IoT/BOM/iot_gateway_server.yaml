@@ -1,0 +1,15 @@
+# BOM: IoT Gateway Server
+asset: "IoT Gateway Server"
+os_version: "raspbian_11 / debian_11"
+software_version: "Eclipse Mosquitto 2.0.17"
+patch_level: outdated
+known_cves:
+  - CVE-2023-0809   # Eclipse Mosquitto DoS via memory exhaustion on malformed SUBSCRIBE
+  - CVE-2023-28366  # Eclipse Mosquitto broker memory leak in error handling
+running_services:
+  - MQTT (port 1883)
+  - MQTTS (port 8883)
+  - SSH
+detection_level: low
+credentials_stored: true
+notes: "Raspberry Pi or industrial edge gateway running Mosquitto MQTT broker. Unauthenticated MQTT on port 1883 may be enabled for legacy sensor compatibility. Default credentials on SSH. CVE-2023-0809 allows unauthenticated DoS. Gateway has outbound internet access for cloud connectivity — risk of pivot to cloud. Physical access to device is not controlled in all deployments."

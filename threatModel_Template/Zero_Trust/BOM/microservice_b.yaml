@@ -1,0 +1,18 @@
+# BOM: Microservice B
+asset: "Microservice B"
+software_version: "Go 1.21.5 (compiled binary, containerized Alpine Linux 3.18)"
+patch_level: current
+known_cves: []
+running_services:
+  - HTTPS (8001 — accessible only via Policy Engine or Microservice A via PEP)
+  - Health check (/healthz)
+detection_level: medium
+credentials_stored: false
+notes: >
+  Secondary workload microservice. Receives calls from Microservice A via the Policy Engine
+  (inter-service Zero Trust path with per-service OIDC client credentials).
+  Go 1.21.5 — no critical CVEs. CGO_ENABLED=0 for minimal binary attack surface.
+  Container runs as non-root (UID 1001), read-only root filesystem, no privilege escalation.
+  Service account Kubernetes secret is mounted with projected service account tokens
+  (audience-bound, 1-hour expiry). No persistent storage; all data transient.
+  mTLS enforced on all inbound connections via Istio sidecar (secondary layer behind PEP).

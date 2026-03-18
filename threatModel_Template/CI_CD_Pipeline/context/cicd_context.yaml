@@ -1,0 +1,152 @@
+# GDAF Context: CI/CD Pipeline
+
+system_description: >
+  Continuous Integration and Deployment pipeline for a DevSecOps team. The pipeline spans
+  development workstations, a Git-based code repository, a Jenkins-based build server,
+  an Artifactory artifact registry, and a Kubernetes production cluster. The pipeline
+  automates build, test, and deployment workflows triggered by code push events.
+sector: "Software Development / DevSecOps"
+data_sensitivity: "high"
+internet_facing: true
+compliance_requirements:
+  - "NIST SP 800-218 (SSDF)"
+  - "CIS Software Supply Chain Security Guide"
+  - "SOC 2 Type II"
+deployment_environment: "hybrid (cloud CI + on-prem registry)"
+
+attack_objectives:
+  - id: "OBJ-CICD-001"
+    name: "Supply Chain Compromise via Code Repository"
+    description: >
+      Attacker introduces malicious code into the Git repository (via compromised developer
+      credentials, branch protection bypass, or dependency confusion) to execute arbitrary
+      code in all downstream build and production environments.
+    target_asset_names:
+      - "Git Repository"
+    target_types: ["git_repo", "source_control"]
+    attacker_intent: "persistence, defense-evasion, execution"
+    business_impact: "Full supply chain compromise; malicious code shipped to all customers"
+    mitre_final_tactic: "execution"
+    min_severity_score: 7.5
+
+  - id: "OBJ-CICD-002"
+    name: "CI Server Credential Theft and Pipeline Hijacking"
+    description: >
+      Attacker compromises the CI server (Jenkins RCE, CSRF, or misconfigured webhook) to
+      extract build-time secrets (API keys, signing certificates, cloud credentials) stored
+      as environment variables or in the Jenkins credential store, then redirects pipeline
+      output to a malicious registry.
+    target_asset_names:
+      - "CIServer"
+    target_types: ["ci_cd_server", "build_server"]
+    attacker_intent: "credential-access, collection, exfiltration"
+    business_impact: "All pipeline secrets exposed; attacker can deploy arbitrary containers to production"
+    mitre_final_tactic: "credential-access"
+    min_severity_score: 8.0
+
+  - id: "OBJ-CICD-003"
+    name: "Container Image Tampering in Artifact Registry"
+    description: >
+      Attacker replaces legitimate container images in the artifact registry with trojaned
+      versions, either by compromising registry credentials or exploiting an unauthenticated
+      API endpoint. All deployments pulling from this registry will execute attacker-controlled code.
+    target_asset_names:
+      - "ArtifactRegistry"
+    target_types: ["docker_registry", "artifact_store"]
+    attacker_intent: "persistence, lateral-movement"
+    business_impact: "Malicious containers deployed to Kubernetes production cluster at next release cycle"
+    mitre_final_tactic: "persistence"
+    min_severity_score: 7.0
+
+  - id: "OBJ-CICD-004"
+    name: "Kubernetes Cluster Takeover via Compromised Deployment"
+    description: >
+      Attacker leverages a compromised CI pipeline or stolen kubeconfig to deploy privileged
+      pods, escape container boundaries, and gain node-level or cluster-admin access to the
+      production Kubernetes cluster.
+    target_asset_names:
+      - "KubeCluster"
+    target_types: ["kubernetes_cluster", "container_orchestration"]
+    attacker_intent: "privilege-escalation, lateral-movement, impact"
+    business_impact: "Full production environment compromise; all customer data at risk"
+    mitre_final_tactic: "privilege-escalation"
+    min_severity_score: 9.0
+
+threat_actors:
+  - id: "TA-CICD-001"
+    name: "Supply Chain Attacker"
+    sophistication: "high"
+    objectives: ["OBJ-CICD-001", "OBJ-CICD-002", "OBJ-CICD-003"]
+    entry_preference: "supply-chain"
+    description: >
+      Nation-state or well-funded criminal group specialising in software supply chain attacks.
+      Targets open-source dependencies (dependency confusion, typosquatting), developer
+      workstations (SolarWinds-style), and CI/CD infrastructure. Patient, persistent, and
+      skilled at covering tracks.
+    known_ttps:
+      - "T1195"  # Supply Chain Compromise
+      - "T1059"  # Command and Scripting Interpreter
+      - "T1553"  # Subvert Trust Controls (code signing)
+      - "T1552"  # Unsecured Credentials
+      - "T1078"  # Valid Accounts
+    capable_tactics:
+      - "initial-access"
+      - "execution"
+      - "persistence"
+      - "privilege-escalation"
+      - "defense-evasion"
+      - "credential-access"
+      - "collection"
+      - "exfiltration"
+
+  - id: "TA-CICD-002"
+    name: "Rogue Developer (Insider)"
+    sophistication: "medium"
+    objectives: ["OBJ-CICD-001", "OBJ-CICD-004"]
+    entry_preference: "insider"
+    description: >
+      Disgruntled or bribed developer with legitimate access to the code repository and CI/CD
+      system. Has knowledge of the pipeline internals, secret variable names, and deployment
+      procedures. May exfiltrate IP, sabotage builds, or plant backdoors before leaving the org.
+    known_ttps:
+      - "T1078"  # Valid Accounts
+      - "T1098"  # Account Manipulation
+      - "T1562"  # Impair Defenses
+      - "T1048"  # Exfiltration Over Alternative Protocol
+    capable_tactics:
+      - "initial-access"
+      - "execution"
+      - "persistence"
+      - "defense-evasion"
+      - "exfiltration"
+      - "impact"
+
+  - id: "TA-CICD-003"
+    name: "Opportunistic Cybercriminal"
+    sophistication: "low"
+    objectives: ["OBJ-CICD-002", "OBJ-CICD-003"]
+    entry_preference: "internet-facing"
+    description: >
+      Automated scanner or low-sophistication attacker exploiting publicly known CVEs in
+      Jenkins, GitLab, or publicly exposed Docker registries. Typically motivated by
+      cryptomining or ransomware deployment rather than targeted espionage.
+    known_ttps:
+      - "T1190"  # Exploit Public-Facing Application
+      - "T1496"  # Resource Hijacking (cryptomining)
+      - "T1486"  # Data Encrypted for Impact (ransomware)
+    capable_tactics:
+      - "initial-access"
+      - "execution"
+      - "impact"
+
+risk_criteria:
+  acceptable_risk_score: 5.0
+  max_hops: 5
+  max_paths_per_objective: 3
+  gdaf_min_technique_score: 0.75
+
+business_goals_to_protect:
+  - "Integrity of all software artifacts shipped to customers"
+  - "Confidentiality of build-time secrets (API keys, signing certificates, cloud credentials)"
+  - "Availability of the deployment pipeline (release velocity)"
+  - "Isolation between CI build environment and production Kubernetes cluster"

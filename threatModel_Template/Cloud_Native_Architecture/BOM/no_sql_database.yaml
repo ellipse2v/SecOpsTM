@@ -1,0 +1,17 @@
+# BOM: NoSQLDatabase
+asset: "NoSQLDatabase"
+software_version: "AWS DynamoDB (managed service, table provisioned mode)"
+patch_level: current
+known_cves: []
+running_services:
+  - DynamoDB API (HTTPS, internal VPC endpoint)
+  - DynamoDB Streams (enabled)
+detection_level: medium
+credentials_stored: false
+notes: >
+  Managed AWS DynamoDB. No OS patching required. Point-in-time recovery (PITR) is enabled
+  with 35-day retention. Encryption at rest uses AWS-managed KMS key (not customer-managed).
+  DynamoDB Streams feed a Lambda for audit logging. IAM resource-based policy restricts
+  access to the Lambda execution role only — verify no wildcard principals.
+  Global tables (multi-region replication) are not enabled. VPC endpoint configured to
+  prevent traffic from traversing public internet.

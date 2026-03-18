@@ -1,0 +1,22 @@
+# BOM: KubeCluster
+asset: "KubeCluster"
+software_version: "Kubernetes 1.26.8 (kubeadm)"
+patch_level: outdated
+known_cves:
+  - CVE-2023-2431  # Kubelet bypass of seccomp profile enforcement (privilege escalation)
+  - CVE-2023-3676  # Kubernetes Windows node privilege escalation via host path
+  - CVE-2023-5528  # Kubernetes Windows nodes local privilege escalation
+running_services:
+  - Kubernetes API Server (6443)
+  - Kubelet (10250)
+  - etcd (2379)
+  - CoreDNS (53)
+  - Ingress Controller (80/443)
+detection_level: medium
+credentials_stored: true
+notes: >
+  Production cluster running customer-facing workloads. kubeconfig with cluster-admin
+  privileges stored in Jenkins CI server — a CI compromise directly leads to cluster takeover.
+  RBAC is configured but pod security standards are in 'warn' mode, not 'enforce'.
+  CVE-2023-2431 allows container escape on nodes without seccomp profiles.
+  Falco runtime detection is deployed (medium coverage). Upgrade to Kubernetes 1.28+ recommended.

@@ -1,0 +1,19 @@
+# BOM: LambdaFunction
+asset: "LambdaFunction"
+software_version: "AWS Lambda (Node.js 18.x runtime, function package v2.4.1)"
+patch_level: outdated
+known_cves:
+  - CVE-2023-30581  # Node.js permission model bypass (mainModule.__proto__ pollution)
+  - CVE-2023-32002  # Node.js policy bypass via Module._load
+running_services:
+  - Lambda invocation endpoint (internal)
+  - Lambda Function URL (disabled — was enabled during development)
+detection_level: low
+credentials_stored: true
+notes: >
+  Lambda execution role has broader permissions than required (s3:GetObject on '*' rather
+  than specific bucket). Environment variables contain database connection string and
+  a hardcoded fallback API key for a third-party service. Node.js 18 runtime is
+  approaching end-of-support; Lambda layers include a vendored dependency with known
+  prototype pollution vulnerability. CloudWatch Logs enabled but not forwarded to SIEM.
+  Lambda Function URL was accidentally left enabled in a previous deployment — verify disabled.

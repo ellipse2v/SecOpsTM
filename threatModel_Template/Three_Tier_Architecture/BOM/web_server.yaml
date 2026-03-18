@@ -1,0 +1,21 @@
+# BOM: WebServer
+asset: "WebServer"
+software_version: "Nginx 1.24.0 with ModSecurity WAF"
+patch_level: outdated
+known_cves:
+  - CVE-2023-44487  # HTTP/2 Rapid Reset Attack (DoS) — requires Nginx 1.25.3+ patch
+running_services:
+  - HTTP (80) — internal (post-load balancer)
+  - HTTPS (443) — internal
+  - Nginx status endpoint (127.0.0.1:8080)
+detection_level: medium
+credentials_stored: false
+notes: >
+  Nginx reverse proxy / web server serving static assets and forwarding dynamic requests
+  to AppServer. ModSecurity WAF v3 is installed with OWASP Core Rule Set (CRS) 3.3.4.
+  CVE-2023-44487 requires Nginx patch 1.25.3+ or disabling HTTP/2 as a workaround.
+  CSP, HSTS, X-Frame-Options, and X-Content-Type-Options headers are configured.
+  Access logs are forwarded to ELK stack (detection: medium). TLS 1.2/1.3 only.
+  Nginx serves static files from /var/www/html — ensure no sensitive files are in the
+  document root (e.g. .env files, backup .sql files, Adminer installations).
+  Upgrade to Nginx 1.25.4+ to address the HTTP/2 DoS vulnerability.

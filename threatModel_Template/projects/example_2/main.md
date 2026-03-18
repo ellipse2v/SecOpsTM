@@ -1,3 +1,7 @@
+## Context
+gdaf_context = context/example2_context.yaml
+bom_directory = BOM
+
 ## Actors
 - **User**:
 

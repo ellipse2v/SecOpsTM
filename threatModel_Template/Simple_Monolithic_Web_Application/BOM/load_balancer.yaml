@@ -1,0 +1,13 @@
+# BOM: LoadBalancer
+asset: "LoadBalancer"
+os_version: "ubuntu_22.04"
+software_version: "Nginx 1.24.0"
+patch_level: outdated
+known_cves:
+  - CVE-2023-44487   # HTTP/2 Rapid Reset DDoS (affects Nginx)
+running_services:
+  - HTTPS
+  - HTTP
+detection_level: low
+credentials_stored: false
+notes: "Acts as reverse proxy and SSL termination point. HTTP/2 enabled, exposing CVE-2023-44487 (Rapid Reset). No WAF configured. Access logs not forwarded to SIEM."

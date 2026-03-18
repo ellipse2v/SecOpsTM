@@ -57,6 +57,8 @@ digraph ThreatModel {
   {% if ghost_connections %}
   {% set incoming_ghosts = ghost_connections | selectattr("direction", "equalto", "incoming") | list %}
   {% set outgoing_ghosts = ghost_connections | selectattr("direction", "equalto", "outgoing") | list %}
+  {% set both_in_ghosts  = ghost_connections | selectattr("direction", "equalto", "both_in")  | list %}
+  {% set both_out_ghosts = ghost_connections | selectattr("direction", "equalto", "both_out") | list %}
   {% if incoming_ghosts %}
   subgraph cluster__external_parent_in {
     label="External connections in (parent model)";
@@ -97,6 +99,30 @@ digraph ThreatModel {
   }
   {% for ghost in outgoing_ghosts %}
   "{{ ghost.internal_node }}" -> "{{ ghost.node_id }}" [style=dashed, color="#ffa726", label="{{ ghost.protocol }}", fontsize=7, arrowsize=0.7];
+  {% endfor %}
+  {% endif %}
+  {% if both_in_ghosts or both_out_ghosts %}
+  subgraph cluster__external_parent_both {
+    label="External connections bidirectional (parent model)";
+    style="dashed,filled";
+    fillcolor="#f3e5f5";
+    color="#ab47bc";
+    penwidth=1;
+    fontsize=9;
+    fontcolor="#6a1b9a";
+    {% set ns = namespace(seen=[]) %}
+    {% for ghost in both_in_ghosts + both_out_ghosts %}
+    {% if ghost.node_id not in ns.seen %}
+    {% set ns.seen = ns.seen + [ghost.node_id] %}
+    "{{ ghost.node_id }}" [label="{{ ghost.node_label }}", shape=ellipse, style="dashed,filled", fillcolor="#e1bee7", color="#ab47bc", fontcolor="#4a148c", fontsize=9];
+    {% endif %}
+    {% endfor %}
+  }
+  {% for ghost in both_in_ghosts %}
+  "{{ ghost.node_id }}" -> "{{ ghost.internal_node }}" [style=dashed, color="#ab47bc", label="{{ ghost.protocol }}", fontsize=7, arrowsize=0.7];
+  {% endfor %}
+  {% for ghost in both_out_ghosts %}
+  "{{ ghost.internal_node }}" -> "{{ ghost.node_id }}" [style=dashed, color="#ab47bc", label="{{ ghost.protocol }}", fontsize=7, arrowsize=0.7];
   {% endfor %}
   {% endif %}
   {% endif %}

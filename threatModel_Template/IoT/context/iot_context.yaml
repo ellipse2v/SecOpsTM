@@ -1,0 +1,111 @@
+# GDAF Context: IoT Architecture (Industrial IoT / Smart Factory)
+system_description: "Industrial IoT deployment spanning a smart factory or building automation environment. Sensors and actuators in the physical environment communicate through an on-premise IoT gateway (running MQTT broker) to a cloud-hosted IoT hub and analytics platform. Device management is handled through a cloud portal. The system bridges OT (operational technology) and IT networks, creating convergence risks. Physical safety and operational continuity are primary concerns alongside data security."
+sector: "Industrial IoT / OT-IT Convergence"
+data_sensitivity: "CONFIDENTIAL"
+internet_facing: true
+compliance_requirements:
+  - "IEC 62443"
+  - "NIST SP 800-82"
+deployment_environment: "Hybrid: on-premise IoT gateway + cloud platform (AWS IoT or Azure IoT)"
+
+attack_objectives:
+  - id: "OBJ-IOT-001"
+    name: "Sensor Data Tampering for Operational Disruption"
+    description: "Attacker compromises the IoT gateway or injects malicious MQTT messages to falsify sensor readings (temperature, pressure, flow) sent to the cloud platform. Corrupted data causes incorrect automated responses from actuators, potentially damaging physical equipment or creating safety hazards."
+    target_asset_names:
+      - "IoT Gateway Server"
+      - "IoT Hub"
+    target_types: ["iot_gateway", "iot_hub"]
+    attacker_intent: "disrupt industrial processes, cause equipment damage, or create safety incidents through data manipulation"
+    business_impact: "production downtime, physical equipment damage, safety incidents, regulatory violations under IEC 62443"
+    mitre_final_tactic: "impact"
+    min_severity_score: 8.0
+
+  - id: "OBJ-IOT-002"
+    name: "IoT Device Firmware Hijack"
+    description: "Attacker exploits the Device Management Service to push malicious firmware updates to IoT gateways and edge devices. Compromised firmware enables persistent backdoor access and command execution on the OT network."
+    target_asset_names:
+      - "Device Management Service"
+      - "IoT Gateway Server"
+    target_types: ["device_management_service", "iot_gateway"]
+    attacker_intent: "establish persistent access to OT network, surveil industrial operations, enable future sabotage"
+    business_impact: "persistent OT network compromise, espionage of industrial processes, potential nation-state access to critical infrastructure"
+    mitre_final_tactic: "persistence"
+    min_severity_score: 9.0
+
+  - id: "OBJ-IOT-003"
+    name: "Pivot from IoT Gateway to Cloud Platform"
+    description: "Attacker compromises an IoT gateway device (which has outbound internet access for cloud communication), then pivots through the gateway's cloud credentials to access the IoT Hub, data storage, and analytics platform."
+    target_asset_names:
+      - "IoT Hub"
+      - "Data Storage"
+      - "Analytics Engine"
+    target_types: ["iot_hub", "data_storage", "analytics_engine"]
+    attacker_intent: "access confidential operational data, modify analytics rules, exfiltrate business intelligence"
+    business_impact: "cloud platform compromise, theft of operational data, ability to manipulate cloud-side automation rules"
+    mitre_final_tactic: "lateral-movement"
+    min_severity_score: 7.5
+
+  - id: "OBJ-IOT-004"
+    name: "Physical Actuator Sabotage"
+    description: "Attacker sends unauthorized MQTT commands from a compromised IoT Hub or gateway directly to actuators (valves, motors, HVAC systems) to trigger abnormal physical states, bypassing safety interlocks."
+    target_asset_names:
+      - "IoT Gateway Server"
+    target_types: ["iot_gateway"]
+    attacker_intent: "cause physical damage to infrastructure, endanger personnel, or disrupt production in a targeted sabotage operation"
+    business_impact: "physical destruction of machinery, personnel safety incidents, regulatory shutdown, insurance claims"
+    mitre_final_tactic: "impact"
+    min_severity_score: 9.5
+
+threat_actors:
+  - id: "TA-IOT-001"
+    name: "Nation-State ICS Attacker"
+    sophistication: "very-high"
+    objectives: ["OBJ-IOT-002", "OBJ-IOT-004", "OBJ-IOT-001"]
+    entry_preference: "internet-facing"
+    description: "State-sponsored threat actor (APT) targeting critical industrial infrastructure for espionage or pre-positioned sabotage capability. Uses zero-day exploits against ICS/SCADA components, custom malware for OT environments, and patient long-term persistence. Mirrors TTPs of known groups like TRITON/TRISIS, Industroyer, or Sandworm."
+    known_ttps:
+      - "T1190"   # Exploit Public-Facing Application
+      - "T0853"   # Scripting (ICS)
+      - "T0831"   # Manipulation of Control (ICS)
+      - "T0836"   # Modify Parameter (ICS)
+      - "T0855"   # Unauthorized Command Message (ICS)
+      - "T1195"   # Supply Chain Compromise
+      - "T1548"   # Abuse Elevation Control Mechanism
+    capable_tactics:
+      - "initial-access"
+      - "execution"
+      - "persistence"
+      - "privilege-escalation"
+      - "lateral-movement"
+      - "collection"
+      - "impact"
+
+  - id: "TA-IOT-002"
+    name: "Opportunistic IoT Botnet Operator"
+    sophistication: "low"
+    objectives: ["OBJ-IOT-001", "OBJ-IOT-003"]
+    entry_preference: "internet-facing"
+    description: "Opportunistic attacker scanning the internet for exposed IoT devices and MQTT brokers with default or weak credentials. Recruits devices into botnets for DDoS, cryptomining, or resale of access. Does not specifically target industrial systems but causes operational disruption through resource exhaustion."
+    known_ttps:
+      - "T1190"   # Exploit Public-Facing Application
+      - "T1078.001"  # Default Accounts
+      - "T1133"   # External Remote Services
+      - "T1498"   # Network Denial of Service
+    capable_tactics:
+      - "initial-access"
+      - "persistence"
+      - "impact"
+
+risk_criteria:
+  acceptable_risk_score: 4.0
+  max_hops: 7
+  max_paths_per_objective: 4
+  gdaf_min_technique_score: 0.75
+
+business_goals_to_protect:
+  - "Physical safety of personnel and equipment (actuator integrity)"
+  - "Operational continuity and production uptime"
+  - "Firmware and software integrity of IoT gateways and devices"
+  - "Confidentiality of industrial process data and telemetry"
+  - "Cloud platform access credentials and device provisioning keys"

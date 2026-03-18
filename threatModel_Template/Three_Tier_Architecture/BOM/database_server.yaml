@@ -1,0 +1,26 @@
+# BOM: DatabaseServer
+asset: "DatabaseServer"
+software_version: "MySQL 8.0.34"
+patch_level: outdated
+known_cves:
+  - CVE-2023-21980  # MySQL Server RCE via crafted data manipulation statements (requires network access + high privilege)
+  - CVE-2023-22005  # MySQL Cluster denial of service via crafted data dictionary requests
+running_services:
+  - MySQL (3306)
+  - MySQL X Protocol (33060)
+  - MySQL Admin (33062 — management, internal only)
+detection_level: medium
+credentials_stored: true
+notes: >
+  Primary MySQL database storing employee HR records, payroll, ticketing data, and
+  application session tokens. Data at rest: filesystem-level encryption (dm-crypt/LUKS).
+  MySQL binary logs enabled (retention: 7 days) for point-in-time recovery.
+  CVE-2023-21980 requires an attacker to already have high-privilege MySQL access —
+  still critical to patch to MySQL 8.0.35+ as part of defense-in-depth.
+  MySQL X Protocol (33060) should be disabled if not used — reduces attack surface.
+  Remote root login is disabled (root@localhost only). Application uses a dedicated
+  MySQL user (app_user) with SELECT, INSERT, UPDATE on the application schema only —
+  no GRANT or FILE privilege. Daily full backup + hourly incremental.
+  MySQL general query log is disabled (performance); slow query log enabled (2s threshold).
+  Binary log does not encrypt queries — contains PII. Protect with filesystem permissions.
+  Upgrade to MySQL 8.0.36+ or MySQL 8.2.x recommended.

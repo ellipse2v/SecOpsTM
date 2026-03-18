@@ -1,0 +1,94 @@
+# GDAF Context: Example 2 — Multi-Tier Web Application (E-Commerce / Corporate Portal)
+system_description: "Multi-tier web application project demonstrating SecOpsTM hierarchical sub-model drill-down across three levels. The top-level model hosts a WebApp frontend (sub-model: frontend/) and BackendServices (sub-model: backend/). The backend itself contains an API gateway, auth service, order service, and a ProductDB with its own sub-model. Represents a typical e-commerce or corporate portal architecture."
+sector: "E-Commerce / Corporate Portal"
+data_sensitivity: "CONFIDENTIAL"
+internet_facing: true
+compliance_requirements:
+  - "OWASP Top 10"
+  - "GDPR"
+  - "PCI-DSS (where payment data applies)"
+deployment_environment: "Cloud-hosted, containerized microservices, multi-tier"
+
+attack_objectives:
+  - id: "OBJ-EX2-001"
+    name: "Frontend XSS for Session Token Theft"
+    description: "Attacker injects malicious JavaScript into the WebApp frontend (via stored XSS or reflected XSS in user-generated content) to steal authenticated user session tokens, enabling account takeover without knowing credentials."
+    target_asset_names:
+      - "WebApp"
+    target_types: ["web_server"]
+    attacker_intent: "steal session tokens to impersonate users, access their orders and personal data, or perform actions on their behalf"
+    business_impact: "mass account takeover, customer PII exposure, fraudulent orders, GDPR breach notification"
+    mitre_final_tactic: "credential-access"
+    min_severity_score: 6.5
+
+  - id: "OBJ-EX2-002"
+    name: "Authentication Bypass for Privileged API Access"
+    description: "Attacker exploits a vulnerability in the AuthService (sub-model) to bypass authentication checks, obtaining a valid admin or service-level token that grants access to all backend API endpoints including order and product data."
+    target_asset_names:
+      - "BackendServices"
+    target_types: ["app_server"]
+    attacker_intent: "obtain admin-level API access to extract full customer and order database, modify product pricing, or disrupt service"
+    business_impact: "complete backend compromise, data exfiltration, financial manipulation, service disruption"
+    mitre_final_tactic: "privilege-escalation"
+    min_severity_score: 8.0
+
+  - id: "OBJ-EX2-003"
+    name: "Backend Database Exfiltration via SQL Injection"
+    description: "Attacker chains access through the frontend or API gateway to reach the OrderService and exploit unsanitized SQL queries, extracting the full ProductDB contents including customer orders and PII."
+    target_asset_names:
+      - "BackendServices"
+    target_types: ["app_server"]
+    attacker_intent: "exfiltrate bulk customer data and order history for resale or competitive intelligence"
+    business_impact: "bulk PII breach, GDPR mandatory notification, loss of competitive data, customer churn"
+    mitre_final_tactic: "exfiltration"
+    min_severity_score: 8.5
+
+threat_actors:
+  - id: "TA-EX2-001"
+    name: "Web Application Attacker"
+    sophistication: "medium"
+    objectives: ["OBJ-EX2-001", "OBJ-EX2-003"]
+    entry_preference: "internet-facing"
+    description: "Attacker targeting the web frontend with automated and manual web application testing tools. Exploits OWASP Top 10 vulnerabilities (XSS, SQLi, broken auth) through the WebApp and backend API chain. Uses burp suite or similar proxy tools for manual exploitation."
+    known_ttps:
+      - "T1190"   # Exploit Public-Facing Application
+      - "T1059.007"  # JavaScript
+      - "T1185"   # Man in the Browser
+      - "T1539"   # Steal Web Session Cookie
+      - "T1048"   # Exfiltration Over Alternative Protocol
+    capable_tactics:
+      - "initial-access"
+      - "credential-access"
+      - "collection"
+      - "exfiltration"
+
+  - id: "TA-EX2-002"
+    name: "API Abuse Actor"
+    sophistication: "medium"
+    objectives: ["OBJ-EX2-002", "OBJ-EX2-003"]
+    entry_preference: "internet-facing"
+    description: "Attacker specifically targeting the backend API layer. Fuzzes API endpoints for broken object-level authorization (BOLA/IDOR), tests gRPC service interfaces, and attempts to exploit authentication service weaknesses. May use legitimate accounts to probe authorization boundaries."
+    known_ttps:
+      - "T1190"   # Exploit Public-Facing Application
+      - "T1078"   # Valid Accounts
+      - "T1110.003"  # Credential stuffing
+      - "T1212"   # Exploitation for Credential Access
+    capable_tactics:
+      - "initial-access"
+      - "privilege-escalation"
+      - "credential-access"
+      - "collection"
+      - "exfiltration"
+
+risk_criteria:
+  acceptable_risk_score: 4.5
+  max_hops: 6
+  max_paths_per_objective: 3
+  gdaf_min_technique_score: 0.75
+
+business_goals_to_protect:
+  - "Customer session tokens and authentication integrity"
+  - "Customer PII and order data in the product database"
+  - "Authentication service token issuance integrity"
+  - "Frontend XSS prevention and Content Security Policy"
+  - "API authorization enforcement across all backend microservices"

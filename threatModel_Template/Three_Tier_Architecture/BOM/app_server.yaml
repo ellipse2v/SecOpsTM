@@ -1,0 +1,24 @@
+# BOM: AppServer
+asset: "AppServer"
+software_version: "Apache Tomcat 10.1.16 (JVM 17, OpenJDK)"
+patch_level: outdated
+known_cves:
+  - CVE-2023-28708  # Tomcat session fixation via JSESSIONID in non-HTTPS contexts
+  - CVE-2023-46589  # Tomcat HTTP request smuggling via invalid Content-Length (allows WAF bypass)
+running_services:
+  - HTTP (8080 — internal, behind WebServer)
+  - HTTPS (8443 — internal)
+  - Tomcat Manager (8080/manager — should be disabled or restricted)
+  - JMX (9012 — management, internal only)
+detection_level: medium
+credentials_stored: true
+notes: >
+  Java application server hosting the HR portal web application. Database connection
+  string (including MySQL credentials) stored in context.xml — verify this file is not
+  readable by the application user. CVE-2023-28708 allows session fixation if the
+  application uses JSESSIONID across HTTP/HTTPS.
+  CVE-2023-46589 allows request smuggling that can bypass ModSecurity WAF rules —
+  upgrade to Tomcat 10.1.17+ immediately.
+  Tomcat Manager application must be disabled (or accessible only from 127.0.0.1) to
+  prevent remote deployment of malicious WARs.
+  JVM runs as dedicated 'tomcat' user (non-root). Application logs forwarded to ELK.

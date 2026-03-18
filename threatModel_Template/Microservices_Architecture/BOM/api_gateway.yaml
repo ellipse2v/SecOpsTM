@@ -1,0 +1,20 @@
+# BOM: APIGateway
+asset: "APIGateway"
+software_version: "Kong Gateway 3.4.0 (OSS, containerized)"
+patch_level: outdated
+known_cves:
+  - CVE-2023-40397  # Kong Gateway request smuggling via malformed chunked transfer encoding (RCE potential in plugin sandbox)
+running_services:
+  - HTTPS proxy (8443)
+  - gRPC proxy (8444)
+  - Admin API (8001 — internal only, 127.0.0.1)
+  - Health check (/status)
+detection_level: medium
+credentials_stored: false
+notes: >
+  API Gateway with JWT validation, rate limiting (1000 req/min), and IP restriction plugins.
+  CVE-2023-40397 allows request smuggling that may bypass plugin processing — upgrade to
+  Kong 3.4.2+ immediately. Admin API must remain localhost-only (not exposed to mesh).
+  Prometheus metrics plugin is enabled (internal only). Kong logs are forwarded to ELK stack.
+  gRPC-Gateway plugin translates REST to gRPC for UserService — ensure input validation
+  is applied before translation, not only at the gRPC layer.

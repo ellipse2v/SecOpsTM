@@ -1,0 +1,15 @@
+# BOM: ETLPipeline
+asset: "ETLPipeline"
+os_version: "ubuntu_22.04"
+software_version: "Apache Airflow 2.7.1"
+patch_level: outdated
+known_cves:
+  - CVE-2023-39441   # Apache Airflow arbitrary file read via DAG import
+  - CVE-2023-42792   # Apache Airflow sensitive variable exposure in logs
+running_services:
+  - HTTPS (Airflow UI port 8080)
+  - Celery workers
+  - Scheduler
+detection_level: low
+credentials_stored: true
+notes: "Apache Airflow ETL orchestrator. Web UI exposed on port 8080 with basic authentication. CVE-2023-39441 allows arbitrary file read through malicious DAG imports. Airflow DAG repository pulled from Git without signature verification. Database connection credentials (to object storage and data warehouse) stored as Airflow Variables — visible to all DAG authors. Sensitive variable values appear in unredacted task logs (CVE-2023-42792)."

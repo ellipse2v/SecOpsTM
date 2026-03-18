@@ -1,0 +1,18 @@
+# BOM: Load Balancer
+asset: "Load Balancer"
+software_version: "HAProxy 2.8.3"
+patch_level: current
+known_cves: []
+running_services:
+  - HTTPS (443)
+  - HTTP (80) — redirect to HTTPS
+  - HAProxy stats page (9000 — internal only)
+detection_level: high
+credentials_stored: false
+notes: >
+  Internet-facing load balancer distributing traffic across API Gateway instances.
+  SSL termination occurs here; TLS 1.2/1.3 only. PROXY protocol v2 is enabled to
+  preserve client IP addresses through to backend services.
+  HAProxy stats endpoint is exposed only on the management interface (10.0.0.0/8).
+  Access logs are forwarded to SIEM (detection: high). No known CVEs in 2.8.x branch.
+  HAProxy 2.8 is an LTS branch; keep updated within the 2.8.x series.

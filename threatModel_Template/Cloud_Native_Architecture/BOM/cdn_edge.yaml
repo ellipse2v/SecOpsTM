@@ -1,0 +1,16 @@
+# BOM: CDNEdge
+asset: "CDNEdge"
+software_version: "AWS CloudFront (managed service, distribution config 2024-Q1)"
+patch_level: current
+known_cves: []
+running_services:
+  - HTTPS (443)
+  - HTTP (80) — redirected to HTTPS
+  - CloudFront Functions (edge compute)
+detection_level: medium
+credentials_stored: false
+notes: >
+  Managed AWS CloudFront distribution. No OS to patch; AWS manages underlying infrastructure.
+  WAF (AWS WAF v2) is enabled with managed rule groups. Access logs shipped to S3.
+  CloudFront Functions are used for request header manipulation — ensure no sensitive
+  data is logged in CloudFront access logs. Origin shield is enabled.

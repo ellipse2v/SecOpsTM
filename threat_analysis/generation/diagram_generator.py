@@ -578,6 +578,11 @@ class DiagramGenerator:
         For incoming connections, wires to root servers of the child model (no incoming
         dataflows within the child). For outgoing, wires from leaf servers (no outgoing
         dataflows within the child). Falls back to the first server if none found.
+
+        When a peer appears as both incoming and outgoing (e.g. a reverse proxy that both
+        forwards requests in and receives responses out), a single ghost node is produced
+        with direction="both" so the DOT template renders it in a dedicated bidirectional
+        cluster instead of duplicating the node across the incoming and outgoing clusters.
         """
         if not external_connections:
             return []
@@ -601,29 +606,71 @@ class DiagramGenerator:
         root_servers = [n for n in all_server_names if n not in child_sinks] or all_server_names[:1]
         leaf_servers = [n for n in all_server_names if n not in child_sources] or all_server_names[-1:]
 
-        ghost_nodes: List[Dict] = []
-        seen_ids: set = set()
+        # Group connections by peer so that a reverse-proxy pattern (same peer appears
+        # as both incoming and outgoing) produces a single ghost node, not two duplicates.
+        peer_info: Dict[str, Dict] = {}
         for conn in external_connections:
             peer = conn["peer"]
-            direction = conn["direction"]
-            protocol = conn.get("protocol", "") or ""
-            node_id = f"__ghost_{self._sanitize_name(peer)}_{direction}"
-            if node_id in seen_ids:
-                continue
-            seen_ids.add(node_id)
-            enc = "🔒" if conn.get("is_encrypted") else ""
-            auth = "🔑" if conn.get("is_authenticated") else ""
+            if peer not in peer_info:
+                peer_info[peer] = {
+                    "directions": set(),
+                    "protocols": [],
+                    "is_encrypted": False,
+                    "is_authenticated": False,
+                }
+            peer_info[peer]["directions"].add(conn["direction"])
+            proto = conn.get("protocol", "") or ""
+            if proto and proto not in peer_info[peer]["protocols"]:
+                peer_info[peer]["protocols"].append(proto)
+            peer_info[peer]["is_encrypted"] = peer_info[peer]["is_encrypted"] or bool(conn.get("is_encrypted"))
+            peer_info[peer]["is_authenticated"] = peer_info[peer]["is_authenticated"] or bool(conn.get("is_authenticated"))
+
+        ghost_nodes: List[Dict] = []
+        for peer, info in peer_info.items():
+            node_id = f"__ghost_{self._sanitize_name(peer)}"
+            enc = "🔒" if info["is_encrypted"] else ""
+            auth = "🔑" if info["is_authenticated"] else ""
             badges = " ".join(filter(None, [enc, auth]))
             node_label = f"{peer}{chr(10)}{badges}".strip()
-            internal_nodes = root_servers if direction == "incoming" else leaf_servers
-            for internal in internal_nodes:
-                ghost_nodes.append({
-                    "node_id": node_id,
-                    "node_label": node_label,
-                    "direction": direction,
-                    "protocol": protocol,
-                    "internal_node": self._escape_label(internal),
-                })
+            protocol = ", ".join(info["protocols"])
+            directions = info["directions"]
+
+            if "incoming" in directions and "outgoing" in directions:
+                # Bidirectional peer: single node, edges in both directions
+                for internal in root_servers:
+                    ghost_nodes.append({
+                        "node_id": node_id,
+                        "node_label": node_label,
+                        "direction": "both_in",
+                        "protocol": protocol,
+                        "internal_node": self._escape_label(internal),
+                    })
+                for internal in leaf_servers:
+                    ghost_nodes.append({
+                        "node_id": node_id,
+                        "node_label": node_label,
+                        "direction": "both_out",
+                        "protocol": protocol,
+                        "internal_node": self._escape_label(internal),
+                    })
+            elif "incoming" in directions:
+                for internal in root_servers:
+                    ghost_nodes.append({
+                        "node_id": node_id,
+                        "node_label": node_label,
+                        "direction": "incoming",
+                        "protocol": protocol,
+                        "internal_node": self._escape_label(internal),
+                    })
+            else:
+                for internal in leaf_servers:
+                    ghost_nodes.append({
+                        "node_id": node_id,
+                        "node_label": node_label,
+                        "direction": "outgoing",
+                        "protocol": protocol,
+                        "internal_node": self._escape_label(internal),
+                    })
         return ghost_nodes
 
     def _prepare_boundaries_data(self, threat_model) -> List[Dict]:

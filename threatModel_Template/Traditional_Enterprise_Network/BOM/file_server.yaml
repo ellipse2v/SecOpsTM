@@ -1,0 +1,14 @@
+# BOM: File Server
+asset: "File Server"
+os_version: "windows_server_2016"
+software_version: "Windows File Services 10.0.14393"
+patch_level: outdated
+known_cves:
+  - CVE-2017-0144   # EternalBlue / MS17-010 - SMBv1 Remote Code Execution
+  - CVE-2020-0796   # SMBGhost - SMBv3 compression RCE
+running_services:
+  - SMB
+  - RPC
+detection_level: low
+credentials_stored: false
+notes: "Windows Server 2016 file server with SMB shares. SMBv1 may still be enabled for legacy compatibility. CVE-2017-0144 (EternalBlue) was used by WannaCry/NotPetya. No DLP solution monitoring file access. Sensitive HR and finance documents stored with broad EVERYONE read permissions on some shares."

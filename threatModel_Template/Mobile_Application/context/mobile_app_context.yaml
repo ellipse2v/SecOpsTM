@@ -1,0 +1,108 @@
+# GDAF Context: Mobile Application (Fintech)
+system_description: "Consumer fintech mobile application (iOS and Android) integrating OAuth 2.0 identity provider for authentication, a RESTful API backend with database persistence, and a third-party payment gateway. Handles sensitive financial transactions and PII. PCI-DSS compliance is mandatory. Mobile clients communicate exclusively over HTTPS to the API gateway."
+sector: "Fintech / Mobile Banking"
+data_sensitivity: "RESTRICTED"
+internet_facing: true
+compliance_requirements:
+  - "PCI-DSS v4.0"
+  - "OWASP MASVS L2"
+  - "GDPR"
+deployment_environment: "Cloud-hosted backend (AWS/GCP), mobile clients on consumer devices"
+
+attack_objectives:
+  - id: "OBJ-MOB-001"
+    name: "API Key Extraction via Mobile Reverse Engineering"
+    description: "Attacker decompiles the mobile application binary to extract hardcoded API keys, signing secrets, or OAuth client credentials. Uses extracted credentials to impersonate the legitimate app and bypass client-side controls."
+    target_asset_names:
+      - "Mobile Application"
+      - "APIGateway"
+    target_types: ["mobile_application", "api_gateway"]
+    attacker_intent: "obtain API credentials to make unauthorized requests, scrape data, or abuse backend functionality without a valid user account"
+    business_impact: "unauthorized API access, data scraping, quota abuse, potential regulatory violation"
+    mitre_final_tactic: "credential-access"
+    min_severity_score: 6.5
+
+  - id: "OBJ-MOB-002"
+    name: "OAuth Token Theft for Account Takeover"
+    description: "Attacker intercepts or steals OAuth access tokens via a malicious app, deep link hijacking, or network interception. Uses stolen tokens to access the victim's account and initiate fraudulent transactions."
+    target_asset_names:
+      - "IdentityProvider"
+      - "BackendServer"
+    target_types: ["identity_provider", "app_server"]
+    attacker_intent: "hijack user financial account to initiate unauthorized transfers or access sensitive financial history"
+    business_impact: "direct financial loss to users, regulatory fines (PCI-DSS), reputational damage, customer churn"
+    mitre_final_tactic: "collection"
+    min_severity_score: 8.0
+
+  - id: "OBJ-MOB-003"
+    name: "Backend Database Exfiltration via API Injection"
+    description: "Attacker discovers an API injection vulnerability (SQL injection via REST parameters or NoSQL injection via JSON body) to extract the full user financial database including payment card data."
+    target_asset_names:
+      - "BackendDatabase"
+      - "BackendServer"
+    target_types: ["database", "app_server"]
+    attacker_intent: "exfiltrate payment card data and financial PII for sale on dark web or direct fraud"
+    business_impact: "PCI-DSS breach, mandatory card network notification, per-record fines, potential card scheme exit"
+    mitre_final_tactic: "exfiltration"
+    min_severity_score: 9.0
+
+  - id: "OBJ-MOB-004"
+    name: "Payment Gateway Bypass"
+    description: "Attacker manipulates API request parameters between the mobile client and payment gateway to alter transaction amounts, redirect funds, or replay payment tokens."
+    target_asset_names:
+      - "Payment Gateway"
+      - "APIGateway"
+    target_types: ["payment_gateway", "api_gateway"]
+    attacker_intent: "perform fraudulent financial transactions, redirect payments to attacker-controlled accounts"
+    business_impact: "direct financial fraud losses, payment processor contract termination, PCI-DSS level 1 audit"
+    mitre_final_tactic: "impact"
+    min_severity_score: 8.5
+
+threat_actors:
+  - id: "TA-MOB-001"
+    name: "Mobile Malware Author"
+    sophistication: "medium"
+    objectives: ["OBJ-MOB-001", "OBJ-MOB-002"]
+    entry_preference: "internet-facing"
+    description: "Financially motivated threat actor who develops or purchases mobile malware targeting fintech applications. Uses reverse engineering tools (Frida, jadx, objection) to analyze the app binary and intercept runtime communications. May distribute trojanized versions through unofficial app stores."
+    known_ttps:
+      - "T1417"   # Input Capture: Keylogging (mobile)
+      - "T1411"   # User Interface Spoofing (mobile)
+      - "T1533"   # Data from Local System (mobile)
+      - "T1430"   # Location Tracking (mobile)
+      - "T1528"   # Steal Application Access Token
+    capable_tactics:
+      - "initial-access"
+      - "credential-access"
+      - "collection"
+      - "exfiltration"
+
+  - id: "TA-MOB-002"
+    name: "Man-in-the-Middle Network Attacker"
+    sophistication: "medium"
+    objectives: ["OBJ-MOB-002", "OBJ-MOB-004"]
+    entry_preference: "internet-facing"
+    description: "Attacker positioned on a shared network (public Wi-Fi, rogue AP) or with access to network infrastructure performing TLS interception attacks. Targets mobile apps with disabled or bypassable certificate pinning to intercept API traffic."
+    known_ttps:
+      - "T1557"   # Adversary-in-the-Middle
+      - "T1040"   # Network Sniffing
+      - "T1565.002"  # Transmitted Data Manipulation
+      - "T1189"   # Drive-by Compromise
+    capable_tactics:
+      - "initial-access"
+      - "credential-access"
+      - "collection"
+      - "impact"
+
+risk_criteria:
+  acceptable_risk_score: 4.5
+  max_hops: 5
+  max_paths_per_objective: 4
+  gdaf_min_technique_score: 0.8
+
+business_goals_to_protect:
+  - "Payment card data and financial transaction integrity (PCI-DSS scope)"
+  - "User OAuth tokens and session security"
+  - "API backend availability and rate-limit enforcement"
+  - "Identity provider trust chain"
+  - "Mobile app binary confidentiality (API keys, signing certs)"

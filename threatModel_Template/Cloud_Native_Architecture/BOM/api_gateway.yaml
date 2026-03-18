@@ -1,0 +1,17 @@
+# BOM: APIGateway
+asset: "APIGateway"
+software_version: "AWS API Gateway v2 (HTTP API, managed service)"
+patch_level: current
+known_cves: []
+running_services:
+  - HTTPS (443)
+  - WebSocket API
+  - REST API (v1 legacy stage)
+detection_level: medium
+credentials_stored: false
+notes: >
+  Managed AWS API Gateway HTTP API. Usage plans and throttling are configured.
+  API keys are required for developer access endpoints. Lambda authorizer performs
+  JWT validation on all user-facing routes. CloudWatch access logging is enabled.
+  CORS configuration should be reviewed — wildcard origins may be present from
+  development environment. No client certificate validation on backend integration.

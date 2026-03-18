@@ -1,0 +1,15 @@
+# BOM: Application Server
+asset: "Application Server"
+os_version: "windows_server_2019"
+software_version: "IIS 10.0 / .NET Framework 4.8"
+patch_level: outdated
+known_cves:
+  - CVE-2023-36884   # Office and Windows HTML Remote Code Execution
+  - CVE-2023-21554   # Microsoft Message Queuing (MSMQ) RCE
+running_services:
+  - HTTPS
+  - HTTP
+  - MSMQ
+detection_level: medium
+credentials_stored: false
+notes: "Internal application server running IIS 10. MSMQ service enabled but possibly not required. CVE-2023-36884 exploitable if Microsoft Office installed and unpatched. Application accounts use domain service accounts with excessive permissions."

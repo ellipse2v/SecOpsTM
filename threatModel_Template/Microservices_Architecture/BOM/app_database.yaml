@@ -1,0 +1,22 @@
+# BOM: AppDatabase
+asset: "AppDatabase"
+software_version: "PostgreSQL 15.4"
+patch_level: outdated
+known_cves:
+  - CVE-2023-39417  # PostgreSQL extension script injection via CREATE OR REPLACE
+  - CVE-2023-5869   # PostgreSQL buffer overflow in range type operators (heap corruption)
+running_services:
+  - PostgreSQL (5432)
+  - pgBouncer connection pooler (6432)
+  - pg_stat_statements (monitoring extension)
+detection_level: medium
+credentials_stored: true
+notes: >
+  Shared database for UserService (user accounts, sessions) and ProductService (product catalog,
+  inventory). Separate schemas with per-service PostgreSQL roles (userservice_rw, productservice_r).
+  CVE-2023-5869 is a heap corruption issue — patch to PostgreSQL 15.5+ immediately.
+  Connections use SSL (verify-full) from userservice; ensure productservice also enforces SSL.
+  pgBouncer uses SCRAM-SHA-256. Daily pg_dump to encrypted S3 bucket (30-day retention).
+  pg_stat_statements enabled for slow query monitoring — ensure query logs don't capture
+  sensitive parameters (set log_min_duration_statement carefully).
+  Upgrade to PostgreSQL 15.5+ or 16.x recommended.

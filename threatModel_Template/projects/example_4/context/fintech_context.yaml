@@ -1,0 +1,132 @@
+# GDAF context for PayFlow Fintech Payment Platform
+system_description: >
+  PayFlow is a PCI-DSS Level 1 certified cloud-native payment processing platform handling
+  card-not-present transactions for EU and US markets. Kong API Gateway acts as the single
+  reverse proxy entry and exit point for all backend services. The architecture uses HSM-based
+  tokenization, real-time ML fraud detection, and event-driven settlement processing.
+
+sector: fintech
+data_sensitivity: SECRET
+internet_facing: true
+compliance_requirements:
+  - PCI-DSS Level 1
+  - GDPR
+  - PSD2
+  - SOC 2 Type II
+deployment_environment: cloud-aws
+integrations:
+  - Visa/Mastercard card networks
+  - Swift banking network
+  - External fraud intelligence feeds
+  - Merchant webhooks
+user_base: "50M+ card transactions per month"
+
+attack_objectives:
+  - id: OBJ-01
+    name: Card Data Exfiltration
+    description: >
+      Exfiltrate cardholder data (PAN, CVV, expiry) stored in the vault or
+      in-transit through the payment processing pipeline.
+    target_asset_names: [CardVault, VaultDB, HSM, ChargeService]
+    target_types: [database, application-server]
+    attacker_intent: financial_gain
+    business_impact: "PCI-DSS breach, fines up to 20M EUR GDPR, card network de-certification"
+    mitre_final_tactic: Exfiltration
+    min_severity_score: 7.0
+
+  - id: OBJ-02
+    name: Payment Fraud Injection
+    description: >
+      Bypass fraud detection to inject fraudulent transactions, manipulate
+      authorization responses, or submit unauthorized charges.
+    target_asset_names: [ChargeService, FraudEngine, MLEngine, RulesEngine]
+    target_types: [application-server]
+    attacker_intent: financial_gain
+    business_impact: "Direct financial loss, chargeback liability, merchant trust damage"
+    mitre_final_tactic: Impact
+    min_severity_score: 6.5
+
+  - id: OBJ-03
+    name: Platform Availability Disruption
+    description: >
+      Disrupt payment processing availability through DoS against the API gateway,
+      exhaustion of HSM capacity, or corruption of settlement batch processing.
+    target_asset_names: [APIGateway, WAF, HSM, MessageBroker]
+    target_types: [web-server, firewall, application-server]
+    attacker_intent: disruption
+    business_impact: "Revenue loss ~2M USD/hour, SLA penalties, merchant churn"
+    mitre_final_tactic: Impact
+    min_severity_score: 6.0
+
+  - id: OBJ-04
+    name: Cryptographic Key Compromise
+    description: >
+      Compromise HSM master keys or mTLS certificate private keys used for
+      inter-service authentication to forge payment tokens or intercept transactions.
+    target_asset_names: [HSM, TokenProxy, APIGateway]
+    target_types: [application-server, web-server]
+    attacker_intent: financial_gain
+    business_impact: "All historical tokenized cards compromised, full re-issuance required"
+    mitre_final_tactic: Credential Access
+    min_severity_score: 8.0
+
+threat_actors:
+  - id: TA-01
+    name: Organized Crime Group
+    sophistication: high
+    objectives: [OBJ-01, OBJ-02, OBJ-04]
+    entry_preference: internet-facing
+    known_ttps:
+      - T1190
+      - T1059
+      - T1041
+      - T1110
+      - T1550.001
+    capable_tactics:
+      - Initial Access
+      - Execution
+      - Credential Access
+      - Lateral Movement
+      - Exfiltration
+
+  - id: TA-02
+    name: Fraudster / Carding Group
+    sophistication: medium
+    objectives: [OBJ-02]
+    entry_preference: internet-facing
+    known_ttps:
+      - T1190
+      - T1078
+      - T1499
+    capable_tactics:
+      - Initial Access
+      - Defense Evasion
+      - Impact
+
+  - id: TA-03
+    name: Malicious Insider
+    sophistication: medium
+    objectives: [OBJ-01, OBJ-03, OBJ-04]
+    entry_preference: insider
+    known_ttps:
+      - T1078
+      - T1530
+      - T1485
+      - T1048
+    capable_tactics:
+      - Initial Access
+      - Collection
+      - Exfiltration
+      - Impact
+
+risk_criteria:
+  acceptable_risk_score: 4.0
+  max_hops: 6
+  max_paths_per_objective: 3
+  gdaf_min_technique_score: 0.75
+
+business_goals_to_protect:
+  - "PCI-DSS Level 1 certification maintenance"
+  - "99.99% payment processing availability"
+  - "Zero cardholder data breaches"
+  - "PSD2 Strong Customer Authentication (SCA) compliance"

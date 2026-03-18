@@ -1,0 +1,24 @@
+# BOM: Policy Engine
+asset: "Policy Engine"
+software_version: "Envoy Proxy 1.27.2 (ZTNA PEP mode, with Ext-Authz filter)"
+patch_level: outdated
+known_cves:
+  - CVE-2023-44487  # HTTP/2 Rapid Reset Attack (DoS via stream cancellation flood) — affects Envoy HTTP/2
+  - CVE-2023-35945  # Envoy nghttp2 memory exhaustion via CONTINUATION frames
+running_services:
+  - HTTPS listener (10443 — internet-facing)
+  - Admin interface (9901 — internal only, 127.0.0.1)
+  - Envoy xDS management API (18000 — from control plane only)
+  - Health check endpoint (/healthz)
+detection_level: high
+credentials_stored: false
+notes: >
+  Envoy-based Policy Enforcement Point. All inbound requests are forwarded to OPA
+  (Authorization Service) via Ext-Authz gRPC filter before being proxied to workloads.
+  CVE-2023-44487 requires updating to Envoy 1.27.3+ or applying the nghttp2 patch.
+  CVE-2023-35945 can cause OOM — patch immediately.
+  Admin interface is localhost-only (not reachable from any network).
+  xDS control plane connection uses mTLS with certificate pinning.
+  All access decisions are logged with full request context to SIEM.
+  Admin policy changes require a separate admin JWT with MFA + change management ticket.
+  Upgrade to Envoy 1.28.x recommended.

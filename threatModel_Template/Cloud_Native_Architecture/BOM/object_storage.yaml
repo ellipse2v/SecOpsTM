@@ -1,0 +1,19 @@
+# BOM: ObjectStorage
+asset: "ObjectStorage"
+software_version: "AWS S3 (managed service, versioning enabled)"
+patch_level: current
+known_cves: []
+running_services:
+  - HTTPS (443) — S3 REST API
+  - S3 Transfer Acceleration (enabled)
+  - S3 Event Notifications → Lambda
+detection_level: low
+credentials_stored: false
+notes: >
+  S3 bucket stores user-uploaded files, application exports, and DynamoDB backups.
+  Block Public Access is enabled at account level but an older bucket was created before
+  this policy was enforced — verify no legacy ACLs. Server-side encryption (SSE-S3) is
+  enabled. Object versioning is on with 90-day lifecycle policy.
+  S3 access logging is enabled but logs are stored in the same account (not isolated).
+  Signed URL expiration is set to 24 hours — consider reducing to 15 minutes for sensitive objects.
+  No S3 Object Lock (WORM) configured — ransomware could delete or overwrite objects.

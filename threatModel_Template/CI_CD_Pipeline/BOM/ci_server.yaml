@@ -1,0 +1,21 @@
+# BOM: CIServer
+asset: "CIServer"
+software_version: "Jenkins 2.375.4 LTS"
+patch_level: outdated
+known_cves:
+  - CVE-2023-27898  # Jenkins CSRF + stored XSS via Update Center metadata
+  - CVE-2023-27905  # Jenkins Update Center XML parsing SSRF
+  - CVE-2024-23897  # Jenkins arbitrary file read via CLI (critical — public PoC available)
+running_services:
+  - HTTP (8080)
+  - HTTPS (8443)
+  - Jenkins CLI (JNLP/SSH agent)
+  - Webhook receiver
+detection_level: low
+credentials_stored: true
+notes: >
+  All pipeline secrets (AWS credentials, Docker registry tokens, Kubernetes kubeconfig,
+  signing keys) stored in Jenkins Credentials Store. CVE-2024-23897 (arbitrary file read
+  via CLI) has public exploits and allows credential extraction without authentication
+  if the CLI endpoint is exposed. Upgrade to Jenkins 2.442+ LTS is critical.
+  Detection coverage is low — no SIEM integration; only Jenkins audit log on local disk.

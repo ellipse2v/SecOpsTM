@@ -1,0 +1,14 @@
+# BOM: DatabaseServer
+asset: "DatabaseServer"
+os_version: "ubuntu_20.04"
+software_version: "MySQL 8.0.33"
+patch_level: outdated
+known_cves:
+  - CVE-2023-21980   # MySQL Server privilege escalation via optimizer
+  - CVE-2023-22005   # MySQL Server DoS in replication component
+running_services:
+  - MySQL
+  - SSH
+detection_level: low
+credentials_stored: true
+notes: "MySQL database storing all application data including user PII and hashed passwords. Root account enabled with password authentication. No query logging to SIEM. Backups stored on same server without encryption. Direct SQL access path from attacker dataflow present in the threat model."

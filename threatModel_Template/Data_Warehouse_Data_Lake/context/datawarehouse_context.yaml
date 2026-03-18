@@ -1,0 +1,128 @@
+# GDAF Context: Data Warehouse / Data Lake Architecture (Financial Analytics)
+system_description: "Financial analytics platform processing sensitive financial data and PII at scale. Data is ingested from multiple internal and external sources via ETL pipelines, stored in raw object storage, processed by a distributed compute cluster, curated into a lakehouse format, warehoused in a cloud data warehouse, and consumed through BI dashboards. Data governance and lineage tracking are critical for SOX and GDPR compliance."
+sector: "Financial Services / Analytics"
+data_sensitivity: "RESTRICTED"
+internet_facing: false
+compliance_requirements:
+  - "GDPR"
+  - "SOX (Sarbanes-Oxley)"
+  - "CCPA"
+  - "PCI-DSS (where payment data flows)"
+deployment_environment: "Cloud-native (AWS/Azure/GCP), multi-region, with on-premise data source connectors"
+
+attack_objectives:
+  - id: "OBJ-DWH-001"
+    name: "Bulk Data Exfiltration via Misconfigured Object Storage"
+    description: "Attacker discovers a misconfigured S3 bucket or ADLS container with overly permissive access policies (public read or excessively broad IAM roles). Downloads bulk financial and PII data without triggering rate-based alerts."
+    target_asset_names:
+      - "ObjectStorage"
+    target_types: ["object_storage"]
+    attacker_intent: "exfiltrate bulk financial records, customer PII, and sensitive business data for sale or competitive intelligence"
+    business_impact: "GDPR mandatory breach notification, CCPA penalties, SOX audit findings, massive regulatory fines"
+    mitre_final_tactic: "exfiltration"
+    min_severity_score: 8.5
+
+  - id: "OBJ-DWH-002"
+    name: "ETL Pipeline Code Injection"
+    description: "Attacker with access to the Airflow DAG repository or web UI injects malicious transformation code into ETL pipeline definitions. The injected code exfiltrates data to external destinations or corrupts financial aggregations used for SOX reporting."
+    target_asset_names:
+      - "ETLPipeline"
+      - "ObjectStorage"
+    target_types: ["etl_tools", "object_storage"]
+    attacker_intent: "corrupt financial reporting data (SOX), exfiltrate data via pipeline side-channels, or establish persistent access to the ingestion layer"
+    business_impact: "SOX material misstatement risk, regulatory investigation, integrity loss of financial reports, audit qualification"
+    mitre_final_tactic: "impact"
+    min_severity_score: 8.0
+
+  - id: "OBJ-DWH-003"
+    name: "BI Tool Credential Theft for Unauthorized Data Access"
+    description: "Attacker compromises BI tool credentials (service account or analyst SSO) to access the data warehouse and run unrestricted queries, bypassing row-level security and data masking controls intended to limit PII exposure."
+    target_asset_names:
+      - "BITools"
+      - "DataWarehouse"
+    target_types: ["bi_tools", "data_warehouse"]
+    attacker_intent: "access full unmasked financial and PII datasets that are otherwise restricted by role-based access controls"
+    business_impact: "unauthorized PII access triggering GDPR violation, CCPA opt-out enforcement failure, insider data theft"
+    mitre_final_tactic: "collection"
+    min_severity_score: 7.0
+
+  - id: "OBJ-DWH-004"
+    name: "Spark Cluster Privilege Escalation for Data Lake Access"
+    description: "Attacker exploits a Spark vulnerability or misconfigured RBAC on the compute cluster to escalate privileges and access raw sensitive data partitions in the data lake that are not accessible to the attacker's normal service account."
+    target_asset_names:
+      - "SparkCluster"
+      - "DataLakehouse"
+    target_types: ["compute_cluster", "data_lakehouse"]
+    attacker_intent: "access restricted data partitions (PII, raw financial records) not authorized for the compromised account"
+    business_impact: "GDPR breach, unauthorized access to regulated financial data, SOX audit finding"
+    mitre_final_tactic: "collection"
+    min_severity_score: 7.5
+
+threat_actors:
+  - id: "TA-DWH-001"
+    name: "Data Broker / Automated Exfiltration Actor"
+    sophistication: "medium"
+    objectives: ["OBJ-DWH-001", "OBJ-DWH-003"]
+    entry_preference: "internet-facing"
+    description: "Financially motivated threat actor specializing in automated discovery and exfiltration of cloud-hosted datasets. Uses cloud misconfiguration scanners, credential stuffing against BI portals, and bulk data transfer tools. Sells exfiltrated datasets on dark-web data markets."
+    known_ttps:
+      - "T1530"   # Data from Cloud Storage Object
+      - "T1078"   # Valid Accounts
+      - "T1110"   # Brute Force
+      - "T1048"   # Exfiltration Over Alternative Protocol
+      - "T1619"   # Cloud Storage Object Discovery
+    capable_tactics:
+      - "initial-access"
+      - "discovery"
+      - "credential-access"
+      - "collection"
+      - "exfiltration"
+
+  - id: "TA-DWH-002"
+    name: "Insider Data Analyst"
+    sophistication: "medium"
+    objectives: ["OBJ-DWH-003", "OBJ-DWH-002"]
+    entry_preference: "internal"
+    description: "Malicious or negligent data analyst with legitimate read access to BI tools and the data warehouse. Abuses their authorized access to query beyond their data classification clearance, exfiltrate sensitive data before offboarding, or modify ETL pipeline logic for financial manipulation."
+    known_ttps:
+      - "T1078.002"  # Valid Accounts: Domain Accounts
+      - "T1213"   # Data from Information Repositories
+      - "T1567"   # Exfiltration Over Web Service
+      - "T1074"   # Data Staged
+    capable_tactics:
+      - "initial-access"
+      - "collection"
+      - "exfiltration"
+
+  - id: "TA-DWH-003"
+    name: "External Attacker Targeting ETL Infrastructure"
+    sophistication: "high"
+    objectives: ["OBJ-DWH-002", "OBJ-DWH-004"]
+    entry_preference: "internet-facing"
+    description: "Targeted attacker exploiting known vulnerabilities in ETL orchestration tools (Apache Airflow) or compute platforms (Apache Spark). Gains initial access through publicly exposed Airflow web UI or API, injects malicious DAG code, and escalates to access the full data lake."
+    known_ttps:
+      - "T1190"   # Exploit Public-Facing Application
+      - "T1059.006"  # Python interpreter abuse
+      - "T1068"   # Exploitation for Privilege Escalation
+      - "T1565.001"  # Stored Data Manipulation
+      - "T1560"   # Archive Collected Data
+    capable_tactics:
+      - "initial-access"
+      - "execution"
+      - "privilege-escalation"
+      - "collection"
+      - "exfiltration"
+      - "impact"
+
+risk_criteria:
+  acceptable_risk_score: 4.0
+  max_hops: 6
+  max_paths_per_objective: 3
+  gdaf_min_technique_score: 0.8
+
+business_goals_to_protect:
+  - "Financial reporting integrity for SOX compliance"
+  - "Customer PII confidentiality (GDPR/CCPA)"
+  - "Data classification and row-level access controls in the warehouse"
+  - "ETL pipeline code integrity and change control"
+  - "Cloud storage access policies and misconfiguration prevention"

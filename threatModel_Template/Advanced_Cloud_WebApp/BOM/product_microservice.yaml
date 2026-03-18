@@ -1,0 +1,21 @@
+# BOM: Product Microservice
+asset: "Product Microservice"
+software_version: "Node.js 18.18.0 LTS (containerized, Alpine Linux 3.18)"
+patch_level: outdated
+known_cves:
+  - CVE-2023-30581  # Node.js permission model bypass via mainModule.__proto__ pollution
+  - CVE-2023-38552  # Node.js integrity check bypass for SRI (sub-resource integrity)
+running_services:
+  - HTTP (3000 — internal, behind API Gateway)
+  - Health check endpoint (/health)
+  - Metrics endpoint (/metrics — Prometheus, internal only)
+detection_level: medium
+credentials_stored: false
+notes: >
+  Containerized Node.js service handling product catalog, cart, and order processing.
+  Communicates with Product Database over unencrypted TCP (PostgreSQL port 5432) —
+  TLS for the DB connection should be enforced as a priority fix.
+  Container runs as non-root (UID 1000) with read-only root filesystem.
+  No hardcoded secrets — credentials injected via Kubernetes secrets (mounted as env vars).
+  Node.js 18 approaches end-of-life in April 2025; plan migration to Node.js 20 LTS.
+  Upgrade to Node.js 18.20.x for CVE patches.

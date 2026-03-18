@@ -1,0 +1,16 @@
+# BOM: IdentityProvider
+asset: "IdentityProvider"
+os_version: "managed_or_ubuntu_22.04"
+software_version: "Keycloak 22.0.5 or Auth0 (managed)"
+patch_level: outdated
+known_cves:
+  - CVE-2023-6134   # Keycloak reflected XSS via OIDC redirect_uri
+  - CVE-2023-6291   # Keycloak open redirect via redirect_uri manipulation
+running_services:
+  - HTTPS
+  - OIDC
+  - OAuth2
+  - SAML
+detection_level: high
+credentials_stored: true
+notes: "OAuth 2.0 / OIDC identity provider. Keycloak deployment not updated to patch XSS vulnerability (CVE-2023-6134) which could enable token theft via reflected XSS on login page. Token lifetimes may be too long (access token > 1 hour). Refresh token rotation not enforced. Admin console exposed to internet."

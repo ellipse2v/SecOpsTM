@@ -1,0 +1,20 @@
+# BOM: Microservice A
+asset: "Microservice A"
+software_version: "Python 3.11.6 (FastAPI 0.104.1, containerized Alpine Linux 3.18)"
+patch_level: current
+known_cves: []
+running_services:
+  - HTTPS (8000 — accessible only via Policy Engine)
+  - Health check (/health)
+  - Prometheus metrics (/metrics — internal only)
+detection_level: medium
+credentials_stored: false
+notes: >
+  Internal workload microservice. Only accessible via the Policy Engine (PEP) — direct
+  network paths are blocked by security group rules. Receives pre-validated JWT from
+  Envoy Ext-Authz filter (no redundant token validation needed, but recommended as
+  defense-in-depth). Python 3.11 / FastAPI 0.104.1 — no critical CVEs.
+  Container runs as non-root (UID 1000), read-only root filesystem.
+  Secrets injected via Kubernetes sealed secrets (not plain Kubernetes secrets).
+  No inter-service calls to Microservice B — all B-destined traffic goes back through
+  the Policy Engine (Zero Trust inter-service path).

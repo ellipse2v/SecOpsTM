@@ -1,0 +1,15 @@
+# BOM: Firewall
+asset: "Firewall"
+os_version: "FortiOS 7.2.4"
+software_version: "Fortinet FortiGate 7.2.4"
+patch_level: outdated
+known_cves:
+  - CVE-2022-40684   # FortiGate authentication bypass on management interface
+  - CVE-2023-27997   # FortiGate SSL-VPN heap overflow pre-authentication RCE
+running_services:
+  - HTTPS (management)
+  - SSL-VPN
+  - IPS/IDS
+detection_level: high
+credentials_stored: true
+notes: "Perimeter firewall protecting DMZ and internal network. CVE-2022-40684 (auth bypass) was actively exploited in the wild. SSL-VPN feature enabled and exposed to internet. Management interface accessible from internet (not restricted to management VLAN). Firmware update may have been delayed due to change freeze."

@@ -1,0 +1,13 @@
+# BOM: WebApp
+asset: "WebApp"
+os_version: "ubuntu_22.04"
+software_version: "React 18.2 / Next.js 13.5 served via Nginx 1.24"
+patch_level: current
+known_cves:
+  - CVE-2023-44487   # HTTP/2 Rapid Reset DDoS (Nginx 1.24 without patch)
+running_services:
+  - HTTPS
+  - HTTP (redirected)
+detection_level: medium
+credentials_stored: false
+notes: "Frontend web application with sub-model drill-down to frontend/model.md. Contains WebServer and LoadBalancer components. CSP headers not configured — stored XSS in user content could lead to session token theft. HTTP/2 enabled on Nginx without Rapid Reset mitigation patch."

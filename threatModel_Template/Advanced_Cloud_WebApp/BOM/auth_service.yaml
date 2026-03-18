@@ -1,0 +1,22 @@
+# BOM: Auth Service
+asset: "Auth Service"
+software_version: "Keycloak 22.0.5"
+patch_level: outdated
+known_cves:
+  - CVE-2023-6134  # Keycloak open redirect via specially crafted redirect_uri parameter
+  - CVE-2023-6544  # Keycloak authorization bypass via permissive policies in certain configurations
+  - CVE-2024-1132  # Keycloak path traversal in redirect_uri validation
+running_services:
+  - HTTPS (8443)
+  - OIDC discovery endpoint (/.well-known/openid-configuration)
+  - Admin console (9443 — internal only)
+  - Management API (9990)
+detection_level: medium
+credentials_stored: true
+notes: >
+  Central OIDC/OAuth2 identity provider. Stores all user credentials (bcrypt-hashed),
+  MFA TOTP secrets, and service account client secrets. CVE-2023-6134 allows phishing
+  via open redirect in OAuth callback — upgrade to Keycloak 23.0.0+ immediately.
+  MFA is enforced for admin console but optional for end users (should be enforced for
+  high-privilege roles). Realm import/export contains client secrets — secure backup storage.
+  Upgrade to Keycloak 24.0.x recommended. Admin console must not be internet-accessible.

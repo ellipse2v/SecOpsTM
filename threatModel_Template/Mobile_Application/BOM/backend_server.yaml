@@ -1,0 +1,14 @@
+# BOM: BackendServer
+asset: "BackendServer"
+os_version: "ubuntu_22.04"
+software_version: "Node.js 18.17.1 / Express 4.18.2"
+patch_level: outdated
+known_cves:
+  - CVE-2023-30581   # Node.js mainModule.__proto__ pollution (permission model bypass)
+  - CVE-2023-32002   # Node.js module loading path traversal
+running_services:
+  - HTTPS
+  - Node.js HTTP
+detection_level: medium
+credentials_stored: true
+notes: "Node.js/Express backend application server. Database connection credentials and JWT signing secrets stored as environment variables — risk of exposure through process dumps or misconfigured error handling. No input validation middleware enforced globally. Security headers (HSTS, CSP) partially configured."

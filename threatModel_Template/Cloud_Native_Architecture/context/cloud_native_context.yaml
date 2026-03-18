@@ -1,0 +1,160 @@
+# GDAF Context: Cloud-Native Architecture
+
+system_description: >
+  Cloud-native SaaS application deployed on AWS (or GCP equivalent). Traffic flows from
+  end users through a CloudFront CDN edge, an API Gateway, serverless Lambda functions,
+  a managed NoSQL database (DynamoDB), and an S3 object storage bucket. IAM roles govern
+  all service-to-service access. The developer/cloud operator manages the platform via
+  the AWS console and CLI.
+sector: "SaaS / Cloud Services"
+data_sensitivity: "high"
+internet_facing: true
+compliance_requirements:
+  - "SOC 2 Type II"
+  - "ISO 27001"
+  - "AWS Well-Architected Security Pillar"
+deployment_environment: "public cloud (AWS/GCP)"
+
+attack_objectives:
+  - id: "OBJ-CLOUD-001"
+    name: "Data Exfiltration via Misconfigured S3 Bucket"
+    description: >
+      Attacker discovers and exploits a publicly accessible S3 bucket (due to overly permissive
+      ACL or bucket policy) to download all stored objects — including user PII, application
+      backups, and exported database snapshots.
+    target_asset_names:
+      - "ObjectStorage"
+    target_types: ["object_storage", "s3", "blob_storage"]
+    attacker_intent: "collection, exfiltration"
+    business_impact: "Mass data breach; regulatory fines (GDPR/CCPA); customer churn; reputational damage"
+    mitre_final_tactic: "exfiltration"
+    min_severity_score: 7.0
+
+  - id: "OBJ-CLOUD-002"
+    name: "Serverless Function Code Injection via Event Payload"
+    description: >
+      Attacker sends a crafted event payload to the API Gateway that triggers unsanitized
+      input processing in a Lambda function, leading to SSRF, environment variable leakage,
+      or arbitrary code execution via a deserialization or template injection vulnerability.
+    target_asset_names:
+      - "LambdaFunction"
+    target_types: ["faas", "serverless", "lambda"]
+    attacker_intent: "execution, credential-access"
+    business_impact: "Lambda IAM role credentials stolen; attacker can access all AWS services the function is authorized for"
+    mitre_final_tactic: "credential-access"
+    min_severity_score: 8.0
+
+  - id: "OBJ-CLOUD-003"
+    name: "IAM Privilege Escalation via Over-Permissioned Lambda Role"
+    description: >
+      Attacker who has gained code execution in a Lambda function discovers that the
+      function's IAM execution role has overly broad permissions (e.g. iam:PassRole,
+      lambda:UpdateFunctionCode, or s3:* on all buckets). Attacker escalates to full
+      account compromise by creating new admin users or updating other Lambda functions.
+    target_asset_names:
+      - "LambdaFunction"
+      - "ObjectStorage"
+      - "NoSQLDatabase"
+    target_types: ["faas", "iam", "cloud_identity"]
+    attacker_intent: "privilege-escalation, persistence"
+    business_impact: "Full cloud account compromise; attacker can destroy all data or pivot to other cloud accounts"
+    mitre_final_tactic: "privilege-escalation"
+    min_severity_score: 9.0
+
+  - id: "OBJ-CLOUD-004"
+    name: "NoSQL Database Direct Access via Leaked Credentials"
+    description: >
+      Attacker obtains IAM credentials (from Lambda environment variables, Git history,
+      or CI/CD pipeline logs) and uses them to query or dump the entire DynamoDB/Firestore
+      database, bypassing the application layer entirely.
+    target_asset_names:
+      - "NoSQLDatabase"
+    target_types: ["database", "nosql", "dynamodb"]
+    attacker_intent: "collection, exfiltration"
+    business_impact: "Complete database dump; all user data, session tokens, and application state exposed"
+    mitre_final_tactic: "collection"
+    min_severity_score: 8.5
+
+threat_actors:
+  - id: "TA-CLOUD-001"
+    name: "Cloud Opportunist (Automated Scanner)"
+    sophistication: "low"
+    objectives: ["OBJ-CLOUD-001"]
+    entry_preference: "internet-facing"
+    description: >
+      Automated attacker using cloud enumeration tools (GrayhatWarfare, S3Scanner,
+      Bucket Finder) to scan for publicly exposed S3 buckets, open API endpoints without
+      authentication, and exposed Lambda function URLs. Typically motivated by data resale
+      or cryptomining; not targeted but highly scalable.
+    known_ttps:
+      - "T1530"  # Data from Cloud Storage Object
+      - "T1526"  # Cloud Service Discovery
+      - "T1190"  # Exploit Public-Facing Application
+      - "T1496"  # Resource Hijacking
+    capable_tactics:
+      - "initial-access"
+      - "discovery"
+      - "collection"
+      - "exfiltration"
+      - "impact"
+
+  - id: "TA-CLOUD-002"
+    name: "Sophisticated Cloud Attacker (IAM Lateral Movement)"
+    sophistication: "high"
+    objectives: ["OBJ-CLOUD-002", "OBJ-CLOUD-003", "OBJ-CLOUD-004"]
+    entry_preference: "internet-facing"
+    description: >
+      Skilled attacker with deep knowledge of AWS/GCP IAM, serverless attack surfaces,
+      and cloud-native lateral movement techniques. Targets the Lambda execution role as
+      the primary pivot point for cross-service access. Uses tools like Pacu, CloudSploit,
+      and WeirdAAL to enumerate and exploit IAM misconfigurations. Patient and stealthy —
+      avoids triggering GuardDuty rules by staying within expected API call patterns.
+    known_ttps:
+      - "T1078"   # Valid Accounts (stolen IAM credentials)
+      - "T1552"   # Unsecured Credentials (Lambda env vars, Git history)
+      - "T1098"   # Account Manipulation (create new IAM admin)
+      - "T1537"   # Transfer Data to Cloud Account
+      - "T1578"   # Modify Cloud Compute Infrastructure
+      - "T1619"   # Cloud Storage Object Discovery
+    capable_tactics:
+      - "initial-access"
+      - "execution"
+      - "persistence"
+      - "privilege-escalation"
+      - "defense-evasion"
+      - "credential-access"
+      - "discovery"
+      - "lateral-movement"
+      - "collection"
+      - "exfiltration"
+
+  - id: "TA-CLOUD-003"
+    name: "Rogue Cloud Operator (Insider)"
+    sophistication: "medium"
+    objectives: ["OBJ-CLOUD-001", "OBJ-CLOUD-004"]
+    entry_preference: "insider"
+    description: >
+      Developer or cloud operator with legitimate AWS console and CLI access. May exfiltrate
+      customer data directly from DynamoDB or S3 using legitimate credentials before
+      departing the organization. No need to exploit vulnerabilities — misuse of authorized access.
+    known_ttps:
+      - "T1078"  # Valid Accounts
+      - "T1530"  # Data from Cloud Storage Object
+      - "T1048"  # Exfiltration Over Alternative Protocol
+    capable_tactics:
+      - "collection"
+      - "exfiltration"
+      - "impact"
+
+risk_criteria:
+  acceptable_risk_score: 5.0
+  max_hops: 5
+  max_paths_per_objective: 3
+  gdaf_min_technique_score: 0.75
+
+business_goals_to_protect:
+  - "Confidentiality of all user PII stored in DynamoDB and S3"
+  - "Integrity of serverless function code (prevent code injection)"
+  - "Least-privilege IAM: Lambda roles scoped to minimum required permissions"
+  - "Availability of the API Gateway and CDN (DDoS resilience)"
+  - "Prevention of unauthorized data exfiltration from object storage"
