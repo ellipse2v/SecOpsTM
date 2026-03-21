@@ -105,7 +105,23 @@ class GDAFEngine:
         # All models whose nodes/edges should be merged into the unified graph
         self._all_models: List[Any] = [threat_model] + (extra_models or [])
         ctx = self._load_context(context_path)
-        self.context = ctx if ctx else self._auto_context(threat_model)
+        if ctx and ("attack_objectives" in ctx or "threat_actors" in ctx):
+            # Context explicitly declares GDAF sections (even if empty lists) — use as-is.
+            self.context = ctx
+        else:
+            # Context file exists but has no GDAF sections (only system metadata),
+            # OR no context file at all — generate objectives/actors automatically.
+            auto = self._auto_context(threat_model)
+            if ctx:
+                # Merge non-GDAF metadata from ctx into the auto-generated context
+                # so that extra keys (project description, custom fields) are preserved.
+                merged = dict(auto)
+                for k, v in ctx.items():
+                    if k not in ("attack_objectives", "threat_actors", "risk_criteria"):
+                        merged[k] = v
+                self.context = merged
+            else:
+                self.context = auto
         self.mapper = AssetTechniqueMapper()
         self._bom = BOMLoader(bom_directory)
         self._graph: Optional[Dict] = None  # built lazily
