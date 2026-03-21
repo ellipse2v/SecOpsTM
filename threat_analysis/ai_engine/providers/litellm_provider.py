@@ -19,7 +19,6 @@ from .litellm_client import LiteLLMClient
 from ..prompts.stride_prompts import build_component_prompt
 from ..prompts.attack_flow_prompts import build_attack_flow_prompt
 from threat_analysis.ai_engine.prompt_loader import get as _get_prompt
-import asyncio
 import json
 
 class LiteLLMProvider(BaseLLMProvider):
@@ -30,7 +29,6 @@ class LiteLLMProvider(BaseLLMProvider):
         # But we might want to override some settings if needed.
         self._client = None
         self._config = config
-        self._loop = asyncio.get_event_loop()
 
     async def _get_client(self):
         if self._client is None:

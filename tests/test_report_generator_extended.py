@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import pytest
+import asyncio
 import json
 import os
 from pathlib import Path
@@ -78,24 +79,21 @@ def report_generator():
     mitre_mapping = MagicMock()
     return ReportGenerator(severity_calc, mitre_mapping)
 
-@pytest.mark.asyncio
-async def test_enrich_threats_with_ai_no_provider(report_generator):
+def test_enrich_threats_with_ai_no_provider(report_generator):
     report_generator.ai_provider = None
     threats = [{"id": 1}]
-    result = await report_generator._enrich_threats_with_ai(None, threats)
+    result = asyncio.run(report_generator._enrich_threats_with_ai(None, threats))
     assert result == threats
 
-@pytest.mark.asyncio
-async def test_enrich_threats_with_ai_not_reachable(report_generator):
+def test_enrich_threats_with_ai_not_reachable(report_generator):
     report_generator.ai_provider = MagicMock()
     report_generator.ai_provider.check_connection = AsyncMock(return_value=False)
     report_generator.ai_context = {"ctx": 1}
     threats = [{"id": 1}]
-    result = await report_generator._enrich_threats_with_ai(None, threats)
+    result = asyncio.run(report_generator._enrich_threats_with_ai(None, threats))
     assert result == threats
 
-@pytest.mark.asyncio
-async def test_enrich_threats_with_ai_success(report_generator):
+def test_enrich_threats_with_ai_success(report_generator):
     report_generator.ai_provider = MagicMock()
     report_generator.ai_provider.check_connection = AsyncMock(return_value=True)
     report_generator.ai_provider.generate_threats = AsyncMock(return_value=[
@@ -110,13 +108,13 @@ async def test_enrich_threats_with_ai_success(report_generator):
     ])
     report_generator.ai_context = {"ctx": 1}
     report_generator.severity_calculator.get_severity_info.return_value = {"level": "High", "score": 8.0}
-    
+
     threat_model = MagicMock()
     threat_model.servers = [{"name": "S1", "description": "desc"}]
     threat_model.actors = []
     threat_model.boundaries = {}
-    
-    result = await report_generator._enrich_threats_with_ai(threat_model, [])
+
+    result = asyncio.run(report_generator._enrich_threats_with_ai(threat_model, []))
     assert len(result) == 1
     assert result[0]["description"] == "AI Spoof"
     assert result[0]["source"] == "AI"
