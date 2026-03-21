@@ -116,7 +116,7 @@ def mock_provider():
     """Mocks the LiteLLMProvider for AIService."""
     mock_provider = MagicMock()
     mock_provider.check_connection = AsyncMock(return_value=True)
-    
+
     # Mock for generate_threats (component-level threats)
     mock_provider.generate_threats = AsyncMock(return_value=[
         {
@@ -164,8 +164,7 @@ def mock_chat_litellm():
     return mock_litellm
 
 
-@pytest.mark.asyncio
-async def test_rag_threat_generator_initialization(mock_chat_litellm):
+def test_rag_threat_generator_initialization(mock_chat_litellm):
     """Test RAGThreatGenerator initialization."""
     with patch('os.path.exists', side_effect=lambda x: x == str(TEST_VECTOR_STORE_DIR) or x == str(TEST_AI_CONFIG_PATH) or x == str(TEST_USER_CONTEXT_PATH)):
         rag_generator = RAGThreatGenerator(
@@ -181,8 +180,7 @@ async def test_rag_threat_generator_initialization(mock_chat_litellm):
         assert "ollama" in rag_generator._llm_model
 
 
-@pytest.mark.asyncio
-async def test_rag_threat_generator_generates_threats(mock_chat_litellm):
+def test_rag_threat_generator_generates_threats(mock_chat_litellm):
     """Test RAGThreatGenerator generates threats in the correct format."""
     with patch('os.path.exists', side_effect=lambda x: x == str(TEST_VECTOR_STORE_DIR) or x == str(TEST_AI_CONFIG_PATH) or x == str(TEST_USER_CONTEXT_PATH)):
         with patch.object(RAGThreatGenerator, '_initialize_components'):
@@ -228,71 +226,71 @@ async def test_rag_threat_generator_generates_threats(mock_chat_litellm):
             mock_litellm.completion.assert_called_once()
 
 
-@pytest.mark.asyncio
-async def test_aiservice_integrates_rag_threats(mock_provider, mock_chat_litellm):
+def test_aiservice_integrates_rag_threats(mock_provider, mock_chat_litellm):
     """Test AIService successfully integrates RAG-generated threats."""
-    # Mock dependencies for AIService
-    mock_ai_config_path_exists = lambda x: x == str(TEST_AI_CONFIG_PATH) or x == str(TEST_VECTOR_STORE_DIR) or x == str(TEST_USER_CONTEXT_PATH)
+    async def _run():
+        # Mock dependencies for AIService
+        mock_ai_config_path_exists = lambda x: x == str(TEST_AI_CONFIG_PATH) or x == str(TEST_VECTOR_STORE_DIR) or x == str(TEST_USER_CONTEXT_PATH)
 
-    with patch('threat_analysis.server.ai_service.LiteLLMProvider') as MockProvider, \
-         patch('os.path.exists', side_effect=mock_ai_config_path_exists), \
-         patch('threat_analysis.server.ai_service.RAGThreatGenerator') as MockRAG:
-        
-        MockProvider.return_value = mock_provider
-        
-        # Configure the MockRAG to return our desired threats
-        mock_rag_instance = MockRAG.return_value
-        mock_rag_instance.generate_threats.return_value = [
-            {
-                "name": "Global Phishing Threat",
-                "description": "Advanced phishing attacks.",
-                "category": "Spoofing",
-                "likelihood": "high",
-                "impact": "critical",
-                "source": "LLM"
-            },
-            {
-                "name": "Supply Chain Compromise",
-                "description": "Compromise of a third-party library.",
-                "category": "Tampering",
-                "likelihood": "medium",
-                "impact": "high",
-                "source": "LLM"
-            }
-        ]
+        with patch('threat_analysis.server.ai_service.LiteLLMProvider') as MockProvider, \
+             patch('os.path.exists', side_effect=mock_ai_config_path_exists), \
+             patch('threat_analysis.server.ai_service.RAGThreatGenerator') as MockRAG:
 
-        ai_service = AIService(config_path=str(TEST_AI_CONFIG_PATH))
-        await ai_service.init_ai() # This should now use the mocked RAGThreatGenerator
+            MockProvider.return_value = mock_provider
 
-        assert ai_service.rag_generator is not None
+            # Configure the MockRAG to return our desired threats
+            mock_rag_instance = MockRAG.return_value
+            mock_rag_instance.generate_threats.return_value = [
+                {
+                    "name": "Global Phishing Threat",
+                    "description": "Advanced phishing attacks.",
+                    "category": "Spoofing",
+                    "likelihood": "high",
+                    "impact": "critical",
+                    "source": "LLM"
+                },
+                {
+                    "name": "Supply Chain Compromise",
+                    "description": "Compromise of a third-party library.",
+                    "category": "Tampering",
+                    "likelihood": "medium",
+                    "impact": "high",
+                    "source": "LLM"
+                }
+            ]
 
-        # Mock a cve_service if needed by ThreatModel creation
-        mock_cve_service = MagicMock()
-        mock_cve_service.get_cves_for_equipment.return_value = []
-        mock_cve_service.get_capecs_for_cve.return_value = []
+            ai_service = AIService(config_path=str(TEST_AI_CONFIG_PATH))
+            await ai_service.init_ai()  # This should now use the mocked RAGThreatGenerator
 
-        # Use a name that avoids any global TM naming conflicts in tests
-        threat_model = ThreatModel(name="RAGTestModelFinal", description="Test", cve_service=mock_cve_service)
+            assert ai_service.rag_generator is not None
 
-        # Add dummy elements for component-level AI threats
-        actor_data = {'object': Actor("UserRAGFinal"), 'name': "UserRAGFinal"}
-        server_data = {'object': Server("WebAppRAGFinal"), 'name': "WebAppRAGFinal"}
+            # Mock a cve_service if needed by ThreatModel creation
+            mock_cve_service = MagicMock()
+            mock_cve_service.get_cves_for_equipment.return_value = []
+            mock_cve_service.get_capecs_for_cve.return_value = []
 
-        threat_model.actors.append(actor_data)
-        threat_model.servers.append(server_data)
+            # Use a name that avoids any global TM naming conflicts in tests
+            threat_model = ThreatModel(name="RAGTestModelFinal", description="Test", cve_service=mock_cve_service)
 
-        # Call the enrich method
-        await ai_service._enrich_with_ai_threats(threat_model)
+            # Add dummy elements for component-level AI threats
+            actor_data = {'object': Actor("UserRAGFinal"), 'name': "UserRAGFinal"}
+            server_data = {'object': Server("WebAppRAGFinal"), 'name': "WebAppRAGFinal"}
 
-        # Assert RAG-generated threats are added globally
-        assert hasattr(threat_model.tm, 'global_threats_llm')
-        assert len(threat_model.tm.global_threats_llm) == 2
-        assert all(isinstance(t, ExtendedThreat) for t in threat_model.tm.global_threats_llm)
-        assert all(t.source == "LLM" for t in threat_model.tm.global_threats_llm)
+            threat_model.actors.append(actor_data)
+            threat_model.servers.append(server_data)
 
-        # Assert component-level AI threats are added
-        assert len(threat_model.servers[0]['object'].threats) == 1
-        assert threat_model.servers[0]['object'].threats[0].source == "AI"
-        assert "(AI) SQL Injection" in threat_model.servers[0]['object'].threats[0].description
-        assert threat_model.servers[0]['object'].threats[0].category == "Tampering"
+            # Call the enrich method
+            await ai_service._enrich_with_ai_threats(threat_model)
 
+            # Assert RAG-generated threats are added globally
+            assert hasattr(threat_model.tm, 'global_threats_llm')
+            assert len(threat_model.tm.global_threats_llm) == 2
+            assert all(isinstance(t, ExtendedThreat) for t in threat_model.tm.global_threats_llm)
+            assert all(t.source == "LLM" for t in threat_model.tm.global_threats_llm)
+
+            # Assert component-level AI threats are added
+            assert len(threat_model.servers[0]['object'].threats) == 1
+            assert threat_model.servers[0]['object'].threats[0].source == "AI"
+            assert "(AI) SQL Injection" in threat_model.servers[0]['object'].threats[0].description
+            assert threat_model.servers[0]['object'].threats[0].category == "Tampering"
+    asyncio.run(_run())

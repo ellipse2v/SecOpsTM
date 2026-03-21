@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import asyncio
 import pytest
 from unittest.mock import MagicMock, AsyncMock, patch
 
@@ -27,11 +28,12 @@ def test_init(threat_model_service):
     assert threat_model_service.export_service is not None
     assert threat_model_service.model_management_service is not None
 
-@pytest.mark.asyncio
-async def test_init_ai(threat_model_service):
-    with patch.object(threat_model_service.ai_service, 'init_ai', new_callable=AsyncMock) as mock_init_ai:
-        await threat_model_service.init_ai()
-        mock_init_ai.assert_awaited_once()
+def test_init_ai(threat_model_service):
+    async def _run():
+        with patch.object(threat_model_service.ai_service, 'init_ai', new_callable=AsyncMock) as mock_init_ai:
+            await threat_model_service.init_ai()
+            mock_init_ai.assert_awaited_once()
+    asyncio.run(_run())
 
 def test_check_version_compatibility(threat_model_service):
     with patch.object(threat_model_service.model_management_service, 'check_version_compatibility') as mock_check:

@@ -27,8 +27,7 @@ from threat_analysis.ai_engine.providers.litellm_provider import LiteLLMProvider
 
 # --- LiteLLMClient Tests ---
 
-@pytest.mark.asyncio
-async def test_litellm_client_load_config_success():
+def test_litellm_client_load_config_success():
     mock_config_yaml = """
 ai_providers:
   openai:
@@ -37,74 +36,79 @@ ai_providers:
     api_key_env: "OPENAI_API_KEY"
     api_base: "http://proxy.internal"
 """
-    with patch("builtins.open", mock_open(read_data=mock_config_yaml)), \
-         patch("threat_analysis.ai_engine.providers.litellm_client.PROJECT_ROOT", Path("/tmp")), \
-         patch("importlib.import_module"), \
-         patch.object(LiteLLMClient, "check_connection", return_value=True), \
-         patch("os.getenv", return_value="sk-test"):
-        
+    async def _run():
+        with patch("builtins.open", mock_open(read_data=mock_config_yaml)), \
+             patch("threat_analysis.ai_engine.providers.litellm_client.PROJECT_ROOT", Path("/tmp")), \
+             patch("importlib.import_module"), \
+             patch.object(LiteLLMClient, "check_connection", return_value=True), \
+             patch("os.getenv", return_value="sk-test"):
+
+            client = LiteLLMClient()
+            await client._load_ai_config()
+
+            assert client.model_name == "openai/gpt-4"
+            assert client.api_base == "http://proxy.internal"
+            assert client.ai_online is True
+    asyncio.run(_run())
+
+def test_litellm_client_check_connection_fail():
+    async def _run():
         client = LiteLLMClient()
-        await client._load_ai_config()
-        
-        assert client.model_name == "openai/gpt-4"
-        assert client.api_base == "http://proxy.internal"
-        assert client.ai_online is True
+        client.model_name = "test"
+        client._litellm_module = MagicMock()
+        client._litellm_module.acompletion = AsyncMock(side_effect=Exception("Failed"))
 
-@pytest.mark.asyncio
-async def test_litellm_client_check_connection_fail():
-    client = LiteLLMClient()
-    client.model_name = "test"
-    client._litellm_module = MagicMock()
-    client._litellm_module.acompletion = AsyncMock(side_effect=Exception("Failed"))
-    
-    result = await client.check_connection()
-    assert result is False
+        result = await client.check_connection()
+        assert result is False
+    asyncio.run(_run())
 
-@pytest.mark.asyncio
-async def test_litellm_client_generate_content_no_ai():
-    client = LiteLLMClient()
-    client.ai_online = False
-    with pytest.raises(RuntimeError, match="AI server is not available"):
-        async for chunk in client.generate_content("p", "s"):
-            pass
+def test_litellm_client_generate_content_no_ai():
+    async def _run():
+        client = LiteLLMClient()
+        client.ai_online = False
+        with pytest.raises(RuntimeError, match="AI server is not available"):
+            async for chunk in client.generate_content("p", "s"):
+                pass
+    asyncio.run(_run())
 
-@pytest.mark.asyncio
-async def test_litellm_client_generate_content_success():
-    client = LiteLLMClient()
-    client.ai_online = True
-    client.model_name = "openai/test"
-    client._litellm_module = MagicMock()
-    
-    mock_response = MagicMock()
-    mock_response.choices[0].message.content = "AI Response"
-    client._litellm_module.acompletion = AsyncMock(return_value=mock_response)
-    
-    responses = []
-    async for chunk in client.generate_content("p", "s", stream=False):
-        responses.append(chunk)
-    
-    assert responses == ["AI Response"]
+def test_litellm_client_generate_content_success():
+    async def _run():
+        client = LiteLLMClient()
+        client.ai_online = True
+        client.model_name = "openai/test"
+        client._litellm_module = MagicMock()
 
-@pytest.mark.asyncio
-async def test_litellm_client_generate_content_json():
-    client = LiteLLMClient()
-    client.ai_online = True
-    client.model_name = "openai/test"
-    client._litellm_module = MagicMock()
-    
-    mock_response = MagicMock()
-    mock_response.choices[0].message.content = '```json\n{"result": "ok"}\n```'
-    client._litellm_module.acompletion = AsyncMock(return_value=mock_response)
-    
-    responses = []
-    with patch("threat_analysis.ai_engine.providers.litellm_client.extract_json_from_llm_response", return_value='{"result": "ok"}'):
-        async for chunk in client.generate_content("p", "s", stream=False, output_format="json"):
+        mock_response = MagicMock()
+        mock_response.choices[0].message.content = "AI Response"
+        client._litellm_module.acompletion = AsyncMock(return_value=mock_response)
+
+        responses = []
+        async for chunk in client.generate_content("p", "s", stream=False):
             responses.append(chunk)
-    
-    assert responses == [{"result": "ok"}]
 
-@pytest.mark.asyncio
-async def test_litellm_client_ollama_config():
+        assert responses == ["AI Response"]
+    asyncio.run(_run())
+
+def test_litellm_client_generate_content_json():
+    async def _run():
+        client = LiteLLMClient()
+        client.ai_online = True
+        client.model_name = "openai/test"
+        client._litellm_module = MagicMock()
+
+        mock_response = MagicMock()
+        mock_response.choices[0].message.content = '```json\n{"result": "ok"}\n```'
+        client._litellm_module.acompletion = AsyncMock(return_value=mock_response)
+
+        responses = []
+        with patch("threat_analysis.ai_engine.providers.litellm_client.extract_json_from_llm_response", return_value='{"result": "ok"}'):
+            async for chunk in client.generate_content("p", "s", stream=False, output_format="json"):
+                responses.append(chunk)
+
+        assert responses == [{"result": "ok"}]
+    asyncio.run(_run())
+
+def test_litellm_client_ollama_config():
     mock_config_yaml = """
 ai_providers:
   ollama:
@@ -112,18 +116,19 @@ ai_providers:
     model: "llama3"
     host: "http://ollama:11434"
 """
-    with patch("builtins.open", mock_open(read_data=mock_config_yaml)), \
-         patch("threat_analysis.ai_engine.providers.litellm_client.PROJECT_ROOT", Path("/tmp")), \
-         patch("importlib.import_module"), \
-         patch.object(LiteLLMClient, "check_connection", return_value=True):
-        
-        client = LiteLLMClient()
-        await client._load_ai_config()
-        assert client.model_name == "ollama/llama3"
-        assert os.environ.get("OLLAMA_API_BASE") == "http://ollama:11434"
+    async def _run():
+        with patch("builtins.open", mock_open(read_data=mock_config_yaml)), \
+             patch("threat_analysis.ai_engine.providers.litellm_client.PROJECT_ROOT", Path("/tmp")), \
+             patch("importlib.import_module"), \
+             patch.object(LiteLLMClient, "check_connection", return_value=True):
 
-@pytest.mark.asyncio
-async def test_litellm_client_gemini_api_key():
+            client = LiteLLMClient()
+            await client._load_ai_config()
+            assert client.model_name == "ollama/llama3"
+            assert os.environ.get("OLLAMA_API_BASE") == "http://ollama:11434"
+    asyncio.run(_run())
+
+def test_litellm_client_gemini_api_key():
     mock_config_yaml = """
 ai_providers:
   gemini:
@@ -131,69 +136,76 @@ ai_providers:
     model: "flash"
     api_key_env: "GEMINI_API_KEY"
 """
-    with patch("builtins.open", mock_open(read_data=mock_config_yaml)), \
-         patch("threat_analysis.ai_engine.providers.litellm_client.PROJECT_ROOT", Path("/tmp")), \
-         patch("importlib.import_module"), \
-         patch.object(LiteLLMClient, "check_connection", return_value=True), \
-         patch("os.getenv", return_value="gemini-key"):
-        
-        client = LiteLLMClient()
-        await client._load_ai_config()
-        assert os.environ.get("GEMINI_API_KEY") == "gemini-key"
-        assert os.environ.get("GOOGLE_API_KEY") == "gemini-key"
+    async def _run():
+        with patch("builtins.open", mock_open(read_data=mock_config_yaml)), \
+             patch("threat_analysis.ai_engine.providers.litellm_client.PROJECT_ROOT", Path("/tmp")), \
+             patch("importlib.import_module"), \
+             patch.object(LiteLLMClient, "check_connection", return_value=True), \
+             patch("os.getenv", return_value="gemini-key"):
 
-@pytest.mark.asyncio
-async def test_litellm_client_no_provider():
+            client = LiteLLMClient()
+            await client._load_ai_config()
+            assert os.environ.get("GEMINI_API_KEY") == "gemini-key"
+            assert os.environ.get("GOOGLE_API_KEY") == "gemini-key"
+    asyncio.run(_run())
+
+def test_litellm_client_no_provider():
     mock_config_yaml = "ai_providers: {}"
-    with patch("builtins.open", mock_open(read_data=mock_config_yaml)), \
-         patch("threat_analysis.ai_engine.providers.litellm_client.PROJECT_ROOT", Path("/tmp")):
-        client = LiteLLMClient()
-        await client._load_ai_config()
-        assert client.provider_config == {}
+    async def _run():
+        with patch("builtins.open", mock_open(read_data=mock_config_yaml)), \
+             patch("threat_analysis.ai_engine.providers.litellm_client.PROJECT_ROOT", Path("/tmp")):
+            client = LiteLLMClient()
+            await client._load_ai_config()
+            assert client.provider_config == {}
+    asyncio.run(_run())
 
-@pytest.mark.asyncio
-async def test_litellm_client_file_not_found():
-    with patch("builtins.open", side_effect=FileNotFoundError()), \
-         patch("threat_analysis.ai_engine.providers.litellm_client.PROJECT_ROOT", Path("/tmp")):
-        client = LiteLLMClient()
-        await client._load_ai_config()
-        assert client.ai_config == {}
+def test_litellm_client_file_not_found():
+    async def _run():
+        with patch("builtins.open", side_effect=FileNotFoundError()), \
+             patch("threat_analysis.ai_engine.providers.litellm_client.PROJECT_ROOT", Path("/tmp")):
+            client = LiteLLMClient()
+            await client._load_ai_config()
+            assert client.ai_config == {}
+    asyncio.run(_run())
 
 # --- LiteLLMProvider Tests ---
 
-@pytest.mark.asyncio
-async def test_litellm_provider_check_connection():
-    with patch("threat_analysis.ai_engine.providers.litellm_client.LiteLLMClient.create", new_callable=AsyncMock) as mock_create:
-        mock_client = MagicMock()
-        mock_client.check_connection = AsyncMock(return_value=True)
-        mock_create.return_value = mock_client
-        
-        provider = LiteLLMProvider({})
-        result = await provider.check_connection()
-        assert result is True
+def test_litellm_provider_check_connection():
+    async def _run():
+        with patch("threat_analysis.ai_engine.providers.litellm_client.LiteLLMClient.create", new_callable=AsyncMock) as mock_create:
+            mock_client = MagicMock()
+            mock_client.check_connection = AsyncMock(return_value=True)
+            mock_create.return_value = mock_client
 
-@pytest.mark.asyncio
-async def test_litellm_provider_generate_threats():
-    with patch("threat_analysis.ai_engine.providers.litellm_client.LiteLLMClient.create", new_callable=AsyncMock) as mock_create:
-        mock_client = MagicMock()
-        async def mock_gen(**kwargs):
-            yield {"threats": [{"id": "T1"}]}
-        mock_client.generate_content = mock_gen
-        mock_create.return_value = mock_client
-        
-        provider = LiteLLMProvider({})
-        result = await provider.generate_threats({}, {})
-        assert result == [{"id": "T1"}]
+            provider = LiteLLMProvider({})
+            result = await provider.check_connection()
+            assert result is True
+    asyncio.run(_run())
 
-@pytest.mark.asyncio
-async def test_litellm_provider_generate_attack_flow():
-    with patch("threat_analysis.ai_engine.providers.litellm_client.LiteLLMClient.create", new_callable=AsyncMock) as mock_create:
-        mock_client = MagicMock()
-        async def mock_gen(**kwargs):
-            yield {"flow": "steps"}
-        mock_client.generate_content = mock_gen
-        mock_create.return_value = mock_client
-        
-        provider = LiteLLMProvider({})
-        result = await provider.generate_attack_flow({}, {}, {})
-        assert result == {"flow": "steps"}
+def test_litellm_provider_generate_threats():
+    async def _run():
+        with patch("threat_analysis.ai_engine.providers.litellm_client.LiteLLMClient.create", new_callable=AsyncMock) as mock_create:
+            mock_client = MagicMock()
+            async def mock_gen(**kwargs):
+                yield {"threats": [{"id": "T1"}]}
+            mock_client.generate_content = mock_gen
+            mock_create.return_value = mock_client
+
+            provider = LiteLLMProvider({})
+            result = await provider.generate_threats({}, {})
+            assert result == [{"id": "T1"}]
+    asyncio.run(_run())
+
+def test_litellm_provider_generate_attack_flow():
+    async def _run():
+        with patch("threat_analysis.ai_engine.providers.litellm_client.LiteLLMClient.create", new_callable=AsyncMock) as mock_create:
+            mock_client = MagicMock()
+            async def mock_gen(**kwargs):
+                yield {"flow": "steps"}
+            mock_client.generate_content = mock_gen
+            mock_create.return_value = mock_client
+
+            provider = LiteLLMProvider({})
+            result = await provider.generate_attack_flow({}, {}, {})
+            assert result == {"flow": "steps"}
+    asyncio.run(_run())
