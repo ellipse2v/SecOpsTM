@@ -53,8 +53,7 @@ if __name__ == "__main__":
             ai_config_path="config/ai_config.yaml"
         )
         threats = rag_generator.generate_threats(example_threat_model)
-        print("
---- Generated Threats ---")
+        print("\n--- Generated Threats ---")
         if threats:
             for i, threat in enumerate(threats):
                 print(f"Threat {i+1}: {threat.get('name', 'N/A')}")
