@@ -141,7 +141,7 @@ ai_providers:
              patch("threat_analysis.ai_engine.providers.litellm_client.PROJECT_ROOT", Path("/tmp")), \
              patch("importlib.import_module"), \
              patch.object(LiteLLMClient, "check_connection", return_value=True), \
-             patch("os.getenv", return_value="gemini-key"):
+             patch.dict("os.environ", {"GEMINI_API_KEY": "gemini-key"}, clear=False):
 
             client = LiteLLMClient()
             await client._load_ai_config()
