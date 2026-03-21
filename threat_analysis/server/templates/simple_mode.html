@@ -664,6 +664,23 @@
             color: #ffcc80;
             border-color: #ffab40;
         }
+        /* DSL inline squiggles */
+        .cm-dsl-error {
+            text-decoration: underline wavy #c62828;
+            text-decoration-skip-ink: none;
+        }
+        .cm-dsl-warning {
+            text-decoration: underline wavy #f57c00;
+            text-decoration-skip-ink: none;
+        }
+        /* DSL component count badge */
+        #dsl-component-count {
+            font-size: 11px;
+            color: #666;
+            margin-left: 8px;
+            white-space: nowrap;
+        }
+        body.dark-mode #dsl-component-count { color: #aaa; }
     </style>
     <script src="/static/js/split.min.js"></script>
     <script src="/static/js/svg-pan-zoom.min.js"></script>
@@ -730,7 +747,10 @@
                     <div class="tab-bar" id="tab-bar"></div>
                     <button class="tab-bar-scroll-btn" id="tab-scroll-right" title="Scroll tabs right" onclick="TabBar.scrollRight()">&#8250;</button>
                 </div>
-                <div id="dsl-validation-banner" style="display:none;" aria-live="polite"></div>
+                <div style="display:flex;align-items:baseline;gap:4px;">
+                    <div id="dsl-validation-banner" style="display:none;flex:1;" aria-live="polite"></div>
+                    <span id="dsl-component-count"></span>
+                </div>
                 <div class="tab-content-area" id="tab-content-area"></div>
             </div>
         </div>
@@ -1398,11 +1418,25 @@
             }
 
             if (hasPotentialUnresolved) {
-                if (confirm("This model appears to reference sub-models that are not open. To ensure a complete generation, please select the project's root directory.")) {
+                if (confirm("This model appears to reference sub-models that are not open. To ensure a complete generation, please select the project's root directory (the folder that contains main.md).")) {
                     try {
                         const dirHandle = await window.showDirectoryPicker();
+
+                        // Validate: the selected directory must contain main.md at its root.
+                        let hasMainMd = false;
+                        for await (const entry of dirHandle.values()) {
+                            if (entry.kind === 'file' && entry.name.toLowerCase() === 'main.md') {
+                                hasMainMd = true;
+                                break;
+                            }
+                        }
+                        if (!hasMainMd) {
+                            alert("The selected directory does not contain a 'main.md' file.\nPlease select the project's root directory (the folder that directly contains main.md), not a parent directory.");
+                            return;
+                        }
+
                         const inMemoryFiles = [];
-                        
+
                         async function processDirectory(directoryHandle, currentRelativePath) {
                             for await (const entry of directoryHandle.values()) {
                                 const newRelativePath = currentRelativePath ? `${currentRelativePath}/${entry.name}` : entry.name;
@@ -1427,7 +1461,7 @@
                                 }
                             }
                         }
-                        
+
                         await processDirectory(dirHandle, '');
 
                         const tabFilePaths = new Set(allFiles.map(f => f.path));
@@ -1462,7 +1496,8 @@
                    headers: { 'Content-Type': 'application/json' },
                    body: JSON.stringify({
                        markdown: mainModelContent, // Content of the active editor
-                       submodels: finalSubmodels  // All other collected models
+                       submodels: finalSubmodels,  // All other collected models
+                       extra_files: TabManager.extraFiles || []  // BOM/context files collected from directory picker
                    }),
                });
 
@@ -1874,13 +1909,54 @@
         })();
 
         // --- DSL Validation (debounced) ---
+        // Tracks active CodeMirror text marks so they can be cleared on next run.
+        const _dslMarks = [];
+
+        function _clearDslMarks(editor) {
+            _dslMarks.forEach(m => { try { m.clear(); } catch(_) {} });
+            _dslMarks.length = 0;
+            if (editor) editor.clearGutter('dsl-gutter');
+        }
+
+        /**
+         * Extract quoted names from a validator error/warning string.
+         * Examples: "Duplicate name: 'Foo'" → ["Foo"]
+         *           "Dataflow 'X' references unknown element 'Y'" → ["X", "Y"]
+         */
+        function _extractNames(msg) {
+            const names = [];
+            const re = /'([^']+)'/g;
+            let m;
+            while ((m = re.exec(msg)) !== null) names.push(m[1]);
+            return names;
+        }
+
+        /**
+         * Find lines in the editor that contain `name` as a bold DSL identifier
+         * (i.e. **name**: or from=name or to=name) and return their 0-based line numbers.
+         */
+        function _findLines(editor, name) {
+            const lines = [];
+            const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            // Match: **Name**: or from=Name or to=Name (case-insensitive)
+            const re = new RegExp(`(\\*\\*${escaped}\\*\\*|from\\s*=\\s*"?${escaped}"?|to\\s*=\\s*"?${escaped}"?)`, 'i');
+            const count = editor.lineCount();
+            for (let i = 0; i < count; i++) {
+                if (re.test(editor.getLine(i))) lines.push(i);
+            }
+            return lines;
+        }
+
         function validateDSL() {
             const activeEditor = TabManager.getActiveEditor();
             if (!activeEditor) return;
+            _clearDslMarks(activeEditor);
             const content = activeEditor.getValue();
+            const countEl = document.getElementById('dsl-component-count');
+            const banner = document.getElementById('dsl-validation-banner');
             if (!content || !content.trim()) {
-                const banner = document.getElementById('dsl-validation-banner');
                 if (banner) banner.style.display = 'none';
+                if (countEl) countEl.textContent = '';
                 return;
             }
             fetch('/api/validate_markdown', {
@@ -1890,11 +1966,38 @@
             })
             .then(r => r.json())
             .then(data => {
-                const banner = document.getElementById('dsl-validation-banner');
                 if (!banner) return;
+
+                // — Component count badge —
+                if (countEl && data.component_count) {
+                    const c = data.component_count;
+                    countEl.textContent =
+                        `${c.boundaries}B · ${c.actors}A · ${c.servers}S · ${c.dataflows}DF`;
+                }
+
+                // — Inline squiggles —
+                const markMsg = (msgs, cssClass) => {
+                    msgs.forEach(msg => {
+                        _extractNames(msg).forEach(name => {
+                            _findLines(activeEditor, name).forEach(lineNo => {
+                                const lineText = activeEditor.getLine(lineNo);
+                                const mark = activeEditor.markText(
+                                    {line: lineNo, ch: 0},
+                                    {line: lineNo, ch: lineText.length},
+                                    {className: cssClass, title: msg}
+                                );
+                                _dslMarks.push(mark);
+                            });
+                        });
+                    });
+                };
+                markMsg(data.errors || [], 'cm-dsl-error');
+                markMsg(data.warnings || [], 'cm-dsl-warning');
+
+                // — Banner —
                 const allMessages = [
-                    ...(data.errors || []).map(e => '\u274C ' + e),
-                    ...(data.warnings || []).map(w => '\u26A0\uFE0F ' + w)
+                    ...(data.errors || []).map(e => '&#x274C; ' + e),
+                    ...(data.warnings || []).map(w => '&#x26A0;&#xFE0F; ' + w)
                 ];
                 if (allMessages.length === 0) {
                     banner.style.display = 'none';

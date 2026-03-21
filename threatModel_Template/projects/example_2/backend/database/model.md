@@ -1,5 +1,5 @@
 ## Servers
-- **PrimaryDB**: type="database"
+- **PrimaryDB**: type="database", entry_point=True
 - **ReplicaDB**: type="database"
 
 ## Dataflows

@@ -36,7 +36,8 @@ bom_directory = BOM
   credentials_stored=True,
   ids=False,
   tags=[postgresql-15, primary, read-write, pci-dss, gdpr, encrypted-at-rest],
-  businessValue="PostgreSQL primary — all writes, PII and payment tokenization data"
+  businessValue="PostgreSQL primary — all writes, PII and payment tokenization data",
+  entry_point=True
 - **ReplicaDB**:
   boundary="Protected DB Zone",
   type=database,

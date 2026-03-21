@@ -976,7 +976,11 @@ def generate_all():
                 with open(full_sub_path, "w", encoding="utf-8") as f:
                     f.write(sub_content)
 
-        # 1b. Write extra files (BOM/*.yaml, context/*.yaml) sent directly by the client
+        # 1b. Write extra files (BOM/*.yaml, context/*.yaml) sent directly by the client.
+        # When the browser explicitly sends "extra_files" (even an empty list), it has taken
+        # ownership of BOM/context delivery — skip the server-side filesystem copy (1c) to
+        # prevent stale server globals from contaminating the output with a different project.
+        browser_managed_files = "extra_files" in data
         extra_files = data.get("extra_files", [])
         for ef in extra_files:
             ef_path = ef.get("path", "").lstrip('./\\')
@@ -988,46 +992,62 @@ def generate_all():
                     f.write(ef_content)
 
         # 1c. Copy supporting directories (context/, BOM/) from the source project.
-        # These are not part of the editor content but are needed for GDAF and BOM scoring.
-        # Fallback: derive source root from initial_model_file_path when project path not set
-        # (e.g. when the user loaded files via the browser directory picker and then used
-        # the "Project Path" field to point at the same directory).
-        _src_project = initial_project_path or (
-            str(Path(initial_model_file_path).parent)
-            if initial_model_file_path and Path(initial_model_file_path).parent.is_dir()
-            else None
-        )
-        if _src_project:
-            import shutil as _shutil
-            src_root = Path(_src_project)
-            dst_root = Path(generation_dir)
-            logging.debug("generate_all: copying context/BOM from source root: %s", src_root)
-            for extra_name in ("context",):
-                src = src_root / extra_name
-                if src.is_dir():
-                    dst = dst_root / extra_name
-                    if not dst.exists():
-                        try:
-                            _shutil.copytree(str(src), str(dst))
-                            logging.info("generate_all: copied %s → %s", src, dst)
-                        except Exception as _copy_err:
-                            logging.warning("generate_all: could not copy %s: %s", src, _copy_err)
-            # BOM directories may exist at root and inside each sub-model directory
-            for bom_dir in src_root.rglob("BOM"):
-                if bom_dir.is_dir():
-                    rel = bom_dir.relative_to(src_root)
-                    dst = dst_root / rel
-                    if not dst.exists():
-                        try:
-                            _shutil.copytree(str(bom_dir), str(dst))
-                            logging.info("generate_all: copied BOM %s → %s", bom_dir, dst)
-                        except Exception as _copy_err:
-                            logging.warning("generate_all: could not copy BOM %s: %s", bom_dir, _copy_err)
+        # Only performed when the browser did NOT explicitly send extra_files (e.g. CLI usage
+        # or server started with --model / --project and no browser UI involved).
+        # When the browser is active (browser_managed_files=True), it already sent the correct
+        # files for the currently-loaded project — using server globals here would risk copying
+        # from a stale/different project if the user navigated between projects in the UI.
+        if not browser_managed_files:
+            def _find_src_root() -> Optional[Path]:
+                candidates = []
+                if initial_model_file_path:
+                    p = Path(initial_model_file_path).parent
+                    if p.is_dir():
+                        candidates.append(p)
+                if initial_project_path:
+                    candidates.append(Path(initial_project_path))
+                for c in candidates:
+                    if (c / "main.md").exists() or (c / "model.md").exists():
+                        return c
+                return None
+
+            _src_root = _find_src_root()
+            if _src_root:
+                import shutil as _shutil
+                src_root = _src_root
+                dst_root = Path(generation_dir)
+                logging.debug("generate_all: copying context/BOM from source root: %s", src_root)
+                for extra_name in ("context",):
+                    src = src_root / extra_name
+                    if src.is_dir():
+                        dst = dst_root / extra_name
+                        if not dst.exists():
+                            try:
+                                _shutil.copytree(str(src), str(dst))
+                                logging.info("generate_all: copied %s → %s", src, dst)
+                            except Exception as _copy_err:
+                                logging.warning("generate_all: could not copy %s: %s", src, _copy_err)
+                # BOM directories may exist at root and inside each sub-model directory
+                for bom_dir in src_root.rglob("BOM"):
+                    if bom_dir.is_dir():
+                        rel = bom_dir.relative_to(src_root)
+                        dst = dst_root / rel
+                        if not dst.exists():
+                            try:
+                                _shutil.copytree(str(bom_dir), str(dst))
+                                logging.info("generate_all: copied BOM %s → %s", bom_dir, dst)
+                            except Exception as _copy_err:
+                                logging.warning("generate_all: could not copy BOM %s: %s", bom_dir, _copy_err)
+            else:
+                logging.info(
+                    "generate_all: no source project path known (server started without --model / --project). "
+                    "context/ and BOM/ files must be sent via extra_files by the browser. "
+                    "Received %d extra_files.", len(extra_files)
+                )
         else:
-            logging.info(
-                "generate_all: no source project path known (server started without --model / --project). "
-                "context/ and BOM/ files must be sent via extra_files by the browser. "
-                "Received %d extra_files.", len(extra_files)
+            logging.debug(
+                "generate_all: browser_managed_files=True — skipping server-side BOM/context copy. "
+                "Received %d extra_files from browser.", len(extra_files)
             )
 
         # 2. Save the active tab content to its ACTUAL path

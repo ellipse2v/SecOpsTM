@@ -695,20 +695,54 @@ from the parent's `## Dataflows` section at render time.
    Each stub records the peer name, direction (`incoming` / `outgoing`), protocol, and
    encryption/auth flags.
 
-2. Inside the child diagram, the generator classifies the child's own servers into:
-   - **root servers** — servers that receive no inbound dataflow within the child (entry points).
-   - **leaf servers** — servers that send no outbound dataflow within the child (exit points).
+2. Inside the child diagram, the generator identifies which child server receives external traffic
+   using the following priority:
+
+   - **Explicit entry point** (preferred): any server with `entry_point=True` in `## Servers`.
+     All ghost nodes are wired to/from that server. If multiple servers share `entry_point=True`
+     (HA pair, active-active firewalls), all of them receive ghost edges.
+   - **Topology heuristic** (fallback, when no `entry_point=True` is declared):
+     - **root servers** — servers that receive no inbound dataflow within the child → used for
+       incoming ghost edges.
+     - **leaf servers** — servers that send no outbound dataflow within the child → used for
+       outgoing ghost edges.
 
 3. Ghost nodes are placed:
    - `incoming` stub → ghost node in the green **"External connections in"** cluster, wired
-     to the child's root servers.
+     to the entry point / root servers.
    - `outgoing` stub → ghost node in the orange **"External connections out"** cluster, wired
-     from the child's leaf servers.
+     from the entry point / leaf servers.
    - **Same peer in both directions** (reverse proxy pattern) → single ghost node in the
      purple **"External connections bidirectional"** cluster, with arrows in both directions.
 
+**Declaring an explicit entry point (recommended):**
+
+```markdown
+## Servers
+- **EdgeFirewall**:
+  boundary="DMZ",
+  type=firewall,
+  entry_point=True        ← ghost nodes will connect to/from this server
+- **CoreSwitch**:
+  boundary="Internal",
+  type=router
+- **AppServer**:
+  boundary="Internal",
+  type=application-server
+```
+
+Use `entry_point=True` on the first component in the sub-model that receives traffic from the
+parent — typically a firewall, load balancer, or reverse proxy. Without this attribute the
+generator falls back to the topology heuristic, which may pick the wrong server in complex
+topologies.
+
+> **Note on asymmetric pipelines:** for one-way data flows (e.g., log ingestion) where ingress
+> and egress go through *different* servers, a future `exit_point=True` attribute is planned.
+> For now, mark the ingress server with `entry_point=True`; the outgoing ghost will also be
+> wired to it, which is the conservative-safe default.
+
 **What must match:** the server name used in the parent's `## Dataflows` must equal the `submodel=`
-server name after `.lower().strip()`. The child model declares nothing — it is unaware of its parent.
+server name after `.lower().strip()`. The child model declares nothing else about its parent.
 
 ### Reverse proxy pattern
 
@@ -1066,6 +1100,7 @@ Every attribute across all sections. "Required" means the model cannot function 
 | `ips` | Servers | bool | False | No | None (firewall only) | None |
 | `tags` | Servers | list | [] | No | None | Legacy signal, service hints |
 | `submodel` | Servers | string (path) | None | No | None | Sub-model bridging edges |
+| `entry_point` | Servers | bool | False | No | None | Ghost wiring in child diagrams — marks the server that receives external (parent) traffic; see [Ghost node mechanism](#ghost-node-mechanism--how-child-diagrams-show-parent-connections) |
 | `classification` | Data | string | UNKNOWN | No | Data sensitivity threats | `data_value` on edges |
 | `credentialsLife` | Data | string | UNKNOWN | No | Credential threats | None |
 | `description` (data) | Data | string | "" | No | None | None |

@@ -138,13 +138,45 @@ class LiteLLMClient:
         except Exception as e:
             logging.error(f"[{time.time() - start_time:.4f}s] Error initializing LiteLLMClient: {e}", exc_info=True)
 
+    @staticmethod
+    def _log_ssl_error(e: Exception, context: str) -> None:
+        """Logs SSL/TLS errors with diagnostic details to help trace enterprise certificate issues."""
+        import ssl as _ssl
+        err_str = str(e)
+        err_type = type(e).__name__
+        # Detect SSL-related exceptions by type name or message content
+        ssl_keywords = ("ssl", "certificate", "cert", "tls", "handshake", "verify", "x509", "hostname")
+        is_ssl = any(kw in err_str.lower() or kw in err_type.lower() for kw in ssl_keywords)
+        if is_ssl:
+            logging.error(
+                "[SSL] %s — %s: %s", context, err_type, err_str,
+                stack_info=False,
+            )
+            # Log environment CA bundle settings to confirm which cert file is in use
+            for env_var in ("SSL_CERT_FILE", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE"):
+                val = os.environ.get(env_var)
+                if val:
+                    logging.error("[SSL] %s=%s", env_var, val)
+                else:
+                    logging.warning("[SSL] %s not set (system default CA bundle will be used)", env_var)
+            # Log Python's default CA file for comparison
+            try:
+                logging.error("[SSL] Python default cafile: %s", _ssl.get_default_verify_paths().cafile)
+                logging.error("[SSL] Python default capath: %s", _ssl.get_default_verify_paths().capath)
+            except Exception:
+                pass
+        else:
+            logging.error("[SSL-check] %s — %s: %s", context, err_type, err_str)
+
     async def check_connection(self) -> bool:
         """Checks if the configured AI model is available via LiteLLM."""
         check_start_time = time.time()
         if not self.model_name or not self._litellm_module:
             return False
+        target = self.api_base or f"(provider default for {self.model_name})"
+        logging.info("AI health check — model=%s  url=%s  ssl_verify=%s",
+                     self.model_name, target, self.ssl_verify)
         try:
-            logging.debug(f"[{time.time() - check_start_time:.4f}s] Pinging AI model {self.model_name}...")
             if self.ssl_verify is not True:
                 self._litellm_module.ssl_verify = self.ssl_verify
             await self._litellm_module.acompletion(
@@ -155,10 +187,12 @@ class LiteLLMClient:
                 stream=False,
                 api_base=self.api_base,
             )
-            logging.debug(f"[{time.time() - check_start_time:.4f}s] AI model {self.model_name} responded successfully.")
+            logging.info("[%.3fs] AI health check OK — %s", time.time() - check_start_time, self.model_name)
             return True
         except Exception as e:
-            logging.error(f"[{time.time() - check_start_time:.4f}s] LiteLLM health check failed for model {self.model_name}: {e}")
+            logging.error("[%.3fs] AI health check FAILED — model=%s url=%s",
+                          time.time() - check_start_time, self.model_name, target)
+            self._log_ssl_error(e, f"check_connection({self.model_name})")
             return False
 
     async def generate_content(self, prompt: str, system_prompt: str, stream: Optional[bool] = None, output_format: str = "text"):
@@ -199,6 +233,12 @@ class LiteLLMClient:
         use_stream = self.stream if stream is None else stream
         completion_params["stream"] = use_stream
 
+        logging.debug("LLM request — model=%s  url=%s  ssl_verify=%s  stream=%s  max_tokens=%s",
+                      self.model_name,
+                      completion_params.get("api_base") or "(provider default)",
+                      self.ssl_verify,
+                      completion_params.get("stream"),
+                      completion_params.get("max_tokens"))
         try:
             llm_call_start_time = time.time()
             response = await self._litellm_module.acompletion(**completion_params)
@@ -232,5 +272,8 @@ class LiteLLMClient:
 
 
         except Exception as e:
-            logging.error(f"Error during LiteLLM generation: {e}", exc_info=True)
+            logging.error("LLM generation failed — model=%s url=%s",
+                          self.model_name,
+                          completion_params.get("api_base") or "(provider default)")
+            self._log_ssl_error(e, f"generate_content({self.model_name})")
             yield f"Error: An error occurred during generation: {e}"

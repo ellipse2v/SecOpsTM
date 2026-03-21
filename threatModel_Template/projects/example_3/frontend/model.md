@@ -31,7 +31,8 @@ bom_directory = BOM
   ips=False,
   mfa_enabled=False,
   tags=[haproxy, layer4, tcp],
-  businessValue="HAProxy L4/L7 load balancer — single point of ingress"
+  businessValue="HAProxy L4/L7 load balancer — single point of ingress",
+  entry_point=True
 - **WebServer**:
   boundary="Public Frontend Zone",
   type=web-server,

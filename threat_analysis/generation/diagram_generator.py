@@ -603,8 +603,21 @@ class DiagramGenerator:
             child_sources.add(src_n)
             child_sinks.add(snk_n)
 
-        root_servers = [n for n in all_server_names if n not in child_sinks] or all_server_names[:1]
-        leaf_servers = [n for n in all_server_names if n not in child_sources] or all_server_names[-1:]
+        # Prefer explicitly declared entry points (entry_point=True in DSL) over
+        # the topology heuristic (servers with no inbound / no outbound flows).
+        entry_point_names = [
+            (s.get("name", "") if isinstance(s, dict) else getattr(s, "name", ""))
+            for s in getattr(threat_model, "servers", [])
+            if (s.get("entry_point") if isinstance(s, dict) else getattr(s, "entry_point", False))
+        ]
+        entry_point_names = [n for n in entry_point_names if n]  # drop empty
+
+        if entry_point_names:
+            root_servers = entry_point_names
+            leaf_servers = entry_point_names  # same server handles bidirectional traffic
+        else:
+            root_servers = [n for n in all_server_names if n not in child_sinks] or all_server_names[:1]
+            leaf_servers = [n for n in all_server_names if n not in child_sources] or all_server_names[-1:]
 
         # Group connections by peer so that a reverse-proxy pattern (same peer appears
         # as both incoming and outgoing) produces a single ghost node, not two duplicates.
@@ -636,12 +649,14 @@ class DiagramGenerator:
             directions = info["directions"]
 
             if "incoming" in directions and "outgoing" in directions:
-                # Bidirectional peer: single node, edges in both directions
+                # Bidirectional peer: appears in BOTH the "in" cluster and the "out" cluster.
+                # "What enters the sub-model" and "what exits it" are distinct architectural
+                # concepts — a bidirectional flow creates both, shown separately.
                 for internal in root_servers:
                     ghost_nodes.append({
                         "node_id": node_id,
                         "node_label": node_label,
-                        "direction": "both_in",
+                        "direction": "incoming",
                         "protocol": protocol,
                         "internal_node": self._escape_label(internal),
                     })
@@ -649,7 +664,7 @@ class DiagramGenerator:
                     ghost_nodes.append({
                         "node_id": node_id,
                         "node_label": node_label,
-                        "direction": "both_out",
+                        "direction": "outgoing",
                         "protocol": protocol,
                         "internal_node": self._escape_label(internal),
                     })
@@ -866,11 +881,13 @@ class DiagramGenerator:
                     edge_id = f"edge_{actual_src_id}_{actual_dst_id}"
                     edge_attributes += f', id="{edge_id}"'
 
+                    is_bidir = bool(getattr(df, "bidirectional", False))
                     key = (escaped_source, escaped_dest, protocol)
                     dataflow_map[key] = {
                         "label": label,
                         "edge_attributes": edge_attributes,
-                        "class_attribute": class_attribute
+                        "class_attribute": class_attribute,
+                        "is_bidir": is_bidir,
                     }
                 except Exception as e:
                     logging.warning(f"⚠️ Error processing dataflow: {e}")
@@ -879,7 +896,14 @@ class DiagramGenerator:
         processed = set()
         for (src, dst, proto), info in dataflow_map.items():
             direction = ""
-            if ((dst, src, proto) in dataflow_map) and ((dst, src, proto) not in processed):
+            if info.get("is_bidir"):
+                # Single flow declared bidirectional=True: render as double-headed arrow
+                label = f"{info['label']}\n↔️ Bidirectional"
+                direction = "dir=\"both\", "
+                processed.add((src, dst, proto))
+                processed.add((dst, src, proto))  # prevent reverse flow from duplicating
+            elif ((dst, src, proto) in dataflow_map) and ((dst, src, proto) not in processed):
+                # Two explicit flows A→B and B→A with same protocol: merge into one arrow
                 label = f"{info['label']}\n↔️ Bidirectional"
                 direction = "dir=\"both\", "
                 processed.add((src, dst, proto))

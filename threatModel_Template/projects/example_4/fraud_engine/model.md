@@ -38,7 +38,8 @@ bom_directory = BOM
   availability=critical,
   mfa_enabled=True,
   tags=[ml-inference, xgboost, tensorflow, fraud-scoring, pci-dss],
-  businessValue="ML inference — gradient boosting + neural net ensemble, 50ms p99 SLA"
+  businessValue="ML inference — gradient boosting + neural net ensemble, 50ms p99 SLA",
+  entry_point=True
 - **RulesEngine**:
   boundary="Scoring Zone",
   type=application-server,

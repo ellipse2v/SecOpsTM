@@ -1,2 +1,2 @@
 ## Servers
-- **Database**: type="database"
+- **Database**: type="database", entry_point=True

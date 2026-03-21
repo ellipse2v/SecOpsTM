@@ -1,5 +1,5 @@
 ## Servers
-- **APIGateway**: type="api_gateway"
+- **APIGateway**: type="api_gateway", entry_point=True
 - **AuthService**:
 - **OrderService**:
 - **ProductDB**: submodel=./database/model.md, type="database"

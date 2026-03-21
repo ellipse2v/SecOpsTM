@@ -62,6 +62,23 @@ def build_component_prompt(component: Dict, context: Dict) -> str:
     compliance = context.get("compliance_requirements", [])
     integrations = context.get("integrations", [])
 
+    sector = context.get("sector", "")
+    threat_actors = context.get("threat_actor_profiles", "")
+    business_goals = context.get("business_goals_to_protect", "")
+
+    # Build the adversarial context section only when model-specific data is present
+    adv_lines: list = []
+    if sector:
+        adv_lines.append(f"**Sector:** {sector}")
+    if threat_actors:
+        adv_lines.append(f"**Known Threat Actors:**\n{threat_actors}")
+    if business_goals:
+        adv_lines.append(f"**Business Goals to Protect:**\n{business_goals}")
+    adversarial_context_section = (
+        "## Adversarial Context\n" + "\n\n".join(adv_lines) + "\n"
+        if adv_lines else ""
+    )
+
     return _get(
         "stride_analysis",
         "component_template",
@@ -94,6 +111,7 @@ def build_component_prompt(component: Dict, context: Dict) -> str:
             if context.get("system_description")
             else ""
         ),
+        adversarial_context_section=adversarial_context_section,
         data_sensitivity=context.get("data_sensitivity", "Medium"),
         compliance=", ".join(compliance) if compliance else "None specified",
         user_base=context.get("user_base", "Unknown"),

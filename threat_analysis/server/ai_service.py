@@ -146,6 +146,82 @@ class AIService:
             logging.warning(f"Could not load context.yaml: {e}")
             return {}
 
+    def _load_model_context(self, threat_model) -> Dict[str, Any]:
+        """Load the model-specific GDAF context file and extract AI-relevant fields.
+
+        Uses the same resolution order as ExportService._resolve_gdaf_context():
+          1. gdaf_context key in ## Context DSL section (relative to model file)
+          2. {model_dir}/context/*.yaml auto-discovery
+          3. Returns {} if nothing found (no fallback to config/context.yaml —
+             that is loaded separately by _load_context()).
+
+        Extracted fields merged into the AI prompt context:
+          sector, compliance_requirements, data_sensitivity,
+          deployment_environment, internet_facing,
+          threat_actor_profiles (formatted summary), business_goals_to_protect.
+        """
+        ctx_cfg = getattr(threat_model, "context_config", {})
+        dsl_path = ctx_cfg.get("gdaf_context")
+        model_path = getattr(threat_model, "_model_file_path", None)
+
+        context_path = None
+        if dsl_path:
+            if model_path:
+                p = Path(model_path).parent / dsl_path
+                if p.exists():
+                    context_path = p
+            if context_path is None:
+                p = Path(dsl_path)
+                if p.exists():
+                    context_path = p
+            if context_path is None:
+                logging.debug("AI: gdaf_context '%s' declared but not found; skipping model context enrichment.", dsl_path)
+        if context_path is None and model_path:
+            context_dir = Path(model_path).parent / "context"
+            if context_dir.exists():
+                yaml_files = sorted(context_dir.glob("*.yaml")) + sorted(context_dir.glob("*.yml"))
+                if yaml_files:
+                    context_path = yaml_files[0]
+
+        if context_path is None:
+            return {}
+
+        try:
+            with open(context_path, 'r', encoding='utf-8') as f:
+                data = yaml.safe_load(f) or {}
+            logging.info("AI: enriching prompts with model context from %s", context_path)
+
+            # Format threat actor profiles as a concise block for the prompt
+            threat_actors = data.get("threat_actors", [])
+            actor_lines: List[str] = []
+            for ta in threat_actors:
+                name = ta.get("name", "Unknown")
+                soph = ta.get("sophistication", "medium")
+                entry = ta.get("entry_preference", "")
+                ttps = ta.get("known_ttps", [])
+                ttp_str = (", ".join(ttps[:6]) + ("…" if len(ttps) > 6 else "")) if ttps else "all techniques"
+                line = f"- **{name}** (sophistication: {soph}"
+                if entry:
+                    line += f", entry: {entry}"
+                line += f") — TTPs: {ttp_str}"
+                actor_lines.append(line)
+
+            goals = data.get("business_goals_to_protect", [])
+            goals_str = "\n".join(f"- {g}" for g in goals) if goals else ""
+
+            return {
+                "sector": data.get("sector", ""),
+                "compliance_requirements": data.get("compliance_requirements", []),
+                "data_sensitivity": data.get("data_sensitivity", ""),
+                "deployment_environment": data.get("deployment_environment", ""),
+                "internet_facing": data.get("internet_facing"),
+                "threat_actor_profiles": "\n".join(actor_lines),
+                "business_goals_to_protect": goals_str,
+            }
+        except Exception as e:
+            logging.warning("AI: could not load model context from %s: %s", context_path, e)
+            return {}
+
     async def init_ai(self):
         """Initializes the AI services."""
         logging.info("Initializing AI services...")
@@ -379,15 +455,34 @@ class AIService:
             threat_model.tm.global_threats_llm.extend(system_rag_threats)
             logging.debug(f"Appended {len(system_rag_threats)} global RAG threats to threat_model.tm.global_threats_llm.")
 
-        # Build context from context.yaml (base) + runtime-derived values (override)
+        # Build context: config/context.yaml (base) ← model-specific gdaf_context ← runtime
         yaml_ctx = self._load_context()
+        model_ctx = self._load_model_context(threat_model)
+
+        # Model-specific context overrides global config; runtime values (internet_facing)
+        # take final precedence only when the model context has no explicit value.
+        has_internet_facing_in_model = model_ctx.get("internet_facing") is not None
         context: Dict[str, Any] = {
             **yaml_ctx,
-            "system_description": threat_model.tm.description or yaml_ctx.get("system_description", ""),
-            "internet_facing": any(s.get('is_public') for s in threat_model.servers),
+            **{k: v for k, v in model_ctx.items() if v not in (None, "", [], {})},
+            "system_description": (
+                threat_model.tm.description
+                or model_ctx.get("system_description", "")
+                or yaml_ctx.get("system_description", "")
+            ),
+            "internet_facing": (
+                model_ctx["internet_facing"]
+                if has_internet_facing_in_model
+                else any(s.get('is_public') for s in threat_model.servers)
+            ),
         }
         # Keep data_sensitivity from context.yaml if set; fall back to "High"
         context.setdefault("data_sensitivity", "High")
+        if model_ctx.get("sector"):
+            logging.info("AI: prompt context enriched — sector=%s  compliance=%s  actors=%d",
+                         model_ctx["sector"],
+                         model_ctx.get("compliance_requirements", []),
+                         len(model_ctx.get("threat_actor_profiles", "").splitlines()))
 
         all_elements = (
             [a['object'] for a in threat_model.actors]

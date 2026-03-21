@@ -1,6 +1,6 @@
 ## Servers
 - **WebServer**: type="web_server"
-- **LoadBalancer**: type="load_balancer"
+- **LoadBalancer**: type="load_balancer", entry_point=True
 
 ## Dataflows
 - **EntryToLB**: from=WebServer, to=LoadBalancer, protocol=HTTPS

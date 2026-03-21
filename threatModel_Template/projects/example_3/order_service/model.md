@@ -42,7 +42,8 @@ bom_directory = BOM
   auth_protocol=credentials,
   encryption=TLS,
   tags=[rabbitmq, amqp, durable, clustered],
-  businessValue="RabbitMQ cluster — durable order queue, dead-letter exchange"
+  businessValue="RabbitMQ cluster — durable order queue, dead-letter exchange",
+  entry_point=True
 - **PaymentService_1**:
   boundary="Payment Zone",
   type=application-server,

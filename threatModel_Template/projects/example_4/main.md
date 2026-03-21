@@ -168,14 +168,7 @@ bom_directory = BOM
   port=8080,
   authentication=credentials,
   encryption=none,
-  data="PaymentRequest"
-- **PaymentToGateway**:
-  from=PaymentAPI,
-  to=APIGateway,
-  protocol=HTTP,
-  port=8080,
-  authentication=credentials,
-  encryption=none,
+  bidirectional=True,
   data="PaymentRequest"
 - **GatewayToFraud**:
   from=APIGateway,
@@ -184,14 +177,7 @@ bom_directory = BOM
   port=50051,
   authentication=client-certificate,
   encryption=TLS,
-  data="FraudSignal"
-- **FraudToGateway**:
-  from=FraudEngine,
-  to=APIGateway,
-  protocol=gRPC,
-  port=50051,
-  authentication=client-certificate,
-  encryption=TLS,
+  bidirectional=True,
   data="FraudSignal"
 - **PaymentToVault**:
   from=PaymentAPI,
@@ -200,14 +186,7 @@ bom_directory = BOM
   port=50052,
   authentication=client-certificate,
   encryption=TLS,
-  data="CardData"
-- **VaultToPayment**:
-  from=CardVault,
-  to=PaymentAPI,
-  protocol=gRPC,
-  port=50052,
-  authentication=client-certificate,
-  encryption=TLS,
+  bidirectional=True,
   data="CardData"
 
 ## Protocol Styles

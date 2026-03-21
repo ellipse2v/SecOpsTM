@@ -30,7 +30,8 @@ bom_directory = BOM
   mfa_enabled=False,
   auth_protocol=none,
   tags=[nginx, l7, upstream-routing],
-  businessValue="L7 load balancer distributing to Kong gateway instances"
+  businessValue="L7 load balancer distributing to Kong gateway instances",
+  entry_point=True
 - **GatewayInstance_1**:
   boundary="Gateway Internal Zone",
   type=api-gateway,

@@ -39,7 +39,8 @@ bom_directory = BOM
   mfa_enabled=True,
   auth_protocol=radius,
   tags=[cisco-asa, stateful, ha-active],
-  businessValue="Primary firewall — active node in HA pair"
+  businessValue="Primary firewall — active node in HA pair",
+  entry_point=True
 - **Firewall_2**:
   boundary="DMZ Perimeter",
   type=firewall,
@@ -54,7 +55,8 @@ bom_directory = BOM
   mfa_enabled=True,
   auth_protocol=radius,
   tags=[cisco-asa, stateful, ha-passive],
-  businessValue="Secondary firewall — passive node in HA pair (hot standby)"
+  businessValue="Secondary firewall — passive node in HA pair (hot standby)",
+  entry_point=True
 - **ApiGateway**:
   submodel=../api_gateway/model.md,
   boundary="API Gateway Zone",

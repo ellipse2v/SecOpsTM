@@ -38,7 +38,8 @@ bom_directory = BOM
   redundant=True,
   mfa_enabled=False,
   tags=[internal-routing, east-west-traffic],
-  businessValue="Internal L3 switch routing gRPC traffic between services"
+  businessValue="Internal L3 switch routing gRPC traffic between services",
+  entry_point=True
 - **AuthService**:
   boundary="Trusted Application Zone",
   type=application-server,

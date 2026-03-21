@@ -36,7 +36,8 @@ bom_directory = BOM
   integrity=high,
   availability=critical,
   redundant=True,
-  businessValue="Internal HAProxy load balancer — round-robin to AuthService and ChargeService"
+  businessValue="Internal HAProxy load balancer — round-robin to AuthService and ChargeService",
+  entry_point=True
 - **AuthService**:
   boundary="Payment Services Zone",
   type=application-server,

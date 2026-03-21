@@ -1000,15 +1000,15 @@ class ReportGenerator:
             except Exception as e:
                 logging.error(f"Failed to copy static files: {e}")
 
-        all_models_files = list(project_path.glob("**/*.md"))
-        total_models = len(all_models_files)
-        if total_models == 0:
-            logging.error("No threat models found in the project. Aborting.")
+        # Only count models reachable from main.md via submodel= links — not every
+        # .md file in the directory, which could include unrelated templates.
+        if not (project_path / "main.md").exists() and not (project_path / "model.md").exists():
+            logging.error("No main.md or model.md found in the project. Aborting.")
             return None
-
-        # Pass 1: Gather project-wide metadata
+        # Pass 1: Gather project-wide metadata (only from models reachable via submodel= links)
         if progress_callback: progress_callback(10, "Gathering project-wide metadata...")
         all_models = self._get_all_project_models(project_path)
+        total_models = max(len(all_models), 1)
         project_protocols, project_protocol_styles = self._aggregate_project_data(all_models)
 
         # Resolve root model file: main.md (multi-model project) or model.md (single model with data)
@@ -1094,27 +1094,50 @@ class ReportGenerator:
 
     def _get_all_project_models(self, project_path: Path) -> List[ThreatModel]:
         """
-        Recursively finds and parses all '.md' files in a project directory.
+        Discovers and parses all models reachable from main.md via submodel= links.
+
+        Previously this used glob("**/*.md") which would accidentally include every
+        unrelated model present in the directory (e.g. when the user pointed the
+        generator at a large template directory).  Following submodel= links ensures
+        only the models that belong to this project are processed.
         """
-        all_models = []
-        model_files = list(project_path.glob("**/*.md"))
+        root = project_path / "main.md"
+        if not root.exists():
+            root = project_path / "model.md"
+        if not root.exists():
+            return []
 
-        for model_path in model_files:
+        all_models: List[ThreatModel] = []
+        visited: set = set()
+
+        def _visit(md_path: Path) -> None:
+            resolved = md_path.resolve()
+            if resolved in visited:
+                return
+            visited.add(resolved)
             try:
-                with open(model_path, "r", encoding="utf-8") as f:
+                with open(md_path, "r", encoding="utf-8") as f:
                     markdown_content = f.read()
-
                 threat_model = create_threat_model(
                     markdown_content=markdown_content,
-                    model_name=model_path.stem,
-                    model_description=f"Threat model for {model_path.stem}",
+                    model_name=md_path.stem,
+                    model_description=f"Threat model for {md_path.stem}",
                     cve_service=self.cve_service,
-                    validate=False
+                    validate=False,
                 )
                 if threat_model:
                     all_models.append(threat_model)
+                # Follow submodel= links declared on servers
+                import re as _re
+                for match in _re.finditer(r'submodel\s*=\s*["\']?([^"\'\s,]+)["\']?', markdown_content):
+                    sub_rel = match.group(1).strip()
+                    sub_path = (md_path.parent / sub_rel).resolve()
+                    if sub_path.exists() and sub_path.is_file():
+                        _visit(sub_path)
             except Exception as e:
-                logging.error(f"Error parsing model file {model_path}: {e}")
+                logging.error(f"Error parsing model file {md_path}: {e}")
+
+        _visit(root)
         return all_models
 
     def _aggregate_project_data(self, all_models: List[ThreatModel]) -> tuple[set, dict]:
@@ -1138,31 +1161,62 @@ class ReportGenerator:
         return project_protocols, project_protocol_styles
 
     def _collect_parent_connections(self, parent_tm: ThreatModel, server_name: str) -> List[Dict]:
-        """Returns incoming/outgoing dataflow stubs for server_name in parent_tm."""
+        """Returns incoming/outgoing dataflow stubs for server_name in parent_tm.
+
+        A dataflow with bidirectional=True generates both an incoming AND an outgoing
+        stub so that _build_ghost_connections can render a single purple bidirectional
+        ghost node instead of two separate green/orange ghosts.
+        """
         result = []
         for df in parent_tm.dataflows:
             src = df.source
             snk = df.sink
             src_name = src.name if hasattr(src, "name") else str(src)
             snk_name = snk.name if hasattr(snk, "name") else str(snk)
+            is_bidir = bool(getattr(df, "bidirectional", False))
+            proto = getattr(df, "protocol", "") or ""
+            is_enc = bool(getattr(df, "is_encrypted", False))
+            is_auth = bool(getattr(df, "is_authenticated", False))
+            df_name = getattr(df, "name", "")
+
             if snk_name.lower() == server_name.lower():
                 result.append({
                     "direction": "incoming",
                     "peer": src_name,
-                    "protocol": getattr(df, "protocol", "") or "",
-                    "is_encrypted": bool(getattr(df, "is_encrypted", False)),
-                    "is_authenticated": bool(getattr(df, "is_authenticated", False)),
-                    "name": getattr(df, "name", ""),
+                    "protocol": proto,
+                    "is_encrypted": is_enc,
+                    "is_authenticated": is_auth,
+                    "name": df_name,
                 })
+                if is_bidir:
+                    # bidirectional=True: server also sends back to the same peer
+                    result.append({
+                        "direction": "outgoing",
+                        "peer": src_name,
+                        "protocol": proto,
+                        "is_encrypted": is_enc,
+                        "is_authenticated": is_auth,
+                        "name": df_name,
+                    })
             elif src_name.lower() == server_name.lower():
                 result.append({
                     "direction": "outgoing",
                     "peer": snk_name,
-                    "protocol": getattr(df, "protocol", "") or "",
-                    "is_encrypted": bool(getattr(df, "is_encrypted", False)),
-                    "is_authenticated": bool(getattr(df, "is_authenticated", False)),
-                    "name": getattr(df, "name", ""),
+                    "protocol": proto,
+                    "is_encrypted": is_enc,
+                    "is_authenticated": is_auth,
+                    "name": df_name,
                 })
+                if is_bidir:
+                    # bidirectional=True: peer also sends back to server
+                    result.append({
+                        "direction": "incoming",
+                        "peer": snk_name,
+                        "protocol": proto,
+                        "is_encrypted": is_enc,
+                        "is_authenticated": is_auth,
+                        "name": df_name,
+                    })
         return result
 
     def _recursively_generate_reports(self, model_path: Path, project_path: Path, output_dir: Path, breadcrumb: List[tuple[str, str]], project_protocols: set, project_protocol_styles: dict, all_project_models: List[ThreatModel], threat_model: Optional[ThreatModel] = None, progress_callback = None, parent_connections: Optional[List[Dict]] = None):

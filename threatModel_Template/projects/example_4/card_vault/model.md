@@ -41,7 +41,8 @@ bom_directory = BOM
   encryption=AES-256,
   credentials_stored=True,
   tags=[tokenization, detokenization, pci-dss, fips, whitelist],
-  businessValue="Tokenization proxy — sole entry into vault, IP whitelist + mTLS enforced"
+  businessValue="Tokenization proxy — sole entry into vault, IP whitelist + mTLS enforced",
+  entry_point=True
 - **HSM**:
   boundary="HSM Zone",
   type=application-server,
