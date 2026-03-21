@@ -136,18 +136,30 @@ ai_providers:
     model: "flash"
     api_key_env: "GEMINI_API_KEY"
 """
-    async def _run():
-        with patch("builtins.open", mock_open(read_data=mock_config_yaml)), \
-             patch("threat_analysis.ai_engine.providers.litellm_client.PROJECT_ROOT", Path("/tmp")), \
-             patch("importlib.import_module"), \
-             patch.object(LiteLLMClient, "check_connection", return_value=True), \
-             patch.dict("os.environ", {"GEMINI_API_KEY": "gemini-key"}, clear=False):
+    # Set env vars directly before asyncio.run() — patch.dict inside async context
+    # is unreliable in Python 3.14 where asyncio.run() may isolate the environment.
+    saved_gemini = os.environ.pop("GEMINI_API_KEY", None)
+    saved_google = os.environ.pop("GOOGLE_API_KEY", None)
+    os.environ["GEMINI_API_KEY"] = "gemini-key"
+    try:
+        async def _run():
+            with patch("builtins.open", mock_open(read_data=mock_config_yaml)), \
+                 patch("threat_analysis.ai_engine.providers.litellm_client.PROJECT_ROOT", Path("/tmp")), \
+                 patch("importlib.import_module"), \
+                 patch.object(LiteLLMClient, "check_connection", return_value=True):
 
-            client = LiteLLMClient()
-            await client._load_ai_config()
-            assert os.environ.get("GEMINI_API_KEY") == "gemini-key"
-            assert os.environ.get("GOOGLE_API_KEY") == "gemini-key"
-    asyncio.run(_run())
+                client = LiteLLMClient()
+                await client._load_ai_config()
+                assert os.environ.get("GEMINI_API_KEY") == "gemini-key"
+                assert os.environ.get("GOOGLE_API_KEY") == "gemini-key"
+        asyncio.run(_run())
+    finally:
+        os.environ.pop("GEMINI_API_KEY", None)
+        os.environ.pop("GOOGLE_API_KEY", None)
+        if saved_gemini is not None:
+            os.environ["GEMINI_API_KEY"] = saved_gemini
+        if saved_google is not None:
+            os.environ["GOOGLE_API_KEY"] = saved_google
 
 def test_litellm_client_no_provider():
     mock_config_yaml = "ai_providers: {}"
