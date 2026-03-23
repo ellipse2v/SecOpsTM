@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 class IaCPlugin(ABC):
     """Abstract base class for Infrastructure as Code (IaC) plugins.
@@ -57,3 +57,18 @@ class IaCPlugin(ABC):
             A string containing Markdown content for threat model elements (e.g., Servers, Dataflows).
         """
         pass
+
+    def generate_bom_files(self, iac_data: Dict[str, Any], output_dir: str) -> List[str]:
+        """Generate one BOM YAML file per discovered asset under ``{output_dir}/BOM/``.
+
+        Optional — the default implementation is a no-op.  Plugins that support
+        BOM generation override this method.
+
+        Args:
+            iac_data: The dict returned by :meth:`parse_iac_config`.
+            output_dir: Directory under which a ``BOM/`` sub-directory is created.
+
+        Returns:
+            List of absolute paths to the generated BOM files (empty if none).
+        """
+        return []

@@ -22,6 +22,9 @@ from unittest.mock import patch
 
 import pytest
 
+import re
+import yaml
+
 from threat_analysis.iac_plugins.terraform_plugin import (
     TerraformPlugin,
     _sanitize_name,
@@ -29,6 +32,10 @@ from threat_analysis.iac_plugins.terraform_plugin import (
     _extract_block_body,
     _parse_tf_text,
     _parse_tfstate,
+    _infer_internet_facing,
+    _infer_credentials_stored,
+    _infer_traversal_difficulty,
+    _parse_ingress_rules,
 )
 
 
@@ -631,3 +638,510 @@ class TestRenderMarkdown:
         )
         assert "## Actors" in md
         assert "Admin" in md
+
+
+# ---------------------------------------------------------------------------
+# DSL syntax validation helpers
+# ---------------------------------------------------------------------------
+
+_DSL_LINE_RE = re.compile(r"^- \*\*[^*]+\*\*: .+$")
+_VALID_TRAVERSAL = {"low", "medium", "high"}
+_VALID_BOOL = {"true", "false"}
+
+
+def _assert_dsl_syntax(markdown: str) -> None:
+    """Assert that every component line in the DSL follows the expected format."""
+    in_section = False
+    for line in markdown.splitlines():
+        if line.startswith("## "):
+            in_section = True
+            continue
+        if not line.strip():
+            in_section = False
+            continue
+        if in_section and line.startswith("-"):
+            assert _DSL_LINE_RE.match(line), (
+                f"DSL line does not match expected format: {line!r}"
+            )
+            # Check boolean values are lowercase
+            for attr in re.findall(r"(?:internet_facing|credentials_stored|isTrusted)=(\S+?)(?:[,\s]|$)", line):
+                attr_clean = attr.rstrip(",")
+                assert attr_clean in _VALID_BOOL, (
+                    f"Boolean attribute must be 'true' or 'false', got: {attr_clean!r}"
+                )
+            # Check traversal_difficulty values
+            for val in re.findall(r"traversal_difficulty=(\S+?)(?:[,\s]|$)", line):
+                val_clean = val.rstrip(",")
+                assert val_clean in _VALID_TRAVERSAL, (
+                    f"traversal_difficulty must be low/medium/high, got: {val_clean!r}"
+                )
+
+
+# ---------------------------------------------------------------------------
+# _infer_internet_facing
+# ---------------------------------------------------------------------------
+
+class TestInferInternetFacing:
+    def test_associate_public_ip_true(self):
+        assert _infer_internet_facing({"associate_public_ip_address": "true"}) is True
+
+    def test_associate_public_ip_false(self):
+        assert _infer_internet_facing({"associate_public_ip_address": "false"}) is False
+
+    def test_public_ip_set(self):
+        assert _infer_internet_facing({"public_ip": "1.2.3.4"}) is True
+
+    def test_public_ip_empty_string(self):
+        assert _infer_internet_facing({"public_ip": ""}) is False
+
+    def test_public_ip_null(self):
+        assert _infer_internet_facing({"public_ip": "null"}) is False
+
+    def test_publicly_accessible_rds(self):
+        assert _infer_internet_facing({"publicly_accessible": "true"}) is True
+
+    def test_publicly_accessible_false(self):
+        assert _infer_internet_facing({"publicly_accessible": "false"}) is False
+
+    def test_no_public_attrs(self):
+        assert _infer_internet_facing({"instance_type": "t3.micro"}) is False
+
+    def test_empty_attrs(self):
+        assert _infer_internet_facing({}) is False
+
+
+# ---------------------------------------------------------------------------
+# _infer_credentials_stored
+# ---------------------------------------------------------------------------
+
+class TestInferCredentialsStored:
+    def test_iam_instance_profile(self):
+        assert _infer_credentials_stored({"iam_instance_profile": "my-role"}) is True
+
+    def test_iam_instance_profile_arn(self):
+        assert _infer_credentials_stored(
+            {"iam_instance_profile_arn": "arn:aws:iam::123:instance-profile/role"}
+        ) is True
+
+    def test_env_var_password(self):
+        assert _infer_credentials_stored(
+            {"environment": json.dumps({"DB_PASSWORD": "secret"})}
+        ) is True
+
+    def test_env_var_token(self):
+        assert _infer_credentials_stored(
+            {"environment": json.dumps({"API_TOKEN": "abc"})}
+        ) is True
+
+    def test_env_var_no_credential(self):
+        assert _infer_credentials_stored(
+            {"environment": json.dumps({"APP_NAME": "myapp"})}
+        ) is False
+
+    def test_no_sensitive_attrs(self):
+        assert _infer_credentials_stored({"instance_type": "t3.micro"}) is False
+
+    def test_empty_attrs(self):
+        assert _infer_credentials_stored({}) is False
+
+    def test_env_list_with_password(self):
+        env_list = [{"name": "DB_PASSWORD", "value": "s3cr3t"}]
+        assert _infer_credentials_stored(
+            {"environment": json.dumps(env_list)}
+        ) is True
+
+
+# ---------------------------------------------------------------------------
+# _parse_ingress_rules / _infer_traversal_difficulty
+# ---------------------------------------------------------------------------
+
+_OPEN_ANY_PORT_SG = [
+    {
+        "cidr_blocks": ["0.0.0.0/0"],
+        "ipv6_cidr_blocks": [],
+        "from_port": -1,
+        "to_port": -1,
+        "protocol": "-1",
+    }
+]
+
+_OPEN_SPECIFIC_PORT_SG = [
+    {
+        "cidr_blocks": ["0.0.0.0/0"],
+        "ipv6_cidr_blocks": [],
+        "from_port": 443,
+        "to_port": 443,
+        "protocol": "tcp",
+    }
+]
+
+_RESTRICTED_SG = [
+    {
+        "cidr_blocks": ["10.0.0.0/8"],
+        "ipv6_cidr_blocks": [],
+        "from_port": 22,
+        "to_port": 22,
+        "protocol": "tcp",
+    }
+]
+
+
+class TestParseIngressRules:
+    def test_json_string_parsed(self):
+        rules = _parse_ingress_rules({"ingress": json.dumps(_OPEN_ANY_PORT_SG)})
+        assert len(rules) == 1
+        assert rules[0]["protocol"] == "-1"
+
+    def test_list_passed_through(self):
+        rules = _parse_ingress_rules({"ingress": _OPEN_ANY_PORT_SG})
+        assert len(rules) == 1
+
+    def test_empty_returns_empty(self):
+        assert _parse_ingress_rules({}) == []
+
+    def test_invalid_json_returns_empty(self):
+        assert _parse_ingress_rules({"ingress": "not-json"}) == []
+
+
+class TestInferTraversalDifficulty:
+    def test_open_any_port_is_low(self):
+        assert _infer_traversal_difficulty(
+            {"ingress": json.dumps(_OPEN_ANY_PORT_SG)}
+        ) == "low"
+
+    def test_open_specific_port_is_medium(self):
+        assert _infer_traversal_difficulty(
+            {"ingress": json.dumps(_OPEN_SPECIFIC_PORT_SG)}
+        ) == "medium"
+
+    def test_restricted_sg_is_high(self):
+        assert _infer_traversal_difficulty(
+            {"ingress": json.dumps(_RESTRICTED_SG)}
+        ) == "high"
+
+    def test_no_rules_is_medium(self):
+        assert _infer_traversal_difficulty({}) == "medium"
+
+    def test_empty_rules_list_is_medium(self):
+        assert _infer_traversal_difficulty({"ingress": json.dumps([])}) == "medium"
+
+    def test_ipv6_open_is_low(self):
+        rule = [
+            {
+                "cidr_blocks": [],
+                "ipv6_cidr_blocks": ["::/0"],
+                "from_port": -1,
+                "to_port": -1,
+                "protocol": "-1",
+            }
+        ]
+        assert _infer_traversal_difficulty({"ingress": json.dumps(rule)}) == "low"
+
+    def test_mixed_open_and_restricted_is_low(self):
+        mixed = _OPEN_ANY_PORT_SG + _RESTRICTED_SG
+        assert _infer_traversal_difficulty({"ingress": json.dumps(mixed)}) == "low"
+
+
+# ---------------------------------------------------------------------------
+# tfstate: list-of-dicts preservation
+# ---------------------------------------------------------------------------
+
+class TestTfstateIngressPreservation:
+    def _write_state(self, tmp_path: Path, state: dict) -> Path:
+        p = tmp_path / "terraform.tfstate"
+        p.write_text(json.dumps(state), encoding="utf-8")
+        return p
+
+    def test_ingress_rules_preserved_as_json_string(self, tmp_path):
+        state = {
+            "version": 4,
+            "resources": [
+                {
+                    "mode": "managed",
+                    "type": "aws_security_group",
+                    "name": "web_sg",
+                    "instances": [
+                        {
+                            "attributes": {
+                                "name": "web-sg",
+                                "ingress": _OPEN_ANY_PORT_SG,
+                            }
+                        }
+                    ],
+                }
+            ],
+        }
+        p = self._write_state(tmp_path, state)
+        resources = _parse_tfstate(p)
+        assert len(resources) == 1
+        ingress_raw = resources[0]["attributes"]["ingress"]
+        assert isinstance(ingress_raw, str), "ingress should be JSON-serialised string"
+        parsed = json.loads(ingress_raw)
+        assert parsed[0]["protocol"] == "-1"
+
+    def test_plain_string_list_still_works(self, tmp_path):
+        state = {
+            "version": 4,
+            "resources": [
+                {
+                    "mode": "managed",
+                    "type": "aws_instance",
+                    "name": "web",
+                    "instances": [{"attributes": {"tags": ["env=prod", "team=ops"]}}],
+                }
+            ],
+        }
+        p = self._write_state(tmp_path, state)
+        resources = _parse_tfstate(p)
+        assert resources[0]["attributes"]["tags"] == ["env=prod", "team=ops"]
+
+
+# ---------------------------------------------------------------------------
+# DSL enrichment via tfstate end-to-end
+# ---------------------------------------------------------------------------
+
+class TestDslEnrichmentFromTfstate:
+    def _run_plugin(self, tmp_path: Path, state_dict: dict) -> str:
+        state_path = tmp_path / "terraform.tfstate"
+        state_path.write_text(json.dumps(state_dict), encoding="utf-8")
+        plugin = TerraformPlugin()
+        iac_data = plugin.parse_iac_config(str(tmp_path))
+        return plugin.generate_threat_model_components(iac_data)
+
+    def test_internet_facing_emitted_in_dsl(self, tmp_path):
+        state = {
+            "version": 4,
+            "resources": [
+                {
+                    "mode": "managed",
+                    "type": "aws_instance",
+                    "name": "web",
+                    "instances": [
+                        {"attributes": {"associate_public_ip_address": "true"}}
+                    ],
+                }
+            ],
+        }
+        md = self._run_plugin(tmp_path, state)
+        assert "internet_facing=true" in md
+
+    def test_internet_facing_not_emitted_when_private(self, tmp_path):
+        state = {
+            "version": 4,
+            "resources": [
+                {
+                    "mode": "managed",
+                    "type": "aws_instance",
+                    "name": "db",
+                    "instances": [
+                        {"attributes": {"associate_public_ip_address": "false"}}
+                    ],
+                }
+            ],
+        }
+        md = self._run_plugin(tmp_path, state)
+        assert "internet_facing" not in md
+
+    def test_credentials_stored_emitted_in_dsl(self, tmp_path):
+        state = {
+            "version": 4,
+            "resources": [
+                {
+                    "mode": "managed",
+                    "type": "aws_instance",
+                    "name": "app",
+                    "instances": [
+                        {"attributes": {"iam_instance_profile": "app-role"}}
+                    ],
+                }
+            ],
+        }
+        md = self._run_plugin(tmp_path, state)
+        assert "credentials_stored=true" in md
+
+    def test_traversal_difficulty_emitted_for_sg(self, tmp_path):
+        state = {
+            "version": 4,
+            "resources": [
+                {
+                    "mode": "managed",
+                    "type": "aws_security_group",
+                    "name": "web_sg",
+                    "instances": [
+                        {"attributes": {"ingress": _OPEN_SPECIFIC_PORT_SG}}
+                    ],
+                }
+            ],
+        }
+        md = self._run_plugin(tmp_path, state)
+        assert "traversal_difficulty=" in md
+
+    def test_dsl_boolean_values_are_lowercase(self, tmp_path):
+        state = {
+            "version": 4,
+            "resources": [
+                {
+                    "mode": "managed",
+                    "type": "aws_instance",
+                    "name": "pub",
+                    "instances": [
+                        {
+                            "attributes": {
+                                "associate_public_ip_address": "true",
+                                "iam_instance_profile": "role",
+                            }
+                        }
+                    ],
+                }
+            ],
+        }
+        md = self._run_plugin(tmp_path, state)
+        _assert_dsl_syntax(md)
+        assert "internet_facing=True" not in md
+        assert "credentials_stored=True" not in md
+
+    def test_traversal_difficulty_value_is_valid(self, tmp_path):
+        state = {
+            "version": 4,
+            "resources": [
+                {
+                    "mode": "managed",
+                    "type": "aws_security_group",
+                    "name": "tight_sg",
+                    "instances": [
+                        {"attributes": {"ingress": _RESTRICTED_SG}}
+                    ],
+                }
+            ],
+        }
+        md = self._run_plugin(tmp_path, state)
+        _assert_dsl_syntax(md)
+        # Must contain one of the valid values
+        assert any(
+            f"traversal_difficulty={v}" in md for v in _VALID_TRAVERSAL
+        )
+
+
+# ---------------------------------------------------------------------------
+# BOM generation
+# ---------------------------------------------------------------------------
+
+class TestBomGeneration:
+    def _run_bom(self, tmp_path: Path, state_dict: dict):
+        state_path = tmp_path / "terraform.tfstate"
+        state_path.write_text(json.dumps(state_dict), encoding="utf-8")
+        plugin = TerraformPlugin()
+        iac_data = plugin.parse_iac_config(str(tmp_path))
+        return plugin.generate_bom_files(iac_data, str(tmp_path))
+
+    def _base_state(self, rtype: str, rname: str, attrs: dict = None) -> dict:
+        return {
+            "version": 4,
+            "resources": [
+                {
+                    "mode": "managed",
+                    "type": rtype,
+                    "name": rname,
+                    "instances": [{"attributes": attrs or {}}],
+                }
+            ],
+        }
+
+    def test_bom_dir_created(self, tmp_path):
+        self._run_bom(tmp_path, self._base_state("aws_instance", "web"))
+        assert (tmp_path / "BOM").is_dir()
+
+    def test_one_bom_per_server(self, tmp_path):
+        state = {
+            "version": 4,
+            "resources": [
+                {
+                    "mode": "managed",
+                    "type": "aws_instance",
+                    "name": "web",
+                    "instances": [{"attributes": {}}],
+                },
+                {
+                    "mode": "managed",
+                    "type": "aws_rds_instance",
+                    "name": "db",
+                    "instances": [{"attributes": {}}],
+                },
+            ],
+        }
+        paths = self._run_bom(tmp_path, state)
+        assert len(paths) == 2
+
+    def test_bom_yaml_loadable(self, tmp_path):
+        paths = self._run_bom(
+            tmp_path, self._base_state("aws_instance", "web_server")
+        )
+        assert paths
+        with open(paths[0], encoding="utf-8") as fh:
+            bom = yaml.safe_load(fh)
+        assert isinstance(bom, dict)
+
+    def test_bom_has_required_keys(self, tmp_path):
+        paths = self._run_bom(
+            tmp_path, self._base_state("aws_instance", "web_server")
+        )
+        with open(paths[0], encoding="utf-8") as fh:
+            bom = yaml.safe_load(fh)
+        required = {
+            "asset", "os_version", "patch_level",
+            "known_cves", "running_services", "detection_level",
+            "credentials_stored",
+        }
+        assert required.issubset(bom.keys())
+
+    def test_bom_known_cves_is_list(self, tmp_path):
+        paths = self._run_bom(
+            tmp_path, self._base_state("aws_rds_instance", "primary_db")
+        )
+        with open(paths[0], encoding="utf-8") as fh:
+            bom = yaml.safe_load(fh)
+        assert isinstance(bom["known_cves"], list)
+
+    def test_bom_services_inferred_rds(self, tmp_path):
+        paths = self._run_bom(
+            tmp_path, self._base_state("aws_rds_instance", "primary_db")
+        )
+        with open(paths[0], encoding="utf-8") as fh:
+            bom = yaml.safe_load(fh)
+        assert "postgresql" in bom["running_services"]
+
+    def test_bom_services_inferred_lambda(self, tmp_path):
+        paths = self._run_bom(
+            tmp_path, self._base_state("aws_lambda_function", "handler")
+        )
+        with open(paths[0], encoding="utf-8") as fh:
+            bom = yaml.safe_load(fh)
+        assert "https" in bom["running_services"]
+
+    def test_bom_credentials_stored_true_for_iam(self, tmp_path):
+        paths = self._run_bom(
+            tmp_path,
+            self._base_state(
+                "aws_instance", "app_server",
+                {"iam_instance_profile": "app-role"},
+            ),
+        )
+        with open(paths[0], encoding="utf-8") as fh:
+            bom = yaml.safe_load(fh)
+        assert bom["credentials_stored"] is True
+
+    def test_no_bom_for_boundary_resources(self, tmp_path):
+        paths = self._run_bom(
+            tmp_path, self._base_state("aws_vpc", "main")
+        )
+        assert paths == []
+
+    def test_bom_filename_normalised(self, tmp_path):
+        self._run_bom(
+            tmp_path, self._base_state("aws_instance", "web_server_01")
+        )
+        bom_files = list((tmp_path / "BOM").glob("*.yaml"))
+        assert bom_files
+        # Filename should be lowercase with underscores
+        assert bom_files[0].name == bom_files[0].name.lower()
+        assert " " not in bom_files[0].name

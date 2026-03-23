@@ -14,14 +14,24 @@
 
 """Terraform IaC plugin for SecOpsTM.
 
-Parses HCL Terraform files (.tf) and optional tfstate via regex (no external
-HCL parser dependency) and converts discovered resources into SecOpsTM
-Markdown DSL components.
+Parses HCL Terraform files (.tf) and tfstate via regex / JSON and converts
+discovered resources into SecOpsTM Markdown DSL components.
+
+Enrichment (from tfstate attributes):
+  - ``internet_facing``      — public_ip, associate_public_ip_address, publicly_accessible
+  - ``credentials_stored``   — iam_instance_profile, env vars with *PASSWORD*/*SECRET*/*TOKEN*
+  - ``traversal_difficulty`` — security-group ingress rules (open any-port → low,
+                                specific ports → medium, no 0.0.0.0/0 → high)
+
+BOM generation:
+  - :meth:`TerraformPlugin.generate_bom_files` writes one YAML file per server
+    asset under ``{output_dir}/BOM/``.
 """
 
 import json
 import logging
 import re
+import yaml
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
@@ -33,8 +43,6 @@ logger = logging.getLogger(__name__)
 # Resource-type → DSL component mapping tables
 # ---------------------------------------------------------------------------
 
-# Resources that map to a SecOpsTM Server component.
-# Value is a dict with optional extra DSL properties.
 _SERVER_RESOURCES: Dict[str, Dict[str, str]] = {
     # Compute / VM
     "aws_instance":                        {"type": "server"},
@@ -92,7 +100,6 @@ _SERVER_RESOURCES: Dict[str, Dict[str, str]] = {
     "azurerm_redis_cache":                 {"type": "server"},
 }
 
-# Resources that map to a SecOpsTM Boundary component.
 _BOUNDARY_RESOURCES: Dict[str, Dict[str, str]] = {
     "aws_vpc":                       {"isTrusted": "false"},
     "google_compute_network":        {"isTrusted": "false"},
@@ -105,7 +112,6 @@ _BOUNDARY_RESOURCES: Dict[str, Dict[str, str]] = {
     "azurerm_network_security_group": {"isTrusted": "true"},
 }
 
-# Resources that map to a SecOpsTM Actor component.
 _ACTOR_RESOURCES: Dict[str, Dict[str, str]] = {
     "aws_iam_user":                        {},
     "aws_iam_role":                        {},
@@ -115,8 +121,6 @@ _ACTOR_RESOURCES: Dict[str, Dict[str, str]] = {
     "azurerm_role_assignment":             {},
 }
 
-# Attribute names that carry references to other resources (used for
-# implicit dataflow detection).
 _CONNECTIVITY_ATTRS: List[str] = [
     "vpc_id",
     "subnet_id",
@@ -129,16 +133,177 @@ _CONNECTIVITY_ATTRS: List[str] = [
     "destination_security_group_id",
 ]
 
+# Resource-type → typical running services (for BOM generation)
+_RESOURCE_SERVICES: Dict[str, List[str]] = {
+    "aws_instance":                      ["ssh"],
+    "google_compute_instance":           ["ssh"],
+    "azurerm_virtual_machine":           ["rdp", "ssh"],
+    "azurerm_linux_virtual_machine":     ["ssh"],
+    "azurerm_windows_virtual_machine":   ["rdp"],
+    "aws_rds_instance":                  ["postgresql"],
+    "aws_rds_cluster":                   ["postgresql"],
+    "aws_dynamodb_table":                ["https"],
+    "aws_elasticache_cluster":           ["redis"],
+    "aws_elasticache_replication_group": ["redis"],
+    "azurerm_redis_cache":               ["redis"],
+    "google_sql_database_instance":      ["postgresql", "mysql"],
+    "azurerm_sql_server":                ["mssql"],
+    "azurerm_postgresql_server":         ["postgresql"],
+    "azurerm_mysql_server":              ["mysql"],
+    "aws_lambda_function":               ["https"],
+    "google_cloudfunctions_function":    ["https"],
+    "google_cloudfunctions2_function":   ["https"],
+    "azurerm_function_app":              ["https"],
+    "azurerm_linux_function_app":        ["https"],
+    "aws_eks_cluster":                   ["kubernetes-api", "https"],
+    "google_container_cluster":          ["kubernetes-api", "https"],
+    "azurerm_kubernetes_cluster":        ["kubernetes-api", "https"],
+    "aws_s3_bucket":                     ["https"],
+    "google_storage_bucket":             ["https"],
+    "azurerm_storage_account":           ["https"],
+    "aws_lb":                            ["https"],
+    "aws_alb":                           ["https"],
+    "aws_elb":                           ["https"],
+    "azurerm_lb":                        ["https"],
+    "azurerm_application_gateway":       ["https"],
+    "aws_api_gateway_rest_api":          ["https"],
+    "aws_apigatewayv2_api":              ["https"],
+    "azurerm_api_management":            ["https"],
+    "aws_sqs_queue":                     ["https"],
+    "aws_sns_topic":                     ["https"],
+    "google_pubsub_topic":               ["https"],
+    "azurerm_servicebus_namespace":      ["amqp", "https"],
+}
+
+_CREDENTIAL_KEYWORDS: frozenset = frozenset(
+    ["PASSWORD", "SECRET", "KEY", "TOKEN", "CREDENTIAL", "PASSWD", "API_KEY"]
+)
+
+
+# ---------------------------------------------------------------------------
+# Enrichment inference helpers (module-level, pure functions)
+# ---------------------------------------------------------------------------
+
+def _infer_internet_facing(attrs: Dict[str, Any]) -> bool:
+    """True if the resource exposes a public IP or is explicitly public."""
+    if attrs.get("associate_public_ip_address") == "true":
+        return True
+    if attrs.get("publicly_accessible") == "true":
+        return True
+    public_ip = attrs.get("public_ip", "")
+    if isinstance(public_ip, str) and public_ip not in ("", "null", "None", "false"):
+        return True
+    return False
+
+
+def _infer_credentials_stored(attrs: Dict[str, Any]) -> bool:
+    """True if the resource has an IAM profile or credential-carrying env vars."""
+    if attrs.get("iam_instance_profile") or attrs.get("iam_instance_profile_arn"):
+        return True
+    for attr_key in ("environment", "environment_variables"):
+        env_raw = attrs.get(attr_key)
+        if not env_raw:
+            continue
+        if isinstance(env_raw, str):
+            try:
+                env_obj = json.loads(env_raw)
+            except (ValueError, TypeError):
+                continue
+        else:
+            env_obj = env_raw
+        if isinstance(env_obj, list):
+            env_dict: Dict[str, str] = {
+                e.get("name", ""): e.get("value", "")
+                for e in env_obj
+                if isinstance(e, dict)
+            }
+        elif isinstance(env_obj, dict):
+            env_dict = {str(k): str(v) for k, v in env_obj.items()}
+        else:
+            continue
+        for key in env_dict:
+            if any(kw in key.upper() for kw in _CREDENTIAL_KEYWORDS):
+                return True
+    return False
+
+
+def _parse_ingress_rules(attrs: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Return the list of ingress rule dicts from a security-group's attributes.
+
+    In tfstate v4 the ``ingress`` attribute is a list of dicts. After parsing
+    it is stored as a JSON string (because ``_parse_tfstate`` serialises
+    list-of-dicts to preserve them).
+    """
+    ingress_raw = attrs.get("ingress", "")
+    if not ingress_raw:
+        return []
+    if isinstance(ingress_raw, str):
+        try:
+            parsed = json.loads(ingress_raw)
+            return parsed if isinstance(parsed, list) else []
+        except (ValueError, TypeError):
+            return []
+    if isinstance(ingress_raw, list):
+        return ingress_raw
+    return []
+
+
+def _infer_traversal_difficulty(attrs: Dict[str, Any]) -> str:
+    """Infer traversal difficulty from security-group ingress rules.
+
+    Returns:
+        ``"low"``    — any rule allows all traffic from 0.0.0.0/0 (all ports/protocols)
+        ``"medium"`` — open rules exist but only for specific ports, or no rules at all
+        ``"high"``   — no rule allows traffic from 0.0.0.0/0 or ::/0
+    """
+    rules = _parse_ingress_rules(attrs)
+    if not rules:
+        return "medium"
+
+    open_any_port = False
+    open_specific_port = False
+
+    for rule in rules:
+        if not isinstance(rule, dict):
+            continue
+        cidrs: List[str] = []
+        for cidr_key in ("cidr_blocks", "ipv6_cidr_blocks"):
+            cidr_val = rule.get(cidr_key, [])
+            if isinstance(cidr_val, list):
+                cidrs.extend(cidr_val)
+
+        if "0.0.0.0/0" not in cidrs and "::/0" not in cidrs:
+            continue
+
+        protocol = str(rule.get("protocol", "tcp"))
+        try:
+            from_port = int(rule.get("from_port", 0) or 0)
+            to_port = int(rule.get("to_port", 0) or 0)
+        except (ValueError, TypeError):
+            from_port = to_port = 0
+
+        if (
+            protocol in ("-1", "all")
+            or (from_port == 0 and to_port == 0)
+            or (from_port == -1 and to_port == -1)
+        ):
+            open_any_port = True
+        else:
+            open_specific_port = True
+
+    if open_any_port:
+        return "low"
+    if open_specific_port:
+        return "medium"
+    return "high"
+
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 def _sanitize_name(raw: str) -> str:
-    """Convert a raw Terraform resource name to a human-readable DSL name.
-
-    Replaces underscores and hyphens with spaces, title-cases the result.
-    """
+    """Convert a raw Terraform resource name to a human-readable DSL name."""
     return raw.replace("_", " ").replace("-", " ").title()
 
 
@@ -157,21 +322,14 @@ def _provider_of(resource_type: str) -> str:
 # HCL-lite regex parser
 # ---------------------------------------------------------------------------
 
-# Matches: resource "TYPE" "NAME" { ... }
-# We deliberately use a non-greedy body match; nested braces are handled by
-# the brace-counting post-processor below.
 _RESOURCE_HEADER_RE = re.compile(
     r'resource\s+"([^"]+)"\s+"([^"]+)"\s*\{',
     re.MULTILINE,
 )
-
-# Matches a simple scalar attribute: key = "value" or key = value
 _ATTR_SCALAR_RE = re.compile(
     r'^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*"?([^"\n{}\[\]]+)"?\s*$',
     re.MULTILINE,
 )
-
-# Matches a list attribute: key = ["v1", "v2", ...]
 _ATTR_LIST_RE = re.compile(
     r'([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*\[([^\]]*)\]',
     re.DOTALL,
@@ -179,10 +337,7 @@ _ATTR_LIST_RE = re.compile(
 
 
 def _extract_block_body(hcl_text: str, open_brace_pos: int) -> str:
-    """Return the text inside the outermost braces starting at *open_brace_pos*.
-
-    The character at *open_brace_pos* must be ``{``.
-    """
+    """Return the text inside the outermost braces starting at *open_brace_pos*."""
     depth = 0
     start = open_brace_pos
     for i in range(start, len(hcl_text)):
@@ -197,38 +352,23 @@ def _extract_block_body(hcl_text: str, open_brace_pos: int) -> str:
 
 
 def _parse_tf_text(hcl_text: str) -> List[Dict[str, Any]]:
-    """Parse HCL Terraform source text into a list of resource dicts.
-
-    Each dict has the shape::
-
-        {
-            "resource_type": str,
-            "name": str,
-            "attributes": Dict[str, Any],   # scalar or list values
-        }
-
-    This parser intentionally ignores modules, providers, variables, locals,
-    and data sources — only ``resource`` blocks are relevant for the threat
-    model.
-    """
+    """Parse HCL Terraform source text into a list of resource dicts."""
     resources: List[Dict[str, Any]] = []
 
     for match in _RESOURCE_HEADER_RE.finditer(hcl_text):
         resource_type = match.group(1)
         resource_name = match.group(2)
-        open_pos = match.end() - 1  # position of the opening '{'
+        open_pos = match.end() - 1
         body = _extract_block_body(hcl_text, open_pos)
 
         attributes: Dict[str, Any] = {}
 
-        # Scalar attributes
         for attr_match in _ATTR_SCALAR_RE.finditer(body):
             key = attr_match.group(1).strip()
             value = attr_match.group(2).strip()
             if key not in ("for_each", "count", "depends_on", "lifecycle"):
                 attributes[key] = value
 
-        # List attributes
         for list_match in _ATTR_LIST_RE.finditer(body):
             key = list_match.group(1).strip()
             raw_list = list_match.group(2)
@@ -247,8 +387,10 @@ def _parse_tf_text(hcl_text: str) -> List[Dict[str, Any]]:
                 "attributes": attributes,
             }
         )
-        logger.debug("Parsed resource %s.%s with %d attributes",
-                     resource_type, resource_name, len(attributes))
+        logger.debug(
+            "Parsed resource %s.%s with %d attributes",
+            resource_type, resource_name, len(attributes),
+        )
 
     return resources
 
@@ -258,11 +400,11 @@ def _parse_tf_text(hcl_text: str) -> List[Dict[str, Any]]:
 # ---------------------------------------------------------------------------
 
 def _parse_tfstate(state_path: Path) -> List[Dict[str, Any]]:
-    """Extract resources from a ``terraform.tfstate`` JSON file.
+    """Extract resources from a ``terraform.tfstate`` JSON file (format v4).
 
-    Returns a list of resource dicts in the same shape as ``_parse_tf_text``.
-    tfstate format v4 (Terraform >= 0.13) is assumed; older formats are
-    handled gracefully with a warning.
+    List-of-dicts attributes (e.g., security-group ``ingress``/``egress``
+    rules) are serialised as a JSON string so that downstream inference code
+    can parse them without losing information.
     """
     resources: List[Dict[str, Any]] = []
     try:
@@ -283,18 +425,22 @@ def _parse_tfstate(state_path: Path) -> List[Dict[str, Any]]:
         if res.get("mode") != "managed":
             continue
         resource_type = res.get("type", "")
-        # Use the first instance's attributes as representative
         instances = res.get("instances", [])
         if not instances:
             continue
         attrs = instances[0].get("attributes", {})
-        # Flatten only scalar and list values; ignore nested dicts
+
         flat_attrs: Dict[str, Any] = {}
         for k, v in attrs.items():
             if isinstance(v, (str, int, float, bool)):
                 flat_attrs[k] = str(v)
             elif isinstance(v, list):
-                flat_attrs[k] = [str(i) for i in v if not isinstance(i, dict)]
+                if v and all(isinstance(i, dict) for i in v):
+                    # Preserve list-of-dicts as JSON string (e.g. ingress rules)
+                    flat_attrs[k] = json.dumps(v)
+                else:
+                    flat_attrs[k] = [str(i) for i in v if not isinstance(i, dict)]
+
         resources.append(
             {
                 "resource_type": resource_type,
@@ -336,21 +482,7 @@ class TerraformPlugin(IaCPlugin):
     # ------------------------------------------------------------------
 
     def parse_iac_config(self, config_path: str) -> Dict[str, Any]:
-        """Parse Terraform sources at *config_path*.
-
-        Args:
-            config_path: Path to a single ``.tf`` file OR a directory.  If a
-                directory, all ``.tf`` files are collected recursively.  A
-                ``terraform.tfstate`` at the directory root takes priority.
-
-        Returns:
-            A dict with key ``"resources"`` containing a list of parsed
-            resource dicts (see ``_parse_tf_text`` for the shape).
-
-        Raises:
-            ValueError: If the path does not exist or contains no Terraform
-                files.
-        """
+        """Parse Terraform sources at *config_path*."""
         input_path = Path(config_path).resolve()
 
         if not input_path.exists():
@@ -360,60 +492,38 @@ class TerraformPlugin(IaCPlugin):
 
         if input_path.is_file():
             if input_path.suffix != ".tf":
-                raise ValueError(
-                    f"Expected a .tf file, got: {input_path.name}"
-                )
+                raise ValueError(f"Expected a .tf file, got: {input_path.name}")
             logger.info("Parsing single Terraform file: %s", input_path)
             resources = self._load_tf_file(input_path)
         else:
-            # Directory: check for tfstate first
             state_file = input_path / "terraform.tfstate"
             if state_file.is_file():
                 logger.info(
-                    "Found terraform.tfstate — using state file for higher fidelity: %s",
-                    state_file,
+                    "Found terraform.tfstate — using state file: %s", state_file
                 )
                 resources = _parse_tfstate(state_file)
             else:
                 logger.info(
-                    "No terraform.tfstate found; scanning .tf files in %s",
-                    input_path,
+                    "No terraform.tfstate found; scanning .tf files in %s", input_path
                 )
                 tf_files = sorted(input_path.rglob("*.tf"))
                 if not tf_files:
-                    raise ValueError(
-                        f"No .tf files found under directory: {input_path}"
-                    )
+                    raise ValueError(f"No .tf files found under directory: {input_path}")
                 for tf_file in tf_files:
-                    logger.debug("Parsing %s", tf_file)
                     resources.extend(self._load_tf_file(tf_file))
 
-        logger.info(
-            "Terraform parse complete: %d resources discovered", len(resources)
-        )
+        logger.info("Terraform parse complete: %d resources discovered", len(resources))
         return {"resources": resources}
 
     def generate_threat_model_components(self, iac_data: Dict[str, Any]) -> str:
-        """Generate a SecOpsTM Markdown DSL string from parsed Terraform data.
-
-        Args:
-            iac_data: The dict returned by :meth:`parse_iac_config`.
-
-        Returns:
-            A multi-section Markdown string ready to be pasted into the
-            SecOpsTM editor or saved as a ``.md`` model file.
-        """
+        """Generate a SecOpsTM Markdown DSL string from parsed Terraform data."""
         resources: List[Dict[str, Any]] = iac_data.get("resources", [])
 
         boundaries: List[Dict[str, Any]] = []
         servers: List[Dict[str, Any]] = []
         actors: List[Dict[str, Any]] = []
-        dataflows: List[Dict[str, Any]] = []
+        name_registry: Dict[str, str] = {}
 
-        # Track canonical DSL names for dataflow source/destination resolution
-        name_registry: Dict[str, str] = {}  # tf_key → dsl_name
-
-        # ---- classify resources ----
         for res in resources:
             rtype = res["resource_type"]
             rname = res["name"]
@@ -431,7 +541,10 @@ class TerraformPlugin(IaCPlugin):
                         "description": (
                             f"{_provider_of(rtype)} {rtype.replace('_', ' ')}"
                         ),
+                        "internet_facing": _infer_internet_facing(attrs),
+                        "credentials_stored": _infer_credentials_stored(attrs),
                         "_tf_key": tf_key,
+                        "_resource_type": rtype,
                         "_attrs": attrs,
                     }
                 )
@@ -439,6 +552,11 @@ class TerraformPlugin(IaCPlugin):
             elif rtype in _BOUNDARY_RESOURCES:
                 extra = _BOUNDARY_RESOURCES[rtype]
                 is_nested = "subnet" in rtype or "security_group" in rtype
+                traversal = (
+                    _infer_traversal_difficulty(attrs)
+                    if "security_group" in rtype or "firewall" in rtype
+                    else None
+                )
                 boundaries.append(
                     {
                         "name": dsl_name,
@@ -446,6 +564,7 @@ class TerraformPlugin(IaCPlugin):
                         "description": (
                             f"{_provider_of(rtype)} {rtype.replace('_', ' ')}"
                         ),
+                        "traversal_difficulty": traversal,
                         "_nested": is_nested,
                         "_tf_key": tf_key,
                         "_attrs": attrs,
@@ -466,18 +585,62 @@ class TerraformPlugin(IaCPlugin):
             else:
                 logger.debug("Resource type %s not mapped, skipping", rtype)
 
-        # ---- implicit dataflows from connectivity attributes ----
         dataflows = self._derive_dataflows(servers, boundaries, actors, name_registry)
-
-        # ---- render Markdown ----
         return self._render_markdown(boundaries, actors, servers, dataflows)
+
+    def generate_bom_files(self, iac_data: Dict[str, Any], output_dir: str) -> List[str]:
+        """Generate one BOM YAML file per server asset under ``{output_dir}/BOM/``.
+
+        The BOM key (filename) is the DSL server name normalised to
+        lowercase-underscores, matching :func:`BOMLoader._normalize_asset_key`.
+        """
+        resources = iac_data.get("resources", [])
+        bom_dir = Path(output_dir) / "BOM"
+        bom_dir.mkdir(parents=True, exist_ok=True)
+
+        written: List[str] = []
+        for res in resources:
+            rtype = res["resource_type"]
+            if rtype not in _SERVER_RESOURCES:
+                continue
+            attrs = res.get("attributes", {})
+            dsl_name = _sanitize_name(res["name"])
+            bom_key = re.sub(r"\s+", "_", dsl_name.lower())
+
+            bom: Dict[str, Any] = {
+                "asset": dsl_name,
+                "os_version": attrs.get(
+                    "ami",
+                    attrs.get("engine", attrs.get("runtime", "unknown")),
+                ),
+                "software_version": attrs.get(
+                    "engine_version", attrs.get("runtime", "")
+                ),
+                "patch_level": "unknown",
+                "known_cves": [],
+                "running_services": _RESOURCE_SERVICES.get(rtype, []),
+                "detection_level": "low",
+                "credentials_stored": _infer_credentials_stored(attrs),
+                "notes": (
+                    f"Auto-generated from Terraform resource {rtype}."
+                    " Populate known_cves and patch_level from your scanner."
+                ),
+            }
+
+            bom_path = bom_dir / f"{bom_key}.yaml"
+            with open(bom_path, "w", encoding="utf-8") as fh:
+                yaml.dump(bom, fh, default_flow_style=False, allow_unicode=True,
+                          sort_keys=False)
+            written.append(str(bom_path))
+            logger.info("Generated BOM: %s", bom_path)
+
+        return written
 
     # ------------------------------------------------------------------
     # Private helpers
     # ------------------------------------------------------------------
 
     def _load_tf_file(self, path: Path) -> List[Dict[str, Any]]:
-        """Read and parse a single .tf file."""
         try:
             text = path.read_text(encoding="utf-8")
         except OSError as exc:
@@ -492,13 +655,7 @@ class TerraformPlugin(IaCPlugin):
         actors: List[Dict[str, Any]],
         name_registry: Dict[str, str],
     ) -> List[Dict[str, Any]]:
-        """Derive implicit dataflows from connectivity attributes.
-
-        For each server/actor that references a VPC, subnet, or security
-        group, we create a logical dataflow from that component to the
-        boundary.  This is a best-effort approximation: no protocol is known
-        at parse time so we default to ``HTTPS``.
-        """
+        """Derive implicit dataflows from connectivity attributes."""
         dataflows: List[Dict[str, Any]] = []
         seen: Set[Tuple[str, str]] = set()
 
@@ -517,21 +674,17 @@ class TerraformPlugin(IaCPlugin):
                 if not ref_value:
                     continue
 
-                # Normalise to list
                 refs: List[str] = (
                     ref_value if isinstance(ref_value, list) else [ref_value]
                 )
 
                 for ref in refs:
-                    # Try to resolve the ref as a Terraform resource reference
-                    # (e.g. "aws_vpc.main.id" → "aws_vpc.main")
                     tf_key = self._resolve_ref(ref)
                     if not tf_key:
                         continue
 
                     dst_name = boundary_names_by_tf_key.get(tf_key)
                     if not dst_name:
-                        # Also search servers (e.g. alb → instance)
                         for srv in servers:
                             if srv["_tf_key"] == tf_key:
                                 dst_name = srv["name"]
@@ -545,43 +698,25 @@ class TerraformPlugin(IaCPlugin):
                         continue
                     seen.add(edge)
 
-                    flow_name = f"{src_name} To {dst_name}"
                     dataflows.append(
                         {
-                            "name": flow_name,
+                            "name": f"{src_name} To {dst_name}",
                             "source": src_name,
                             "destination": dst_name,
                             "protocol": "HTTPS",
                             "data": "ApplicationData",
                         }
                     )
-                    logger.debug(
-                        "Derived dataflow: %s → %s (via %s)",
-                        src_name, dst_name, attr_key,
-                    )
 
         return dataflows
 
     @staticmethod
     def _resolve_ref(ref_value: str) -> Optional[str]:
-        """Convert a Terraform attribute value to a resource tf_key if possible.
-
-        Examples that are resolved::
-
-            "aws_vpc.main.id"   → "aws_vpc.main"
-            "aws_vpc.main"      → "aws_vpc.main"
-            "${aws_vpc.main.id}" → "aws_vpc.main"
-
-        Bare string values like ``"sg-0abc123"`` cannot be resolved and
-        return ``None``.
-        """
-        # Strip interpolation syntax
+        """Convert a Terraform attribute value to a resource tf_key if possible."""
         cleaned = re.sub(r'[${}]', '', ref_value).strip()
-        # Drop attribute suffix (last segment after the second dot)
         parts = cleaned.split(".")
         if len(parts) >= 2:
             candidate = f"{parts[0]}.{parts[1]}"
-            # Only trust it if the prefix looks like a known resource type
             if "_" in parts[0]:
                 return candidate
         return None
@@ -600,34 +735,42 @@ class TerraformPlugin(IaCPlugin):
         """Render all components as a SecOpsTM Markdown DSL string."""
         lines: List[str] = []
 
-        # ---- Boundaries ----
         if boundaries:
             lines.append("## Boundaries")
-            # Top-level boundaries first (VPCs / VNets), then nested (subnets, SGs)
             top_level = [b for b in boundaries if not b.get("_nested", False)]
             nested = [b for b in boundaries if b.get("_nested", False)]
 
             for b in top_level:
-                lines.append(
-                    f"- **{b['name']}**: isTrusted={b['isTrusted']}, "
-                    f"description=\"{b['description']}\""
-                )
-                # Attach nested boundaries as sub-boundaries
+                props: List[str] = [
+                    f"isTrusted={b['isTrusted']}",
+                    f"description=\"{b['description']}\"",
+                ]
+                if b.get("traversal_difficulty"):
+                    props.append(f"traversal_difficulty={b['traversal_difficulty']}")
+                lines.append(f"- **{b['name']}**: {', '.join(props)}")
                 for nb in nested:
-                    lines.append(
-                        f"  - **{nb['name']}**: isTrusted={nb['isTrusted']}, "
-                        f"description=\"{nb['description']}\""
-                    )
-            # Nested boundaries without a top-level parent
+                    nb_props: List[str] = [
+                        f"isTrusted={nb['isTrusted']}",
+                        f"description=\"{nb['description']}\"",
+                    ]
+                    if nb.get("traversal_difficulty"):
+                        nb_props.append(
+                            f"traversal_difficulty={nb['traversal_difficulty']}"
+                        )
+                    lines.append(f"  - **{nb['name']}**: {', '.join(nb_props)}")
             if not top_level:
                 for b in nested:
-                    lines.append(
-                        f"- **{b['name']}**: isTrusted={b['isTrusted']}, "
-                        f"description=\"{b['description']}\""
-                    )
+                    props = [
+                        f"isTrusted={b['isTrusted']}",
+                        f"description=\"{b['description']}\"",
+                    ]
+                    if b.get("traversal_difficulty"):
+                        props.append(
+                            f"traversal_difficulty={b['traversal_difficulty']}"
+                        )
+                    lines.append(f"- **{b['name']}**: {', '.join(props)}")
             lines.append("")
 
-        # ---- Actors ----
         if actors:
             lines.append("## Actors")
             for a in actors:
@@ -636,7 +779,6 @@ class TerraformPlugin(IaCPlugin):
                 )
             lines.append("")
 
-        # ---- Servers ----
         if servers:
             lines.append("## Servers")
             for s in servers:
@@ -644,10 +786,13 @@ class TerraformPlugin(IaCPlugin):
                     f"type={s['type']}",
                     f"description=\"{s['description']}\"",
                 ]
+                if s.get("internet_facing"):
+                    props.append("internet_facing=true")
+                if s.get("credentials_stored"):
+                    props.append("credentials_stored=true")
                 lines.append(f"- **{s['name']}**: {', '.join(props)}")
             lines.append("")
 
-        # ---- Dataflows ----
         if dataflows:
             lines.append("## Dataflows")
             for df in dataflows:

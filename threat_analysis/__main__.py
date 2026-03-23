@@ -583,6 +583,16 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
                     f.write(markdown_content_for_analysis)
                 logging.info(f"Generated IaC threat model saved to: {base_model_filepath}")
 
+                # Generate BOM files alongside the model
+                bom_paths = plugin_instance.generate_bom_files(
+                    parsed_data, str(config.OUTPUT_BASE_DIR)
+                )
+                if bom_paths:
+                    logging.info(
+                        f"Generated {len(bom_paths)} BOM file(s) in "
+                        f"{config.OUTPUT_BASE_DIR}/BOM/"
+                    )
+
                 break # Process only one IaC plugin at a time
             except Exception as e:
                 logging.error(f"❌ Error processing {plugin_name} config: {e}")
