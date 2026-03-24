@@ -32,6 +32,7 @@ from threat_analysis.utils import _validate_path_within_project
 from threat_analysis.mitigation_suggestions import get_framework_mitigation_suggestions
 from threat_analysis.core.cve_service import CVEService
 from threat_analysis.core.threat_ranker import rank_and_trim
+from threat_analysis.core.accepted_risks import AcceptedRiskLoader, compute_threat_key
 from .utils import extract_name_from_object, get_target_name
 import yaml
 import asyncio
@@ -798,6 +799,14 @@ class ReportGenerator:
             min_stride_coverage=self._ranking_min_stride,
             weights=self._ranking_weights if self._ranking_weights else None,
         )
+
+        # Stamp each threat with a stable key and apply analyst decisions
+        model_file_path = getattr(threat_model, "_model_file_path", None)
+        risk_loader = AcceptedRiskLoader.from_model_path(model_file_path)
+        for t in all_detailed_threats:
+            t["threat_key"] = compute_threat_key(t)
+            decision = risk_loader.get_decision(t)
+            t["accepted_risk"] = decision  # None or {"decision": ..., "rationale": ..., ...}
 
         return all_detailed_threats
 

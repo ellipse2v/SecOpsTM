@@ -361,6 +361,27 @@
         .voc-def  { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         .voc-nodef{ background: #f0f0f0; color: #888;    border: 1px solid #ccc; }
 
+        /* Accepted risk row styling */
+        .accepted-risk-row td { opacity: 0.55; }
+        .accepted-risk-row:hover td { opacity: 0.85; }
+        .badge-accepted      { background: #e8f4e8; color: #276749; border: 1px solid #9ae6b4; }
+        .badge-false-positive{ background: #e8f0fe; color: #1a56db; border: 1px solid #a4cafe; }
+        .badge-mitigated     { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
+        .accepted-risk-block {
+            font-size: 0.75rem;
+            background: #f9fafb;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 4px 6px;
+            margin-top: 4px;
+        }
+        .accepted-risk-key {
+            font-size: 0.68rem;
+            color: #94a3b8;
+            font-family: monospace;
+            user-select: all;
+        }
+
         .severity-cell {
             padding: 0 !important;
             vertical-align: stretch;
@@ -1206,6 +1227,13 @@
                         <option value="LOW">Low</option>
                     </select>
                 </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <input type="checkbox" id="hideAccepted" onchange="filterThreats()" style="cursor:pointer;">
+                    <label for="hideAccepted" style="font-weight:500;color:var(--text-secondary);cursor:pointer;"
+                           title="Hide threats marked as accepted, false positive, or mitigated">
+                        Hide accepted / FP
+                    </label>
+                </div>
             </div>
         </div>
         <div class="tabs">
@@ -1241,7 +1269,9 @@
                     </thead>
                     <tbody>
                         {% for threat in all_threats if threat.stride_category == category %}
-                        <tr class="threat-{{ threat.stride_category | lower | replace(' ', '-') }}">
+                        {% set ar = threat.accepted_risk if threat.accepted_risk is defined else none %}
+                        <tr class="threat-{{ threat.stride_category | lower | replace(' ', '-') }}{% if ar %} accepted-risk-row{% endif %}"
+                            data-accepted="{{ 'true' if ar else 'false' }}">
                             <td><div class="row-number">{{ loop.index }}</div></td>
                             <td>{{ threat.target }}</td>
                             <td>{{ threat.business_value if threat.business_value else 'N/A' }}</td>
@@ -1250,7 +1280,29 @@
                                     {{ threat.source if threat.source else 'pytm' }}
                                 </div>
                             </td>
-                            <td><div class="scrollable-cell">{{ threat.description }}</div></td>
+                            <td>
+                                <div class="scrollable-cell">
+                                    {{ threat.description }}
+                                    {% if ar %}
+                                    <div class="accepted-risk-block">
+                                        <span class="voc-badge badge-{{ ar.decision | replace('_', '-') }}"
+                                              title="{{ ar.rationale }}">
+                                            {{ ar.decision | replace('_', ' ') | upper }}
+                                        </span>
+                                        {% if ar.rationale %}
+                                        <span style="margin-left:4px;">{{ ar.rationale }}</span>
+                                        {% endif %}
+                                        {% if ar.reviewer %}
+                                        <span style="color:#94a3b8;margin-left:4px;">— {{ ar.reviewer }}</span>
+                                        {% endif %}
+                                        {% if ar.expires %}
+                                        <span style="color:#94a3b8;margin-left:4px;">(expires {{ ar.expires }})</span>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                    <div class="accepted-risk-key" title="Use this key in accepted_risks.yaml">{{ threat.threat_key }}</div>
+                                </div>
+                            </td>
                             <td>
                                 <div class="scrollable-cell">
                                     {% if threat.confidence is not none %}
@@ -1499,11 +1551,13 @@
             var targetFilter        = document.getElementById("targetFilter");
             var sourceFilter        = document.getElementById("sourceFilter");
             var severityFilter      = document.getElementById("severityFilter");
+            var hideAcceptedCb      = document.getElementById("hideAccepted");
 
             var selectedBusinessValue = businessValueFilter ? businessValueFilter.value : 'all';
             var selectedTarget        = targetFilter        ? targetFilter.value        : 'all';
             var selectedSource        = sourceFilter        ? sourceFilter.value        : 'all';
             var selectedSeverity      = severityFilter      ? severityFilter.value      : 'all';
+            var hideAccepted          = hideAcceptedCb      ? hideAcceptedCb.checked    : false;
 
             var tables = document.querySelectorAll(".tab-content.active table tbody");
 
@@ -1540,7 +1594,12 @@
                         severityMatch = severityCell.textContent.trim().toUpperCase().startsWith(selectedSeverity);
                     }
 
-                    row.style.display = (targetMatch && businessValueMatch && sourceMatch && severityMatch) ? "" : "none";
+                    var acceptedMatch = true;
+                    if (hideAccepted && row.dataset.accepted === "true") {
+                        acceptedMatch = false;
+                    }
+
+                    row.style.display = (targetMatch && businessValueMatch && sourceMatch && severityMatch && acceptedMatch) ? "" : "none";
                 }
             });
         }
