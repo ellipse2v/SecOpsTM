@@ -492,6 +492,37 @@ class CustomArgumentParser:
             help="Compare two JSON reports and print added/resolved/changed threats. "
                  "Example: --diff output/report_old.json output/report_new.json",
         )
+        self.parser.add_argument(
+            "--gate",
+            type=str,
+            metavar="REPORT_JSON",
+            help="CI/CD gate: check a JSON report for unaccepted threats at or above "
+                 "--fail-on severity. Exits 1 if any are found, 0 otherwise. "
+                 "Example: --gate output/report.json --fail-on HIGH",
+        )
+        self.parser.add_argument(
+            "--baseline",
+            type=str,
+            metavar="BASELINE_JSON",
+            help="Path to a baseline JSON report. When provided with --gate, only NEW "
+                 "threats (absent from the baseline) trigger a failure.",
+        )
+        self.parser.add_argument(
+            "--fail-on",
+            type=str,
+            default="CRITICAL",
+            choices=["CRITICAL", "HIGH", "MEDIUM", "LOW"],
+            dest="fail_on",
+            help="Minimum severity level that triggers a gate failure (default: CRITICAL).",
+        )
+        self.parser.add_argument(
+            "--accepted-risks",
+            type=str,
+            metavar="ACCEPTED_RISKS_YAML",
+            dest="accepted_risks",
+            help="Path to accepted_risks.yaml used to exclude accepted/false-positive threats "
+                 "from the gate check. Auto-discovered next to REPORT_JSON if omitted.",
+        )
 
     def parse_args(self):
         return self.parser.parse_known_args()
@@ -540,6 +571,113 @@ def diff_threat_reports(old_path: str, new_path: str) -> int:
             print(f"    {old_t.get('name','')} → {old_t.get('target','')}: "
                   f"{old_t.get('severity','?')} → {new_t.get('severity','?')}")
 
+    return 1
+
+
+# Severity order for threshold comparisons
+_SEVERITY_ORDER = {"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1}
+
+
+def run_gate_check(
+    gate_path: str,
+    fail_on: str = "CRITICAL",
+    baseline_path: Optional[str] = None,
+    accepted_risks_path: Optional[str] = None,
+) -> int:
+    """Check a JSON threat report against a severity gate.
+
+    Returns exit code:
+        0 — no unaccepted threats at or above ``fail_on`` severity (or all are new
+            only relative to baseline when ``baseline_path`` is provided).
+        1 — at least one qualifying new/unaccepted threat found.
+        2 — I/O or parse error.
+    """
+    import json as _json
+    from threat_analysis.core.accepted_risks import AcceptedRiskLoader
+
+    # --- load report ----------------------------------------------------------
+    try:
+        with open(gate_path, "r", encoding="utf-8") as f:
+            report = _json.load(f)
+    except (OSError, ValueError) as exc:
+        logging.error("--gate: failed to load report %s: %s", gate_path, exc)
+        return 2
+
+    threats = report.get("threats", [])
+    if not isinstance(threats, list):
+        logging.error("--gate: 'threats' key is not a list in %s", gate_path)
+        return 2
+
+    # --- load baseline (optional) --------------------------------------------
+    baseline_keys: Optional[set] = None
+    if baseline_path:
+        try:
+            with open(baseline_path, "r", encoding="utf-8") as f:
+                baseline_report = _json.load(f)
+            baseline_threats = baseline_report.get("threats", [])
+            # Index by threat_key (stable) then fall back to id
+            baseline_keys = set()
+            for bt in baseline_threats:
+                if bt.get("threat_key"):
+                    baseline_keys.add(bt["threat_key"])
+                elif bt.get("id"):
+                    baseline_keys.add(bt["id"])
+        except (OSError, ValueError) as exc:
+            logging.error("--gate: failed to load baseline %s: %s", baseline_path, exc)
+            return 2
+
+    # --- load accepted risks --------------------------------------------------
+    ar_path = accepted_risks_path
+    if not ar_path:
+        # auto-discover: look next to the report JSON
+        candidate = Path(gate_path).parent / "accepted_risks.yaml"
+        if candidate.exists():
+            ar_path = str(candidate)
+    loader = AcceptedRiskLoader.from_file(ar_path) if ar_path else AcceptedRiskLoader.empty()
+
+    # --- filter threats -------------------------------------------------------
+    min_rank = _SEVERITY_ORDER.get(fail_on.upper(), 4)
+    failing: List[Dict] = []
+
+    for threat in threats:
+        # Severity filter
+        sev = (threat.get("severity") or "").upper()
+        if _SEVERITY_ORDER.get(sev, 0) < min_rank:
+            continue
+
+        # Skip threats already marked as accepted in the report JSON
+        ar_in_report = threat.get("accepted_risk")
+        if ar_in_report and ar_in_report.get("decision") in {"accepted", "false_positive", "mitigated"}:
+            continue
+
+        # Skip threats matched by the accepted_risks.yaml (live check)
+        if loader and loader.get_decision(threat):
+            continue
+
+        # Baseline filter: only care about threats NEW since baseline
+        if baseline_keys is not None:
+            tk = threat.get("threat_key") or threat.get("id")
+            if tk and tk in baseline_keys:
+                continue  # already in baseline, not a new failure
+
+        failing.append(threat)
+
+    # --- output ---------------------------------------------------------------
+    if not failing:
+        print(f"[GATE] OK — no unaccepted threats at or above {fail_on}.")
+        if baseline_path:
+            print(f"[GATE] Baseline: {baseline_path}")
+        return 0
+
+    print(f"[GATE] FAIL — {len(failing)} unaccepted threat(s) at or above {fail_on}:")
+    for t in failing:
+        tk = t.get("threat_key", "")
+        tid = t.get("id", "?")
+        print(
+            f"  [{t.get('severity','?')}] {t.get('name', t.get('description', '?'))}"
+            f" → {t.get('target', '?')} ({t.get('stride_category', '?')})"
+            + (f"  {tk}" if tk else f"  {tid}")
+        )
     return 1
 
 
@@ -786,6 +924,14 @@ def main():
     if getattr(args, "diff", None):
         old_path, new_path = args.diff
         sys.exit(diff_threat_reports(old_path, new_path))
+
+    if getattr(args, "gate", None):
+        sys.exit(run_gate_check(
+            gate_path=args.gate,
+            fail_on=args.fail_on,
+            baseline_path=getattr(args, "baseline", None),
+            accepted_risks_path=getattr(args, "accepted_risks", None),
+        ))
 
     if args.server: # Use the new --server argument
         try:

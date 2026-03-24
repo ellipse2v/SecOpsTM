@@ -184,7 +184,8 @@ class AcceptedRiskLoader:
         """
         if not self._entries:
             return None
-        key = compute_threat_key(threat)
+        # Use the pre-stamped key from the report dict if present; otherwise compute it.
+        key = threat.get("threat_key") or compute_threat_key(threat)
         threat_cat  = (threat.get("stride_category") or "").lower()
         threat_tgt  = (threat.get("target") or "").lower()
         threat_desc = (threat.get("description") or "").lower()
