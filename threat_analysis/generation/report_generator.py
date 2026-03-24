@@ -735,6 +735,7 @@ class ReportGenerator:
                         "network_exposed": ai_risk_ctx.network_exposed,
                         "d3fend_mitigations": ai_risk_ctx.has_d3fend_mitigations,
                     },
+                    "soc_analysis": (getattr(et, "ai_details", {}) or {}).get("soc_analysis"),
                 })
 
         # Merge: AI wins on semantic duplicates within same (target, stride_category)

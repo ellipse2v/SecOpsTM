@@ -54,3 +54,25 @@ class BaseLLMProvider(ABC):
         """
         raise NotImplementedError
         yield  # pragma: no cover — makes this an abstract async generator
+
+    async def generate_soc_analysis(
+        self,
+        batch_prompt: str,
+        system_prompt: str,
+    ) -> List[Dict]:
+        """Generates SOC detection analysis for a batch of threats.
+
+        Optional — providers that do not override this return an empty list,
+        which causes ``AIService._enrich_with_soc_analysis`` to skip silently.
+
+        Args:
+            batch_prompt:  User-facing prompt containing the threat batch and
+                           the compressed model digest.
+            system_prompt: SOC analyst system instruction from prompts.yaml.
+
+        Returns:
+            A list of dicts, one per threat, each containing:
+            ``threat_id``, ``detectability``, ``missing_logs``,
+            ``siem_rules``, ``iocs``.
+        """
+        return []

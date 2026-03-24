@@ -78,6 +78,25 @@ class LiteLLMProvider(BaseLLMProvider):
             logging.error(f"Error generating attack flow via LiteLLM: {e}")
             return {}
 
+    async def generate_soc_analysis(self, batch_prompt: str, system_prompt: str) -> List[Dict]:
+        """Calls the LLM with the SOC analyst persona and returns parsed results."""
+        client = await self._get_client()
+        try:
+            async for chunk in client.generate_content(
+                prompt=batch_prompt,
+                system_prompt=system_prompt,
+                output_format="json",
+            ):
+                if isinstance(chunk, list):
+                    return chunk
+                if isinstance(chunk, dict):
+                    # Some providers may wrap the array in a dict
+                    return chunk.get("results", chunk.get("threats", []))
+            return []
+        except Exception as exc:
+            logging.error("SOC analysis generation failed: %s", exc)
+            return []
+
     async def generate_markdown(
         self,
         prompt: str,

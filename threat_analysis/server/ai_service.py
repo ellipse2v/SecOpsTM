@@ -774,3 +774,181 @@ class AIService:
 
         # Launch all element enrichments concurrently; _ai_semaphore limits actual parallelism.
         await asyncio.gather(*[_enrich_one(elem) for elem in all_elements])
+
+        # SOC persona pass — runs after component enrichment so all AI threats are available.
+        await self._enrich_with_soc_analysis(threat_model, ai_status_event_queue)
+
+    # ------------------------------------------------------------------
+    # SOC Analyst enrichment
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _compress_model_for_soc(threat_model) -> str:
+        """Returns a compact JSON string digest of the model for SOC prompt context.
+
+        Includes boundary trust, key dataflows, and component types — enough for
+        the SOC persona to reason about log sources without sending the full markdown.
+        """
+        boundaries = [
+            {"name": name, "trusted": b_info.get("isTrusted", True)}
+            for name, b_info in threat_model.boundaries.items()
+        ]
+        flows = []
+        for df in threat_model.dataflows:
+            src = getattr(df.source, "name", "?")
+            dst = getattr(df.sink, "name", "?")
+            proto = getattr(df, "protocol", "") or ""
+            flags = []
+            if getattr(df, "is_encrypted", False):
+                flags.append("enc")
+            if getattr(df, "is_authenticated", False):
+                flags.append("auth")
+            flag_str = "+" + "+".join(flags) if flags else ""
+            flows.append(f"{src} → {dst} [{proto}{flag_str}]")
+        def _name_from(d: dict) -> str:
+            if isinstance(d, dict):
+                if "name" in d:
+                    return d["name"]
+                obj = d.get("object")
+                if obj is not None:
+                    return getattr(obj, "name", "")
+            return getattr(d, "name", "")
+
+        components = (
+            [{"name": _name_from(a), "type": "Actor"} for a in threat_model.actors]
+            + [{"name": _name_from(s), "type": "Server"} for s in threat_model.servers]
+        )
+        digest = {
+            "boundaries": boundaries,
+            "flows": flows[:20],  # cap to avoid token overflow
+            "components": components[:30],
+        }
+        return json.dumps(digest, separators=(",", ":"))
+
+    async def _enrich_with_soc_analysis(
+        self,
+        threat_model,
+        ai_status_event_queue: Optional[queue.Queue] = None,
+        batch_size: int = 8,
+    ) -> None:
+        """Adds SOC detection analysis to each AI-generated threat.
+
+        Collects all ExtendedThreat objects with source="AI" from the model,
+        batches them, calls the SOC analyst persona, and stores the result in
+        ``threat.ai_details["soc_analysis"]``.  Silently skipped when:
+        - AI is offline
+        - provider does not implement generate_soc_analysis (returns [])
+        - no AI threats are present
+        """
+        if not self.ai_online or not self.provider:
+            return
+
+        from threat_analysis.ai_engine.prompt_loader import get as _get_prompt
+
+        # Collect all AI threats across all model elements
+        all_ai_threats = []
+        elements = (
+            [a["object"] for a in threat_model.actors]
+            + [s["object"] for s in threat_model.servers]
+            + threat_model.dataflows
+            + [
+                b_info["boundary"]
+                for b_info in threat_model.boundaries.values()
+                if b_info.get("boundary") is not None
+            ]
+        )
+        for elem in elements:
+            for t in getattr(elem, "threats", []):
+                if getattr(t, "source", "pytm") == "AI":
+                    all_ai_threats.append(t)
+
+        if not all_ai_threats:
+            logging.debug("SOC pass: no AI threats found — skipping.")
+            return
+
+        try:
+            system_prompt = _get_prompt("soc_analyst", "system")
+            batch_template = _get_prompt("soc_analyst", "batch_template")
+        except KeyError as exc:
+            logging.warning("SOC pass: prompt key missing (%s) — skipping.", exc)
+            return
+
+        model_digest = self._compress_model_for_soc(threat_model)
+        total_batches = (len(all_ai_threats) + batch_size - 1) // batch_size
+        logging.info(
+            "SOC pass: %d AI threats → %d batch(es) of %d",
+            len(all_ai_threats),
+            total_batches,
+            batch_size,
+        )
+
+        for batch_idx in range(total_batches):
+            batch = all_ai_threats[batch_idx * batch_size:(batch_idx + 1) * batch_size]
+            # Build a compact representation of this batch for the prompt
+            threats_list = []
+            for i, t in enumerate(batch):
+                ai_det = getattr(t, "ai_details", {}) or {}
+                threats_list.append({
+                    "id": f"t-{batch_idx * batch_size + i}",
+                    "title": ai_det.get("title", getattr(t, "description", "")[:80]),
+                    "stride_category": getattr(t, "category", "Unknown"),
+                    "target": getattr(
+                        getattr(t, "target", None), "name",
+                        ai_det.get("target", "Unknown"),
+                    ),
+                    "description": ai_det.get("description", "")[:200],
+                    "attack_scenario": ai_det.get("attack_scenario", "")[:300],
+                })
+
+            batch_prompt = (
+                batch_template
+                .replace("<<model_digest>>", model_digest)
+                .replace("<<threats_batch>>", json.dumps(threats_list, indent=2))
+            )
+
+            try:
+                async with self._ai_semaphore:
+                    soc_results = await self.provider.generate_soc_analysis(
+                        batch_prompt, system_prompt
+                    )
+                    if self.rate_limit_sleep > 0:
+                        await asyncio.sleep(self.rate_limit_sleep)
+            except Exception as exc:
+                logging.warning("SOC pass: batch %d failed: %s", batch_idx, exc)
+                continue
+
+            if not isinstance(soc_results, list):
+                logging.warning("SOC pass: unexpected response type %s for batch %d", type(soc_results), batch_idx)
+                continue
+
+            # Map results back to threats by position (threat_id = "t-N")
+            result_by_id = {
+                r.get("threat_id", ""): r
+                for r in soc_results
+                if isinstance(r, dict)
+            }
+            for i, t in enumerate(batch):
+                threat_id = f"t-{batch_idx * batch_size + i}"
+                soc = result_by_id.get(threat_id)
+                if soc:
+                    if not hasattr(t, "ai_details") or t.ai_details is None:
+                        t.ai_details = {}
+                    t.ai_details["soc_analysis"] = {
+                        "detectability": soc.get("detectability", "unknown"),
+                        "missing_logs": soc.get("missing_logs", []),
+                        "siem_rules": soc.get("siem_rules", []),
+                        "iocs": soc.get("iocs", []),
+                    }
+                    logging.debug(
+                        "SOC pass: enriched '%s' — detectability=%s",
+                        getattr(t, "SID", threat_id),
+                        soc.get("detectability"),
+                    )
+
+            if ai_status_event_queue:
+                data = {
+                    "status": "soc_enrichment_progress",
+                    "progress": ((batch_idx + 1) / total_batches) * 100,
+                    "message": f"SOC analysis: batch {batch_idx + 1}/{total_batches}",
+                }
+                ai_status_event_queue.put(f"event: ai_progress\ndata: {json.dumps(data)}\n\n")
