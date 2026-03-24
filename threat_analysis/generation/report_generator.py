@@ -183,6 +183,88 @@ class ReportGenerator:
             rw = tg.get("ranking_weights") or {}
             self._ranking_weights = {k: float(v) for k, v in rw.items() if isinstance(v, (int, float))}
 
+    async def _run_ciso_triage(self, all_threats: List[Dict]) -> Dict:
+        """Generates a CISO-level risk briefing via the AI provider.
+
+        Returns an empty dict when AI is unavailable or the provider does not
+        implement ``generate_ciso_triage``.  Never raises.
+        """
+        if not self.ai_provider:
+            return {}
+        if not await self.ai_provider.check_connection():
+            return {}
+
+        from threat_analysis.ai_engine.prompt_loader import get as _get_prompt
+        try:
+            system_prompt = _get_prompt("ciso_triage", "system")
+            template = _get_prompt("ciso_triage", "template")
+        except KeyError as exc:
+            logging.warning("CISO triage: prompt key missing (%s) — skipping.", exc)
+            return {}
+
+        # Build compact threat summary (top 20 by ranking score)
+        sev_order = {"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1}
+        counts: Dict[str, int] = {}
+        for t in all_threats:
+            sev = (t.get("severity") or "").upper()
+            counts[sev] = counts.get(sev, 0) + 1
+
+        stride_counts: Dict[str, int] = {}
+        for t in all_threats:
+            cat = t.get("stride_category", "Unknown")
+            stride_counts[cat] = stride_counts.get(cat, 0) + 1
+
+        top20 = sorted(
+            all_threats,
+            key=lambda x: (sev_order.get((x.get("severity") or "").upper(), 0),
+                           x.get("_ranking_score", 0.0)),
+            reverse=True,
+        )[:20]
+
+        threats_summary_lines = []
+        for t in top20:
+            tid = t.get("id", "?")
+            sev = t.get("severity", "?")
+            stride = t.get("stride_category", "?")
+            target = t.get("target", "?")
+            name = t.get("name") or t.get("description", "?")
+            threats_summary_lines.append(f"- [{sev}] {tid} | {stride} | {target} | {name[:80]}")
+
+        stride_breakdown = ", ".join(f"{cat}={cnt}" for cat, cnt in sorted(stride_counts.items()))
+        prompt = (
+            template
+            .replace("<<total>>", str(len(all_threats)))
+            .replace("<<n_critical>>", str(counts.get("CRITICAL", 0)))
+            .replace("<<n_high>>", str(counts.get("HIGH", 0)))
+            .replace("<<n_medium>>", str(counts.get("MEDIUM", 0)))
+            .replace("<<n_low>>", str(counts.get("LOW", 0)))
+            .replace("<<stride_breakdown>>", stride_breakdown)
+            .replace("<<threats_summary>>", "\n".join(threats_summary_lines))
+        )
+
+        try:
+            result = await self.ai_provider.generate_ciso_triage(prompt, system_prompt)
+        except Exception as exc:
+            logging.warning("CISO triage call failed: %s", exc)
+            return {}
+
+        if not isinstance(result, dict) or "posture_score" not in result:
+            logging.debug("CISO triage: unexpected response — %s", type(result))
+            return {}
+
+        # Normalise types
+        try:
+            result["posture_score"] = round(float(result["posture_score"]), 1)
+        except (TypeError, ValueError):
+            result["posture_score"] = 0.0
+
+        logging.info(
+            "CISO triage: posture_score=%.1f label=%s",
+            result["posture_score"],
+            result.get("posture_label", "?"),
+        )
+        return result
+
     async def _enrich_threats_with_ai(self, threat_model: ThreatModel, all_threats: List[Dict], progress_callback = None) -> List[Dict]:
         if not self.ai_provider:
             logging.warning("AI enrichment skipped: No AI provider initialized.")
@@ -341,6 +423,16 @@ class ReportGenerator:
                 all_detailed_threats, threat_model.dataflows
             )
 
+            # CISO triage pass — runs after full ranked threat list is available
+            ciso_triage = {}
+            if self.ai_provider and all_detailed_threats:
+                try:
+                    ciso_triage = asyncio.run(self._run_ciso_triage(all_detailed_threats))
+                except Exception as exc:
+                    logging.warning("CISO triage failed: %s", exc)
+            # Cache on the model so generate_json_export can include it without re-running.
+            threat_model._ciso_triage = ciso_triage if ciso_triage else None
+
             # Build a serialised summary of GDAF scenarios for the HTML template.
             # Uses getattr for safety — works even if gdaf_scenarios was never populated.
             gdaf_data = []
@@ -402,6 +494,7 @@ class ReportGenerator:
                 implemented_mitigation_ids=self.implemented_mitigations,
                 attack_chains=attack_chains,
                 gdaf_scenarios=gdaf_data,
+                ciso_triage=ciso_triage,
             )
 
             with open(output_file, "w", encoding="utf-8") as f:
@@ -421,6 +514,11 @@ class ReportGenerator:
         try:
             all_detailed_threats = self._get_all_threats_with_mitre_info(grouped_threats, threat_model)
             export_data = ReportSerializer.serialize(threat_model, all_detailed_threats)
+
+            # Include cached CISO triage if available (set by generate_html_report)
+            cached_triage = getattr(threat_model, "_ciso_triage", None)
+            if isinstance(cached_triage, dict) and cached_triage:
+                export_data["ciso_triage"] = cached_triage
 
             with open(output_file, "w", encoding="utf-8") as f:
                 json.dump(export_data, f, indent=2, ensure_ascii=False)

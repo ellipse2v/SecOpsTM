@@ -78,6 +78,24 @@ class LiteLLMProvider(BaseLLMProvider):
             logging.error(f"Error generating attack flow via LiteLLM: {e}")
             return {}
 
+    async def generate_ciso_triage(self, prompt: str, system_prompt: str) -> Dict:
+        """Calls the LLM with the CISO persona and returns the parsed briefing."""
+        client = await self._get_client()
+        try:
+            async for chunk in client.generate_content(
+                prompt=prompt,
+                system_prompt=system_prompt,
+                output_format="json",
+            ):
+                if isinstance(chunk, dict) and "posture_score" in chunk:
+                    return chunk
+                if isinstance(chunk, dict):
+                    return chunk
+            return {}
+        except Exception as exc:
+            logging.error("CISO triage generation failed: %s", exc)
+            return {}
+
     async def generate_soc_analysis(self, batch_prompt: str, system_prompt: str) -> List[Dict]:
         """Calls the LLM with the SOC analyst persona and returns parsed results."""
         client = await self._get_client()

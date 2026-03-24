@@ -1009,6 +1009,60 @@
         </div>
         {% endif %}
 
+        {% if ciso_triage and ciso_triage.posture_score is defined %}
+        {% set _posture_colors = {"CRITICAL": "#b91c1c", "HIGH": "#c2410c", "ELEVATED": "#b45309", "MODERATE": "#1d4ed8", "LOW": "#166534"} %}
+        {% set _posture_label = ciso_triage.posture_label | upper if ciso_triage.posture_label else "UNKNOWN" %}
+        {% set _posture_color = _posture_colors.get(_posture_label, "#4b5563") %}
+        <h2>🎯 CISO Risk Briefing</h2>
+        <div class="card" style="padding:1.5rem;border-left:4px solid {{ _posture_color }};">
+            <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:1.25rem;flex-wrap:wrap;">
+                <div style="text-align:center;min-width:90px;">
+                    <div style="font-size:2.5rem;font-weight:700;color:{{ _posture_color }};line-height:1;">{{ ciso_triage.posture_score }}</div>
+                    <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-secondary);">/ 10</div>
+                </div>
+                <div>
+                    <span style="display:inline-block;padding:.25rem .75rem;border-radius:9999px;font-weight:700;font-size:.85rem;background:{{ _posture_color }};color:#fff;letter-spacing:.05em;">{{ _posture_label }}</span>
+                    <p style="margin:.5rem 0 0;color:var(--text-secondary);font-size:.9rem;max-width:680px;">{{ ciso_triage.narrative }}</p>
+                </div>
+            </div>
+            {% if ciso_triage.top_findings %}
+            <h3 style="margin:1rem 0 .5rem;font-size:1rem;">Top Findings</h3>
+            <ol style="margin:0;padding-left:1.4rem;">
+                {% for finding in ciso_triage.top_findings %}
+                <li style="margin-bottom:.75rem;">
+                    <strong>{{ finding.title }}</strong>
+                    {% if finding.threat_ids %}<span style="font-size:.75rem;color:var(--text-secondary);margin-left:.4rem;">{{ finding.threat_ids | join(", ") }}</span>{% endif %}
+                    <br><span style="color:var(--text-secondary);font-size:.875rem;">{{ finding.detail }}</span>
+                </li>
+                {% endfor %}
+            </ol>
+            {% endif %}
+            {% if ciso_triage.quick_wins %}
+            <h3 style="margin:1.25rem 0 .5rem;font-size:1rem;">Quick Wins</h3>
+            <table style="border-collapse:collapse;width:100%;font-size:.875rem;">
+                <thead><tr style="background:var(--bg-tertiary);text-align:left;">
+                    <th style="padding:.4rem .75rem;">Action</th>
+                    <th style="padding:.4rem .75rem;white-space:nowrap;">Impact</th>
+                    <th style="padding:.4rem .75rem;white-space:nowrap;">Effort</th>
+                    <th style="padding:.4rem .75rem;">Addresses</th>
+                </tr></thead>
+                <tbody>
+                {% for qw in ciso_triage.quick_wins %}
+                {% set _imp_colors = {"HIGH": "#b91c1c", "MEDIUM": "#b45309", "LOW": "#166534"} %}
+                {% set _eff_colors = {"HIGH": "#b91c1c", "MEDIUM": "#b45309", "LOW": "#166534"} %}
+                <tr style="border-top:1px solid var(--border-color);">
+                    <td style="padding:.4rem .75rem;">{{ qw.action }}</td>
+                    <td style="padding:.4rem .75rem;"><span style="font-weight:600;color:{{ _imp_colors.get(qw.impact | upper, '#4b5563') }};">{{ qw.impact }}</span></td>
+                    <td style="padding:.4rem .75rem;"><span style="font-weight:600;color:{{ _eff_colors.get(qw.effort | upper, '#4b5563') }};">{{ qw.effort }}</span></td>
+                    <td style="padding:.4rem .75rem;font-size:.8rem;color:var(--text-secondary);">{{ qw.addresses | join(", ") if qw.addresses else "" }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+        </div>
+        {% endif %}
+
         {% if attack_chains %}
         {% set _max_chains = 10 %}
         <h2>⛓️ Attack Chain Analysis</h2>

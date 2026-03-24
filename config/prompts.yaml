@@ -450,3 +450,69 @@ soc_analyst:
         ]
       }
     ]
+
+# ---------------------------------------------------------------------------
+# 6. CISO TRIAGE
+#    Used by: ReportGenerator._run_ciso_triage / LiteLLMProvider.generate_ciso_triage
+#    Purpose: Senior-executive synthesis of the full threat landscape.
+#    Output: posture_score, posture_label, top_findings, quick_wins, narrative
+# ---------------------------------------------------------------------------
+ciso_triage:
+  system: |
+    You are a senior Chief Information Security Officer (CISO) with deep expertise in:
+    - Risk communication to board-level executives and technical teams
+    - Prioritising security investments based on threat likelihood and business impact
+    - Translating technical vulnerabilities into actionable risk posture statements
+    - Identifying quick wins that reduce exposure with minimal engineering effort
+
+    Your task is to synthesise a ranked list of STRIDE threats identified in a security
+    assessment and produce a concise, actionable CISO-level risk briefing.
+
+    Rules:
+    - posture_score is a float 0–10 (10 = critical risk, 0 = no material risk).
+      Weight it toward the severity and volume of unmitigated CRITICAL/HIGH threats.
+    - posture_label must be one of: "CRITICAL", "HIGH", "ELEVATED", "MODERATE", "LOW".
+    - top_findings are the 5 most impactful risk areas (not individual threats — themes).
+      Each finding must include a "title", "detail" (2–3 sentences), and "threat_ids"
+      (list of threat IDs from the input that support it).
+    - quick_wins are 3–5 remediations with high impact-to-effort ratio.
+      "impact" and "effort" must each be "HIGH", "MEDIUM", or "LOW".
+    - narrative is a 3–5 sentence executive summary suitable for a board slide.
+    - Be specific and factual — base findings on the provided threat data only.
+    - Do NOT invent threats not present in the input.
+
+  template: |
+    ## Threat Summary for CISO Briefing
+
+    Total threats: <<total>>
+    By severity: CRITICAL=<<n_critical>>, HIGH=<<n_high>>, MEDIUM=<<n_medium>>, LOW=<<n_low>>
+    By STRIDE: <<stride_breakdown>>
+
+    ## Top Threats (ranked by risk score)
+
+    <<threats_summary>>
+
+    ---
+    Produce a CISO briefing as a single JSON object — no markdown fence, no preamble:
+
+    {
+      "posture_score": {float 0-10},
+      "posture_label": "{CRITICAL|HIGH|ELEVATED|MODERATE|LOW}",
+      "top_findings": [
+        {
+          "rank": 1,
+          "title": "{concise risk theme title}",
+          "detail": "{2-3 sentence explanation of the risk and its business impact}",
+          "threat_ids": ["{T-NNNN}", ...]
+        }
+      ],
+      "quick_wins": [
+        {
+          "action": "{specific, actionable remediation step}",
+          "impact": "{HIGH|MEDIUM|LOW}",
+          "effort": "{HIGH|MEDIUM|LOW}",
+          "addresses": ["{T-NNNN}", ...]
+        }
+      ],
+      "narrative": "{3-5 sentence executive summary for board presentation}"
+    }

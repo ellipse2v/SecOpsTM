@@ -55,6 +55,27 @@ class BaseLLMProvider(ABC):
         raise NotImplementedError
         yield  # pragma: no cover — makes this an abstract async generator
 
+    async def generate_ciso_triage(
+        self,
+        prompt: str,
+        system_prompt: str,
+    ) -> Dict:
+        """Generates a CISO-level risk briefing from the full threat landscape.
+
+        Optional — providers that do not override this return an empty dict,
+        which causes the CISO triage section to be omitted from the report.
+
+        Args:
+            prompt:        User-facing prompt containing the threat summary.
+            system_prompt: CISO analyst system instruction from prompts.yaml.
+
+        Returns:
+            A dict with keys: ``posture_score``, ``posture_label``,
+            ``top_findings``, ``quick_wins``, ``narrative``.
+            Returns ``{}`` on failure or when not overridden.
+        """
+        return {}
+
     async def generate_soc_analysis(
         self,
         batch_prompt: str,
