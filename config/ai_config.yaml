@@ -60,6 +60,18 @@ threat_generation:
   # Maximum number of concurrent AI requests during component enrichment.
   # 1 = sequential (safe for Gemini free tier, 15 RPM); 3–5 for paid tiers or Ollama.
   max_concurrent_ai_requests: 1
+  # --- Threat ranking & volume control -------------------------------------
+  # Maximum number of threats kept in the final report (0 = no limit).
+  # Threats are ranked by composite score before trimming.
+  max_total_threats: 0
+  # When true, the ranker guarantees at least one threat per STRIDE category
+  # present in the analysis, even if it falls below the top-N cut-off.
+  min_stride_coverage: true
+  # Composite score weights used for ranking (must sum to 1.0).
+  ranking_weights:
+    severity: 0.4      # normalised severity score (0–10 → 0–1)
+    confidence: 0.3    # LLM / model confidence (0–1)
+    risk_signals: 0.3  # VOC signals: CVE match, high-risk CWE, network exposure
 
 # Embedding configuration (Shared between Vector Store and RAG)
 embedding:

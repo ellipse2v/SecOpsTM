@@ -31,6 +31,7 @@ from collections import defaultdict
 from threat_analysis.utils import _validate_path_within_project
 from threat_analysis.mitigation_suggestions import get_framework_mitigation_suggestions
 from threat_analysis.core.cve_service import CVEService
+from threat_analysis.core.threat_ranker import rank_and_trim
 from .utils import extract_name_from_object, get_target_name
 import yaml
 import asyncio
@@ -141,6 +142,10 @@ class ReportGenerator:
         self.ai_provider = None
         self.ai_context = None
         self.threat_model_ref = threat_model_ref # Store the reference
+        # Threat ranking / volume control — defaults (overridden from ai_config below)
+        self._ranking_max_total: int = 0
+        self._ranking_min_stride: bool = True
+        self._ranking_weights: Dict[str, float] = {}
 
         if ai_config_path and ai_config_path.exists():
             with open(ai_config_path, "r", encoding="utf-8") as f:
@@ -169,6 +174,13 @@ class ReportGenerator:
                     logging.warning(f"AI Context file not found at {context_path}")
             else:
                 logging.warning("No enabled AI provider found in config for report enrichment.")
+
+            # Threat ranking / volume control
+            tg = ai_config.get("threat_generation", {})
+            self._ranking_max_total = int(tg.get("max_total_threats", 0))
+            self._ranking_min_stride = bool(tg.get("min_stride_coverage", True))
+            rw = tg.get("ranking_weights") or {}
+            self._ranking_weights = {k: float(v) for k, v in rw.items() if isinstance(v, (int, float))}
 
     async def _enrich_threats_with_ai(self, threat_model: ThreatModel, all_threats: List[Dict], progress_callback = None) -> List[Dict]:
         if not self.ai_provider:
@@ -779,6 +791,14 @@ class ReportGenerator:
                     "source": threat_source
                 })
         
+        # Rank by composite score and trim to configured maximum
+        all_detailed_threats = rank_and_trim(
+            all_detailed_threats,
+            max_total=self._ranking_max_total,
+            min_stride_coverage=self._ranking_min_stride,
+            weights=self._ranking_weights if self._ranking_weights else None,
+        )
+
         return all_detailed_threats
 
     def _get_target_name_for_severity_calc(self, target: Any) -> str:
