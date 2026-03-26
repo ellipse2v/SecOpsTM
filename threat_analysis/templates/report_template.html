@@ -1150,6 +1150,254 @@
         </div>
         {% endif %}
 
+        {% if threat_graph is defined and threat_graph and threat_graph.nodes %}
+        <h2>🕸️ Threat Graph</h2>
+        <div class="card" style="padding:1rem;">
+            <p style="color:var(--text-secondary);font-size:.85rem;margin:0 0 .75rem;">
+                Interactive attack-surface map. <strong>Click</strong> a node to list its threats.
+                Node colour = highest severity. Edge style: solid = encrypted, dashed = plain.
+            </p>
+            <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+                <div id="tg-canvas-wrap" style="flex:1;min-width:280px;position:relative;">
+                    <canvas id="tg-canvas" style="width:100%;height:420px;border-radius:6px;background:var(--bg-secondary);display:block;cursor:grab;"></canvas>
+                    <div id="tg-tooltip" style="display:none;position:absolute;background:#1e293b;color:#f1f5f9;padding:.3rem .6rem;border-radius:4px;font-size:.75rem;pointer-events:none;white-space:nowrap;z-index:10;"></div>
+                </div>
+                <div id="tg-panel" style="width:260px;min-height:100px;font-size:.8rem;background:var(--bg-secondary);border-radius:6px;padding:.75rem;overflow-y:auto;max-height:420px;">
+                    <em style="color:var(--text-secondary);">Click a node to see its threats.</em>
+                </div>
+            </div>
+            <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:.6rem;font-size:.75rem;color:var(--text-secondary);">
+                <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#b91c1c;margin-right:3px;"></span>CRITICAL</span>
+                <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ea580c;margin-right:3px;"></span>HIGH</span>
+                <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#d97706;margin-right:3px;"></span>MEDIUM</span>
+                <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#16a34a;margin-right:3px;"></span>LOW</span>
+                <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#64748b;margin-right:3px;"></span>No threats</span>
+                <span style="margin-left:.5rem;">⬡ Server &nbsp; ○ Actor</span>
+            </div>
+        </div>
+        <script>
+        (function(){
+            const _GRAPH = {{ threat_graph | tojson }};
+            const SEV_COLOR = {CRITICAL:"#b91c1c",HIGH:"#ea580c",MEDIUM:"#d97706",LOW:"#16a34a","":"#64748b"};
+            const canvas = document.getElementById("tg-canvas");
+            if (!canvas || !_GRAPH.nodes || !_GRAPH.nodes.length) return;
+
+            const ctx = canvas.getContext("2d");
+            const wrap = document.getElementById("tg-canvas-wrap");
+            const tooltip = document.getElementById("tg-tooltip");
+            const panel = document.getElementById("tg-panel");
+
+            // ---- init nodes with random positions ----
+            const W = () => canvas.width, H = () => canvas.height;
+            function resize(){
+                canvas.width = wrap.clientWidth;
+                canvas.height = 420;
+            }
+            resize();
+            window.addEventListener("resize", () => { resize(); });
+
+            const nodeById = {};
+            _GRAPH.nodes.forEach((n, i) => {
+                n.x = 60 + Math.random() * (W() - 120);
+                n.y = 60 + Math.random() * (H() - 120);
+                n.vx = 0; n.vy = 0;
+                nodeById[n.id] = n;
+            });
+
+            // ---- force simulation ----
+            const K = 90, REPULSION = 6000, DAMPING = 0.75, ITER = 1;
+            let selected = null, dragging = null, dragOffX = 0, dragOffY = 0;
+            let pinned = {};
+
+            function forceStep(){
+                const nodes = _GRAPH.nodes;
+                const edges = _GRAPH.edges;
+                for(let it=0; it<ITER; it++){
+                    // repulsion
+                    for(let i=0;i<nodes.length;i++){
+                        for(let j=i+1;j<nodes.length;j++){
+                            const a=nodes[i], b=nodes[j];
+                            const dx=b.x-a.x, dy=b.y-a.y;
+                            const d=Math.sqrt(dx*dx+dy*dy)||1;
+                            const f=REPULSION/(d*d);
+                            const fx=f*dx/d, fy=f*dy/d;
+                            if(!pinned[a.id]){a.vx-=fx;a.vy-=fy;}
+                            if(!pinned[b.id]){b.vx+=fx;b.vy+=fy;}
+                        }
+                    }
+                    // attraction (edges)
+                    edges.forEach(e=>{
+                        const a=nodeById[e.source], b=nodeById[e.target];
+                        if(!a||!b) return;
+                        const dx=b.x-a.x, dy=b.y-a.y;
+                        const d=Math.sqrt(dx*dx+dy*dy)||1;
+                        const f=(d-K)/K*0.5;
+                        const fx=f*dx/d, fy=f*dy/d;
+                        if(!pinned[a.id]){a.vx+=fx;a.vy+=fy;}
+                        if(!pinned[b.id]){b.vx-=fx;b.vy-=fy;}
+                    });
+                    // centre gravity
+                    nodes.forEach(n=>{
+                        if(pinned[n.id]) return;
+                        n.vx+=(W()/2-n.x)*0.003;
+                        n.vy+=(H()/2-n.y)*0.003;
+                    });
+                    // integrate
+                    nodes.forEach(n=>{
+                        if(pinned[n.id]) return;
+                        n.vx*=DAMPING; n.vy*=DAMPING;
+                        n.x+=n.vx; n.y+=n.vy;
+                        n.x=Math.max(20,Math.min(W()-20,n.x));
+                        n.y=Math.max(20,Math.min(H()-20,n.y));
+                    });
+                }
+            }
+
+            function draw(){
+                ctx.clearRect(0,0,W(),H());
+                const isDark = document.documentElement.getAttribute('data-theme')==='dark'
+                    || window.matchMedia('(prefers-color-scheme:dark)').matches;
+
+                // edges
+                _GRAPH.edges.forEach(e=>{
+                    const a=nodeById[e.source], b=nodeById[e.target];
+                    if(!a||!b) return;
+                    ctx.save();
+                    ctx.strokeStyle = isDark ? "rgba(148,163,184,.45)" : "rgba(100,116,139,.35)";
+                    ctx.lineWidth = 1.5;
+                    if(!e.encrypted) ctx.setLineDash([5,4]);
+                    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+                    ctx.restore();
+                    // protocol label
+                    if(e.protocol){
+                        ctx.save();
+                        ctx.font="10px sans-serif";
+                        ctx.fillStyle = isDark ? "#94a3b8" : "#64748b";
+                        ctx.textAlign="center";
+                        ctx.fillText(e.protocol, (a.x+b.x)/2, (a.y+b.y)/2-4);
+                        ctx.restore();
+                    }
+                });
+
+                // nodes
+                _GRAPH.nodes.forEach(n=>{
+                    const r = n.type==="Actor" ? 14 : 16;
+                    const color = SEV_COLOR[n.severity] || "#64748b";
+                    const isSelected = selected && selected.id===n.id;
+                    ctx.save();
+                    ctx.shadowColor = isSelected ? "#e2e8f0" : "transparent";
+                    ctx.shadowBlur = isSelected ? 10 : 0;
+                    if(n.type==="Server"){
+                        // hexagon
+                        ctx.beginPath();
+                        for(let k=0;k<6;k++){
+                            const a=Math.PI/6+k*Math.PI/3;
+                            k===0 ? ctx.moveTo(n.x+r*Math.cos(a),n.y+r*Math.sin(a))
+                                  : ctx.lineTo(n.x+r*Math.cos(a),n.y+r*Math.sin(a));
+                        }
+                        ctx.closePath();
+                    } else {
+                        ctx.beginPath(); ctx.arc(n.x,n.y,r,0,Math.PI*2);
+                    }
+                    ctx.fillStyle = color;
+                    ctx.fill();
+                    if(isSelected){ ctx.strokeStyle="#f8fafc"; ctx.lineWidth=2.5; ctx.stroke(); }
+                    ctx.restore();
+                    // label
+                    ctx.save();
+                    ctx.font = "bold 10px sans-serif";
+                    ctx.fillStyle = isDark ? "#f1f5f9" : "#1e293b";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "top";
+                    const label = n.id.length>16 ? n.id.slice(0,15)+"…" : n.id;
+                    ctx.fillText(label, n.x, n.y+r+3);
+                    ctx.restore();
+                    if(n.n_threats>0){
+                        ctx.save();
+                        ctx.beginPath(); ctx.arc(n.x+r-3, n.y-r+3, 7, 0, Math.PI*2);
+                        ctx.fillStyle="#1e293b"; ctx.fill();
+                        ctx.font="bold 8px sans-serif"; ctx.fillStyle="#f8fafc";
+                        ctx.textAlign="center"; ctx.textBaseline="middle";
+                        ctx.fillText(n.n_threats>99?"99+":n.n_threats, n.x+r-3, n.y-r+3);
+                        ctx.restore();
+                    }
+                });
+            }
+
+            let animId = null, ticks = 0;
+            function loop(){
+                if(ticks < 300){ forceStep(); ticks++; }
+                draw();
+                animId = requestAnimationFrame(loop);
+            }
+            loop();
+
+            // ---- hit test ----
+            function nodeAt(px,py){
+                for(const n of _GRAPH.nodes){
+                    const dx=px-n.x, dy=py-n.y, r=18;
+                    if(dx*dx+dy*dy<=r*r) return n;
+                }
+                return null;
+            }
+
+            function getPos(e){
+                const rect=canvas.getBoundingClientRect();
+                const t=e.touches?e.touches[0]:e;
+                return [t.clientX-rect.left, t.clientY-rect.top];
+            }
+
+            // ---- interaction ----
+            canvas.addEventListener("mousemove", e=>{
+                const [px,py]=getPos(e);
+                if(dragging){
+                    dragging.x=px+dragOffX; dragging.y=py+dragOffY; return;
+                }
+                const n=nodeAt(px,py);
+                canvas.style.cursor=n?"pointer":"grab";
+                if(n){
+                    tooltip.style.display="block";
+                    tooltip.style.left=(px+14)+"px"; tooltip.style.top=(py-8)+"px";
+                    tooltip.textContent=n.id+(n.n_threats?" ("+n.n_threats+" threat"+(n.n_threats>1?"s":"")+")":" (no threats)");
+                } else {
+                    tooltip.style.display="none";
+                }
+            });
+            canvas.addEventListener("mousedown", e=>{
+                const [px,py]=getPos(e);
+                const n=nodeAt(px,py);
+                if(n){ dragging=n; dragOffX=n.x-px; dragOffY=n.y-py; pinned[n.id]=true; }
+            });
+            canvas.addEventListener("mouseup", e=>{
+                if(dragging){ dragging=null; }
+            });
+            canvas.addEventListener("click", e=>{
+                const [px,py]=getPos(e);
+                const n=nodeAt(px,py);
+                selected=n;
+                if(!n){ panel.innerHTML='<em style="color:var(--text-secondary)">Click a node to see its threats.</em>'; return; }
+                const threats=(_GRAPH.threats_by_node||{})[n.id]||[];
+                const SEV_BADGE={CRITICAL:"#b91c1c",HIGH:"#ea580c",MEDIUM:"#d97706",LOW:"#16a34a"};
+                let html='<strong style="font-size:.85rem;">'+n.id+'</strong>';
+                html+='<div style="color:var(--text-secondary);font-size:.75rem;margin:.25rem 0 .5rem;">'+n.type+(n.boundary?' · '+n.boundary:'')+'</div>';
+                if(!threats.length){ html+='<em style="color:var(--text-secondary)">No threats.</em>'; }
+                else {
+                    threats.forEach(t=>{
+                        const c=SEV_BADGE[t.sev]||"#64748b";
+                        html+='<div style="margin:.25rem 0;padding:.25rem .4rem;border-left:3px solid '+c+';background:var(--bg-tertiary);border-radius:2px;">'
+                            +'<span style="font-size:.7rem;color:'+c+';font-weight:700;">'+t.sev+'</span>'
+                            +(t.id?' <span style="color:var(--text-secondary);font-size:.7rem;">'+t.id+'</span>':'')
+                            +'<br><span>'+t.name+'</span>'
+                            +'<br><span style="color:var(--text-secondary);font-size:.7rem;">'+t.stride+'</span>'
+                            +'</div>';
+                    });
+                }
+                panel.innerHTML=html;
+            });
+        })();
+        </script>
+        {% endif %}
+
         {% if attack_chains %}
         {% set _max_chains = 10 %}
         <h2>⛓️ Attack Chain Analysis</h2>

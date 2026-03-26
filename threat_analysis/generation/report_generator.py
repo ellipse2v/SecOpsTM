@@ -426,6 +426,7 @@ class ReportGenerator:
             )
 
             completeness = _score_model_completeness(threat_model)
+            threat_graph = self._build_threat_graph_data(threat_model, all_detailed_threats)
             attack_id_validation = AttackIdValidator().validate_all(all_detailed_threats)
 
             # CISO triage pass — runs after full ranked threat list is available
@@ -504,6 +505,7 @@ class ReportGenerator:
                 ciso_triage=ciso_triage,
                 completeness=completeness,
                 attack_id_validation=attack_id_validation,
+                threat_graph=threat_graph,
             )
 
             with open(output_file, "w", encoding="utf-8") as f:
@@ -1107,6 +1109,111 @@ class ReportGenerator:
                     graph_metadata["nodes"][actual_boundary_id]["connections"].append(edge_id)
         
         return graph_metadata
+
+    # -----------------------------------------------------------------
+    # Threat graph data for interactive visualization
+    # -----------------------------------------------------------------
+
+    _SEV_ORDER = {"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1}
+
+    def _build_threat_graph_data(
+        self,
+        threat_model: "ThreatModel",
+        all_threats: List[Dict],
+    ) -> Dict:
+        """Build a JSON-serialisable graph for the interactive threat visualization.
+
+        Nodes  = actors + servers (boundaries shown as containers, not nodes).
+        Edges  = dataflows between components.
+        The ``threats_by_node`` dict maps node ids to a compact threat list
+        so the template JS can render a click panel without extra requests.
+
+        Returns a dict with keys ``nodes``, ``edges``, ``threats_by_node``.
+        An empty dict is returned when the model has no components.
+        """
+        # --- build per-component threat index ---------------------------------
+        threats_by_node: Dict[str, List[Dict]] = {}
+        for t in all_threats:
+            target = t.get("target") or ""
+            if not target or target in ("Unspecified →", "Unspecified", "→"):
+                continue
+            sev_raw = t.get("severity", {})
+            sev_level = (
+                sev_raw.get("level") if isinstance(sev_raw, dict) else str(sev_raw)
+            ) or "LOW"
+            threats_by_node.setdefault(target, []).append({
+                "id":     t.get("id", ""),
+                "name":   (t.get("name") or t.get("description", ""))[:80],
+                "sev":    sev_level.upper(),
+                "stride": t.get("stride_category", ""),
+                "source": t.get("source", ""),
+            })
+
+        # --- nodes ------------------------------------------------------------
+        _highest_sev: Dict[str, str] = {}
+        for node_name, node_threats in threats_by_node.items():
+            best = max(node_threats, key=lambda x: self._SEV_ORDER.get(x["sev"], 0))
+            _highest_sev[node_name] = best["sev"]
+
+        nodes: List[Dict] = []
+        seen_node_ids: set = set()
+
+        def _add_node(name: str, ntype: str, boundary: str = "") -> None:
+            if not name or name in seen_node_ids:
+                return
+            seen_node_ids.add(name)
+            nodes.append({
+                "id":       name,
+                "type":     ntype,
+                "boundary": boundary,
+                "severity": _highest_sev.get(name, ""),
+                "n_threats": len(threats_by_node.get(name, [])),
+            })
+
+        for a in threat_model.actors:
+            aname = a.get("name") or getattr(a.get("object"), "name", "")
+            bname = a.get("boundary") or ""
+            if hasattr(bname, "name"):
+                bname = bname.name
+            _add_node(str(aname), "Actor", str(bname))
+
+        for s in threat_model.servers:
+            sname = s.get("name") or getattr(s.get("object"), "name", "")
+            bname = s.get("boundary") or ""
+            if hasattr(bname, "name"):
+                bname = bname.name
+            _add_node(str(sname), "Server", str(bname))
+
+        if not nodes:
+            return {}
+
+        # --- edges (dataflows) -----------------------------------------------
+        edges: List[Dict] = []
+        for df in threat_model.dataflows:
+            src_name = getattr(getattr(df, "source", None), "name", "") or ""
+            dst_name = getattr(getattr(df, "sink", None), "name", "") or ""
+            if not src_name or not dst_name:
+                continue
+            edges.append({
+                "source":        src_name,
+                "target":        dst_name,
+                "protocol":      (getattr(df, "protocol", "") or "").strip(),
+                "encrypted":     bool(getattr(df, "is_encrypted", False)),
+                "authenticated": bool(getattr(df, "is_authenticated", False)),
+                "label":         getattr(df, "name", "") or "",
+            })
+
+        # Compact threats_by_node (cap at 20 per node to keep JSON small)
+        compact_threats = {
+            k: sorted(v, key=lambda x: self._SEV_ORDER.get(x["sev"], 0), reverse=True)[:20]
+            for k, v in threats_by_node.items()
+        }
+
+        return {
+            "nodes": nodes,
+            "edges": edges,
+            "threats_by_node": compact_threats,
+        }
 
     def _get_all_business_values(self, threat_model: ThreatModel) -> List[str]:
         """Collects all unique business values from boundaries, actors, and servers."""
