@@ -56,6 +56,98 @@ from threat_analysis.core.attack_id_validator import AttackIdValidator
 from threat_analysis.core.report_serializer import ReportSerializer
 from threat_analysis.severity_calculator_module import RiskContext
 
+def _resolve_active_cves(
+    component_name: str,
+    vex_loader: Optional[Any],
+    bom_loader: Optional[Any],
+    cve_service: Any,
+) -> List[str]:
+    """
+    Return the list of active CVE IDs for a component, using the best available source.
+
+    Priority:
+    1. Standalone VEX file (via VEXLoader)
+    2. BOM file with VEX state data (active_cves parsed from analysis.state)
+    3. BOM file known_cves (no state — treat all as active, legacy)
+    4. cve_definitions.yml via CVEService (last resort)
+    """
+    if vex_loader:
+        return vex_loader.get_active_cves(component_name)
+    if bom_loader:
+        bom_data = bom_loader.get(component_name)
+        if bom_data:
+            # Prefer state-aware list when BOM contains VEX assertions
+            if bom_data.get("active_cves") is not None:
+                return bom_data["active_cves"]
+            return bom_data.get("known_cves") or []
+    return list(cve_service.get_cves_for_equipment(component_name))
+
+
+def _resolve_has_fixed_cves(
+    component_name: str,
+    vex_loader: Optional[Any],
+    bom_loader: Optional[Any],
+) -> bool:
+    """Return True when VEX or BOM data indicates at least one CVE has been fixed."""
+    if vex_loader:
+        return bool(vex_loader.get_fixed_cves(component_name))
+    if bom_loader:
+        bom_data = bom_loader.get(component_name)
+        if bom_data:
+            return bool(bom_data.get("fixed_cves"))
+    return False
+
+
+def _get_vex_loader(threat_model: Any) -> Optional[Any]:
+    """Return a VEXLoader for the model's VEX data, or None if unavailable.
+
+    Resolution order:
+    1. ``threat_model.context_config['vex_file']``      — single file (DSL ## Context)
+    2. ``threat_model.context_config['vex_directory']`` — directory  (DSL ## Context)
+    3. Auto-discovery from ``_model_file_path`` (VEX/ dir or vex.json sibling)
+    """
+    try:
+        from threat_analysis.core.vex_loader import VEXLoader
+    except ImportError:
+        return None
+
+    ctx_cfg = getattr(threat_model, "context_config", {})
+    model_path = getattr(threat_model, "_model_file_path", None)
+
+    # 1. Explicit single file
+    vex_file = ctx_cfg.get("vex_file")
+    if vex_file:
+        candidates = []
+        if model_path:
+            candidates.append(Path(model_path).parent / vex_file)
+        candidates.append(Path(vex_file))
+        for p in candidates:
+            if p.is_file():
+                logging.info("VEX (scoring): using file from DSL ## Context: %s", p)
+                return VEXLoader.from_file(p)
+
+    # 2. Explicit directory
+    vex_dir = ctx_cfg.get("vex_directory")
+    if vex_dir:
+        candidates = []
+        if model_path:
+            candidates.append(Path(model_path).parent / vex_dir)
+        candidates.append(Path(vex_dir))
+        for p in candidates:
+            if p.is_dir():
+                logging.info("VEX (scoring): using directory from DSL ## Context: %s", p)
+                return VEXLoader.from_directory(p)
+
+    # 3. Auto-discovery
+    if model_path:
+        loader = VEXLoader.from_model_path(model_path)
+        if loader:
+            logging.info("VEX (scoring): auto-discovered VEX data from %s", model_path)
+            return loader
+
+    return None
+
+
 def _get_bom_loader(threat_model: Any) -> Optional[Any]:
     """Return a BOMLoader for the model's BOM directory, or None if unavailable.
 
@@ -689,8 +781,13 @@ class ReportGenerator:
         """Gathers detailed information for all threats, including MITRE ATT&CK mapping and severity."""
         pytm_threat_dicts = []
 
-        # Load BOM once for CVE augmentation (offline, graceful if absent)
+        # Load VEX and BOM once — VEX takes priority for CVE scoring, BOM is fallback
+        _vex_loader = _get_vex_loader(threat_model)
         _bom_loader = _get_bom_loader(threat_model)
+        if _vex_loader:
+            logging.info("CVE scoring: standalone VEX file(s) found — used as primary CVE source")
+        elif _bom_loader:
+            logging.info("CVE scoring: no standalone VEX — using BOM CVE data (with state if available)")
 
         # Process threats from grouped_threats (PyTM and custom threats)
         for threat_type, threats in grouped_threats.items():
@@ -760,14 +857,9 @@ class ReportGenerator:
 
                 threat_capecs = {capec['capec_id'] for capec in capecs}
                 for name_to_check in target_names_to_check:
-                    equipment_cves = list(self.cve_service.get_cves_for_equipment(name_to_check))
-                    # Augment with BOM known_cves when available
-                    if _bom_loader:
-                        bom_data = _bom_loader.get(name_to_check)
-                        if bom_data:
-                            for _cve in (bom_data.get("known_cves") or []):
-                                if _cve and _cve not in equipment_cves:
-                                    equipment_cves.append(_cve)
+                    equipment_cves = _resolve_active_cves(
+                        name_to_check, _vex_loader, _bom_loader, self.cve_service
+                    )
                     for cve_id in equipment_cves:
                         cve_capecs = self.cve_service.get_capecs_for_cve(cve_id.upper())
                         if threat_capecs.intersection(cve_capecs):
@@ -779,11 +871,16 @@ class ReportGenerator:
                 # --- Network exposure signal ---
                 network_exposed = _is_network_exposed(target)
 
-                # --- D3FEND coverage signal ---
+                # --- D3FEND coverage signal (+ fixed CVEs from VEX/BOM as mitigation) ---
                 has_d3fend = any(
                     tech.get('defend_mitigations')
                     for tech in mitre_techniques
                 )
+                if not has_d3fend:
+                    has_d3fend = any(
+                        _resolve_has_fixed_cves(n, _vex_loader, _bom_loader)
+                        for n in target_names_to_check
+                    )
 
                 # --- Build unified RiskContext and score ---
                 risk_ctx = RiskContext(
@@ -854,14 +951,9 @@ class ReportGenerator:
                 ai_cve_ids: set = set()
                 ai_cwe_ids: List[str] = []
                 ai_threat_capecs = {c['capec_id'] for c in ai_capecs}
-                _ai_equipment_cves = list(self.cve_service.get_cves_for_equipment(target_name))
-                # Augment with BOM known_cves when available
-                if _bom_loader:
-                    _ai_bom = _bom_loader.get(target_name)
-                    if _ai_bom:
-                        for _cve in (_ai_bom.get("known_cves") or []):
-                            if _cve and _cve not in _ai_equipment_cves:
-                                _ai_equipment_cves.append(_cve)
+                _ai_equipment_cves = _resolve_active_cves(
+                    target_name, _vex_loader, _bom_loader, self.cve_service
+                )
                 for cve_id in _ai_equipment_cves:
                     if ai_threat_capecs.intersection(
                         self.cve_service.get_capecs_for_cve(cve_id.upper())
@@ -869,13 +961,16 @@ class ReportGenerator:
                         ai_cve_ids.add(cve_id)
                         ai_cwe_ids.extend(self.cve_service.get_cwes_for_cve(cve_id.upper()))
 
+                _ai_has_d3fend = any(
+                    t.get('defend_mitigations') for t in ai_mitre_techniques
+                )
+                if not _ai_has_d3fend:
+                    _ai_has_d3fend = _resolve_has_fixed_cves(target_name, _vex_loader, _bom_loader)
                 ai_risk_ctx = RiskContext(
                     has_cve_match=bool(ai_cve_ids),
                     cwe_ids=list(set(ai_cwe_ids)),
                     network_exposed=_is_network_exposed(element_obj),
-                    has_d3fend_mitigations=any(
-                        t.get('defend_mitigations') for t in ai_mitre_techniques
-                    ),
+                    has_d3fend_mitigations=_ai_has_d3fend,
                 )
                 severity_info = self.severity_calculator.get_severity_info(
                     stride_category, target_name,

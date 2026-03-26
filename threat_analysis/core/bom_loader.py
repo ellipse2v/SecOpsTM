@@ -25,11 +25,21 @@ Extracted fields (same dict structure for both formats):
   os_version:          str   — OS component name + version (e.g. "windows_server_2019")
   software_version:    str   — First non-OS component name + version
   running_services:    list  — services[].name values
-  known_cves:          list  — vulnerabilities[].id values
+  known_cves:          list  — ALL vulnerabilities[].id values (regardless of state)
+  active_cves:         list  — CVEs with exploitable state (affected/exploitable/in_triage/
+                               under_investigation); None when no analysis.state present
+  fixed_cves:          list  — CVEs with fixed/resolved state; None when no state present
   detection_level:     str   — secopstm:detection_level property
   credentials_stored:  bool  — secopstm:credentials_stored property
   patch_level:         str   — secopstm:patch_level property
   notes:               str   — secopstm:notes property
+
+VEX state parsing
+-----------------
+When vulnerabilities[].analysis.state is present (CycloneDX VEX assertions embedded in
+the BOM), known_cves is split into active_cves and fixed_cves automatically.
+This eliminates the need for a separate VEX file for scanner outputs that combine
+inventory and exploitability data in a single CycloneDX document.
 """
 
 import json
@@ -49,6 +59,14 @@ _JSON_SUFFIX = ".json"
 _YAML_SUFFIXES = (".yaml", ".yml")
 
 _SECOPSTM_BOOL_PROPS = {"true", "yes", "1"}
+
+# VEX state sets (mirrors vex_loader, kept local to avoid circular import)
+_VEX_ACTIVE_STATES = frozenset({
+    "affected", "exploitable", "in_triage", "under_investigation",
+})
+_VEX_FIXED_STATES = frozenset({
+    "fixed", "resolved", "resolved_with_pedigree",
+})
 
 
 def _normalize_asset_key(name: str) -> str:
@@ -113,10 +131,30 @@ def _parse_cyclonedx(data: Dict[str, Any]) -> Dict[str, Any]:
         s["name"] for s in services_list if isinstance(s, dict) and s.get("name")
     ]
 
-    # --- known_cves ---
-    known_cves: List[str] = [
-        v["id"] for v in vulns if isinstance(v, dict) and v.get("id")
-    ]
+    # --- CVE lists with optional VEX state parsing ---
+    known_cves: List[str] = []
+    active_cves: Optional[List[str]] = None  # set only when analysis.state is present
+    fixed_cves: Optional[List[str]] = None   # set only when analysis.state is present
+    has_vex_states = False
+
+    for v in vulns:
+        if not isinstance(v, dict):
+            continue
+        cve_id = str(v.get("id") or "").strip()
+        if not cve_id:
+            continue
+        known_cves.append(cve_id)
+        state_raw = str((v.get("analysis") or {}).get("state") or "").strip().lower()
+        if state_raw:
+            has_vex_states = True
+            if active_cves is None:
+                active_cves = []
+                fixed_cves = []
+            if state_raw in _VEX_ACTIVE_STATES:
+                active_cves.append(cve_id)
+            elif state_raw in _VEX_FIXED_STATES:
+                fixed_cves.append(cve_id)
+            # ignored states (not_affected, false_positive, will_not_fix) are excluded
 
     # --- secopstm: custom properties ---
     detection_level = _get_secopstm_prop(properties, "detection_level")
@@ -133,6 +171,8 @@ def _parse_cyclonedx(data: Dict[str, Any]) -> Dict[str, Any]:
         "software_version": software_version,
         "running_services": running_services,
         "known_cves": known_cves,
+        "active_cves": active_cves,   # None if no VEX states; list if states present
+        "fixed_cves": fixed_cves,     # None if no VEX states; list if states present
         "detection_level": detection_level,
         "credentials_stored": credentials_stored,
         "patch_level": patch_level,

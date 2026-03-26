@@ -368,3 +368,105 @@ class TestBOMLoaderGet:
         loader = BOMLoader(str(tmp_path))
         result = loader.get("host")
         assert result.get("notes") == "from_cdx"
+
+
+# ---------------------------------------------------------------------------
+# VEX state parsing inside CycloneDX BOM
+# ---------------------------------------------------------------------------
+
+
+class TestParseCycloneDXVexStates:
+    """BOM files can embed VEX assertions (analysis.state) per vulnerability."""
+
+    def _cdx(self, vulns: list) -> dict:
+        return {"bomFormat": "CycloneDX", "vulnerabilities": vulns}
+
+    def _vuln(self, cve_id: str, state: str = None) -> dict:
+        v = {"id": cve_id}
+        if state is not None:
+            v["analysis"] = {"state": state}
+        return v
+
+    def test_no_state_returns_none_for_active_and_fixed(self):
+        data = self._cdx([self._vuln("CVE-2021-1111")])
+        result = _parse_cyclonedx(data)
+        assert result["known_cves"] == ["CVE-2021-1111"]
+        assert result["active_cves"] is None
+        assert result["fixed_cves"] is None
+
+    def test_affected_state_in_active_cves(self):
+        data = self._cdx([self._vuln("CVE-2021-1111", "affected")])
+        result = _parse_cyclonedx(data)
+        assert "CVE-2021-1111" in result["active_cves"]
+        assert result["fixed_cves"] == []
+
+    def test_exploitable_state_in_active_cves(self):
+        data = self._cdx([self._vuln("CVE-2021-2222", "exploitable")])
+        result = _parse_cyclonedx(data)
+        assert "CVE-2021-2222" in result["active_cves"]
+
+    def test_fixed_state_in_fixed_cves(self):
+        data = self._cdx([self._vuln("CVE-2021-3333", "fixed")])
+        result = _parse_cyclonedx(data)
+        assert "CVE-2021-3333" in result["fixed_cves"]
+        assert result["active_cves"] == []
+
+    def test_resolved_state_in_fixed_cves(self):
+        data = self._cdx([self._vuln("CVE-2021-4444", "resolved")])
+        result = _parse_cyclonedx(data)
+        assert "CVE-2021-4444" in result["fixed_cves"]
+
+    def test_not_affected_excluded_from_both(self):
+        data = self._cdx([self._vuln("CVE-2021-5555", "not_affected")])
+        result = _parse_cyclonedx(data)
+        # still in known_cves for reference, but not in active or fixed
+        assert "CVE-2021-5555" in result["known_cves"]
+        assert result["active_cves"] == []
+        assert result["fixed_cves"] == []
+
+    def test_false_positive_excluded_from_both(self):
+        data = self._cdx([self._vuln("CVE-2021-6666", "false_positive")])
+        result = _parse_cyclonedx(data)
+        assert result["active_cves"] == []
+        assert result["fixed_cves"] == []
+
+    def test_mixed_states(self):
+        data = self._cdx([
+            self._vuln("CVE-A", "exploitable"),
+            self._vuln("CVE-B", "fixed"),
+            self._vuln("CVE-C", "not_affected"),
+            self._vuln("CVE-D", "in_triage"),
+        ])
+        result = _parse_cyclonedx(data)
+        assert set(result["known_cves"]) == {"CVE-A", "CVE-B", "CVE-C", "CVE-D"}
+        assert set(result["active_cves"]) == {"CVE-A", "CVE-D"}
+        assert set(result["fixed_cves"]) == {"CVE-B"}
+
+    def test_partial_state_mixed_with_no_state(self):
+        """When at least one vuln has a state, active_cves/fixed_cves are populated."""
+        data = self._cdx([
+            self._vuln("CVE-NOSTATE"),   # no analysis.state
+            self._vuln("CVE-FIXED", "fixed"),
+        ])
+        result = _parse_cyclonedx(data)
+        # known_cves contains both
+        assert set(result["known_cves"]) == {"CVE-NOSTATE", "CVE-FIXED"}
+        # active_cves/fixed_cves populated but CVE-NOSTATE has no state → not classified
+        assert "CVE-FIXED" in result["fixed_cves"]
+        assert "CVE-NOSTATE" not in result["active_cves"]
+        assert "CVE-NOSTATE" not in result["fixed_cves"]
+
+    def test_in_triage_treated_as_active(self):
+        data = self._cdx([self._vuln("CVE-2021-7777", "in_triage")])
+        result = _parse_cyclonedx(data)
+        assert "CVE-2021-7777" in result["active_cves"]
+
+    def test_under_investigation_treated_as_active(self):
+        data = self._cdx([self._vuln("CVE-2021-8888", "under_investigation")])
+        result = _parse_cyclonedx(data)
+        assert "CVE-2021-8888" in result["active_cves"]
+
+    def test_resolved_with_pedigree_treated_as_fixed(self):
+        data = self._cdx([self._vuln("CVE-2021-9999", "resolved_with_pedigree")])
+        result = _parse_cyclonedx(data)
+        assert "CVE-2021-9999" in result["fixed_cves"]
