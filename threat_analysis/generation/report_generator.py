@@ -51,6 +51,8 @@ from threat_analysis.core.models_module import ThreatModel
 from threat_analysis.core.mitre_mapping_module import MitreMapping
 from threat_analysis.core.attack_chain import AttackChainAnalyzer
 from threat_analysis.core.threat_consolidator import ThreatConsolidator
+from threat_analysis.core.model_completeness import score_model as _score_model_completeness
+from threat_analysis.core.attack_id_validator import AttackIdValidator
 from threat_analysis.core.report_serializer import ReportSerializer
 from threat_analysis.severity_calculator_module import RiskContext
 
@@ -423,6 +425,9 @@ class ReportGenerator:
                 all_detailed_threats, threat_model.dataflows
             )
 
+            completeness = _score_model_completeness(threat_model)
+            attack_id_validation = AttackIdValidator().validate_all(all_detailed_threats)
+
             # CISO triage pass — runs after full ranked threat list is available
             ciso_triage = {}
             if self.ai_provider and all_detailed_threats:
@@ -432,6 +437,8 @@ class ReportGenerator:
                     logging.warning("CISO triage failed: %s", exc)
             # Cache on the model so generate_json_export can include it without re-running.
             threat_model._ciso_triage = ciso_triage if ciso_triage else None
+            threat_model._completeness = completeness
+            threat_model._attack_id_validation = attack_id_validation
 
             # Build a serialised summary of GDAF scenarios for the HTML template.
             # Uses getattr for safety — works even if gdaf_scenarios was never populated.
@@ -495,6 +502,8 @@ class ReportGenerator:
                 attack_chains=attack_chains,
                 gdaf_scenarios=gdaf_data,
                 ciso_triage=ciso_triage,
+                completeness=completeness,
+                attack_id_validation=attack_id_validation,
             )
 
             with open(output_file, "w", encoding="utf-8") as f:
@@ -519,6 +528,50 @@ class ReportGenerator:
             cached_triage = getattr(threat_model, "_ciso_triage", None)
             if isinstance(cached_triage, dict) and cached_triage:
                 export_data["ciso_triage"] = cached_triage
+
+            # Include model completeness (compute fresh if not cached)
+            # Include ATT&CK ID validation if cached
+            from threat_analysis.core.attack_id_validator import ValidationReport as _VR
+            cached_validation = getattr(threat_model, "_attack_id_validation", None)
+            if not isinstance(cached_validation, _VR):
+                cached_validation = AttackIdValidator().validate_all(all_detailed_threats)
+            if cached_validation.has_issues:
+                export_data["attack_id_validation"] = {
+                    "total_checked": cached_validation.total_techniques_checked,
+                    "n_invalid": cached_validation.n_invalid,
+                    "n_revoked": cached_validation.n_revoked,
+                    "n_deprecated": cached_validation.n_deprecated,
+                    "issues": [
+                        {
+                            "technique_id": i.technique_id,
+                            "issue_type": i.issue_type,
+                            "threat_id": i.threat_id,
+                            "threat_name": i.threat_name,
+                        }
+                        for i in cached_validation.all_issues
+                    ],
+                }
+
+            from threat_analysis.core.model_completeness import CompletenessReport as _CR
+            cached_completeness = getattr(threat_model, "_completeness", None)
+            if not isinstance(cached_completeness, _CR):
+                cached_completeness = _score_model_completeness(threat_model)
+            export_data["model_completeness"] = {
+                "score": cached_completeness.score,
+                "grade": cached_completeness.grade,
+                "checks": [
+                    {
+                        "id": c.id,
+                        "label": c.label,
+                        "weight": c.weight,
+                        "passed": c.passed,
+                        "total": c.total,
+                        "score_pct": c.pct,
+                        "hint": c.hint,
+                    }
+                    for c in cached_completeness.checks
+                ],
+            }
 
             with open(output_file, "w", encoding="utf-8") as f:
                 json.dump(export_data, f, indent=2, ensure_ascii=False)

@@ -1009,6 +1009,54 @@
         </div>
         {% endif %}
 
+        {% if completeness is defined and completeness %}
+        {% set _grade_colors = {"A": "#166534", "B": "#1d4ed8", "C": "#b45309", "D": "#c2410c", "F": "#b91c1c"} %}
+        {% set _grade_color = _grade_colors.get(completeness.grade, "#4b5563") %}
+        <h2>📋 Model Completeness</h2>
+        <div class="card" style="padding:1.5rem;">
+            <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:1.25rem;flex-wrap:wrap;">
+                <div style="text-align:center;min-width:90px;">
+                    <div style="font-size:2.5rem;font-weight:700;color:{{ _grade_color }};line-height:1;">{{ completeness.grade }}</div>
+                    <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-secondary);">{{ completeness.score_int }}%</div>
+                </div>
+                <div style="flex:1;min-width:200px;">
+                    <div style="height:10px;border-radius:5px;background:var(--bg-tertiary);overflow:hidden;max-width:400px;">
+                        <div style="height:100%;border-radius:5px;background:{{ _grade_color }};width:{{ completeness.score_int }}%;transition:width .3s;"></div>
+                    </div>
+                    <p style="margin:.5rem 0 0;color:var(--text-secondary);font-size:.85rem;">
+                        A higher completeness score improves threat detection accuracy, AI enrichment quality, and severity scoring.
+                    </p>
+                </div>
+            </div>
+            <table style="border-collapse:collapse;width:100%;font-size:.875rem;">
+                <thead><tr style="background:var(--bg-tertiary);text-align:left;">
+                    <th style="padding:.4rem .75rem;">Check</th>
+                    <th style="padding:.4rem .75rem;text-align:center;white-space:nowrap;">Score</th>
+                    <th style="padding:.4rem .75rem;text-align:center;">Wt</th>
+                    <th style="padding:.4rem .75rem;">Hint</th>
+                </tr></thead>
+                <tbody>
+                {% for check in completeness.checks %}
+                {% set _row_color = "#166534" if check.score >= 1.0 else ("#b45309" if check.score >= 0.5 else "#b91c1c") %}
+                <tr style="border-top:1px solid var(--border-color);">
+                    <td style="padding:.4rem .75rem;">{{ check.label }}</td>
+                    <td style="padding:.4rem .75rem;text-align:center;">
+                        {% if check.is_boolean %}
+                        <span style="font-weight:600;color:{{ _row_color }};">{{ "✓" if check.score >= 1.0 else "✗" }}</span>
+                        {% else %}
+                        <span style="font-weight:600;color:{{ _row_color }};">{{ check.pct }}%</span>
+                        <span style="color:var(--text-secondary);font-size:.75rem;"> ({{ check.passed }}/{{ check.total }})</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:.4rem .75rem;text-align:center;color:var(--text-secondary);">{{ check.weight }}</td>
+                    <td style="padding:.4rem .75rem;color:var(--text-secondary);font-size:.8rem;">{{ check.hint }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
         {% if ciso_triage and ciso_triage.posture_score is defined %}
         {% set _posture_colors = {"CRITICAL": "#b91c1c", "HIGH": "#c2410c", "ELEVATED": "#b45309", "MODERATE": "#1d4ed8", "LOW": "#166534"} %}
         {% set _posture_label = ciso_triage.posture_label | upper if ciso_triage.posture_label else "UNKNOWN" %}
@@ -1060,6 +1108,45 @@
                 </tbody>
             </table>
             {% endif %}
+        </div>
+        {% endif %}
+
+        {% if attack_id_validation is defined and attack_id_validation and attack_id_validation.has_issues %}
+        <h2>⚠️ ATT&CK ID Validation</h2>
+        <div class="card" style="padding:1.5rem;border-left:4px solid #b45309;">
+            <p style="color:var(--text-secondary);margin:0 0 1rem;font-size:.875rem;">
+                {{ attack_id_validation.total_techniques_checked }} technique IDs checked against the local ATT&amp;CK corpus.
+                {% if attack_id_validation.n_invalid %}<strong style="color:#b91c1c;">{{ attack_id_validation.n_invalid }} invalid</strong>{% endif %}
+                {% if attack_id_validation.n_revoked %} · <strong style="color:#c2410c;">{{ attack_id_validation.n_revoked }} revoked</strong>{% endif %}
+                {% if attack_id_validation.n_deprecated %} · <strong style="color:#b45309;">{{ attack_id_validation.n_deprecated }} deprecated</strong>{% endif %}
+            </p>
+            <table style="border-collapse:collapse;width:100%;font-size:.875rem;">
+                <thead><tr style="background:var(--bg-tertiary);text-align:left;">
+                    <th style="padding:.4rem .75rem;">Technique ID</th>
+                    <th style="padding:.4rem .75rem;">Issue</th>
+                    <th style="padding:.4rem .75rem;">Threat</th>
+                    <th style="padding:.4rem .75rem;">Target</th>
+                </tr></thead>
+                <tbody>
+                {% set _issue_colors = {"invalid": "#b91c1c", "revoked": "#c2410c", "deprecated": "#b45309"} %}
+                {% for issue in attack_id_validation.all_issues %}
+                <tr style="border-top:1px solid var(--border-color);">
+                    <td style="padding:.4rem .75rem;font-family:monospace;">
+                        {% if issue.issue_type != "invalid" %}
+                        <a href="{{ issue.attack_url }}" target="_blank" rel="noopener" style="color:inherit;">{{ issue.technique_id }}</a>
+                        {% else %}
+                        {{ issue.technique_id }}
+                        {% endif %}
+                    </td>
+                    <td style="padding:.4rem .75rem;">
+                        <span style="font-weight:600;color:{{ _issue_colors.get(issue.issue_type, '#4b5563') }};">{{ issue.label }}</span>
+                    </td>
+                    <td style="padding:.4rem .75rem;font-size:.8rem;">{{ issue.threat_id }} — {{ issue.threat_name[:60] }}</td>
+                    <td style="padding:.4rem .75rem;font-size:.8rem;color:var(--text-secondary);">{{ issue.threat_target }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
         </div>
         {% endif %}
 
