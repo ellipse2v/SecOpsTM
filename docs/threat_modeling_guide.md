@@ -99,6 +99,8 @@ gdaf_min_technique_score = 0.75
 |---|---|---|
 | `gdaf_context` | Recommended | Path to the GDAF context YAML (attack objectives, threat actors). Relative to this model file. |
 | `bom_directory` | Recommended | Path to the directory containing asset BOM files. Relative to this model file. |
+| `vex_file` | Optional | Path to a standalone CycloneDX VEX file (from scanner tools). Overrides BOM `known_cves` for CVE scoring. |
+| `vex_directory` | Optional | Path to a directory of VEX files (one per component). |
 | `gdaf_min_technique_score` | Optional | Filter threshold for ATT&CK techniques in Attack Flow output (default: 0.8). |
 
 **If you skip Context:** The analysis still runs — you get STRIDE threats and MITRE mappings.
@@ -467,6 +469,16 @@ notes: "Security-relevant observation — patch status, missing controls, known 
 - `detection_level` — contributes to GDAF `detection_coverage` scoring per path
 - `credentials_stored` — boosts credential-access technique scores in GDAF (+0.4)
 - `patch_level: outdated` — flags the asset for prioritized review
+
+**VEX state in BOM files (CycloneDX only):** When your scanner exports a CycloneDX BOM that
+includes `vulnerabilities[].analysis.state`, SecOpsTM reads the state automatically:
+- `affected` / `exploitable` / `in_triage` → CVE contributes to severity boost
+- `fixed` / `resolved` → acts as a remediation/mitigation signal (reduces severity)
+- `not_affected` / `false_positive` → ignored from scoring
+
+This means you do **not** need a separate VEX file if your CycloneDX BOM already includes
+exploitability states. Only use `vex_file` / `vex_directory` in `## Context` when your scanner
+emits standalone VEX documents (separate from the BOM).
 
 See `threatModel_Template/projects/example_3/*/BOM/` for 19 real examples.
 

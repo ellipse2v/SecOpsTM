@@ -106,6 +106,8 @@ gdaf_min_technique_score = 0.75
 |---|---|---|---|
 | `gdaf_context` | string (path) | `None` | Path to the GDAF context YAML file. Relative to the model file directory. See [Project Directory Structure](#project-directory-structure). |
 | `bom_directory` | string (path) | `None` | Path to the BOM directory. Relative to the model file directory. |
+| `vex_file` | string (path) | `None` | Path to a standalone CycloneDX VEX file. Takes priority over BOM `known_cves` for CVE scoring. Relative to the model file directory. |
+| `vex_directory` | string (path) | `None` | Path to a directory of CycloneDX VEX files (one per component or a single global file). |
 | `gdaf_min_technique_score` | float 0.0–3.0 | `0.8` | Minimum `ScoredTechnique.score` required to render a technique as an OR-branch in `.afb` Attack Flow files. |
 
 **Context path resolution** (in order of priority):
@@ -117,6 +119,17 @@ gdaf_min_technique_score = 0.75
 1. Value specified in `## Context` section
 2. `{model_dir}/BOM/` — auto-discovered if the directory exists
 3. Disabled (no BOM enrichment)
+
+**CVE source resolution** — single priority chain, first match wins:
+1. `vex_file` / `vex_directory` in `## Context` (or auto-discovered `VEX/` dir / `vex.json`)
+2. BOM file with `vulnerabilities[].analysis.state` (CycloneDX VEX assertions embedded in BOM)
+3. BOM file `known_cves` without state (all CVEs treated as active — legacy)
+4. `cve_definitions.yml` at project root (global fallback)
+
+> **Tip:** Most scanner tools (Qualys, Tenable, Grype) can export CycloneDX JSON that includes
+> both component inventory and vulnerability exploitability assertions in one file. Place these
+> files in `BOM/` — SecOpsTM reads `analysis.state` automatically. No separate `VEX/` directory
+> is needed unless your scanner emits standalone VEX documents.
 
 ---
 
@@ -943,7 +956,9 @@ GDAF after loading:
 | `os_version` | First `components[]` with `type=operating-system` (name + version, underscores) | string | `None` | Informational — stored in node metadata. |
 | `software_version` | First non-OS `components[]` entry (name + version) | string | `None` | Informational — stored in node metadata. |
 | `running_services` | `services[].name` values | list | `[]` | Merged with DSL dataflow protocols → tactic/technique boosts. |
-| `known_cves` | `vulnerabilities[].id` values | list | `[]` | CVE match signal in STRIDE scoring (+0.5 per hit). |
+| `known_cves` | `vulnerabilities[].id` values | list | `[]` | CVE match signal in STRIDE scoring (+0.5 per hit). When `analysis.state` is present on a vulnerability, only CVEs in active states (`affected`, `exploitable`, `in_triage`, `under_investigation`) contribute to scoring; `fixed`/`resolved` CVEs are treated as a remediation signal (discount). |
+| `active_cves` | derived from `vulnerabilities[].analysis.state` | list | (auto) | Auto-derived from `known_cves` when `analysis.state` is present. Only these CVEs boost severity. |
+| `fixed_cves` | derived from `vulnerabilities[].analysis.state` | list | (auto) | Auto-derived. CVEs marked `fixed` or `resolved` act as a D3FEND-equivalent mitigation signal. |
 | `detection_level` | `secopstm:detection_level` property | string | `"none"` | detection_coverage float: none=0.0, low=0.2, medium=0.5, high=0.8. |
 | `credentials_stored` | `secopstm:credentials_stored` property | bool | — | +0.4 on credential-access techniques. Overrides DSL value. |
 | `patch_level` | `secopstm:patch_level` property | string | `None` | Informational. |
@@ -1074,6 +1089,8 @@ Every attribute across all sections. "Required" means the model cannot function 
 |---|---|---|---|---|---|---|
 | `gdaf_context` | Context | string (path) | None | No | None | Loads attack objectives and actor profiles |
 | `bom_directory` | Context | string (path) | None | No | None | Enriches nodes with operational metadata |
+| `vex_file` | Context | string (path) | None | No | CVE scoring (priority 1) | Standalone VEX document — overrides BOM CVEs |
+| `vex_directory` | Context | string (path) | None | No | CVE scoring (priority 1) | Directory of VEX files — overrides BOM CVEs |
 | `gdaf_min_technique_score` | Context | float | 0.8 | No | None | Filters .afb OR-branch rendering |
 | `isTrusted` | Boundaries | bool | False | No | Trust boundary threats | Entry point detection |
 | `type` (boundary) | Boundaries | string | "" | No | None | Zone classification |
@@ -1128,7 +1145,9 @@ Every attribute across all sections. "Required" means the model cannot function 
 | `os_version` | BOM | string | None | No | None | Informational (CDX: first operating-system component) |
 | `software_version` | BOM | string | None | No | None | Informational (CDX: first non-OS component) |
 | `patch_level` | BOM | string | None | No | None | Informational (CDX: `secopstm:patch_level` property) |
-| `known_cves` | BOM | list | [] | No | CVE-CAPEC enrichment | None (CDX: `vulnerabilities[].id`) |
+| `known_cves` | BOM | list | [] | No | CVE-CAPEC scoring (+0.5) | None (CDX: `vulnerabilities[].id`) — when `analysis.state` present, only active-state CVEs score |
+| `active_cves` | BOM (auto) | list | (derived) | No | CVE scoring input | None — auto-derived from `known_cves` + `analysis.state` |
+| `fixed_cves` | BOM (auto) | list | (derived) | No | Mitigation discount | None — auto-derived; acts as remediation signal |
 | `running_services` | BOM | list | [] | No | None | Service boosts (CDX: `services[].name`) |
 | `detection_level` | BOM | string | none | No | None | `detection_coverage` float (CDX: `secopstm:detection_level`) |
 | `credentials_stored` (BOM) | BOM | bool | — | No | Credential threats | Overrides DSL value (CDX: `secopstm:credentials_stored`) |
@@ -1138,6 +1157,8 @@ Every attribute across all sections. "Required" means the model cannot function 
 
 ## Related Documentation
 
+- [Enriching AI Threats](enriching_ai_threats.md) — which DSL attributes, BOM fields, and context files
+  improve AI-generated threats, and exactly how each one affects the LLM prompt
 - [GDAF Reference](gdaf.md) — Goal-Driven Attack Flow Engine: context YAML format, actor profiles,
   attack objectives, risk criteria
 - [Usage](usage.md) — CLI flags, project mode invocation, export formats

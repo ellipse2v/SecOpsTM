@@ -487,18 +487,33 @@ Per-asset YAML files placed in a `BOM/` directory alongside the model file (or a
 |---|---|---|
 | `os_version` | str | Informational; used for notes |
 | `patch_level` | str (`current` / `outdated` / `critical`) | Informational |
-| `known_cves` | list of CVE IDs | Informational |
+| `known_cves` | list of CVE IDs | CVE-CAPEC matching for STRIDE severity boost. When `analysis.state` is present (CycloneDX VEX), only `affected`/`exploitable`/`in_triage` CVEs score; `fixed`/`resolved` act as a mitigation signal. |
 | `running_services` | list of protocol names | Added to node `services` set → tactic boosts applied |
 | `detection_level` | str (`none` / `low` / `medium` / `high`) | Mapped to `detection_coverage` (0.0–0.8), averaged across hops |
 | `credentials_stored` | bool | If true, adds +0.4 to credential-access techniques |
 | `software_version` | str | Informational |
 | `notes` | str | Informational |
 
+**CVE source priority (single chain, first match wins):**
+
+1. Standalone VEX file/directory (`vex_file` / `vex_directory` in `## Context`, or auto-discovered `VEX/` / `vex.json`)
+2. BOM CycloneDX file with `vulnerabilities[].analysis.state` — VEX states parsed automatically
+3. BOM `known_cves` without state — all CVEs treated as active (legacy YAML or stateless CycloneDX)
+4. `cve_definitions.yml` at project root
+
 **BOM resolution order:**
 
 1. `bom_directory` key in the model's `## Context` DSL section (resolved as a path)
 2. `BOM/` subdirectory alongside the model file (auto-discovered)
 3. None — BOM enrichment is silently skipped
+
+**VEX resolution order** (for standalone VEX files):
+
+1. `vex_file` key in `## Context` — single VEX document
+2. `vex_directory` key in `## Context` — directory of VEX files
+3. `VEX/` subdirectory alongside the model file (auto-discovered)
+4. `vex.json` file alongside the model file (auto-discovered)
+5. None — VEX enrichment skipped; BOM `known_cves` used as fallback
 
 **Example `## Context` declaration:**
 
