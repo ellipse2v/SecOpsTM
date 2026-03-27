@@ -15,7 +15,6 @@ bom_directory = BOM
 ## Actors
 - **End User**: boundary="Client (Web Browser)"
 - **Administrator**: color=gray
-- **Attacker**: color=red
 
 ## Servers
 - **LoadBalancer**: type="load_balancer"
@@ -29,14 +28,11 @@ bom_directory = BOM
 - **Database Response**: from="DatabaseServer", to="MonolithicApp", protocol="JDBC/ODBC/API"
 - **Web Response**: from="MonolithicApp", to="LoadBalancer", protocol="HTTP/S"
 - **HTTP/S Response**: from="LoadBalancer", to="End User", protocol="HTTPS"
-- **Code Injection**: from="Attacker", to="MonolithicApp", protocol="HTTP/S"
-- **Direct DB Access**: from="Attacker", to="DatabaseServer", protocol="SQL/NoSQL"
 
 ## Protocol Styles
 - **HTTPS**: color=darkgreen, line_style=solid
 - **HTTP/S**: color=orange
 - **JDBC/ODBC/API**: color=purple, line_style=dashed
-- **SQL/NoSQL**: color=red, line_style=dotted
 
 ## Severity Multipliers
 - **DatabaseServer**: 2.0

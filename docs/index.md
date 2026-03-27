@@ -9,6 +9,7 @@ This documentation covers installation, basic usage, advanced customization, and
 
 
 -   [Getting Started](getting_started.md) — Installation, first run, web editor
+-   [**Workflow: Conception to Run**](workflow.md) — Complete end-to-end guide: conception, modeling, enrichment, CI/CD
 -   [Usage](usage.md) — CLI flags, project mode, export formats
 -   [Features](features.md) — Full feature list: AI engines, diagrams, exports
 -   [Defining Threat Models](defining_threat_models.md) — Markdown DSL reference

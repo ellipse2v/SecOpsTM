@@ -15,7 +15,7 @@ bom_directory = BOM
 ## Actors
 - **Employee**: boundary="Internal Network"
 - **System Administrator**: boundary="Internal Network"
-- **External Attacker**: boundary="Internet"
+- **ExternalUser**: boundary="Internet", is_public=true
 
 ## Servers
 - **DomainController**: boundary="Internal Network", type="domain_controller"
@@ -28,7 +28,7 @@ bom_directory = BOM
 - **User Authentication**: from="Employee", to="DomainController", protocol="Kerberos/LDAP"
 - **File Access**: from="Employee", to="File Server", protocol="SMB"
 - **Internal App Access**: from="Employee", to="Application Server", protocol="HTTPS"
-- **External Web Request**: from="External Attacker", to="Firewall", protocol="HTTPS"
+- **External Web Request**: from="ExternalUser", to="Firewall", protocol="HTTPS"
 - **Internal Web Request**: from="Firewall", to="DMZWebServer", protocol="HTTPS"
 - **AD Replication**: from="DomainController", to="DomainController", protocol="RPC/LDAP"
 - **Admin Management**: from="System Administrator", to="DomainController", protocol="RPC/SMB"

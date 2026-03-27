@@ -184,6 +184,53 @@ def _get_bom_loader(threat_model: Any) -> Optional[Any]:
     return None
 
 
+def _warn_bom_mismatches(bom_loader: Any, threat_model: Any) -> None:
+    """Warn when BOM files have no matching component in the model.
+
+    A BOM file named 'WebApp.yaml' that does not match any actor/server name
+    (case-insensitive, punctuation-normalised) is silently ignored during scoring.
+    This warning surfaces those mismatches so the user can fix the naming.
+    """
+    if bom_loader is None:
+        return
+    try:
+        bom_dir = Path(bom_loader.directory)
+    except AttributeError:
+        return
+
+    # Build the set of normalised component names from the model
+    def _norm(s: str) -> str:
+        import re as _re
+        return _re.sub(r'[^a-z0-9]', '', str(s).lower())
+
+    model_names = set()
+    for s in getattr(threat_model, "servers", []):
+        model_names.add(_norm(s.get("name", "")))
+    for a in getattr(threat_model, "actors", []):
+        model_names.add(_norm(a.get("name", "")))
+
+    # Check each BOM file
+    bom_stems = [
+        f.stem.replace(".cdx", "") if f.name.endswith(".cdx.json") else f.stem
+        for f in bom_dir.glob("*")
+        if f.suffix in (".json", ".yaml", ".yml")
+    ]
+    unmatched = [stem for stem in bom_stems if _norm(stem) not in model_names]
+    if unmatched:
+        known = sorted(
+            [s.get("name", "") for s in getattr(threat_model, "servers", [])]
+            + [a.get("name", "") for a in getattr(threat_model, "actors", [])]
+        )
+        logging.warning(
+            "BOM: %d file(s) have no matching component in the model and will be ignored: %s\n"
+            "  Known component names: %s\n"
+            "  Rename the BOM file(s) to match exactly (case-insensitive).",
+            len(unmatched),
+            ", ".join(f"'{s}'" for s in unmatched),
+            ", ".join(f"'{n}'" for n in known),
+        )
+
+
 def _is_network_exposed(target: Any) -> bool:
     """Return True when the target is reachable without authentication or encryption.
 
@@ -222,7 +269,7 @@ class ReportGenerator:
                  implemented_mitigations_path: Optional[Path] = None,
                  cve_service: Optional[CVEService] = None,
                  ai_config_path: Optional[Path] = None,
-                 context_path: Optional[Path] = None,
+                 context_path: Optional[Path] = None,  # kept for backwards compat, unused
                  threat_model_ref: Optional[ThreatModel] = None):
         self.severity_calculator = severity_calculator
         self.mitre_mapping = mitre_mapping
@@ -261,12 +308,9 @@ class ReportGenerator:
                     break
             
             if self.ai_provider:
-                if context_path and context_path.exists():
-                    with open(context_path, "r", encoding="utf-8") as f:
-                        self.ai_context = yaml.safe_load(f)
-                    logging.info("AI Context loaded for enrichment.")
-                else:
-                    logging.warning(f"AI Context file not found at {context_path}")
+                # ai_context is built lazily from threat_model.context_config when
+                # _enrich_threats_with_ai() is called (context is not available at init time).
+                pass
             else:
                 logging.warning("No enabled AI provider found in config for report enrichment.")
 
@@ -359,14 +403,35 @@ class ReportGenerator:
         )
         return result
 
+    @staticmethod
+    def _build_ai_context_from_model(threat_model: "ThreatModel") -> Dict[str, Any]:
+        """Build AI context dict from DSL ## Context keys on the threat model.
+
+        Priority: DSL context_config keys > context/*.yaml (loaded by AIService).
+        The report_generator path only uses DSL keys (context/*.yaml is handled
+        by AIService in server mode).
+        """
+        ctx_cfg = getattr(threat_model, "context_config", {})
+        _AI_KEYS = {
+            "system_description", "sector", "deployment_environment",
+            "data_sensitivity", "internet_facing", "user_base",
+            "compliance_requirements", "integrations",
+        }
+        ctx: Dict[str, Any] = {k: v for k, v in ctx_cfg.items() if k in _AI_KEYS}
+        ctx.setdefault("system_description", getattr(getattr(threat_model, "tm", None), "description", "") or "")
+        ctx.setdefault("data_sensitivity", "High")
+        return ctx
+
     async def _enrich_threats_with_ai(self, threat_model: ThreatModel, all_threats: List[Dict], progress_callback = None) -> List[Dict]:
         if not self.ai_provider:
             logging.warning("AI enrichment skipped: No AI provider initialized.")
             return all_threats
-        
-        if not self.ai_context:
-            logging.warning("AI enrichment skipped: No AI context loaded.")
-            return all_threats
+
+        # Build context from DSL ## Context keys (replaces config/context.yaml)
+        self.ai_context = self._build_ai_context_from_model(threat_model)
+        if not self.ai_context.get("system_description") and not self.ai_context.get("sector"):
+            logging.info("AI enrichment: no AI context keys in ## Context — threats will be generic.")
+
 
         logging.info(f"Enriching threats with AI using provider: {type(self.ai_provider).__name__}")
         
@@ -788,6 +853,7 @@ class ReportGenerator:
             logging.info("CVE scoring: standalone VEX file(s) found — used as primary CVE source")
         elif _bom_loader:
             logging.info("CVE scoring: no standalone VEX — using BOM CVE data (with state if available)")
+        _warn_bom_mismatches(_bom_loader, threat_model)
 
         # Process threats from grouped_threats (PyTM and custom threats)
         for threat_type, threats in grouped_threats.items():

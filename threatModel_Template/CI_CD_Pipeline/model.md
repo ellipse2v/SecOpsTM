@@ -22,7 +22,6 @@ bom_directory = BOM
 ## Actors
 - **Developer**: boundary="Development Environment"
 - **CI/CD System**: boundary="Build Server"
-- **Attacker**: color=red
 
 ## Servers
 - **Git Repository**: boundary="Code Repository", type="git_repo"
@@ -37,8 +36,6 @@ bom_directory = BOM
 - **Build Application**: from="CIServer", to="ArtifactRegistry", protocol="HTTPS"
 - **Pull Artifact**: from="KubeCluster", to="ArtifactRegistry", protocol="HTTPS"
 - **Deploy Application**: from="CIServer", to="KubeCluster", protocol="API/SSH"
-- **Illegitimate Access**: from="Attacker", to="Git Repository", protocol="HTTPS/SSH"
-- **Malicious Injection**: from="Attacker", to="CIServer", protocol="API"
 
 ## Protocol Styles
 - **HTTPS**: color=darkgreen, line_style=solid

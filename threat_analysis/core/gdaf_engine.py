@@ -122,6 +122,21 @@ class GDAFEngine:
                 self.context = merged
             else:
                 self.context = auto
+        # Apply DSL ## Context overrides on top of context YAML risk_criteria.
+        # This lets users declare gdaf_min_technique_score directly in the model
+        # file without maintaining a separate YAML.
+        dsl_cfg = getattr(threat_model, "context_config", {})
+        dsl_min_score = dsl_cfg.get("gdaf_min_technique_score")
+        if dsl_min_score is not None:
+            rc = dict(self.context.get("risk_criteria") or {})
+            rc["gdaf_min_technique_score"] = float(dsl_min_score)
+            self.context = dict(self.context)
+            self.context["risk_criteria"] = rc
+            logger.debug(
+                "GDAF: gdaf_min_technique_score overridden by DSL ## Context: %s",
+                dsl_min_score,
+            )
+
         self.mapper = AssetTechniqueMapper()
         self._bom = BOMLoader(bom_directory)
         self._graph: Optional[Dict] = None  # built lazily

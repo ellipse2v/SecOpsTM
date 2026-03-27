@@ -22,7 +22,6 @@ bom_directory = BOM
 ## Actors
 - **End User**: boundary="Client (Browser/Mobile)"
 - **Developer/Cloud Operator**: color=gray
-- **Attacker**: color=red
 
 ## Servers
 - **CDNEdge**: type="cdn"
@@ -37,8 +36,6 @@ bom_directory = BOM
 - **Function Invocation**: from="APIGateway", to="LambdaFunction", protocol="Internal API"
 - **Database Access**: from="LambdaFunction", to="NoSQLDatabase", protocol="Internal API"
 - **Object Storage Access**: from="LambdaFunction", to="ObjectStorage", protocol="Internal API"
-- **Function Compromise**: from="Attacker", to="LambdaFunction", protocol="API"
-- **Misconfigured Storage**: from="Attacker", to="ObjectStorage", protocol="HTTPS"
 - **Developer Access**: from="Developer/Cloud Operator", to="APIGateway", protocol="API"
 
 ## Protocol Styles

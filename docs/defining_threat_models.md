@@ -86,6 +86,19 @@ header and in diagram tooltips.
 This section is pure prose. It is not parsed for key-value pairs. Write as many paragraphs as
 needed to explain the system scope, deployment context, and relevant regulatory requirements.
 
+**Relationship to other description fields** — three "description" concepts exist, each serving
+a different purpose:
+
+| Source | Scope | Used by |
+|---|---|---|
+| DSL `## Description` | Whole model | Report header; fallback for AI prompt `system_description` |
+| DSL `description=` on servers/actors | Single component | AI prompt for that component; report tooltip |
+| `config/context.yaml` `system_description` | Organization-wide | AI prompt; overrides DSL `## Description` when both are set |
+
+> **Rule of thumb:** Write the technical system scope in DSL `## Description`. Write the business
+> and compliance context (sector, data sensitivity, threat actors) in `config/context.yaml` or a
+> per-model context YAML. Component-level notes go in `description=` on each server or actor.
+
 ---
 
 ## Section: Context
@@ -108,7 +121,7 @@ gdaf_min_technique_score = 0.75
 | `bom_directory` | string (path) | `None` | Path to the BOM directory. Relative to the model file directory. |
 | `vex_file` | string (path) | `None` | Path to a standalone CycloneDX VEX file. Takes priority over BOM `known_cves` for CVE scoring. Relative to the model file directory. |
 | `vex_directory` | string (path) | `None` | Path to a directory of CycloneDX VEX files (one per component or a single global file). |
-| `gdaf_min_technique_score` | float 0.0–3.0 | `0.8` | Minimum `ScoredTechnique.score` required to render a technique as an OR-branch in `.afb` Attack Flow files. |
+| `gdaf_min_technique_score` | float 0.0–3.0 | `0.8` | Minimum `ScoredTechnique.score` required to render a technique as an OR-branch in `.afb` Attack Flow files. Overrides the value in the GDAF context YAML `risk_criteria` section. |
 
 **Context path resolution** (in order of priority):
 1. Value specified in `## Context` section
@@ -310,7 +323,7 @@ attributes because servers carry most of the GDAF scoring signals.
 | `mfa_enabled` | bool | `True` | None | +0.2 on credential-access/initial-access if `False` | Whether MFA is required. Default is `True` (MFA assumed unless explicitly set to `False`). |
 | `auth_protocol` | string | `None` | Kerberos/LDAP-specific threats | None | Authentication protocol in use: `none`, `ldap`, `kerberos`, `saml`, `oauth`, `oidc`, `radius`. |
 | `internet_facing` | bool | `False` | None | GDAF entry point (even in trusted boundary) | Whether this server is directly reachable from the internet. |
-| `credentials_stored` | bool | `False` | Credential theft threats | +0.4 on credential-access techniques | Whether this server stores credentials (password hashes, service accounts, API keys). |
+| `credentials_stored` | bool | `False` | Credential theft threats | +0.4 on credential-access techniques | Whether this server stores credentials (password hashes, service accounts, API keys). If a BOM file exists for this asset, the BOM value overrides this DSL value. |
 | `waf` | bool | `False` | None (firewall type only) | None | Whether a Web Application Firewall is enabled. Only meaningful for `type=firewall`. |
 | `ids` | bool | `False` | None (firewall type only) | None | Whether an Intrusion Detection System is active. |
 | `ips` | bool | `False` | None (firewall type only) | None | Whether an Intrusion Prevention System is active. |

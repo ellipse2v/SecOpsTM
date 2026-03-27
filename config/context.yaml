@@ -1,29 +1,30 @@
-# System Context
-# Describe your system here. This description is injected into every AI component prompt
-# and the RAG query. Leave blank (or comment out) to let the AI infer from the model only.
-# system_description: "A web-based patient portal built with React and Node.js..."
+# =============================================================================
+# config/context.yaml — DEPRECATED
+# =============================================================================
+#
+# This file is no longer used. AI context keys are now declared directly in
+# the ## Context section of your model file (.md):
+#
+#   ## Context
+#   system_description = B2B SaaS invoicing platform. Multi-tenant. PCI DSS scope.
+#   sector = Financial technology
+#   deployment_environment = AWS EKS
+#   data_sensitivity = Financial
+#   compliance_requirements = PCI DSS, SOC 2
+#   user_base = 50,000 enterprise users
+#   integrations = Payment gateway, Identity provider (SAML)
+#
+# For per-model overrides, use a context/*.yaml file referenced from ## Context:
+#
+#   ## Context
+#   gdaf_context = context/my_context.yaml
+#
+# GDAF risk thresholds have moved to config/ai_config.yaml under gdaf.risk_criteria.
+# =============================================================================
 
-# Path to a directory of per-asset BOM YAML files (optional).
-# Auto-discovered at {model_parent}/BOM/ if not set.
-# bom_directory: "./BOM"
-
-# GDAF risk criteria (used when attack_objectives and threat_actors are defined)
+# --- GDAF risk thresholds (kept here for backwards compat — prefer ai_config.yaml) ---
 risk_criteria:
   acceptable_risk_score: 5.0
   max_hops: 7
   max_paths_per_objective: 3
-  # Minimum ScoredTechnique score to include a technique in Attack Flow .afb files.
   gdaf_min_technique_score: 0.8
-
-# Security Context (optional — used to enrich AI threat generation)
-# Uncomment and fill in what applies to your system.
-# data_sensitivity: "PHI"          # PHI, PII, Financial, Confidential, Public...
-# internet_facing: true
-# compliance_requirements:
-#   - "HIPAA"
-#   - "GDPR"
-# deployment_environment: "Kubernetes"
-# integrations:
-#   - "EHR system"
-#   - "Payment gateway"
-# user_base: "100,000 patients"

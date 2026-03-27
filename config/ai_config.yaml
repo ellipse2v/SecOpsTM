@@ -1,41 +1,55 @@
+# =============================================================================
+# config/ai_config.yaml — SecOpsTM AI & GDAF configuration
+# =============================================================================
+#
+# SECTION 1 — Choose your AI provider
+#   Enable exactly one provider. Set the matching API key as an environment
+#   variable (e.g. export MISTRAL_API_KEY=...).
+#   SecOpsTM works fully offline without AI — AI features are additive.
+#
+# SECTION 2 — Generation settings (optional tuning)
+#   Adjust volume, rate limits, and ranking weights. Defaults work for most cases.
+#
+# SECTION 3 — RAG, embeddings, and GDAF (advanced)
+#   Do not modify embeddings without rebuilding the vector store
+#   (tooling/build_vector_store.py).
+# =============================================================================
+
 # ---------------------------------------------------------------------------
-# Enterprise SSL — global certificate for all LiteLLM HTTP transports.
-# Set this when your company uses a custom CA / SSL inspection proxy.
-# This path is applied to SSL_CERT_FILE and REQUESTS_CA_BUNDLE so that
-# LiteLLM's internal httpx/requests calls trust your corporate PKI.
-# Per-provider override: set ssl_verify: "/path/to/cert.pem" on the provider.
+# Enterprise SSL — set when your company uses a custom CA / SSL inspection proxy.
 # ssl_cert_file: "/etc/ssl/certs/company-ca.pem"
 # ---------------------------------------------------------------------------
 
-# Provider configuration
+# =============================================================================
+# SECTION 1 — AI provider (enable exactly one)
+# =============================================================================
 ai_providers:
   mistral:
     enabled: true
     model: "mistral-small-latest"
     api_key_env: "MISTRAL_API_KEY"
-    api_base: ""  # Set your internal enterprise host here (e.g. http://mistral.internal:8000/v1)
+    api_base: ""       # Enterprise: http://mistral.internal:8000/v1
     temperature: 0.3
     max_tokens: 4096
     timeout: 30
-    ssl_verify: true  # true | false | "/path/to/ca-bundle.crt"  (false = disable SSL for enterprise self-signed certs)
+    ssl_verify: true   # false | "/path/to/ca-bundle.crt" for self-signed certs
 
   gemini:
     enabled: false
     model: "gemini-flash-latest"
     api_key_env: "GOOGLE_API_KEY"
-    api_base: ""  # Set your internal enterprise host here
+    api_base: ""
     temperature: 0.3
     max_tokens: 4096
     timeout: 30
-    ssl_verify: true  # true | false | "/path/to/ca-bundle.crt"  (false = disable SSL for enterprise self-signed certs)
+    ssl_verify: true
 
   openai:
     enabled: false
     model: "gpt-4o-mini"
     api_key_env: "OPENAI_API_KEY"
-    api_base: ""  # Set your internal enterprise host here
-    ssl_verify: true  # true | false | "/path/to/ca-bundle.crt"  (false = disable SSL for enterprise self-signed certs)
-
+    api_base: ""
+    ssl_verify: true
 
   ollama:
     enabled: false
@@ -45,47 +59,54 @@ ai_providers:
     num_ctx: 4096
     num_predict: 4096
     timeout: 60
-    ssl_verify: true  # true | false | "/path/to/ca-bundle.crt"  (false = disable SSL for enterprise self-signed certs)
+    ssl_verify: true
 
-# Threat generation settings
+# =============================================================================
+# SECTION 2 — Generation settings
+# =============================================================================
 threat_generation:
-  mode: "hybrid"  # "traditional", "ai", "hybrid"
-  confidence_threshold: 0.75
+  mode: "hybrid"             # "traditional" | "ai" | "hybrid"
   fallback_to_traditional: true
   max_threats_per_component: 10
-  include_attack_flows: true
-  # Delay (seconds) between per-component LLM calls.
-  # Set to 1.5 for Gemini free tier, 0.0 for paid/Ollama.
+
+  # Rate limiting — set to 1.5 for Gemini free tier (15 RPM), 0.0 for paid/Ollama
   rate_limit_sleep: 0.0
-  # Maximum number of concurrent AI requests during component enrichment.
-  # 1 = sequential (safe for Gemini free tier, 15 RPM); 3–5 for paid tiers or Ollama.
+  # Concurrency — 1 = sequential (safe for free tiers); 3–5 for paid/Ollama
   max_concurrent_ai_requests: 1
-  # --- Threat ranking & volume control -------------------------------------
-  # Maximum number of threats kept in the final report (0 = no limit).
-  # Threats are ranked by composite score before trimming.
+
+  # Volume control (0 = no limit)
   max_total_threats: 0
-  # When true, the ranker guarantees at least one threat per STRIDE category
-  # present in the analysis, even if it falls below the top-N cut-off.
+  # Guarantee at least one threat per STRIDE category even if above cut-off
   min_stride_coverage: true
-  # Composite score weights used for ranking (must sum to 1.0).
+
+  # Composite ranking weights (must sum to 1.0)
   ranking_weights:
-    severity: 0.4      # normalised severity score (0–10 → 0–1)
-    confidence: 0.3    # LLM / model confidence (0–1)
-    risk_signals: 0.3  # VOC signals: CVE match, high-risk CWE, network exposure
+    severity: 0.4
+    confidence: 0.3
+    risk_signals: 0.3
 
-# Embedding configuration (Shared between Vector Store and RAG)
-embedding:
-  provider: huggingface        # huggingface | google | mistral | ollama
-  model: all-MiniLM-L6-v2
-  device: cpu                  # cpu | cuda
-  api_base: ""                 # Override API host for embedding (enterprise: e.g. http://mistral.internal:8000/v1)
-  ssl_verify: true             # true | false | "/path/to/ca-bundle.crt"
+  confidence_threshold: 0.75
+  include_attack_flows: true
 
-# RAG configuration (Phase 2)
+# =============================================================================
+# SECTION 3 — RAG, embeddings, and GDAF (advanced)
+# =============================================================================
+
+# RAG — retrieval-augmented generation from the local vector store
 rag:
   enabled: true
   vector_db: "chroma"
   top_k_examples: 5
+
+# Embeddings — default is local HuggingFace (no API key, works offline)
+# WARNING: changing the model requires rebuilding the vector store:
+#   python tooling/build_vector_store.py
+embedding:
+  provider: huggingface        # huggingface | google | mistral | ollama
+  model: all-MiniLM-L6-v2
+  device: cpu                  # cpu | cuda
+  api_base: ""
+  ssl_verify: true
 
 # Attack Flow generation
 attack_flows:
@@ -95,7 +116,16 @@ attack_flows:
   include_detection_points: true
   generate_for_categories: ["Tampering", "Information Disclosure", "Elevation of Privilege"]
 
-# Fine-tuning (Phase 3 optionnel)
+# GDAF engine defaults — override per model via gdaf_min_technique_score in ## Context
+# or via risk_criteria in the per-model GDAF context YAML
+gdaf:
+  risk_criteria:
+    acceptable_risk_score: 5.0
+    max_hops: 7
+    max_paths_per_objective: 3
+    gdaf_min_technique_score: 0.8
+
+# Fine-tuning (Phase 3 — optional, not enabled by default)
 fine_tuning:
   enabled: false
   base_model: "mistralai/Ministral-8B"

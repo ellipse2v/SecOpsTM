@@ -345,16 +345,29 @@ class ModelParser:
         except (ValueError, TypeError):
             logging.warning(f"⚠️ Warning: Malformed severity multiplier value for '{name}': {params_str}")
 
+    # Keys whose comma-separated values are parsed as lists rather than strings.
+    _LIST_CONTEXT_KEYS = frozenset({
+        "compliance_requirements",
+        "integrations",
+        "threat_actor_profiles",
+        "business_goals_to_protect",
+    })
+
     def _parse_context_section(self, lines: List[str]) -> None:
         """Pass 0: parse the ## Context section into threat_model.context_config.
 
         Accepts two syntaxes per line (after the section header):
-          key=value
-          - key=value
+          key = value
+          - key = value
           - key: value
 
         Values are coerced: "true"/"false" → bool, numeric strings → float/int,
+        keys in _LIST_CONTEXT_KEYS → comma-separated list of strings,
         everything else stays a string.
+
+        AI-context keys (accepted directly in ## Context):
+          system_description, sector, deployment_environment, data_sensitivity,
+          internet_facing, user_base, compliance_requirements, integrations
         """
         in_context = False
         kv_re = re.compile(r'^-?\s*([A-Za-z_][A-Za-z0-9_]*)[\s=:]+(.+)$')
@@ -371,8 +384,10 @@ class ModelParser:
                 m = kv_re.match(stripped)
                 if m:
                     key, raw = m.group(1).strip(), m.group(2).strip().strip('"').strip("'")
-                    if raw.lower() == "true":
-                        val: Any = True
+                    if key in self._LIST_CONTEXT_KEYS:
+                        val: Any = [item.strip() for item in raw.split(",") if item.strip()]
+                    elif raw.lower() == "true":
+                        val = True
                     elif raw.lower() == "false":
                         val = False
                     else:

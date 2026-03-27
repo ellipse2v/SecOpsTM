@@ -395,134 +395,136 @@ def load_iac_plugins() -> Dict[str, 'IaCPlugin']:
 class CustomArgumentParser:
     def __init__(self, loaded_plugins: Dict[str, 'IaCPlugin']):
         self.parser = argparse.ArgumentParser(
-            description="SecOpsTM Framework",
-            epilog=(
-                "This script also accepts SecOpsTM arguments. "
-                "Use --help with SecOpsTM commands for more details." +
-                "\n\nIaC Plugin Options: " +
-                "\n  " + "\n  ".join([f"--{name}-path <path> ({plugin.description})" for name, plugin in loaded_plugins.items()])
+            description=(
+                "SecOpsTM — STRIDE threat modeling with MITRE ATT&CK mapping and AI-enhanced threat generation.\n"
+                "\nQuick start:\n"
+                "  secopstm --model-file model.md           # full analysis\n"
+                "  secopstm --model-file model.md --stdout  # JSON to stdout (CI/SIEM)\n"
+                "  secopstm --server                        # launch web editor\n"
+                "  secopstm --diff old.json new.json        # compare two reports\n"
             ),
-            formatter_class=argparse.RawTextHelpFormatter # To preserve newlines in epilog
+            formatter_class=argparse.RawTextHelpFormatter,
         )
-        self.parser.add_argument(
+
+        # ── Common options (shown prominently) ────────────────────────────────
+        common = self.parser.add_argument_group("Common options")
+        common.add_argument(
             "--model-file",
             type=str,
             default="threatModel_Template/threat_model.md",
             help="Path to the threat model Markdown file.",
         )
-        self.parser.add_argument(
-            "--server", action="store_true", help="Launch the unified web server with menu."
+        common.add_argument(
+            "--server",
+            action="store_true",
+            help="Launch the web editor (Monaco + graphical canvas).",
         )
-        self.parser.add_argument(
-            "--log-level",
-            type=str,
-            default=None,
-            choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-            help="Set the logging level (e.g., DEBUG, INFO, WARNING). Overrides the config file setting.",
-        )
-
-
-        self.parser.add_argument(
+        common.add_argument(
             "--project",
             type=str,
-            help="Path to the project directory for hierarchical threat models.",
+            help="Path to a project directory containing main.md (multi-model analysis).",
         )
-        self.parser.add_argument(
-            "--navigator",
-            action="store_true",
-            help="Generate a MITRE ATT&CK Navigator layer.",
-        )
-        self.parser.add_argument(
+        common.add_argument(
             "--attack-flow",
             action="store_true",
-            help="Generate an Attack Flow JSON file for visualization.",
+            help="Generate GDAF Attack Flow files (.afb) for adversary simulation.",
         )
-        self.parser.add_argument(
-            "--implemented-mitigations-file",
-            type=str,
-            help="Path to the implemented mitigations file. If not provided, the tool will look for a file named \'implemented_mitigations.txt\' in the same directory as the model or project.",
+        common.add_argument(
+            "--stdout",
+            action="store_true",
+            help="Print JSON report to stdout (implies --output-format json). For CI/SIEM.",
         )
-        self.parser.add_argument(
-            "--cve-definitions-file",
-            type=str,
-            help="Path to the CVE definitions file. If not provided, the tool will look for a file named \'cve_definitions.yml\' in the same directory as the model or project.",
-        )
-
-        # Dynamically add arguments for IaC plugins
-        for name, plugin in loaded_plugins.items():
-            self.parser.add_argument(
-                f"--{name}-path",
-                type=str,
-                help=f"Path to the {plugin.name} configuration (e.g., project root, playbook).",
-            )
-        self.parser.add_argument(
-            "--ai-config-file",
-            type=str,
-            default="config/ai_config.yaml",
-            help="Path to the AI configuration file (e.g., ai_config.yaml).",
-        )
-        self.parser.add_argument(
-            "--ai-context-file",
-            type=str,
-            default="config/context.yaml",
-            help="Path to the AI context file (e.g., context.yaml).",
-        )
-        self.parser.add_argument(
+        common.add_argument(
             "--output-format",
             type=str,
             default="all",
             choices=["all", "html", "json", "stix"],
-            help="Output format(s) to generate. Use 'json' for CI pipelines.",
+            help="Output format(s). Default: all. Use 'json' for CI pipelines.",
         )
-        self.parser.add_argument(
+        common.add_argument(
             "--output-file",
             type=str,
             default=None,
-            help="Write the primary output to this path instead of the default timestamped directory.",
+            help="Write primary output to this path (default: timestamped output/ directory).",
         )
-        self.parser.add_argument(
-            "--stdout",
-            action="store_true",
-            help="Print JSON report to stdout (implies --output-format json). Useful for CI pipelines.",
-        )
-        self.parser.add_argument(
+        common.add_argument(
             "--diff",
             nargs=2,
             metavar=("OLD_REPORT", "NEW_REPORT"),
-            help="Compare two JSON reports and print added/resolved/changed threats. "
-                 "Example: --diff output/report_old.json output/report_new.json",
+            help="Compare two JSON reports: print added/resolved/changed-severity threats.",
         )
-        self.parser.add_argument(
+
+        # ── CI/CD gate ────────────────────────────────────────────────────────
+        gate_group = self.parser.add_argument_group("CI/CD gate")
+        gate_group.add_argument(
             "--gate",
             type=str,
             metavar="REPORT_JSON",
-            help="CI/CD gate: check a JSON report for unaccepted threats at or above "
-                 "--fail-on severity. Exits 1 if any are found, 0 otherwise. "
-                 "Example: --gate output/report.json --fail-on HIGH",
+            help="Check a JSON report for unaccepted threats. Exits 1 if any at or above\n"
+                 "--fail-on severity. Example: --gate report.json --fail-on HIGH",
         )
-        self.parser.add_argument(
-            "--baseline",
-            type=str,
-            metavar="BASELINE_JSON",
-            help="Path to a baseline JSON report. When provided with --gate, only NEW "
-                 "threats (absent from the baseline) trigger a failure.",
-        )
-        self.parser.add_argument(
+        gate_group.add_argument(
             "--fail-on",
             type=str,
             default="CRITICAL",
             choices=["CRITICAL", "HIGH", "MEDIUM", "LOW"],
             dest="fail_on",
-            help="Minimum severity level that triggers a gate failure (default: CRITICAL).",
+            help="Minimum severity that triggers gate failure (default: CRITICAL).",
         )
-        self.parser.add_argument(
+        gate_group.add_argument(
+            "--baseline",
+            type=str,
+            metavar="BASELINE_JSON",
+            help="Baseline report for --gate: only NEW threats (absent from baseline) fail.",
+        )
+        gate_group.add_argument(
             "--accepted-risks",
             type=str,
             metavar="ACCEPTED_RISKS_YAML",
             dest="accepted_risks",
-            help="Path to accepted_risks.yaml used to exclude accepted/false-positive threats "
-                 "from the gate check. Auto-discovered next to REPORT_JSON if omitted.",
+            help="YAML file of accepted/false-positive threats excluded from --gate.",
         )
+
+        # ── Advanced options ──────────────────────────────────────────────────
+        adv = self.parser.add_argument_group("Advanced options")
+        adv.add_argument(
+            "--navigator",
+            action="store_true",
+            help="Also generate a MITRE ATT&CK Navigator layer JSON.",
+        )
+        adv.add_argument(
+            "--log-level",
+            type=str,
+            default=None,
+            choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+            help="Logging verbosity (default: INFO).",
+        )
+        adv.add_argument(
+            "--ai-config-file",
+            type=str,
+            default="config/ai_config.yaml",
+            help="Path to AI configuration file (default: config/ai_config.yaml).",
+        )
+        adv.add_argument(
+            "--implemented-mitigations-file",
+            type=str,
+            help="Path to implemented_mitigations.txt (auto-discovered next to model if omitted).",
+        )
+        adv.add_argument(
+            "--cve-definitions-file",
+            type=str,
+            help="Path to cve_definitions.yml (auto-discovered next to model if omitted).",
+        )
+
+        # Dynamically add arguments for IaC plugins
+        if loaded_plugins:
+            iac = self.parser.add_argument_group("IaC plugins")
+            for name, plugin in loaded_plugins.items():
+                iac.add_argument(
+                    f"--{name}-path",
+                    type=str,
+                    help=f"Path to the {plugin.name} configuration.",
+                )
 
     def parse_args(self):
         return self.parser.parse_known_args()
@@ -768,7 +770,6 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
     )
 
     ai_config_path = PROJECT_ROOT / (args.ai_config_file if hasattr(args, "ai_config_file") else "config/ai_config.yaml")
-    context_path = PROJECT_ROOT / (args.ai_context_file if hasattr(args, "ai_context_file") else "config/context.yaml")
 
     framework = SecOpsTMFramework(
         markdown_content=markdown_content_for_analysis,
@@ -779,8 +780,7 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
         implemented_mitigations_path=str(implemented_mitigations_path) if implemented_mitigations_path else None,
         cve_service=cve_service,
         ai_config_path=ai_config_path,
-        context_path=context_path,
-        cve_definitions_path=cve_definitions_path # Pass cve_definitions_path to SecOpsTMFramework
+        cve_definitions_path=cve_definitions_path,
     )
 
     threats = framework.run_analysis()
@@ -986,7 +986,6 @@ def main():
         mitre_mapping = MitreMapping(threat_model_path=str(_root_model_file))
 
         ai_config_path = PROJECT_ROOT / (args.ai_config_file if hasattr(args, 'ai_config_file') else "config/ai_config.yaml")
-        context_path = PROJECT_ROOT / (args.ai_context_file if hasattr(args, 'ai_context_file') else "config/context.yaml")
 
         # Lazy import ReportGenerator
         report_generator_module = importlib.import_module("threat_analysis.generation.report_generator")
@@ -997,8 +996,7 @@ def main():
             implemented_mitigations_path=Path(implemented_mitigations_path),
             cve_service=cve_service,
             ai_config_path=ai_config_path,
-            context_path=context_path,
-            threat_model_ref=None # Project reports are generated per model, ref is set internally
+            threat_model_ref=None,  # Project reports are generated per model, ref is set internally
         )
 
         project_threat_model = report_generator.generate_project_reports(project_path, output_dir)

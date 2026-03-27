@@ -134,17 +134,24 @@ class AIService:
 
         return config or {}
 
-    def _load_context(self) -> Dict[str, Any]:
-        """Loads config/context.yaml to enrich component prompts with business context."""
-        context_path = Path(__file__).resolve().parents[2] / "config" / "context.yaml"
-        if not context_path.exists():
+    def _load_context(self, threat_model=None) -> Dict[str, Any]:
+        """Build global AI context from the DSL ## Context keys on the threat model.
+
+        Keys accepted directly in ## Context (priority: DSL > context/*.yaml):
+          system_description, sector, deployment_environment, data_sensitivity,
+          internet_facing, user_base, compliance_requirements, integrations
+
+        config/context.yaml has been removed — all context is now per-model.
+        """
+        if threat_model is None:
             return {}
-        try:
-            with open(context_path, 'r', encoding='utf-8') as f:
-                return yaml.safe_load(f) or {}
-        except Exception as e:
-            logging.warning(f"Could not load context.yaml: {e}")
-            return {}
+        ctx_cfg = getattr(threat_model, "context_config", {})
+        _AI_KEYS = {
+            "system_description", "sector", "deployment_environment",
+            "data_sensitivity", "internet_facing", "user_base",
+            "compliance_requirements", "integrations",
+        }
+        return {k: v for k, v in ctx_cfg.items() if k in _AI_KEYS}
 
     def _load_model_context(self, threat_model) -> Dict[str, Any]:
         """Load the model-specific GDAF context file and extract AI-relevant fields.
@@ -455,28 +462,31 @@ class AIService:
             threat_model.tm.global_threats_llm.extend(system_rag_threats)
             logging.debug(f"Appended {len(system_rag_threats)} global RAG threats to threat_model.tm.global_threats_llm.")
 
-        # Build context: config/context.yaml (base) ← model-specific gdaf_context ← runtime
-        yaml_ctx = self._load_context()
+        # Build context: DSL ## Context keys (base) ← per-model context/*.yaml ← runtime
+        # Priority: DSL context_config > context/*.yaml
+        dsl_ctx = self._load_context(threat_model)
         model_ctx = self._load_model_context(threat_model)
 
-        # Model-specific context overrides global config; runtime values (internet_facing)
-        # take final precedence only when the model context has no explicit value.
-        has_internet_facing_in_model = model_ctx.get("internet_facing") is not None
+        # DSL wins over context/*.yaml; runtime internet_facing takes final precedence
+        # only when neither source has an explicit value.
+        has_internet_facing = (
+            dsl_ctx.get("internet_facing") is not None
+            or model_ctx.get("internet_facing") is not None
+        )
         context: Dict[str, Any] = {
-            **yaml_ctx,
             **{k: v for k, v in model_ctx.items() if v not in (None, "", [], {})},
+            **{k: v for k, v in dsl_ctx.items() if v not in (None, "", [], {})},
             "system_description": (
-                threat_model.tm.description
+                dsl_ctx.get("system_description")
                 or model_ctx.get("system_description", "")
-                or yaml_ctx.get("system_description", "")
+                or threat_model.tm.description
             ),
             "internet_facing": (
-                model_ctx["internet_facing"]
-                if has_internet_facing_in_model
+                dsl_ctx.get("internet_facing") or model_ctx.get("internet_facing")
+                if has_internet_facing
                 else any(s.get('is_public') for s in threat_model.servers)
             ),
         }
-        # Keep data_sensitivity from context.yaml if set; fall back to "High"
         context.setdefault("data_sensitivity", "High")
         if model_ctx.get("sector"):
             logging.info("AI: prompt context enriched — sector=%s  compliance=%s  actors=%d",

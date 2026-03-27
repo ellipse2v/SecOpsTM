@@ -20,7 +20,6 @@ bom_directory = BOM
 
 ## Actors
 - **End User**: boundary="Client (Web Browser)"
-- **Attacker**: color=red
 
 ## Servers
 - **Client Web Browser**: boundary="Client (Web Browser)", type="client_browser", businessValue=Low
@@ -35,8 +34,6 @@ bom_directory = BOM
 - **API Request**: from="WebServer", to="AppServer", protocol="HTTP/S"
 - **SQL Request**: from="AppServer", to="DatabaseServer", protocol="JDBC/ODBC"
 - **SQL Response**: from="DatabaseServer", to="AppServer", protocol="JDBC/ODBC"
-- **SQL Injection**: from="Attacker", to="AppServer", protocol="HTTP/S"
-- **XSS**: from="Attacker", to="Client Web Browser", protocol="HTTP/S"
 
 ## Protocol Styles
 - **HTTPS**: color=darkgreen, line_style=solid

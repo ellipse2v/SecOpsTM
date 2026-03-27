@@ -14,7 +14,6 @@ bom_directory = BOM
 
 ## Actors
 - **Mobile User**: boundary="Mobile Device (Client)"
-- **Attacker**: color=red
 
 ## Servers
 - **Mobile Application**: boundary="Mobile Device (Client)", type="mobile_application"
@@ -34,14 +33,10 @@ bom_directory = BOM
 - **Backend Response**: from="BackendServer", to="APIGateway", protocol="HTTPS"
 - **API Response**: from="APIGateway", to="Mobile Application", protocol="HTTPS"
 - **Payment Request**: from="Mobile Application", to="Payment Gateway", protocol="HTTPS"
-- **Reverse Engineering**: from="Attacker", to="Mobile Application", protocol="Offline"
-- **Communication Interception**: from="Attacker", to="APIGateway", protocol="Network"
 
 ## Protocol Styles
 - **HTTPS**: color=darkgreen, line_style=solid
 - **JDBC/ODBC**: color=purple, line_style=dashed
-- **Offline**: color=red, line_style=dotted
-- **Network**: color=orange, line_style=dashed
 
 ## Severity Multipliers
 - **BackendDatabase**: 2.0

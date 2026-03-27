@@ -22,7 +22,6 @@ bom_directory = BOM
 ## Actors
 - **End User**: boundary="Client (Browser/Mobile)"
 - **Developer/Operator**: color=gray
-- **Attacker**: color=red
 
 ## Servers
 - **Load Balancer**: type="load_balancer"
@@ -40,8 +39,6 @@ bom_directory = BOM
 - **Async Event**: from="UserService", to="MessageBroker", protocol="AMQP/Kafka"
 - **Message Consume**: from="MessageBroker", to="ProductService", protocol="AMQP/Kafka"
 - **DB Access**: from="UserService", to="AppDatabase", protocol="JDBC/API"
-- **Gateway Attack**: from="Attacker", to="APIGateway", protocol="HTTPS"
-- **Service Compromise**: from="Attacker", to="UserService", protocol="HTTP/gRPC"
 
 ## Protocol Styles
 - **HTTPS**: color=darkgreen, line_style=solid
