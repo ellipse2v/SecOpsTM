@@ -636,6 +636,34 @@
             background-color: #555;
             color: #aaa;
         }
+        /* Draft restore banner */
+        .draft-restore-banner {
+            padding: 5px 12px;
+            font-size: 12px;
+            background: #e8f4fd;
+            border-left: 3px solid #1976d2;
+            color: #1565c0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        body.dark-mode .draft-restore-banner {
+            background: #0d2137;
+            border-left-color: #42a5f5;
+            color: #90caf9;
+        }
+        .btn-draft-discard {
+            padding: 2px 8px;
+            font-size: 11px;
+            border: 1px solid currentColor;
+            border-radius: 3px;
+            background: transparent;
+            color: inherit;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn-draft-discard:hover { opacity: 0.75; }
+
         /* DSL validation banner */
         #dsl-validation-banner {
             margin: 4px 0 0 0;
@@ -988,12 +1016,38 @@
                 const defaultEmptyMarkdown = {{ DEFAULT_EMPTY_MARKDOWN | safe }};
                 editor.setValue(initialMarkdown);
                 editor.setValue(content);
+
+                // ── Draft autosave / restore ────────────────────────────────────
+                const DRAFT_KEY = 'secopstm_autosave_' + path;
+                (function restoreDraft() {
+                    let draft = null;
+                    try { draft = localStorage.getItem(DRAFT_KEY); } catch(e) {}
+                    if (draft && draft.trim() && draft !== content) {
+                        editor.setValue(draft);
+                        const banner = document.createElement('div');
+                        banner.className = 'draft-restore-banner';
+                        banner.innerHTML = '&#128196; Draft from last session restored. <button class="btn-draft-discard">Discard</button>';
+                        banner.querySelector('.btn-draft-discard').addEventListener('click', () => {
+                            editor.setValue(content);
+                            try { localStorage.removeItem(DRAFT_KEY); } catch(e) {}
+                            banner.remove();
+                        });
+                        tabPane.insertBefore(banner, tabPane.firstChild);
+                    }
+                })();
+
+                let _autosaveTimer = null;
                 editor.on('change', () => {
                     clearTimeout(debounceTimer);
                     debounceTimer = setTimeout(updatePreview, 500);
                     clearTimeout(_validateTimer);
                     _validateTimer = setTimeout(validateDSL, 800);
+                    clearTimeout(_autosaveTimer);
+                    _autosaveTimer = setTimeout(() => {
+                        try { localStorage.setItem(DRAFT_KEY, editor.getValue()); } catch(e) {}
+                    }, 1000);
                 });
+                attachDslAutocomplete(editor);
 
                 this.editors[tabIndex] = { editor, path, tabButton, tabPane };
                 this.tabCount++;
@@ -2009,6 +2063,296 @@
             })
             .catch(() => { /* ignore network errors silently */ });
         }
+
+
+        // ─── DSL Autocompletion ──────────────────────────────────────────────────
+        function attachDslAutocomplete(editor) {
+            const SECTIONS = [
+                '## Description', '## Context', '## Boundaries', '## Actors',
+                '## Servers', '## Data', '## Dataflows',
+                '## Protocol Styles', '## Severity Multipliers', '## Custom Mitre Mapping'
+            ];
+
+            const ATTRIBUTES = [
+                { text: 'boundary=',            detail: 'assign to boundary zone' },
+                { text: 'type=',                detail: 'component type' },
+                { text: 'isTrusted=',           detail: 'trust level (True/False)' },
+                { text: 'isAdmin=',             detail: 'admin component (True/False)' },
+                { text: 'isPublic=',            detail: 'public-facing (True/False)' },
+                { text: 'internet_facing=',     detail: 'internet-exposed (True/False)' },
+                { text: 'credentials_stored=',  detail: 'stores credentials (True/False)' },
+                { text: 'submodel=',            detail: 'path to sub-model file' },
+                { text: 'authenticity=',        detail: 'authentication strength' },
+                { text: 'from=',                detail: 'dataflow source' },
+                { text: 'to=',                  detail: 'dataflow target' },
+                { text: 'protocol=',            detail: 'communication protocol' },
+                { text: 'isEncrypted=',         detail: 'encrypted transport (True/False)' },
+                { text: 'isAuthenticated=',     detail: 'requires auth (True/False)' },
+                { text: 'sanitizesInput=',      detail: 'input validation (True/False)' },
+                { text: 'bidirectional=',       detail: 'bidirectional flow (True/False)' },
+                { text: 'classification=',      detail: 'data sensitivity level' },
+                { text: 'lifetime=',            detail: 'data retention lifetime' },
+                { text: 'traversal_difficulty=',detail: 'boundary crossing difficulty' },
+            ];
+
+            const VALUES = {
+                isTrusted:             ['True', 'False'],
+                isAdmin:               ['True', 'False'],
+                isPublic:              ['True', 'False'],
+                internet_facing:       ['True', 'False'],
+                credentials_stored:    ['True', 'False'],
+                isEncrypted:           ['True', 'False'],
+                isAuthenticated:       ['True', 'False'],
+                sanitizesInput:        ['True', 'False'],
+                bidirectional:         ['True', 'False'],
+                type: [
+                    'web_server', 'database', 'cache', 'load_balancer', 'message_queue',
+                    'api_gateway', 'file_server', 'dns_server', 'mail_server',
+                    'domain_controller', 'firewall', 'ids_ips', 'vpn_gateway',
+                    'container', 'microservice', 'lambda', 'storage',
+                    'workstation', 'router', 'switch', 'proxy'
+                ],
+                authenticity:          ['none', 'credentials', 'two-factor', 'sso', 'certificate'],
+                protocol: [
+                    'HTTP', 'HTTPS', 'TLS', 'SSH', 'SFTP', 'FTP', 'FTPS',
+                    'SQL', 'TCP', 'UDP', 'gRPC', 'AMQP', 'MQTT', 'WebSocket',
+                    'REST', 'SOAP', 'GraphQL', 'LDAP', 'LDAPS', 'Kerberos',
+                    'RDP', 'VPN', 'ICMP', 'DNS', 'SMB', 'NFS'
+                ],
+                classification:        ['PUBLIC', 'RESTRICTED', 'SENSITIVE', 'SECRET', 'TOP_SECRET', 'INTERNAL', 'CONFIDENTIAL'],
+                lifetime:              ['NONE', 'SHORT', 'LONG', 'AUTO', 'PERMANENT'],
+                traversal_difficulty:  ['low', 'medium', 'high'],
+            };
+
+            // ── Dropdown element ────────────────────────────────────────────────
+            const dropdown = document.createElement('ul');
+            dropdown.setAttribute('id', 'dsl-autocomplete-' + Math.random().toString(36).slice(2));
+            Object.assign(dropdown.style, {
+                position: 'fixed', zIndex: '9999', margin: '0', padding: '4px 0',
+                listStyle: 'none', borderRadius: '6px',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
+                minWidth: '270px', maxHeight: '220px', overflowY: 'auto',
+                fontFamily: 'monospace', fontSize: '13px', display: 'none',
+                transition: 'none',
+            });
+            document.body.appendChild(dropdown);
+
+            let activeIndex = -1;
+            let currentSuggestions = [];
+
+            function applyDropdownTheme() {
+                const dark = document.body.classList.contains('dark-mode');
+                dropdown.style.background = dark ? '#252526' : '#fff';
+                dropdown.style.border     = dark ? '1px solid #555' : '1px solid #ccc';
+                dropdown.style.color      = dark ? '#d4d4d4' : '#333';
+            }
+
+            function hideDropdown() {
+                dropdown.style.display = 'none';
+                activeIndex = -1;
+                currentSuggestions = [];
+            }
+
+            // ── Parse boundary / actor / server names from content ──────────────
+            function extractNames(content, sectionTitle) {
+                const names = [];
+                const lines = content.split('\n');
+                let inSection = false;
+                for (const line of lines) {
+                    const sm = line.match(/^##\s+(.+)/);
+                    if (sm) { inSection = sm[1].trim().toLowerCase() === sectionTitle.toLowerCase(); continue; }
+                    if (inSection) {
+                        const nm = line.match(/\*\*([^*]+)\*\*/);
+                        if (nm) names.push(nm[1]);
+                    }
+                }
+                return names;
+            }
+
+            // ── Determine cursor context ─────────────────────────────────────────
+            function getContext(cm) {
+                const cursor = cm.getCursor();
+                const line   = cm.getLine(cursor.line);
+                const before = line.slice(0, cursor.ch);
+
+                // Section header: line starts with #
+                if (/^#{1,2}\s*\w*$/.test(before)) {
+                    const typed = before.replace(/^#+\s*/, '');
+                    return { kind: 'section', typed, before };
+                }
+
+                // Value: last token is  attr=<partial>  or  attr="<partial>
+                const valMatch = before.match(/(\w+)=["']?([^,\s"']*)$/);
+                if (valMatch) {
+                    return { kind: 'value', attr: valMatch[1], typed: valMatch[2], before };
+                }
+
+                // Attribute: on a DSL item line, typing a word
+                if (/^-\s|\*\*/.test(line)) {
+                    const wordMatch = before.match(/(\w*)$/);
+                    return { kind: 'attribute', typed: wordMatch ? wordMatch[1] : '', before };
+                }
+
+                return null;
+            }
+
+            // ── Build suggestion list ────────────────────────────────────────────
+            function buildSuggestions(ctx, cm) {
+                if (!ctx) return [];
+                const lc = s => s.toLowerCase();
+
+                if (ctx.kind === 'section') {
+                    return SECTIONS
+                        .filter(s => lc(s).includes(lc(ctx.typed)))
+                        .map(s => ({ display: s, insert: s, detail: 'section' }));
+                }
+
+                if (ctx.kind === 'value') {
+                    const attr = ctx.attr;
+                    if (attr === 'boundary') {
+                        return extractNames(cm.getValue(), 'Boundaries')
+                            .filter(n => lc(n).includes(lc(ctx.typed)))
+                            .map(n => ({ display: n, insert: n, detail: 'boundary' }));
+                    }
+                    if (attr === 'from' || attr === 'to') {
+                        const actors  = extractNames(cm.getValue(), 'Actors');
+                        const servers = extractNames(cm.getValue(), 'Servers');
+                        return [...actors.map(n => ({ display: n, insert: n, detail: 'actor' })),
+                                ...servers.map(n => ({ display: n, insert: n, detail: 'server' }))]
+                            .filter(s => lc(s.display).includes(lc(ctx.typed)));
+                    }
+                    const vals = VALUES[attr];
+                    if (vals) {
+                        return vals
+                            .filter(v => lc(v).startsWith(lc(ctx.typed)))
+                            .map(v => ({ display: v, insert: v, detail: attr }));
+                    }
+                    return [];
+                }
+
+                if (ctx.kind === 'attribute') {
+                    return ATTRIBUTES
+                        .filter(a => lc(a.text).startsWith(lc(ctx.typed)))
+                        .map(a => ({ display: a.text, insert: a.text.slice(ctx.typed.length), detail: a.detail }));
+                }
+
+                return [];
+            }
+
+            // ── Render & position dropdown ───────────────────────────────────────
+            function renderDropdown(cm) {
+                const dark = document.body.classList.contains('dark-mode');
+                applyDropdownTheme();
+                dropdown.innerHTML = '';
+                currentSuggestions.forEach((s, i) => {
+                    const li = document.createElement('li');
+                    Object.assign(li.style, {
+                        padding: '4px 12px', cursor: 'pointer',
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        background: i === activeIndex ? (dark ? '#094771' : '#e3f2fd') : 'transparent',
+                    });
+                    const main = document.createElement('span');
+                    main.textContent = s.display;
+                    main.style.fontWeight = '600';
+                    const det = document.createElement('span');
+                    det.textContent = s.detail;
+                    det.style.cssText = `color:${dark ? '#888' : '#aaa'};font-size:11px;margin-left:8px;`;
+                    li.appendChild(main);
+                    li.appendChild(det);
+                    li.addEventListener('mousedown', e => { e.preventDefault(); applySuggestion(cm, s); });
+                    li.addEventListener('mouseover', () => { activeIndex = i; renderDropdown(cm); });
+                    dropdown.appendChild(li);
+                });
+
+                const coords = cm.cursorCoords(true, 'window');
+                dropdown.style.display = 'block';
+                dropdown.style.left = coords.left + 'px';
+                dropdown.style.top  = (coords.bottom + 2) + 'px';
+
+                requestAnimationFrame(() => {
+                    const r = dropdown.getBoundingClientRect();
+                    if (r.right  > window.innerWidth)  dropdown.style.left = Math.max(0, window.innerWidth  - r.width  - 8) + 'px';
+                    if (r.bottom > window.innerHeight)  dropdown.style.top  = (coords.top - r.height - 2) + 'px';
+                });
+            }
+
+            function showDropdown(cm) {
+                const ctx = getContext(cm);
+                const sugg = buildSuggestions(ctx, cm);
+                if (sugg.length === 0) { hideDropdown(); return; }
+                currentSuggestions = sugg;
+                activeIndex = 0;
+                renderDropdown(cm);
+            }
+
+            // ── Apply selected suggestion ────────────────────────────────────────
+            function applySuggestion(cm, s) {
+                const ctx = getContext(cm);
+                if (!ctx) { hideDropdown(); return; }
+                const cursor = cm.getCursor();
+                const line   = cm.getLine(cursor.line);
+
+                if (ctx.kind === 'section') {
+                    cm.replaceRange(s.insert + '\n', { line: cursor.line, ch: 0 }, { line: cursor.line, ch: line.length });
+                    cm.setCursor({ line: cursor.line + 1, ch: 0 });
+                } else if (ctx.kind === 'value') {
+                    const valMatch = ctx.before.match(/(\w+)=["']?([^,\s"']*)$/);
+                    if (valMatch) {
+                        const startCh = cursor.ch - valMatch[2].length;
+                        cm.replaceRange(s.insert, { line: cursor.line, ch: startCh }, cursor);
+                    }
+                } else if (ctx.kind === 'attribute') {
+                    cm.replaceRange(s.insert, cursor);
+                }
+
+                hideDropdown();
+                cm.focus();
+            }
+
+            // ── Event hooks ─────────────────────────────────────────────────────
+            const NAV_KEYS = new Set(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',
+                                      'Shift','Control','Alt','Meta','CapsLock',
+                                      'PageUp','PageDown','Home','End']);
+
+            editor.on('keydown', function(cm, event) {
+                // Ctrl+Space: force-show
+                if (event.key === ' ' && event.ctrlKey) {
+                    event.preventDefault();
+                    showDropdown(cm);
+                    return;
+                }
+                if (dropdown.style.display === 'none') return;
+
+                if (event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    activeIndex = Math.min(activeIndex + 1, currentSuggestions.length - 1);
+                    renderDropdown(cm);
+                } else if (event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    activeIndex = Math.max(activeIndex - 1, 0);
+                    renderDropdown(cm);
+                } else if (event.key === 'Tab' || event.key === 'Enter') {
+                    if (currentSuggestions.length > 0) {
+                        event.preventDefault();
+                        applySuggestion(cm, currentSuggestions[Math.max(activeIndex, 0)]);
+                    }
+                } else if (event.key === 'Escape') {
+                    event.preventDefault();
+                    hideDropdown();
+                }
+            });
+
+            editor.on('keyup', function(cm, event) {
+                if (NAV_KEYS.has(event.key) || event.key === 'Escape' || event.key === 'Enter') return;
+                showDropdown(cm);
+            });
+
+            editor.on('blur', function() { setTimeout(hideDropdown, 150); });
+
+            // Clean up dropdown when editor is replaced
+            editor.on('destroy', function() { dropdown.remove(); });
+        }
+        // ── End DSL Autocompletion ────────────────────────────────────────────────
 
     </script>
 </body>
