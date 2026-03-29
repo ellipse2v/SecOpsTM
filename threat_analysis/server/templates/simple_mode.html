@@ -713,20 +713,19 @@
         /* ── Component Panel ─────────────────────────────────────────────── */
         /* Trigger tab — discreet vertical sliver at right edge of editor */
         #cp-tab {
-            position: absolute; top: 50%; right: 0;
-            transform: translateY(-50%);
-            width: 16px; height: 52px;
-            background: rgba(0,0,0,0.04); border: none;
-            border-radius: 4px 0 0 4px;
-            cursor: pointer; z-index: 15; padding: 0;
-            display: flex; align-items: center; justify-content: center;
-            color: rgba(0,0,0,0.18); font-size: 10px;
-            transition: background .2s, color .2s, width .15s;
+            display: inline-flex; align-items: center; gap: 3px;
+            padding: 2px 7px; font-size: 11px; line-height: 1.5;
+            border: 1px solid #d0d7de; border-radius: 4px;
+            background: #f6f8fa; color: #57606a;
+            cursor: pointer; white-space: nowrap;
+            transition: background .15s, color .15s, border-color .15s;
+            flex-shrink: 0;
         }
-        #cp-tab::after { content: '✏'; writing-mode: vertical-rl; }
-        #cp-tab:hover { background: rgba(44,151,75,0.14); color: #2c974b; width: 20px; }
-        body.dark-mode #cp-tab { background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.18); }
-        body.dark-mode #cp-tab:hover { background: rgba(76,175,80,0.15); color: #4caf50; }
+        #cp-tab:hover, #cp-tab.open {
+            background: #e8f5e9; color: #2c974b; border-color: #2c974b;
+        }
+        body.dark-mode #cp-tab { background: #2d333b; border-color: #444c56; color: #adbac7; }
+        body.dark-mode #cp-tab:hover, body.dark-mode #cp-tab.open { background: #1b3a25; color: #4caf50; border-color: #4caf50; }
 
         /* Slide-in panel */
         #cp-panel {
@@ -816,6 +815,7 @@
     <script src="/static/js/svg-pan-zoom.min.js"></script>
     <script src="/static/js/codemirror/codemirror.min.js"></script>
     <script src="/static/js/codemirror/markdown.min.js"></script>
+    <script src="/static/js/dsl_schema.js"></script>
 </head>
 <body>
 
@@ -877,15 +877,13 @@
                     <div class="tab-bar" id="tab-bar"></div>
                     <button class="tab-bar-scroll-btn" id="tab-scroll-right" title="Scroll tabs right" onclick="TabBar.scrollRight()">&#8250;</button>
                 </div>
-                <div style="display:flex;align-items:baseline;gap:4px;">
+                <div style="display:flex;align-items:center;gap:6px;">
                     <div id="dsl-validation-banner" style="display:none;flex:1;" aria-live="polite"></div>
                     <span id="dsl-component-count"></span>
+                    <button id="cp-tab" onclick="ComponentPanel.toggle()" title="Add / edit DSL components">&#9998; Helper</button>
                 </div>
                 <div class="tab-content-area" id="tab-content-area"></div>
             </div>
-
-            <!-- Component Panel: discreet trigger tab -->
-            <button id="cp-tab" onclick="ComponentPanel.toggle()" title="DSL component helper"></button>
 
             <!-- Component Panel: slide-in overlay -->
             <div id="cp-panel" aria-hidden="true">
@@ -910,67 +908,7 @@
                     </select>
                 </div>
 
-                <div id="cp-form-area">
-                    <!-- Boundary -->
-                    <div class="cp-form" id="cp-form-boundary">
-                        <label>Name *<input type="text" id="cp-b-name" placeholder="e.g., Internet"></label>
-                        <label>Color<input type="text" id="cp-b-color" placeholder="lightcoral"></label>
-                        <label>Trusted<select id="cp-b-trusted"><option value="True">True</option><option value="False">False</option></select></label>
-                        <label>Traversal difficulty<select id="cp-b-difficulty"><option value="">(none)</option><option>low</option><option>medium</option><option>high</option></select></label>
-                    </div>
-                    <!-- Actor -->
-                    <div class="cp-form" id="cp-form-actor" style="display:none;">
-                        <label>Name *<input type="text" id="cp-a-name" placeholder="e.g., End User"></label>
-                        <label>Boundary<select id="cp-a-boundary"><option value="">(none)</option></select></label>
-                        <label>Description<input type="text" id="cp-a-desc" placeholder="Short description"></label>
-                        <label>Color<input type="text" id="cp-a-color" placeholder="e.g., blue"></label>
-                    </div>
-                    <!-- Server -->
-                    <div class="cp-form" id="cp-form-server" style="display:none;">
-                        <label>Name *<input type="text" id="cp-s-name" placeholder="e.g., Backend API"></label>
-                        <label>Boundary<select id="cp-s-boundary"><option value="">(none)</option></select></label>
-                        <label>Type<select id="cp-s-type">
-                            <option value="">&#8212;</option>
-                            <option>web_server</option><option>api_server</option>
-                            <option>database</option><option>cache</option>
-                            <option>load_balancer</option><option>microservice</option>
-                            <option>faas</option><option>message_broker</option>
-                            <option>message_queue</option><option>cdn</option>
-                            <option>api_gateway</option><option>waf</option>
-                            <option>secrets_manager</option><option>iam</option>
-                            <option>identity_provider</option><option>monitoring</option>
-                            <option>object_storage</option><option>registry</option>
-                        </select></label>
-                        <label>Description<input type="text" id="cp-s-desc" placeholder="Short description"></label>
-                        <label class="cp-check-row"><input type="checkbox" id="cp-s-internet"> internet_facing</label>
-                        <label class="cp-check-row"><input type="checkbox" id="cp-s-creds"> credentials_stored</label>
-                    </div>
-                    <!-- Dataflow -->
-                    <div class="cp-form" id="cp-form-dataflow" style="display:none;">
-                        <label>Name *<input type="text" id="cp-d-name" placeholder="e.g., API to DB"></label>
-                        <label>From<select id="cp-d-from"><option value="">(select)</option></select></label>
-                        <label>To<select id="cp-d-to"><option value="">(select)</option></select></label>
-                        <label>Protocol<input type="text" id="cp-d-proto" placeholder="e.g., HTTPS"></label>
-                        <label>Color<input type="text" id="cp-d-color" placeholder="e.g., darkgreen"></label>
-                        <label class="cp-check-row"><input type="checkbox" id="cp-d-bidir"> bidirectional</label>
-                    </div>
-                    <!-- Data -->
-                    <div class="cp-form" id="cp-form-data" style="display:none;">
-                        <label>Name *<input type="text" id="cp-dt-name" placeholder="e.g., User PII"></label>
-                        <label>Classification<select id="cp-dt-class">
-                            <option value="">&#8212;</option>
-                            <option>PUBLIC</option><option>RESTRICTED</option><option>INTERNAL</option>
-                            <option>SENSITIVE</option><option>CONFIDENTIAL</option>
-                            <option>SECRET</option><option>TOP_SECRET</option>
-                        </select></label>
-                        <label>Credentials life<select id="cp-dt-creds">
-                            <option value="">&#8212;</option>
-                            <option>NONE</option><option>SHORT</option><option>SHORTLIVED</option>
-                            <option>LONG</option><option>UNKNOWN</option>
-                        </select></label>
-                        <label>Description<input type="text" id="cp-dt-desc" placeholder="Short description"></label>
-                    </div>
-                </div>
+                <div id="cp-form-area"><!-- populated by ComponentPanel._buildForms() --></div>
 
                 <button id="cp-action-btn" onclick="ComponentPanel.execute()">Insert</button>
             </div>
@@ -1008,6 +946,7 @@
         let panZoomInstance;
         let debounceTimer;
         let _validateTimer = null;
+        let _diagramInFlight = false;
         const svgContainer = document.getElementById('svg-container');
         const svgWrapper = document.getElementById('svg-wrapper');
         const legendContainer = document.getElementById('legend-container');
@@ -1234,7 +1173,7 @@
                     clearTimeout(debounceTimer);
                     debounceTimer = setTimeout(updatePreview, 500);
                     clearTimeout(_validateTimer);
-                    _validateTimer = setTimeout(validateDSL, 800);
+                    _validateTimer = setTimeout(validateDSL, 1200);
                     clearTimeout(_autosaveTimer);
                     _autosaveTimer = setTimeout(() => {
                         try { localStorage.setItem(DRAFT_KEY, editor.getValue()); } catch(e) {}
@@ -1511,6 +1450,7 @@
             hideErrorMessage();
             const activeEditor = TabManager.getActiveEditor();
             if (!activeEditor) return;
+            _diagramInFlight = true;
 
             const markdownContent = activeEditor.getValue();
             try {
@@ -1589,6 +1529,8 @@
                 if (panZoomInstance) panZoomInstance.destroy();
                 panZoomInstance = null;
                 globalGraphMetadata = null; // Clear metadata on error
+            } finally {
+                _diagramInFlight = false;
             }
         }
 
@@ -2195,6 +2137,12 @@
         }
 
         function validateDSL() {
+            // Skip while a diagram update is in flight to avoid concurrent TM instantiation.
+            if (_diagramInFlight) {
+                clearTimeout(_validateTimer);
+                _validateTimer = setTimeout(validateDSL, 600);
+                return;
+            }
             const activeEditor = TabManager.getActiveEditor();
             if (!activeEditor) return;
             _clearDslMarks(activeEditor);
@@ -2213,6 +2161,8 @@
             })
             .then(r => r.json())
             .then(data => {
+                // Server returned "skipped" when concurrent TM usage was detected — silently ignore.
+                if (data.skipped) return;
                 if (!banner) return;
 
                 // — Component count badge —
@@ -2263,19 +2213,67 @@
         var ComponentPanel = (function() {
             var _entity = 'boundary';
             var _mode   = 'add';
+            var _built  = false;
 
-            var SECTIONS = {
-                boundary: '## Boundaries', actor:    '## Actors',
-                server:   '## Servers',   dataflow: '## Dataflows', data: '## Data',
-            };
-
-            function _ed() { return window.TabManager && TabManager.getActiveEditor(); }
+            function _ed()  { return typeof TabManager !== 'undefined' ? TabManager.getActiveEditor() : null; }
             function _val() { var e = _ed(); return e ? e.getValue() : ''; }
+            function _fid(type, key) { return 'cpf-' + type + '-' + key; }
 
-            /* Parse entity names from the active editor for the given entity type */
+            /* Build all entity forms dynamically from DSL_SCHEMA (runs once on first open) */
+            function _buildForms() {
+                if (_built) return;
+                _built = true;
+                var area = document.getElementById('cp-form-area');
+                var first = true;
+                Object.keys(DSL_SCHEMA.entities).forEach(function(type) {
+                    var ent = DSL_SCHEMA.entities[type];
+                    var div = document.createElement('div');
+                    div.className = 'cp-form';
+                    div.id = 'cp-form-' + type;
+                    if (!first) div.style.display = 'none';
+                    first = false;
+                    ent.fields.forEach(function(field) {
+                        var id  = _fid(type, field.key);
+                        var lbl = document.createElement('label');
+                        if (field.type === 'checkbox') {
+                            lbl.className = 'cp-check-row';
+                            var cb = document.createElement('input');
+                            cb.type = 'checkbox'; cb.id = id;
+                            lbl.appendChild(cb);
+                            lbl.appendChild(document.createTextNode('\u00a0' + field.label));
+                        } else if (field.type === 'select' || field.type === 'boundary-select' || field.type === 'node-select') {
+                            lbl.appendChild(document.createTextNode(field.label));
+                            var sel = document.createElement('select');
+                            sel.id = id;
+                            if (field.type === 'boundary-select') {
+                                var ob = document.createElement('option'); ob.value = ''; ob.textContent = '(none)'; sel.appendChild(ob);
+                            } else if (field.type === 'node-select') {
+                                var on = document.createElement('option'); on.value = ''; on.textContent = '(select)'; sel.appendChild(on);
+                            } else {
+                                (field.options || []).forEach(function(opt) {
+                                    var o = document.createElement('option'); o.value = o.textContent = opt;
+                                    if (opt === '') { o.textContent = '\u2014'; o.value = ''; }
+                                    sel.appendChild(o);
+                                });
+                            }
+                            lbl.appendChild(sel);
+                        } else {
+                            lbl.appendChild(document.createTextNode(field.label + (field.required ? ' *' : '')));
+                            var inp = document.createElement('input');
+                            inp.type = 'text'; inp.id = id;
+                            if (field.placeholder) inp.placeholder = field.placeholder;
+                            lbl.appendChild(inp);
+                        }
+                        div.appendChild(lbl);
+                    });
+                    area.appendChild(div);
+                });
+            }
+
+            /* Parse entity names from active editor */
             function _parseNames(type) {
-                var sec = SECTIONS[type], lines = _val().split('\n');
-                var inSec = false, names = [];
+                var sec = DSL_SCHEMA.entities[type].section;
+                var lines = _val().split('\n'), inSec = false, names = [];
                 for (var i = 0; i < lines.length; i++) {
                     var l = lines[i];
                     if (l.trim() === sec) { inSec = true; continue; }
@@ -2285,8 +2283,11 @@
                 return names;
             }
 
-            /* Parse attributes of one named entity */
-            function _parseAttrs(name, type) {
+            /* Parse attributes of one named entity.
+             * Handles both quoted values (key="val with spaces") and unquoted ones.
+             * Unquoted pattern [^,\n]+ captures everything except comma/newline,
+             * covering hex colors (#2c974b), parens (Backend (TRUSTED)), pipes, colons, etc. */
+            function _parseAttrs(name) {
                 var esc = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 var re  = new RegExp('^\\s*- \\*\\*' + esc + '\\*\\*:?(.*)$');
                 var attrs = {name: name};
@@ -2294,10 +2295,13 @@
                     var m = line.match(re);
                     if (!m) continue;
                     var rest = m[1], am;
-                    var ap = /(\w+)="([^"]*)"|\b(\w+)=(True|False|[\w.,\- ]+?)(?=\s*,\s*\w+=|\s*$)/g;
+                    // Alt 1: key="quoted value"  — handles spaces, commas inside value
+                    // Alt 2: key=unquoted        — anything except comma or newline
+                    var ap = /(\w+)="([^"]*)"|\b(\w+)=([^,\n]+?)(?=\s*,\s*\w+=|\s*$)/g;
                     while ((am = ap.exec(rest)) !== null) {
-                        var k = am[1] || am[3], v = am[2] !== undefined ? am[2] : am[4].trim();
-                        attrs[k] = v;
+                        var k = am[1] || am[3];
+                        var v = am[2] !== undefined ? am[2] : am[4].trim();
+                        if (k) attrs[k] = v;
                     }
                     break;
                 }
@@ -2318,96 +2322,94 @@
                 return '- **' + name + '**: ' + parts.join(', ');
             }
 
-            /* Read form fields for the current entity type */
+            /* Read form fields — schema-driven */
             function _collect() {
-                var f = {}, g = function(id) { return document.getElementById(id); };
-                switch (_entity) {
-                    case 'boundary':
-                        f.name=g('cp-b-name').value; f.color=g('cp-b-color').value;
-                        f.isTrusted=g('cp-b-trusted').value;
-                        f.traversal_difficulty=g('cp-b-difficulty').value; break;
-                    case 'actor':
-                        f.name=g('cp-a-name').value; f.boundary=g('cp-a-boundary').value;
-                        f.description=g('cp-a-desc').value; f.color=g('cp-a-color').value; break;
-                    case 'server':
-                        f.name=g('cp-s-name').value; f.boundary=g('cp-s-boundary').value;
-                        f.type=g('cp-s-type').value; f.description=g('cp-s-desc').value;
-                        if(g('cp-s-internet').checked) f.internet_facing='True';
-                        if(g('cp-s-creds').checked)    f.credentials_stored='True'; break;
-                    case 'dataflow':
-                        f.name=g('cp-d-name').value; f.from=g('cp-d-from').value;
-                        f.to=g('cp-d-to').value; f.protocol=g('cp-d-proto').value;
-                        f.color=g('cp-d-color').value;
-                        if(g('cp-d-bidir').checked) f.bidirectional='True'; break;
-                    case 'data':
-                        f.name=g('cp-dt-name').value; f.classification=g('cp-dt-class').value;
-                        f.credentialsLife=g('cp-dt-creds').value;
-                        f.description=g('cp-dt-desc').value; break;
-                }
+                var f = {};
+                DSL_SCHEMA.entities[_entity].fields.forEach(function(field) {
+                    var el = document.getElementById(_fid(_entity, field.key));
+                    if (!el) return;
+                    if (field.type === 'checkbox') {
+                        if (el.checked) f[field.key] = 'True';
+                    } else {
+                        f[field.key] = el.value;
+                    }
+                });
                 return f;
             }
 
-            /* Fill form from attrs dict */
+            /* Fill form from attrs dict — schema-driven.
+             * - checkbox: explicit True/False (case-insensitive); falls back to field.default_checked
+             * - other: use attr value or field.default_val */
             function _fill(attrs) {
-                var g = function(id) { return document.getElementById(id); };
-                switch (_entity) {
-                    case 'boundary':
-                        g('cp-b-name').value=attrs.name||''; g('cp-b-color').value=attrs.color||'';
-                        g('cp-b-trusted').value=attrs.isTrusted==='False'?'False':'True';
-                        g('cp-b-difficulty').value=attrs.traversal_difficulty||''; break;
-                    case 'actor':
-                        g('cp-a-name').value=attrs.name||''; g('cp-a-boundary').value=attrs.boundary||'';
-                        g('cp-a-desc').value=attrs.description||''; g('cp-a-color').value=attrs.color||''; break;
-                    case 'server':
-                        g('cp-s-name').value=attrs.name||''; g('cp-s-boundary').value=attrs.boundary||'';
-                        g('cp-s-type').value=attrs.type||''; g('cp-s-desc').value=attrs.description||'';
-                        g('cp-s-internet').checked=attrs.internet_facing==='True';
-                        g('cp-s-creds').checked=attrs.credentials_stored==='True'; break;
-                    case 'dataflow':
-                        g('cp-d-name').value=attrs.name||''; g('cp-d-from').value=attrs.from||'';
-                        g('cp-d-to').value=attrs.to||''; g('cp-d-proto').value=attrs.protocol||'';
-                        g('cp-d-color').value=attrs.color||'';
-                        g('cp-d-bidir').checked=attrs.bidirectional==='True'; break;
-                    case 'data':
-                        g('cp-dt-name').value=attrs.name||''; g('cp-dt-class').value=attrs.classification||'';
-                        g('cp-dt-creds').value=attrs.credentialsLife||'';
-                        g('cp-dt-desc').value=attrs.description||''; break;
-                }
-            }
-
-            /* Populate boundary dropdowns from current editor content */
-            function _syncBoundaries() {
-                var bNames = _parseNames('boundary');
-                ['cp-a-boundary','cp-s-boundary'].forEach(function(id) {
-                    var sel = document.getElementById(id); if (!sel) return;
-                    var cur = sel.value;
-                    sel.innerHTML = '<option value="">(none)</option>';
-                    bNames.forEach(function(n) {
-                        var o = document.createElement('option'); o.value = o.textContent = n; sel.appendChild(o);
-                    });
-                    sel.value = cur;
+                DSL_SCHEMA.entities[_entity].fields.forEach(function(field) {
+                    var el = document.getElementById(_fid(_entity, field.key));
+                    if (!el) return;
+                    if (field.type === 'checkbox') {
+                        var raw = attrs[field.key];
+                        if (raw !== undefined) {
+                            el.checked = raw.toLowerCase() === 'true';
+                        } else {
+                            el.checked = !!field.default_checked;
+                        }
+                    } else {
+                        el.value = attrs[field.key] || field.default_val || '';
+                    }
                 });
             }
 
-            /* Populate From/To dropdowns (actors + servers) */
+            /* Clear form — schema-driven */
+            function _clearForm(keepName) {
+                DSL_SCHEMA.entities[_entity].fields.forEach(function(field) {
+                    if (keepName && field.key === 'name') return;
+                    var el = document.getElementById(_fid(_entity, field.key));
+                    if (!el) return;
+                    if (field.type === 'checkbox') {
+                        el.checked = !!field.default_checked;
+                    } else {
+                        el.value = field.default_val || '';
+                    }
+                });
+            }
+
+            /* Populate all boundary-select dropdowns across all entity forms */
+            function _syncBoundaries() {
+                var bNames = _parseNames('boundary');
+                Object.keys(DSL_SCHEMA.entities).forEach(function(type) {
+                    DSL_SCHEMA.entities[type].fields.forEach(function(field) {
+                        if (field.type !== 'boundary-select') return;
+                        var sel = document.getElementById(_fid(type, field.key)); if (!sel) return;
+                        var cur = sel.value;
+                        sel.innerHTML = '<option value="">(none)</option>';
+                        bNames.forEach(function(n) {
+                            var o = document.createElement('option'); o.value = o.textContent = n; sel.appendChild(o);
+                        });
+                        sel.value = cur;
+                    });
+                });
+            }
+
+            /* Populate all node-select dropdowns (actors + servers) */
             function _syncNodes() {
                 var nodes = _parseNames('actor').concat(_parseNames('server'));
-                ['cp-d-from','cp-d-to'].forEach(function(id) {
-                    var sel = document.getElementById(id); if (!sel) return;
-                    var cur = sel.value;
-                    sel.innerHTML = '<option value="">(select)</option>';
-                    nodes.forEach(function(n) {
-                        var o = document.createElement('option'); o.value = o.textContent = n; sel.appendChild(o);
+                Object.keys(DSL_SCHEMA.entities).forEach(function(type) {
+                    DSL_SCHEMA.entities[type].fields.forEach(function(field) {
+                        if (field.type !== 'node-select') return;
+                        var sel = document.getElementById(_fid(type, field.key)); if (!sel) return;
+                        var cur = sel.value;
+                        sel.innerHTML = '<option value="">(select)</option>';
+                        nodes.forEach(function(n) {
+                            var o = document.createElement('option'); o.value = o.textContent = n; sel.appendChild(o);
+                        });
+                        sel.value = cur;
                     });
-                    sel.value = cur;
                 });
             }
 
             /* Insert DSL line into the correct section of the active editor */
             function _insert(line) {
                 var ed = _ed(); if (!ed) return;
-                var sec = SECTIONS[_entity], all = ed.getValue().split('\n');
-                var si = -1, ni = all.length;
+                var sec = DSL_SCHEMA.entities[_entity].section;
+                var all = ed.getValue().split('\n'), si = -1, ni = all.length;
                 for (var i = 0; i < all.length; i++) {
                     if (all[i].trim() === sec) { si = i; continue; }
                     if (si >= 0 && /^## /.test(all[i])) { ni = i; break; }
@@ -2435,15 +2437,6 @@
                 }
             }
 
-            function _clearForm(keepName) {
-                var sel = '#cp-form-' + _entity + ' ';
-                document.querySelectorAll(sel + 'input[type=text]').forEach(function(inp) {
-                    if (!keepName || !inp.id.endsWith('-name')) inp.value = '';
-                });
-                document.querySelectorAll(sel + 'input[type=checkbox]').forEach(function(cb) { cb.checked = false; });
-                document.querySelectorAll(sel + 'select').forEach(function(s) { s.selectedIndex = 0; });
-            }
-
             function _refreshEditSelect() {
                 var sel = document.getElementById('cp-entity-select');
                 var cur = sel.value;
@@ -2460,14 +2453,16 @@
                     document.getElementById('cp-panel').classList.contains('open') ? this.close() : this.open();
                 },
                 open: function() {
+                    _buildForms();
                     var p = document.getElementById('cp-panel');
                     p.classList.add('open'); p.setAttribute('aria-hidden','false');
-                    _syncBoundaries();
-                    if (_entity === 'dataflow') _syncNodes();
+                    document.getElementById('cp-tab').classList.add('open');
+                    _syncBoundaries(); _syncNodes();
                 },
                 close: function() {
                     var p = document.getElementById('cp-panel');
                     p.classList.remove('open'); p.setAttribute('aria-hidden','true');
+                    document.getElementById('cp-tab').classList.remove('open');
                 },
                 setEntity: function(type) {
                     _entity = type;
@@ -2477,8 +2472,7 @@
                     document.querySelectorAll('.cp-form').forEach(function(f) {
                         f.style.display = f.id === 'cp-form-' + type ? '' : 'none';
                     });
-                    _syncBoundaries();
-                    if (type === 'dataflow') _syncNodes();
+                    _syncBoundaries(); _syncNodes();
                     if (_mode === 'edit') _refreshEditSelect();
                     _clearForm();
                 },
@@ -2493,7 +2487,14 @@
                 },
                 onEntitySelect: function() {
                     var name = document.getElementById('cp-entity-select').value;
-                    if (name) _fill(_parseAttrs(name, _entity)); else _clearForm(true);
+                    if (name) {
+                        // Refresh dynamic selects so boundary/node options are current.
+                        _syncBoundaries();
+                        _syncNodes();
+                        _fill(_parseAttrs(name));
+                    } else {
+                        _clearForm(true);
+                    }
                 },
                 execute: function() {
                     var fields = _collect();
@@ -2518,62 +2519,29 @@
         })();
 
         function attachDslAutocomplete(editor) {
-            const SECTIONS = [
-                '## Description', '## Context', '## Boundaries', '## Actors',
-                '## Servers', '## Data', '## Dataflows',
-                '## Protocol Styles', '## Severity Multipliers', '## Custom Mitre Mapping'
-            ];
+            // All lists derived from DSL_SCHEMA — add/edit fields there, not here.
+            const SECTIONS = DSL_SCHEMA.sections;
 
-            const ATTRIBUTES = [
-                { text: 'boundary=',            detail: 'assign to boundary zone' },
-                { text: 'type=',                detail: 'component type' },
-                { text: 'isTrusted=',           detail: 'trust level (True/False)' },
-                { text: 'isAdmin=',             detail: 'admin component (True/False)' },
-                { text: 'isPublic=',            detail: 'public-facing (True/False)' },
-                { text: 'internet_facing=',     detail: 'internet-exposed (True/False)' },
-                { text: 'credentials_stored=',  detail: 'stores credentials (True/False)' },
-                { text: 'submodel=',            detail: 'path to sub-model file' },
-                { text: 'authenticity=',        detail: 'authentication strength' },
-                { text: 'from=',                detail: 'dataflow source' },
-                { text: 'to=',                  detail: 'dataflow target' },
-                { text: 'protocol=',            detail: 'communication protocol' },
-                { text: 'isEncrypted=',         detail: 'encrypted transport (True/False)' },
-                { text: 'isAuthenticated=',     detail: 'requires auth (True/False)' },
-                { text: 'sanitizesInput=',      detail: 'input validation (True/False)' },
-                { text: 'bidirectional=',       detail: 'bidirectional flow (True/False)' },
-                { text: 'classification=',      detail: 'data sensitivity level' },
-                { text: 'lifetime=',            detail: 'data retention lifetime' },
-                { text: 'traversal_difficulty=',detail: 'boundary crossing difficulty' },
-            ];
+            const ATTRIBUTES = DSL_SCHEMA.attributes.map(function(a) {
+                return { text: a.key + '=', detail: a.detail };
+            });
 
-            const VALUES = {
-                isTrusted:             ['True', 'False'],
-                isAdmin:               ['True', 'False'],
-                isPublic:              ['True', 'False'],
-                internet_facing:       ['True', 'False'],
-                credentials_stored:    ['True', 'False'],
-                isEncrypted:           ['True', 'False'],
-                isAuthenticated:       ['True', 'False'],
-                sanitizesInput:        ['True', 'False'],
-                bidirectional:         ['True', 'False'],
-                type: [
-                    'web_server', 'database', 'cache', 'load_balancer', 'message_queue',
-                    'api_gateway', 'file_server', 'dns_server', 'mail_server',
-                    'domain_controller', 'firewall', 'ids_ips', 'vpn_gateway',
-                    'container', 'microservice', 'lambda', 'storage',
-                    'workstation', 'router', 'switch', 'proxy'
-                ],
-                authenticity:          ['none', 'credentials', 'two-factor', 'sso', 'certificate'],
-                protocol: [
-                    'HTTP', 'HTTPS', 'TLS', 'SSH', 'SFTP', 'FTP', 'FTPS',
-                    'SQL', 'TCP', 'UDP', 'gRPC', 'AMQP', 'MQTT', 'WebSocket',
-                    'REST', 'SOAP', 'GraphQL', 'LDAP', 'LDAPS', 'Kerberos',
-                    'RDP', 'VPN', 'ICMP', 'DNS', 'SMB', 'NFS'
-                ],
-                classification:        ['PUBLIC', 'RESTRICTED', 'SENSITIVE', 'SECRET', 'TOP_SECRET', 'INTERNAL', 'CONFIDENTIAL'],
-                lifetime:              ['NONE', 'SHORT', 'LONG', 'AUTO', 'PERMANENT'],
-                traversal_difficulty:  ['low', 'medium', 'high'],
-            };
+            // Sets for dynamic ref-type value lookup in buildSuggestions
+            const _boundaryRefKeys = new Set(
+                DSL_SCHEMA.attributes.filter(function(a) { return a.valueType === 'boundary-ref'; }).map(function(a) { return a.key; })
+            );
+            const _nodeRefKeys = new Set(
+                DSL_SCHEMA.attributes.filter(function(a) { return a.valueType === 'node-ref'; }).map(function(a) { return a.key; })
+            );
+
+            const VALUES = {};
+            DSL_SCHEMA.attributes.forEach(function(a) {
+                if (a.valueType === 'bool') {
+                    VALUES[a.key] = DSL_SCHEMA.values.bool;
+                } else if (a.valueType === 'select' && DSL_SCHEMA.values[a.key]) {
+                    VALUES[a.key] = DSL_SCHEMA.values[a.key];
+                }
+            });
 
             // ── Dropdown element ────────────────────────────────────────────────
             const dropdown = document.createElement('ul');
@@ -2660,12 +2628,12 @@
 
                 if (ctx.kind === 'value') {
                     const attr = ctx.attr;
-                    if (attr === 'boundary') {
+                    if (_boundaryRefKeys.has(attr)) {
                         return extractNames(cm.getValue(), 'Boundaries')
                             .filter(n => lc(n).includes(lc(ctx.typed)))
                             .map(n => ({ display: n, insert: n, detail: 'boundary' }));
                     }
-                    if (attr === 'from' || attr === 'to') {
+                    if (_nodeRefKeys.has(attr)) {
                         const actors  = extractNames(cm.getValue(), 'Actors');
                         const servers = extractNames(cm.getValue(), 'Servers');
                         return [...actors.map(n => ({ display: n, insert: n, detail: 'actor' })),
