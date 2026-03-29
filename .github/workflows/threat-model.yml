@@ -1,0 +1,137 @@
+# SecOpsTM Threat Analysis — example workflow
+#
+# Copy this file to YOUR repository at .github/workflows/threat-model.yml
+# and adjust the inputs to match your project.
+#
+# This workflow runs on every pull request that touches infrastructure or
+# threat model files. It:
+#   1. Runs STRIDE analysis on your model (or Terraform/Ansible config)
+#   2. Posts a threat summary as a PR comment
+#   3. Uploads HTML + JSON reports as artifacts
+#   4. Fails the pipeline if CRITICAL threats are found (configurable)
+#
+# Minimal usage:
+#   - Add your threat model file (e.g. threat_model.md) to your repo
+#   - Reference this workflow or use: ellipse2v/SecOpsTM@v1
+
+name: Threat Analysis
+
+on:
+  pull_request:
+    branches: [main, master]
+    paths:
+      # Trigger when any of these change:
+      - 'threat_model*.md'
+      - '**/*.tf'
+      - 'ansible/**'
+      - '.github/workflows/threat-model.yml'
+  push:
+    branches: [main, master]
+    paths:
+      - 'threat_model*.md'
+  # Allow manual runs from the Actions tab
+  workflow_dispatch:
+    inputs:
+      gate:
+        description: 'Severity gate level'
+        required: false
+        default: 'CRITICAL'
+        type: choice
+        options: [CRITICAL, HIGH, MEDIUM, LOW, none]
+
+permissions:
+  contents: read
+  pull-requests: write  # required for PR comments
+
+jobs:
+
+  # ── Example 1: Markdown DSL model ─────────────────────────────────────────
+  threat-model-dsl:
+    name: Analyze threat model (DSL)
+    runs-on: ubuntu-latest
+    # Only run this job when a model file exists
+    # Remove the `if` condition to always run
+    if: hashFiles('threat_model.md') != ''
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run SecOpsTM threat analysis
+        id: threat-analysis
+        uses: ellipse2v/SecOpsTM@v1
+        with:
+          model-file: 'threat_model.md'       # path to your DSL model
+          output-format: 'all'                 # html + json + stix
+          navigator: 'true'                    # ATT&CK Navigator layer
+          gate: ${{ github.event.inputs.gate || 'CRITICAL' }}
+          comment-on-pr: 'true'
+          upload-artifacts: 'true'
+          artifact-name: 'threat-report-${{ github.sha }}'
+
+      - name: Print analysis summary
+        run: |
+          echo "Total threats : ${{ steps.threat-analysis.outputs.total-threats }}"
+          echo "CRITICAL      : ${{ steps.threat-analysis.outputs.critical-threats }}"
+          echo "HIGH          : ${{ steps.threat-analysis.outputs.high-threats }}"
+
+  # ── Example 2: Terraform IaC ───────────────────────────────────────────────
+  threat-model-terraform:
+    name: Analyze threat model (Terraform)
+    runs-on: ubuntu-latest
+    if: hashFiles('**/*.tf') != ''
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run SecOpsTM on Terraform
+        uses: ellipse2v/SecOpsTM@v1
+        with:
+          terraform-path: 'terraform/'         # or '.' if .tf files are at root
+          output-format: 'html'
+          gate: 'HIGH'                          # stricter gate for IaC
+          comment-on-pr: 'true'
+          upload-artifacts: 'true'
+
+  # ── Example 3: With baseline comparison ───────────────────────────────────
+  # Useful for enforcing "no new threats" in each PR.
+  # Requires a committed baseline.json (generated from main branch analysis).
+  threat-model-gated:
+    name: Analyze threat model (gated, new threats only)
+    runs-on: ubuntu-latest
+    if: hashFiles('threat_model.md') != '' && hashFiles('baseline.json') != ''
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run SecOpsTM with baseline comparison
+        uses: ellipse2v/SecOpsTM@v1
+        with:
+          model-file: 'threat_model.md'
+          baseline: 'baseline.json'             # only NEW threats trigger gate
+          accepted-risks: 'accepted_risks.yaml' # optional: suppress known FPs
+          gate: 'HIGH'
+          output-format: 'all'
+          comment-on-pr: 'true'
+          upload-artifacts: 'true'
+
+  # ── Example 4: Ansible IaC ────────────────────────────────────────────────
+  threat-model-ansible:
+    name: Analyze threat model (Ansible)
+    runs-on: ubuntu-latest
+    if: hashFiles('ansible/**') != ''
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run SecOpsTM on Ansible inventory
+        uses: ellipse2v/SecOpsTM@v1
+        with:
+          ansible-path: 'ansible/'
+          output-format: 'html'
+          gate: 'CRITICAL'
+          comment-on-pr: 'true'
+          upload-artifacts: 'true'

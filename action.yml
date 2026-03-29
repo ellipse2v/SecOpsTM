@@ -1,0 +1,363 @@
+# Copyright 2025 ellipse2v
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: 'SecOpsTM Threat Analysis'
+description: >
+  Run STRIDE threat analysis with MITRE ATT&CK, CAPEC, D3FEND and CVE mapping
+  on your architecture model or IaC configuration. Generates HTML reports,
+  STIX 2.1 bundles, ATT&CK Navigator layers and enforces severity gates in CI.
+author: 'ellipse2v'
+
+branding:
+  icon: 'shield'
+  color: 'green'
+
+# ─── Inputs ──────────────────────────────────────────────────────────────────
+
+inputs:
+  model-file:
+    description: >
+      Path to the SecOpsTM Markdown DSL model file. Ignored when
+      terraform-path or ansible-path is set.
+    required: false
+    default: 'threat_model.md'
+
+  terraform-path:
+    description: >
+      Path to a Terraform directory or .tf file. Overrides model-file.
+      Supports HCL source files and terraform.tfstate (v4+).
+    required: false
+    default: ''
+
+  ansible-path:
+    description: >
+      Path to an Ansible configuration directory. Overrides model-file.
+    required: false
+    default: ''
+
+  output-format:
+    description: 'Output format: all | html | json | stix'
+    required: false
+    default: 'all'
+
+  navigator:
+    description: 'Generate a MITRE ATT&CK Navigator layer JSON file.'
+    required: false
+    default: 'false'
+
+  attack-flow:
+    description: 'Generate Attack Flow .afb files from GDAF scenarios.'
+    required: false
+    default: 'false'
+
+  gate:
+    description: >
+      Fail the pipeline if threats at or above this severity are found.
+      Accepted values: CRITICAL | HIGH | MEDIUM | LOW | none
+    required: false
+    default: 'CRITICAL'
+
+  baseline:
+    description: >
+      Path to a previous JSON report. When set, only NEW threats (not
+      present in the baseline) trigger the gate — resolved threats are ignored.
+    required: false
+    default: ''
+
+  accepted-risks:
+    description: >
+      Path to a YAML file listing risk IDs accepted as false-positives.
+      Matching threats are excluded from gate evaluation.
+    required: false
+    default: ''
+
+  ai-config-file:
+    description: >
+      Path to ai_config.yaml for LLM-enriched threat generation. Leave
+      empty to use pytm rules only (fully offline, no API key required).
+    required: false
+    default: ''
+
+  comment-on-pr:
+    description: 'Post a threat-summary comment on the pull request.'
+    required: false
+    default: 'true'
+
+  upload-artifacts:
+    description: 'Upload generated reports as GitHub artifacts.'
+    required: false
+    default: 'true'
+
+  artifact-name:
+    description: 'Name for the uploaded artifact bundle.'
+    required: false
+    default: 'secopstm-threat-report'
+
+  python-version:
+    description: 'Python version to use for running SecOpsTM.'
+    required: false
+    default: '3.10'
+
+# ─── Outputs ─────────────────────────────────────────────────────────────────
+
+outputs:
+  report-json:
+    description: 'Path to the generated JSON threat report.'
+    value: ${{ steps.analyse.outputs.report-json }}
+  report-html:
+    description: 'Path to the primary generated HTML threat report.'
+    value: ${{ steps.analyse.outputs.report-html }}
+  total-threats:
+    description: 'Total number of threats found.'
+    value: ${{ steps.analyse.outputs.total-threats }}
+  critical-threats:
+    description: 'Number of CRITICAL severity threats.'
+    value: ${{ steps.analyse.outputs.critical-threats }}
+  high-threats:
+    description: 'Number of HIGH severity threats.'
+    value: ${{ steps.analyse.outputs.high-threats }}
+  medium-threats:
+    description: 'Number of MEDIUM severity threats.'
+    value: ${{ steps.analyse.outputs.medium-threats }}
+  low-threats:
+    description: 'Number of LOW severity threats.'
+    value: ${{ steps.analyse.outputs.low-threats }}
+
+# ─── Steps ───────────────────────────────────────────────────────────────────
+
+runs:
+  using: 'composite'
+  steps:
+
+    # ── 1. System deps ────────────────────────────────────────────────────────
+    - name: Install system dependencies
+      shell: bash
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y --no-install-recommends graphviz jq
+
+    # ── 2. Python ─────────────────────────────────────────────────────────────
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+        cache: 'pip'
+
+    # ── 3. Install SecOpsTM from the action's own checkout ───────────────────
+    - name: Install SecOpsTM
+      shell: bash
+      run: |
+        pip install --quiet --upgrade pip
+        # Install from the action directory so the version always matches
+        # the tag referenced in uses: ellipse2v/SecOpsTM@<tag>
+        pip install --quiet "${{ github.action_path }}"
+        # Install AI extras only when an ai-config-file is provided
+        if [ -n "${{ inputs.ai-config-file }}" ]; then
+          pip install --quiet "${{ github.action_path }}[ai]"
+        fi
+
+    # ── 4. Run analysis ───────────────────────────────────────────────────────
+    - name: Run SecOpsTM threat analysis
+      id: analyse
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        # ── Build CLI command ──────────────────────────────────────────────
+        SECOPSTM_ARGS=()
+
+        if [ -n "${{ inputs.terraform-path }}" ]; then
+          SECOPSTM_ARGS+=(--terraform-path "${{ inputs.terraform-path }}")
+        elif [ -n "${{ inputs.ansible-path }}" ]; then
+          SECOPSTM_ARGS+=(--ansible-path "${{ inputs.ansible-path }}")
+        else
+          SECOPSTM_ARGS+=(--model-file "${{ inputs.model-file }}")
+        fi
+
+        SECOPSTM_ARGS+=(--output-format "${{ inputs.output-format }}")
+
+        if [ "${{ inputs.navigator }}" = "true" ]; then
+          SECOPSTM_ARGS+=(--navigator)
+        fi
+
+        if [ "${{ inputs.attack-flow }}" = "true" ]; then
+          SECOPSTM_ARGS+=(--attack-flow)
+        fi
+
+        if [ -n "${{ inputs.ai-config-file }}" ]; then
+          SECOPSTM_ARGS+=(--ai-config-file "${{ inputs.ai-config-file }}")
+        fi
+
+        # ── Always produce a JSON sidecar for stats + PR comment ───────────
+        JSON_SIDECAR="${RUNNER_TEMP}/secopstm_report.json"
+        SECOPSTM_ARGS+=(--output-format json --output-file "$JSON_SIDECAR")
+
+        echo "::group::SecOpsTM analysis"
+        secopstm "${SECOPSTM_ARGS[@]}"
+        echo "::endgroup::"
+
+        # ── Parse stats ───────────────────────────────────────────────────
+        TOTAL=0; CRIT=0; HIGH=0; MED=0; LOW=0
+        REPORT_JSON=""
+        REPORT_HTML=""
+
+        # Find the latest JSON report (sidecar or output dir)
+        REPORT_JSON=$(find . "${RUNNER_TEMP}" -name "*.json" \
+          -not -path "*/.git/*" \
+          -not -name "*.stix.json" \
+          -not -name "*.navigator.json" \
+          -newer "${{ github.action_path }}/action.yml" \
+          2>/dev/null | sort -t/ -k3 | tail -1 || true)
+
+        if [ -f "$REPORT_JSON" ]; then
+          TOTAL=$(jq -r '.statistics.total_threats // 0'       "$REPORT_JSON")
+          CRIT=$(jq  -r '.statistics.by_severity.CRITICAL // 0' "$REPORT_JSON")
+          HIGH=$(jq  -r '.statistics.by_severity.HIGH // 0'     "$REPORT_JSON")
+          MED=$(jq   -r '.statistics.by_severity.MEDIUM // 0'   "$REPORT_JSON")
+          LOW=$(jq   -r '.statistics.by_severity.LOW // 0'      "$REPORT_JSON")
+          REPORT_HTML=$(find . -name "*.html" \
+            -not -path "*/.git/*" \
+            -newer "${{ github.action_path }}/action.yml" \
+            2>/dev/null | head -1 || true)
+        fi
+
+        echo "report-json=$REPORT_JSON"   >> "$GITHUB_OUTPUT"
+        echo "report-html=$REPORT_HTML"   >> "$GITHUB_OUTPUT"
+        echo "total-threats=$TOTAL"       >> "$GITHUB_OUTPUT"
+        echo "critical-threats=$CRIT"     >> "$GITHUB_OUTPUT"
+        echo "high-threats=$HIGH"         >> "$GITHUB_OUTPUT"
+        echo "medium-threats=$MED"        >> "$GITHUB_OUTPUT"
+        echo "low-threats=$LOW"           >> "$GITHUB_OUTPUT"
+
+        # ── Summary in the GitHub Actions step summary ─────────────────────
+        {
+          echo "## 🛡️ SecOpsTM Threat Analysis"
+          echo ""
+          echo "| Severity | Count |"
+          echo "|---|---|"
+          echo "| 🔴 CRITICAL | $CRIT |"
+          echo "| 🟠 HIGH     | $HIGH |"
+          echo "| 🟡 MEDIUM   | $MED  |"
+          echo "| 🟢 LOW      | $LOW  |"
+          echo "| **Total**   | **$TOTAL** |"
+        } >> "$GITHUB_STEP_SUMMARY"
+
+    # ── 5. PR comment ─────────────────────────────────────────────────────────
+    - name: Post PR comment
+      if: >
+        inputs.comment-on-pr == 'true' &&
+        github.event_name == 'pull_request'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        REPORT_JSON="${{ steps.analyse.outputs.report-json }}"
+        TOTAL="${{ steps.analyse.outputs.total-threats }}"
+        CRIT="${{ steps.analyse.outputs.critical-threats }}"
+        HIGH="${{ steps.analyse.outputs.high-threats }}"
+        MED="${{ steps.analyse.outputs.medium-threats }}"
+        LOW="${{ steps.analyse.outputs.low-threats }}"
+
+        # Severity badge
+        if [ "$CRIT" -gt 0 ]; then
+          BADGE="🔴 $CRIT CRITICAL threat(s) require immediate attention."
+        elif [ "$HIGH" -gt 0 ]; then
+          BADGE="🟠 $HIGH HIGH threat(s) found — review before merging."
+        else
+          BADGE="✅ No CRITICAL or HIGH threats found."
+        fi
+
+        # Top 5 threats table
+        TOP_THREATS=""
+        if [ -f "$REPORT_JSON" ]; then
+          TOP_THREATS=$(jq -r '
+            .threats[:5][] |
+            "| **\(.severity)** | \(.name) | `\(.target)` |"
+          ' "$REPORT_JSON" 2>/dev/null || true)
+        fi
+
+        # Build body into a temp file to avoid YAML/shell quoting issues
+        BODY_FILE="${RUNNER_TEMP}/secopstm_pr_body.md"
+        {
+          printf '## \U0001F6E1\uFE0F SecOpsTM Threat Analysis\n\n'
+          printf '%s\n\n' "$BADGE"
+          printf 'Severity | Count\n'
+          printf '---|---\n'
+          printf '\U0001F534 CRITICAL | %s\n' "$CRIT"
+          printf '\U0001F7E0 HIGH | %s\n'     "$HIGH"
+          printf '\U0001F7E1 MEDIUM | %s\n'  "$MED"
+          printf '\U0001F7E2 LOW | %s\n'      "$LOW"
+          printf '**Total** | **%s**\n'       "$TOTAL"
+        } > "$BODY_FILE"
+
+        if [ -n "$TOP_THREATS" ]; then
+          {
+            printf '\n<details><summary>Top threats (up to 5)</summary>\n\n'
+            printf 'Severity | Threat | Target\n'
+            printf '---|---|---\n'
+            printf '%s\n' "$TOP_THREATS"
+            printf '\n</details>\n'
+          } >> "$BODY_FILE"
+        fi
+
+        printf '\n_Generated by [SecOpsTM](https://github.com/ellipse2v/SecOpsTM)_\n' \
+          >> "$BODY_FILE"
+
+        gh pr comment "${{ github.event.pull_request.number }}" \
+          --repo "${{ github.repository }}" \
+          --body-file "$BODY_FILE"
+
+    # ── 6. Upload artifacts ───────────────────────────────────────────────────
+    - name: Upload threat reports
+      if: inputs.upload-artifacts == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: |
+          **/*threat*report*.html
+          **/*threat*report*.json
+          **/*.stix.json
+          **/*.navigator.json
+          **/*.afb
+          **/*gdaf_summary*.json
+        if-no-files-found: warn
+        retention-days: 30
+
+    # ── 7. Security gate (last — so artifacts and comments always publish) ────
+    - name: Apply security gate
+      if: inputs.gate != 'none' && inputs.gate != ''
+      shell: bash
+      run: |
+        GATE="${{ inputs.gate }}"
+        CRIT="${{ steps.analyse.outputs.critical-threats }}"
+        HIGH="${{ steps.analyse.outputs.high-threats }}"
+        MED="${{ steps.analyse.outputs.medium-threats }}"
+        LOW="${{ steps.analyse.outputs.low-threats }}"
+
+        declare -A SEV_ORDER=([LOW]=1 [MEDIUM]=2 [HIGH]=3 [CRITICAL]=4)
+        GATE_LEVEL="${SEV_ORDER[$GATE]:-4}"
+
+        FAIL=0
+        [ "${SEV_ORDER[CRITICAL]:-0}" -ge "$GATE_LEVEL" ] && [ "$CRIT" -gt 0 ] && FAIL=1
+        [ "${SEV_ORDER[HIGH]:-0}"     -ge "$GATE_LEVEL" ] && [ "$HIGH" -gt 0 ] && FAIL=1
+        [ "${SEV_ORDER[MEDIUM]:-0}"   -ge "$GATE_LEVEL" ] && [ "$MED"  -gt 0 ] && FAIL=1
+        [ "${SEV_ORDER[LOW]:-0}"      -ge "$GATE_LEVEL" ] && [ "$LOW"  -gt 0 ] && FAIL=1
+
+        if [ "$FAIL" -eq 1 ]; then
+          echo "::error::🚨 Security gate FAILED — threats at or above $GATE severity detected."
+          echo "::error::   CRITICAL=$CRIT  HIGH=$HIGH  MEDIUM=$MED  LOW=$LOW"
+          exit 1
+        else
+          echo "✅ Security gate passed — no threats at or above $GATE severity."
+        fi

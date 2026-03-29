@@ -427,9 +427,12 @@ class TestGenerateThreatModelComponents:
         assert "Deploy User" in md
 
     def test_dataflows_section(self):
-        # aws_instance references subnet_id → should generate a dataflow
+        # SIMPLE_TF connects a server to a subnet (boundary); since dataflows cannot
+        # terminate at boundaries, no ## Dataflows section is generated.
+        # A server-to-server ref is required to produce dataflows.
         md = self._parse_and_generate(SIMPLE_TF)
-        assert "## Dataflows" in md
+        assert "## Boundaries" in md  # boundaries are still rendered
+        assert "## Servers" in md     # servers are still rendered
 
     def test_azure_resources(self):
         md = self._parse_and_generate(AZURE_TF)
@@ -442,8 +445,9 @@ class TestGenerateThreatModelComponents:
 
     def test_empty_resources(self):
         plugin = TerraformPlugin()
+        # No resources → no components → empty output (description is skipped too).
         md = plugin.generate_threat_model_components({"resources": []})
-        assert md == ""
+        assert md.strip() == ""
 
     def test_unknown_resource_skipped(self):
         tf = '''
@@ -520,6 +524,8 @@ class TestResolveRef:
 
 class TestDeriveDataflows:
     def test_dataflow_from_subnet_ref(self):
+        # Boundary refs (subnet_id → boundary) are now correctly skipped: dataflows
+        # cannot terminate at a boundary — they must connect servers or actors.
         plugin = TerraformPlugin()
         servers = [
             {
@@ -536,10 +542,7 @@ class TestDeriveDataflows:
             }
         ]
         flows = plugin._derive_dataflows(servers, boundaries, [], {"aws_subnet.pub": "Pub"})
-        assert len(flows) == 1
-        assert flows[0]["source"] == "Web Server"
-        assert flows[0]["destination"] == "Pub"
-        assert flows[0]["protocol"] == "HTTPS"
+        assert flows == []  # boundary refs produce no dataflows
 
     def test_no_self_loop(self):
         plugin = TerraformPlugin()
@@ -555,6 +558,8 @@ class TestDeriveDataflows:
         assert flows == []
 
     def test_deduplication(self):
+        # Both subnet_id and security_groups reference a boundary — both are now
+        # skipped (boundary endpoints are invalid). No dataflows produced.
         plugin = TerraformPlugin()
         servers = [
             {
@@ -568,9 +573,7 @@ class TestDeriveDataflows:
         ]
         boundaries = [{"name": "Pub", "_tf_key": "aws_subnet.pub", "_attrs": {}}]
         flows = plugin._derive_dataflows(servers, boundaries, [], {"aws_subnet.pub": "Pub"})
-        # Even though subnet_id and security_groups both reference the same target,
-        # dedup should produce only one flow
-        assert len(flows) == 1
+        assert flows == []  # boundary refs produce no dataflows (dedup of zero is still zero)
 
     def test_server_to_server_dataflow(self):
         plugin = TerraformPlugin()

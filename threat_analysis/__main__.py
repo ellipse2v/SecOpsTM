@@ -697,8 +697,12 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
         arg_name = f"{plugin_name}_path"
         if hasattr(args, arg_name) and getattr(args, arg_name):
             logging.info(f"Processing IaC configuration with {plugin_name} plugin...")
-            config_path = _validate_path_within_project(getattr(args, arg_name))
-            iac_input_filename = config_path.stem # Get filename without extension
+            # IaC paths are user-supplied external directories — only existence check required.
+            config_path = Path(getattr(args, arg_name)).resolve()
+            if not config_path.exists():
+                logging.error(f"❌ IaC path does not exist: {config_path}")
+                sys.exit(1)
+            iac_input_filename = config_path.stem if config_path.is_file() else config_path.name
             try:
                 parsed_data = plugin_instance.parse_iac_config(str(config_path)) # Pass as string
                 iac_generated_content = plugin_instance.generate_threat_model_components(parsed_data)

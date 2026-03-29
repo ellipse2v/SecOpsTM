@@ -585,6 +585,48 @@ class TerraformPlugin(IaCPlugin):
             else:
                 logger.debug("Resource type %s not mapped, skipping", rtype)
 
+        # ── Assign servers to boundaries ──────────────────────────────────────
+        # Build a map from tf_key to boundary DSL name for quick lookup.
+        boundary_by_tf_key: Dict[str, str] = {b["_tf_key"]: b["name"] for b in boundaries}
+        # Top-level (VPC-level) boundaries act as the default zone.
+        top_level_boundaries = [b for b in boundaries if not b.get("_nested", False)]
+        default_boundary: Optional[str] = (
+            top_level_boundaries[0]["name"] if top_level_boundaries
+            else (boundaries[0]["name"] if boundaries else None)
+        )
+        for srv in servers:
+            attrs = srv.get("_attrs", {})
+            assigned: Optional[str] = None
+            for conn_attr in ("vpc_id", "network", "virtual_network_name"):
+                ref = attrs.get(conn_attr)
+                if ref:
+                    tf_key = self._resolve_ref(ref)
+                    if tf_key and tf_key in boundary_by_tf_key:
+                        assigned = boundary_by_tf_key[tf_key]
+                        break
+            srv["boundary"] = assigned or default_boundary
+
+        # ── Ensure at least one external actor so the model is valid ──────────
+        # Only add a synthetic actor when there are actual infrastructure components
+        # to model; an empty resource list produces an empty DSL output.
+        if not actors and (servers or boundaries):
+            # Detect provider from first server resource type, fall back to "Cloud".
+            provider = _provider_of(servers[0]["_resource_type"]) if servers else "Cloud"
+            external_boundary = next(
+                (b["name"] for b in boundaries if b.get("isTrusted") == "false"),
+                default_boundary,
+            )
+            actors.append(
+                {
+                    "name": "External User",
+                    "description": f"External end-user accessing {provider} services",
+                    "boundary": external_boundary,
+                    "_tf_key": None,
+                    "_attrs": {},
+                }
+            )
+            logger.debug("No IAM actors found; added synthetic 'External User' actor.")
+
         dataflows = self._derive_dataflows(servers, boundaries, actors, name_registry)
         return self._render_markdown(boundaries, actors, servers, dataflows)
 
@@ -683,12 +725,14 @@ class TerraformPlugin(IaCPlugin):
                     if not tf_key:
                         continue
 
-                    dst_name = boundary_names_by_tf_key.get(tf_key)
-                    if not dst_name:
-                        for srv in servers:
-                            if srv["_tf_key"] == tf_key:
-                                dst_name = srv["name"]
-                                break
+                    # Skip boundary refs — dataflows must connect servers/actors only.
+                    if tf_key in boundary_names_by_tf_key:
+                        continue
+                    dst_name = None
+                    for srv in servers:
+                        if srv["_tf_key"] == tf_key:
+                            dst_name = srv["name"]
+                            break
 
                     if not dst_name or dst_name == src_name:
                         continue
@@ -735,6 +779,23 @@ class TerraformPlugin(IaCPlugin):
         """Render all components as a SecOpsTM Markdown DSL string."""
         lines: List[str] = []
 
+        # ── Description (only when there is content to describe) ─────────────
+        has_content = bool(boundaries or actors or servers or dataflows)
+        if has_content:
+            providers: List[str] = sorted({
+                _provider_of(s.get("_resource_type", ""))
+                for s in servers
+                if s.get("_resource_type")
+            })
+            provider_str = ", ".join(providers) if providers else "Cloud"
+            lines.append("## Description")
+            lines.append(
+                f"Auto-generated threat model from Terraform configuration ({provider_str}). "
+                f"Review and enrich this model with context-specific boundaries, data "
+                f"classifications, and dataflow authentication details before running a full analysis."
+            )
+            lines.append("")
+
         if boundaries:
             lines.append("## Boundaries")
             top_level = [b for b in boundaries if not b.get("_nested", False)]
@@ -774,18 +835,19 @@ class TerraformPlugin(IaCPlugin):
         if actors:
             lines.append("## Actors")
             for a in actors:
-                lines.append(
-                    f"- **{a['name']}**: description=\"{a['description']}\""
-                )
+                props = [f"description=\"{a['description']}\""]
+                if a.get("boundary"):
+                    props.insert(0, f"boundary=\"{a['boundary']}\"")
+                lines.append(f"- **{a['name']}**: {', '.join(props)}")
             lines.append("")
 
         if servers:
             lines.append("## Servers")
             for s in servers:
-                props = [
-                    f"type={s['type']}",
-                    f"description=\"{s['description']}\"",
-                ]
+                props = [f"type={s['type']}"]
+                if s.get("boundary"):
+                    props.append(f"boundary=\"{s['boundary']}\"")
+                props.append(f"description=\"{s['description']}\"")
                 if s.get("internet_facing"):
                     props.append("internet_facing=true")
                 if s.get("credentials_stored"):
