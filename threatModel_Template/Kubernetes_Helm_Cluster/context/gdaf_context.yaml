@@ -1,0 +1,78 @@
+# GDAF context — Kubernetes / Helm Cluster
+# Goal-Driven Attack Flow objectives and actor profiles for this cluster model.
+# Edit objectives.targets to match your high-value assets.
+
+objectives:
+  - id: OBJ-K8S-01
+    name: Full Cluster Compromise
+    description: >
+      Attacker achieves cluster-admin privileges, enabling arbitrary workload
+      deployment, secret exfiltration, and lateral movement to cloud infrastructure.
+    targets:
+      - kube-apiserver
+      - etcd
+    priority: critical
+
+  - id: OBJ-K8S-02
+    name: Data Exfiltration — PII and Credentials
+    description: >
+      Attacker extracts user PII from PostgreSQL or Kubernetes Secrets
+      (including Vault tokens and dynamic DB credentials).
+    targets:
+      - PostgreSQL (StatefulSet)
+      - Vault (Platform)
+    priority: critical
+
+  - id: OBJ-K8S-03
+    name: Supply Chain Compromise
+    description: >
+      Attacker injects malicious code into the container build pipeline
+      (Harbor push, CI/CD runner) to ship a backdoored image to production.
+    targets:
+      - Container Registry (Harbor)
+      - CI/CD Pipeline
+    priority: high
+
+  - id: OBJ-K8S-04
+    name: Persistent Backdoor via Workload Persistence
+    description: >
+      Attacker deploys a privileged DaemonSet or mutating webhook to maintain
+      access across cluster upgrades and pod restarts.
+    targets:
+      - kube-apiserver
+      - Ingress Controller (Nginx)
+    priority: high
+
+actors:
+  - id: ACT-EXT-01
+    name: External Attacker
+    type: threat_actor
+    entry_points:
+      - Ingress Controller (Nginx)
+      - Cloud Load Balancer
+    capabilities:
+      - web_exploitation
+      - ssrf
+      - container_escape
+      - supply_chain
+
+  - id: ACT-INS-01
+    name: Malicious Developer / Insider
+    type: insider
+    entry_points:
+      - kube-apiserver
+      - Container Registry (Harbor)
+    capabilities:
+      - kubectl_access
+      - helm_deploy
+      - registry_push
+
+  - id: ACT-CI-01
+    name: Compromised CI/CD Pipeline
+    type: automated_system
+    entry_points:
+      - CI/CD Pipeline
+    capabilities:
+      - helm_deploy
+      - registry_push
+      - secret_access

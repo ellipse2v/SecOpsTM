@@ -1,0 +1,80 @@
+# GDAF context — Serverless AWS Lambda
+# Goal-Driven Attack Flow objectives and actor profiles.
+# Edit objectives.targets to match your high-value assets.
+
+objectives:
+  - id: OBJ-SLS-01
+    name: IAM Role Takeover — Full AWS Account Compromise
+    description: >
+      Attacker obtains a Lambda execution role with overly broad policies
+      (e.g., AdministratorAccess or iam:PassRole) and escalates to full
+      AWS account control via STS AssumeRole chains.
+    targets:
+      - AWS IAM / STS
+      - AWS Secrets Manager
+    priority: critical
+
+  - id: OBJ-SLS-02
+    name: PII Exfiltration from DynamoDB / Aurora
+    description: >
+      Attacker exploits a misconfigured Lambda or S3 bucket policy to
+      extract user PII and payment references from persistent data stores.
+    targets:
+      - DynamoDB
+      - Aurora Serverless v2 (PostgreSQL)
+    priority: critical
+
+  - id: OBJ-SLS-03
+    name: Persistent Backdoor via Deployment Pipeline
+    description: >
+      Attacker compromises the S3 deployment bucket or CI/CD pipeline
+      to inject malicious code into Lambda function packages, persisting
+      across deployments.
+    targets:
+      - S3 — Deployment Artifacts
+      - Lambda — API Handler
+    priority: high
+
+  - id: OBJ-SLS-04
+    name: Event Injection — Business Logic Bypass
+    description: >
+      Attacker crafts malicious SQS/SNS messages or API payloads to
+      trigger unintended Lambda execution paths, bypassing authorisation
+      or triggering resource-intensive operations (DoS via cost amplification).
+    targets:
+      - SQS Queue
+      - Lambda — Event Consumer
+    priority: high
+
+actors:
+  - id: ACT-EXT-01
+    name: External Web Attacker
+    type: threat_actor
+    entry_points:
+      - AWS WAF
+      - API Gateway (REST)
+    capabilities:
+      - web_exploitation
+      - ssrf
+      - api_abuse
+      - credential_stuffing
+
+  - id: ACT-EXT-02
+    name: Compromised Third-Party Webhook
+    type: threat_actor
+    entry_points:
+      - Third-Party Webhook
+    capabilities:
+      - event_injection
+      - payload_tampering
+
+  - id: ACT-INS-01
+    name: Malicious Developer (Insider)
+    type: insider
+    entry_points:
+      - Developer / DevOps
+      - S3 — Deployment Artifacts
+    capabilities:
+      - iam_role_abuse
+      - lambda_code_injection
+      - cloudtrail_disable
