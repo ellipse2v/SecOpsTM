@@ -2191,10 +2191,11 @@
                 markMsg(data.errors || [], 'cm-dsl-error');
                 markMsg(data.warnings || [], 'cm-dsl-warning');
 
-                // — Banner —
+                // — Banner — (escape server strings before innerHTML to prevent XSS)
+                const _esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
                 const allMessages = [
-                    ...(data.errors || []).map(e => '&#x274C; ' + e),
-                    ...(data.warnings || []).map(w => '&#x26A0;&#xFE0F; ' + w)
+                    ...(data.errors || []).map(e => '&#x274C; ' + _esc(e)),
+                    ...(data.warnings || []).map(w => '&#x26A0;&#xFE0F; ' + _esc(w))
                 ];
                 if (allMessages.length === 0) {
                     banner.style.display = 'none';

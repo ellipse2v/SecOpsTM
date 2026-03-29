@@ -142,7 +142,7 @@ def initialize_ai_in_background():
             try:
                 from threat_analysis.server.events import ai_status_event_queue
                 ai_status_event_queue.put(f"event: ai_status\ndata: {json.dumps(data)}\n\n")
-            except:
+            except Exception:
                 pass
 
         except Exception as e:

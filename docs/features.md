@@ -8,6 +8,17 @@
 - **CAPEC + CVE correlation**: CVE definitions link real vulnerabilities to CAPEC patterns and MITRE techniques.
 - **Severity Calculation**: Customizable scoring (base score per STRIDE category, protocol adjustments, data classification multipliers).
 
+## VEX — Vulnerability Exploitability eXchange
+
+SecOpsTM uses VEX as the **single authoritative CVE source**, with the following priority chain applied per asset during severity scoring:
+
+1. **Standalone VEX file/directory** — declare `vex_file=./path/to/vex.json` or `vex_directory=./VEX/` in `## Context`; or auto-discovered as `VEX/` subdirectory or `vex.json` sibling of the model file.
+2. **BOM with `analysis.state`** — CycloneDX BOM files that embed VEX assertions produce `active_cves` and `fixed_cves` without a separate file.
+3. **BOM `known_cves` without state** — treated as active (legacy / scanner-generated BOMs).
+4. **`cve_definitions.yml`** — fallback YAML definitions managed manually.
+
+Fixed/resolved CVEs (from VEX or BOM state) act as a D3FEND-equivalent mitigation signal, reducing severity for patched vulnerabilities without requiring manual updates to `implemented_mitigations.txt`.
+
 ## AI-Enhanced Threat Analysis
 
 Three independent threat engines feed into a **unified, deduplicated** output:
@@ -27,6 +38,8 @@ Three independent threat engines feed into a **unified, deduplicated** output:
 - **Trust context in prompts**: Each component prompt includes its boundary's trust level (`TRUSTED` / `UNTRUSTED`) so the LLM can tailor threat scenarios to the actual exposure level.
 - **Configurable parallelism**: Component-level AI enrichment runs concurrently, controlled by `max_concurrent_ai_requests` in `config/ai_config.yaml` under `threat_generation:`. Set to `1` for Gemini free tier (15 RPM), `3`–`5` for paid plans or Ollama.
 - **AI config validation**: On startup, `AIService` validates `ai_config.yaml` and logs explicit warnings for missing `model` fields, no enabled provider, or invalid values. Degradation is always graceful — no exception is raised.
+- **Per-component AI threat cache** (`AIThreatCache`): Results are cached in `.secopstm_ai_cache.json` next to the model file, keyed by SHA-256 of the component's full detail dict. On re-analysis: only components whose attributes changed call the LLM. A 15-component model goes from ~90 s to ~6 s when unchanged. Cache is committable and shareable across team members and CI runs. Version field ensures stale v0 caches are discarded cleanly.
+- **DSL AI context keys**: `project_description`, `compliance_requirements`, `integrations`, and other context keys are now declared directly in the DSL `## Context` section instead of a global `config/context.yaml`. Per-model `context/*.yaml` files are also supported for larger projects.
 
 ## Goal-Driven Attack Flows (GDAF)
 
@@ -46,6 +59,9 @@ See [docs/gdaf.md](gdaf.md) for the complete reference including the context YAM
 ## Reporting & Export
 
 - **HTML report**: Integrated threat statistics, STRIDE/MITRE mapping, D3FEND mitigations, severity breakdown, source tagging (`pytm` / `AI` / `LLM`), risk signals (`CVE`, `CWE⚠`, `NET`, `D3F`), executive summary with KPIs + top-5 risks, interactive severity filter (CRITICAL/HIGH/MEDIUM/LOW), risk matrix 5×5.
+- **Executive View toggle**: A single click hides all technical sections (Attack Chain Analysis, GDAF Scenarios, ATT&CK ID Validation, Threat Graph, Severity Calculation, Legend) for clean management presentations. Implemented as a pure CSS `.exec-view` class toggle — no layout reflow.
+- **Copy-as-ticket button**: Each top-5 threat row has a "Copy ticket" button that copies a GitHub Issue–formatted markdown block to clipboard (title, severity, STRIDE category, target, description, action checklist). Supports Clipboard API with `execCommand` fallback.
+- **Collapsible report sections**: `📋 Model Completeness` and `📖 Severity Calculation Explained` are wrapped in `<details class="collapse-details">` — collapsed by default to reduce visual noise, summary line visible when closed.
 - **⛓️ Attack Chain Analysis**: Dedicated section in the HTML report identifying multi-step attack paths that chain threats across dataflows. Each chain shows entry point, pivot component, attack scores, and CRITICAL/HIGH/MEDIUM/LOW severity label.
 - **GDAF scenarios accordion**: GDAF attack scenarios are embedded in the HTML report as an expandable section between Attack Chain Analysis and Severity Calculation Explained. Only shown when GDAF scenarios have been generated (requires a valid context YAML with `attack_objectives` and `threat_actors`).
 - **Report diff page** (`/diff`): Web page served at `/diff` that accepts two JSON exports (paste or file upload) and displays a visual comparison — new threats `[+]`, resolved threats `[-]`, severity changes `[~]` — with counts by category at the top. Also available via CLI: `secopstm --diff old_report.json new_report.json`.
@@ -58,6 +74,22 @@ See [docs/gdaf.md](gdaf.md) for the complete reference including the context YAM
   - **Trust Boundary Colors**: Trusted zones rendered green solid (`#2e7d32`), untrusted zones red dashed (`#c62828`) — baked into the DOT template and exported SVG.
   - **Severity Heat Map Overlay**: Interactive toggle in diagram HTML. Applies per-component severity colour (CRITICAL → red, HIGH → orange, MEDIUM → yellow, LOW → teal) over the original diagram; hover tooltip shows severity + "View threats →" deep-link to the HTML report.
   - **Sub-model Drill-down**: Server nodes with a `submodel=` reference become hyperlinks in the parent diagram. Clicking navigates to the child diagram, which shows the server's internal architecture plus a ghost cluster of external connections from the parent model.
+
+## GitHub Action
+
+SecOpsTM ships as an **official GitHub Action** (`action.yml`) for threat-model-as-code CI/CD:
+
+```yaml
+- uses: your-org/secopstm@v1
+  with:
+    model-file: threatModel_Template/threat_model.md
+    output-format: json
+    fail-on: HIGH
+```
+
+The Action installs SecOpsTM, runs analysis, and optionally fails the workflow if threats at or above the specified severity level are found. Compatible with the CI/CD gate mode (`--gate`, `--baseline`, `--fail-on`, `--accepted-risks`).
+
+See `.github/workflows/threat-model.yml` for the example workflow.
 
 ## CLI & CI Integration
 
@@ -75,7 +107,11 @@ See [docs/gdaf.md](gdaf.md) for the complete reference including the context YAM
 ## Interactive Web Editor
 
 - **Real-time Editing**: Live diagram preview that updates as you type.
-- **DSL Validation**: A validation banner below the editor updates automatically 800 ms after the last keystroke. Turns red on structural errors, orange on warnings; also reports the number of components detected.
+- **DSL Validation**: A validation banner below the editor updates after the last keystroke (1.2 s debounce). Turns red on structural errors, orange on warnings; also reports the number of components detected. A `_diagramInFlight` concurrency guard prevents concurrent pytm TM instantiation; the server returns `{skipped: true}` for overlapping validation calls (silently ignored by the client).
+- **DSL Autocomplete**: Context-aware completion dropdown on every editor instance — suggests section headers (`## Boundaries`, …), attribute names (`boundary=`, `type=`, …), static values (`HTTPS`, `database`, …), and dynamic names (boundary/actor/server names from the current editor content). Trigger with any keypress or Ctrl+Space; navigate with arrows; confirm with Tab/Enter; dismiss with Escape.
+- **`dsl_schema.js` — single source of truth**: All DSL sections, entity field definitions, autocomplete metadata, and valid values live in `static/js/dsl_schema.js`. Adding a field to the schema automatically updates both the Component Panel form and the autocomplete suggestions — no other changes needed.
+- **Component Panel (DSL Helper)**: A discreet `✏ Helper` button in the editor toolbar opens a 272 px slide-in overlay panel. Provides tabbed forms for all five entity types (Boundary / Actor / Server / Dataflow / Data). **Add mode** generates a correctly-formatted DSL line and inserts it under the matching `## Section`. **Edit mode** populates the form from the current editor content (dropdown of existing component names), then finds and replaces the entity line on "Update". Boundary/node dropdowns auto-populate from the live editor content.
+- **localStorage autosave**: Editor content is saved to `localStorage` 1 s after each change (per-tab key). On next visit, an inline dismissable banner offers to restore the draft or discard it.
 - **Interactive Diagrams**: Click to highlight, interactive legend (filter by protocol), sub-model navigation.
 - **Severity Heat Map**: Toggle button in diagram HTML applies colour-coded severity overlay; tooltip links directly to the threat report anchor for that component.
 - **Project Mode**: Tabbed interface for multi-file projects; "Generate All" produces unified, cross-linked reports with cross-model RAG analysis.
@@ -83,10 +119,28 @@ See [docs/gdaf.md](gdaf.md) for the complete reference including the context YAM
 - **Graphical Editor**: Visual drag-and-drop canvas for building models without writing Markdown.
 - **Reports are fully self-contained** and work offline.
 
+## Threat Model Templates
+
+Ready-to-use DSL templates in `threatModel_Template/`:
+
+| Template | Servers | Threats (offline) | Notable coverage |
+|---|---|---|---|
+| Kubernetes / Helm Cluster | 14 | 78 | Container escape, ServiceAccount theft, etcd exfiltration, supply chain |
+| Serverless AWS Lambda | 21 | 106 | IAM escalation, SSRF to metadata, S3 misconfiguration, event injection |
+| Six-Tier Web App | 15+ | — | Classic N-tier with DMZ, CDN, DB |
+| Microservices Architecture | 20+ | — | Service mesh, message broker, API gateway |
+| Cloud Native | 16+ | — | EKS/GKE, object storage, managed identity |
+| CI/CD Pipeline | 12+ | — | SCM, build agents, registry, deployment targets |
+| Mobile Application | 10+ | — | Mobile client, backend, push, biometric |
+| Traditional Enterprise Network | 18+ | — | AD, VPN, DMZ, OT/IT boundary |
+| On-Prem Enterprise Network | 25+ | — | Full on-prem with BOM and GDAF context |
+
+Each template with cloud/container workloads includes a `context/gdaf_context.yaml` with GDAF attack objectives and threat actor profiles.
+
 ## Extensibility
 
 - **PyTM Compatibility**: Supports PyTM's model structure and can be extended with PyTM's features.
 - **IaC Plugins**: Ansible (inventory + playbook parsing). Plugin architecture supports adding new IaC sources.
-  - **Terraform** (`TerraformPlugin`): Available in `threat_analysis/iac_plugins/terraform_plugin.py`. Parses `.tf` files and `terraform.tfstate`; covers 50+ AWS, Azure, and GCP resource types. CLI integration is in progress — currently usable via the Python API.
+  - **Terraform** (`TerraformPlugin`): `threat_analysis/iac_plugins/terraform_plugin.py`. Parses `.tf` files and `terraform.tfstate`; covers 50+ AWS, Azure, and GCP resource types. Currently usable via the Python API; CLI integration in progress.
 - **Custom MITRE Mappings**: Override or extend the built-in CAPEC→ATT&CK mapping.
 - **All mappings and calculations are modular** and easy to override.
