@@ -885,6 +885,27 @@
         .gdaf-risk-LOW      { background: linear-gradient(135deg,#16a34a,#15803d); color:#fff; }
         .gdaf-unacceptable  { border-left: 3px solid #dc2626 !important; }
         .gdaf-hop-meta { font-size: 0.72rem; color: var(--text-secondary); margin-top: 1px; }
+
+        /* ── Executive View toggle ── */
+        #btn-exec-toggle {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border-color);
+            background: var(--background-card); color: var(--text-primary);
+            font-size: 0.8rem; font-weight: 600; cursor: pointer;
+            transition: background .15s, border-color .15s;
+        }
+        #btn-exec-toggle:hover { background: rgba(26,115,232,0.08); border-color: var(--accent-color); }
+        .container.exec-view .technical-section { display: none !important; }
+
+        /* ── Copy-as-ticket button ── */
+        .btn-copy-ticket {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 3px 9px; border-radius: 4px; border: 1px solid var(--border-color);
+            background: var(--background-card); color: var(--text-secondary);
+            font-size: 0.72rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+            transition: background .15s, color .15s, border-color .15s;
+        }
+        .btn-copy-ticket:hover { background: rgba(26,115,232,0.1); color: var(--accent-color); border-color: var(--accent-color); }
     </style>
 </head>
 <body>
@@ -892,6 +913,11 @@
         <div class="header">
             <h1>{{ report_title }}</h1>
             <div class="subtitle">Cybersecurity Threat Analysis Report</div>
+            <div style="margin-top: 0.75rem;">
+                <button id="btn-exec-toggle" onclick="toggleExecView()" title="Hide technical sections for management presentation">
+                    👔 Executive View
+                </button>
+            </div>
         </div>
 
         <div class="summary-grid">
@@ -970,6 +996,7 @@
                         <th>STRIDE</th>
                         <th>Severity</th>
                         <th>Description</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -980,6 +1007,15 @@
                         <td><span style="background:rgba(26,115,232,0.1);padding:2px 7px;border-radius:4px;font-size:0.72rem;font-weight:600;">{{ threat.stride_category }}</span></td>
                         <td style="white-space: nowrap;"><span class="sev-badge sev-badge-{{ threat.severity.level | lower }}">{{ threat.severity.level }} ({{ "%.1f"|format(threat.severity.score) }})</span></td>
                         <td style="max-width: 420px; white-space: normal; height: auto; max-height: none; min-height: 0; position: static;">{{ threat.description | truncate(130) }}</td>
+                        <td style="white-space: nowrap;">
+                            <button class="btn-copy-ticket"
+                                data-target="{{ threat.target | e }}"
+                                data-stride="{{ threat.stride_category | e }}"
+                                data-level="{{ threat.severity.level | e }}"
+                                data-score="{{ '%.1f' | format(threat.severity.score) }}"
+                                data-desc="{{ threat.description | e }}"
+                                onclick="copyAsTicket(this)">📋 Copy ticket</button>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -1112,8 +1148,8 @@
         {% endif %}
 
         {% if attack_id_validation is defined and attack_id_validation and attack_id_validation.has_issues %}
-        <h2>⚠️ ATT&CK ID Validation</h2>
-        <div class="card" style="padding:1.5rem;border-left:4px solid #b45309;">
+        <h2 class="technical-section">⚠️ ATT&CK ID Validation</h2>
+        <div class="card technical-section" style="padding:1.5rem;border-left:4px solid #b45309;">
             <p style="color:var(--text-secondary);margin:0 0 1rem;font-size:.875rem;">
                 {{ attack_id_validation.total_techniques_checked }} technique IDs checked against the local ATT&amp;CK corpus.
                 {% if attack_id_validation.n_invalid %}<strong style="color:#b91c1c;">{{ attack_id_validation.n_invalid }} invalid</strong>{% endif %}
@@ -1151,8 +1187,8 @@
         {% endif %}
 
         {% if threat_graph is defined and threat_graph and threat_graph.nodes %}
-        <h2>🕸️ Threat Graph</h2>
-        <div class="card" style="padding:1rem;">
+        <h2 class="technical-section">🕸️ Threat Graph</h2>
+        <div class="card technical-section" style="padding:1rem;">
             <p style="color:var(--text-secondary);font-size:.85rem;margin:0 0 .75rem;">
                 Interactive attack-surface map. <strong>Click</strong> a node to list its threats.
                 Node colour = highest severity. Edge style: solid = encrypted, dashed = plain.
@@ -1400,8 +1436,8 @@
 
         {% if attack_chains %}
         {% set _max_chains = 10 %}
-        <h2>⛓️ Attack Chain Analysis</h2>
-        <div class="card" style="padding:1.5rem;">
+        <h2 class="technical-section">⛓️ Attack Chain Analysis</h2>
+        <div class="card technical-section" style="padding:1.5rem;">
             <p style="color:var(--text-secondary);margin:0 0 1rem;font-size:0.875rem;">
                 Each row represents a potential <strong>pivot chain</strong>: an attacker compromises the
                 <em>Entry Point</em> component via its highest-severity threat, then traverses the dataflow
@@ -1456,7 +1492,7 @@
         {% endif %}
 
         {% if gdaf_scenarios %}
-        <details class="gdaf-section">
+        <details class="gdaf-section technical-section">
           <summary>
             <span class="gdaf-summary-arrow"></span>
             ⚡ GDAF Attack Scenarios
@@ -1544,12 +1580,12 @@
         </details>
         {% endif %}
 
-        <h2>📖 Severity Calculation Explained</h2>
-        <div class="card explanation-card">
+        <h2 class="technical-section">📖 Severity Calculation Explained</h2>
+        <div class="card explanation-card technical-section">
             <p style="white-space: pre-wrap; margin: 0;">{{ severity_calculation_note }}</p>
         </div>
 
-        <div class="card explanation-card" style="margin-top: 2rem;">
+        <div class="card explanation-card technical-section" style="margin-top: 2rem;">
             <p class="legend"><b>Legend:</b><br>
                 * : Indicates a CAPEC or MITRE mapping was manually added to improve relevance.<br>
                 <span class="implemented-legend"></span> : Indicates a mitigation has been implemented (as defined in the implemented mitigations file).
@@ -2088,6 +2124,55 @@
             var el = document.getElementById(id);
             if (!el) return;
             el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'table-row' : 'none';
+        }
+
+        function toggleExecView() {
+            var container = document.querySelector('.container');
+            var btn = document.getElementById('btn-exec-toggle');
+            var isExec = container.classList.toggle('exec-view');
+            btn.textContent = isExec ? '\uD83D\uDD27 Technical View' : '\uD83D\uDC54 Executive View';
+            btn.title = isExec ? 'Show all technical details' : 'Hide technical sections for management presentation';
+        }
+
+        function copyAsTicket(btn) {
+            var target = btn.dataset.target;
+            var stride = btn.dataset.stride;
+            var level  = btn.dataset.level;
+            var score  = btn.dataset.score;
+            var desc   = btn.dataset.desc;
+            var body = '## \uD83D\uDEA8 Security Threat: [' + stride + '] ' + target + ' \u2014 ' + level + '\n\n' +
+                '**Severity:** ' + level + ' (' + score + ')  \n' +
+                '**STRIDE Category:** ' + stride + '  \n' +
+                '**Target Component:** ' + target + '  \n\n' +
+                '### Description\n' + desc + '\n\n' +
+                '### Recommended Actions\n' +
+                '- [ ] Review and harden `' + target + '` configuration\n' +
+                '- [ ] Apply STRIDE mitigation controls for ' + stride + '\n' +
+                '- [ ] Validate fix in security review\n' +
+                '- [ ] Update threat model baseline after resolution\n\n' +
+                '---\n*Generated by [SecOpsTM](https://github.com/ellipse2v/SecOpsTM)*';
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(body).then(function() {
+                    var orig = btn.textContent;
+                    btn.textContent = '\u2705 Copied!';
+                    setTimeout(function() { btn.textContent = orig; }, 2000);
+                }).catch(function() { _copyFallback(btn, body); });
+            } else {
+                _copyFallback(btn, body);
+            }
+        }
+
+        function _copyFallback(btn, text) {
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.focus(); ta.select();
+            try { document.execCommand('copy'); } catch(e) {}
+            document.body.removeChild(ta);
+            var orig = btn.textContent;
+            btn.textContent = '\u2705 Copied!';
+            setTimeout(function() { btn.textContent = orig; }, 2000);
         }
 
         function toggleThreatVisibility(category) {
