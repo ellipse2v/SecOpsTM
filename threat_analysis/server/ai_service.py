@@ -24,6 +24,7 @@ from typing import Optional, List, Dict, Any
 from threat_analysis.utils import extract_json_from_llm_response
 from pytm import Threat  # Keep original Threat import for direct pytm usage where needed
 from threat_analysis.core.models_module import ExtendedThreat
+from threat_analysis.core.ai_cache import AIThreatCache
 from threat_analysis.ai_engine.rag_service import RAGThreatGenerator
 from threat_analysis.ai_engine.providers.base_provider import BaseLLMProvider
 from threat_analysis.ai_engine.providers.litellm_provider import LiteLLMProvider
@@ -593,6 +594,13 @@ class AIService:
         if self._ai_semaphore is None:
             self._ai_semaphore = asyncio.Semaphore(self.max_concurrent)
 
+        # Load per-component AI threat cache from the model's directory (if available).
+        # Falls back to in-memory-only mode when _model_file_path is absent or not a real path.
+        _model_path = getattr(threat_model, '_model_file_path', None)
+        cache = AIThreatCache(
+            _model_path if isinstance(_model_path, (str, Path)) else None
+        )
+
         # Counter lock for thread-safe progress tracking across concurrent tasks.
         _progress_lock = asyncio.Lock()
 
@@ -724,15 +732,36 @@ class AIService:
                 "inbound_flows": "\n".join(f"  - {f}" for f in inbound) if inbound else "  None",
                 "outbound_flows": "\n".join(f"  - {f}" for f in outbound) if outbound else "  None",
             }
-            logging.debug(f"Generating AI threats for component: {element.name}")
+            # ── Cache lookup ───────────────────────────────────────────────────────
+            component_hash = AIThreatCache.compute_hash(component_details)
+            cached_threats = cache.get(component_hash)
 
-            async with self._ai_semaphore:
-                ai_threats_json = await self.provider.generate_threats(component_details, context)
-
-                # Rate-limit pause (configurable via ai_config.yaml threat_generation.rate_limit_sleep).
-                # Kept inside the semaphore block to honour the delay even under concurrency.
-                if self.rate_limit_sleep > 0:
-                    await asyncio.sleep(self.rate_limit_sleep)
+            if cached_threats is not None:
+                # Cache hit — reuse stored threat dicts, skip LLM call entirely.
+                ai_threats_json = cached_threats
+                logging.debug(
+                    "AI cache HIT  %-32s [%s]  (%d threats)",
+                    element.name, component_hash[:8], len(ai_threats_json),
+                )
+            else:
+                # Cache miss — call the LLM provider.
+                logging.debug("Generating AI threats for component: %s", element.name)
+                async with self._ai_semaphore:
+                    ai_threats_json = await self.provider.generate_threats(component_details, context)
+                    # Rate-limit pause (configurable via ai_config.yaml).
+                    if self.rate_limit_sleep > 0:
+                        await asyncio.sleep(self.rate_limit_sleep)
+                # Store result (including empty list) to skip this component on future runs.
+                cache.put(
+                    component_hash,
+                    element.name,
+                    type(self.provider).__name__,
+                    ai_threats_json or [],
+                )
+                logging.debug(
+                    "AI cache MISS %-32s [%s]  → stored %d threats",
+                    element.name, component_hash[:8], len(ai_threats_json or []),
+                )
 
             # Update progress counter and emit SSE event (outside semaphore to avoid blocking).
             async with _progress_lock:
@@ -784,6 +813,11 @@ class AIService:
 
         # Launch all element enrichments concurrently; _ai_semaphore limits actual parallelism.
         await asyncio.gather(*[_enrich_one(elem) for elem in all_elements])
+
+        # Persist new cache entries and log hit/miss stats for this run.
+        cache.save()
+        if cache.hits + cache.misses > 0:
+            logging.info("AI cache: %s", cache.summary())
 
         # SOC persona pass — runs after component enrichment so all AI threats are available.
         await self._enrich_with_soc_analysis(threat_model, ai_status_event_queue)
