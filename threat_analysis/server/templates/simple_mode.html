@@ -709,6 +709,108 @@
             white-space: nowrap;
         }
         body.dark-mode #dsl-component-count { color: #aaa; }
+
+        /* ── Component Panel ─────────────────────────────────────────────── */
+        /* Trigger tab — discreet vertical sliver at right edge of editor */
+        #cp-tab {
+            position: absolute; top: 50%; right: 0;
+            transform: translateY(-50%);
+            width: 16px; height: 52px;
+            background: rgba(0,0,0,0.04); border: none;
+            border-radius: 4px 0 0 4px;
+            cursor: pointer; z-index: 15; padding: 0;
+            display: flex; align-items: center; justify-content: center;
+            color: rgba(0,0,0,0.18); font-size: 10px;
+            transition: background .2s, color .2s, width .15s;
+        }
+        #cp-tab::after { content: '✏'; writing-mode: vertical-rl; }
+        #cp-tab:hover { background: rgba(44,151,75,0.14); color: #2c974b; width: 20px; }
+        body.dark-mode #cp-tab { background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.18); }
+        body.dark-mode #cp-tab:hover { background: rgba(76,175,80,0.15); color: #4caf50; }
+
+        /* Slide-in panel */
+        #cp-panel {
+            position: absolute; top: 0; right: 0;
+            width: 0; height: 100%;
+            background: #fff; border-left: 1px solid #e0e0e0;
+            box-shadow: -4px 0 20px rgba(0,0,0,0.10);
+            z-index: 20; overflow: hidden;
+            transition: width .22s cubic-bezier(.4,0,.2,1);
+            display: flex; flex-direction: column;
+        }
+        body.dark-mode #cp-panel { background: #252526; border-left-color: #3a3a3a; }
+        #cp-panel.open { width: 272px; }
+
+        .cp-header {
+            display: flex; align-items: center;
+            justify-content: space-between;
+            padding: 7px 8px 5px; border-bottom: 1px solid #eee; flex-shrink: 0;
+        }
+        body.dark-mode .cp-header { border-bottom-color: #3a3a3a; }
+        .cp-entity-tabs { display: flex; gap: 2px; flex-wrap: wrap; }
+        .cp-etab {
+            padding: 2px 6px; border: 1px solid #d0d0d0; border-radius: 3px;
+            background: transparent; font-size: 10px; cursor: pointer; color: #666;
+            transition: background .12s;
+        }
+        body.dark-mode .cp-etab { border-color: #454545; color: #aaa; }
+        .cp-etab.active { background: #2c974b; color: #fff; border-color: #2c974b; }
+        .cp-close {
+            background: none; border: none; font-size: 17px;
+            cursor: pointer; color: #bbb; line-height: 1; padding: 0 3px; flex-shrink: 0;
+        }
+        .cp-close:hover { color: #555; }
+        body.dark-mode .cp-close { color: #666; }
+        body.dark-mode .cp-close:hover { color: #ccc; }
+
+        .cp-mode-row { display: flex; gap: 4px; padding: 5px 8px 2px; flex-shrink: 0; }
+        .cp-mode {
+            flex: 1; padding: 4px; border-radius: 4px;
+            border: 1px solid #d0d0d0; background: transparent;
+            font-size: 11px; cursor: pointer; color: #666;
+            transition: background .12s;
+        }
+        body.dark-mode .cp-mode { border-color: #454545; color: #aaa; }
+        .cp-mode.active { background: #0366d6; color: #fff; border-color: #0366d6; }
+
+        #cp-edit-select-row { padding: 4px 8px; flex-shrink: 0; }
+        #cp-entity-select {
+            width: 100%; padding: 4px 6px; border-radius: 4px;
+            border: 1px solid #d0d0d0; font-size: 12px;
+            background: #fafafa; color: #333; box-sizing: border-box;
+        }
+        body.dark-mode #cp-entity-select { background: #2d2d2d; border-color: #555; color: #ddd; }
+
+        #cp-form-area { flex: 1; overflow-y: auto; padding: 6px 8px 2px; }
+        .cp-form label {
+            display: flex; flex-direction: column;
+            font-size: 11px; color: #777; margin-bottom: 7px; gap: 3px;
+        }
+        body.dark-mode .cp-form label { color: #999; }
+        .cp-form input[type=text], .cp-form select {
+            padding: 4px 7px; border-radius: 4px;
+            border: 1px solid #d0d0d0; font-size: 12px;
+            background: #fafafa; color: #333;
+            width: 100%; box-sizing: border-box;
+        }
+        body.dark-mode .cp-form input[type=text],
+        body.dark-mode .cp-form select { background: #2d2d2d; border-color: #555; color: #ddd; }
+        .cp-form input[type=text]:focus, .cp-form select:focus {
+            outline: none; border-color: #2c974b; background: #fff;
+        }
+        body.dark-mode .cp-form input[type=text]:focus,
+        body.dark-mode .cp-form select:focus { background: #333; border-color: #4caf50; }
+        .cp-check-row { flex-direction: row !important; align-items: center; gap: 6px !important; }
+        .cp-check-row input[type=checkbox] { width: auto; margin: 0; cursor: pointer; }
+
+        #cp-action-btn {
+            margin: 6px 8px 8px; padding: 7px;
+            background: #2c974b; color: #fff;
+            border: none; border-radius: 5px;
+            font-size: 13px; font-weight: 600; cursor: pointer; flex-shrink: 0;
+            transition: background .15s;
+        }
+        #cp-action-btn:hover { background: #278341; }
     </style>
     <script src="/static/js/split.min.js"></script>
     <script src="/static/js/svg-pan-zoom.min.js"></script>
@@ -780,6 +882,97 @@
                     <span id="dsl-component-count"></span>
                 </div>
                 <div class="tab-content-area" id="tab-content-area"></div>
+            </div>
+
+            <!-- Component Panel: discreet trigger tab -->
+            <button id="cp-tab" onclick="ComponentPanel.toggle()" title="DSL component helper"></button>
+
+            <!-- Component Panel: slide-in overlay -->
+            <div id="cp-panel" aria-hidden="true">
+                <div class="cp-header">
+                    <div class="cp-entity-tabs">
+                        <button class="cp-etab active" data-entity="boundary" onclick="ComponentPanel.setEntity('boundary')">Boundary</button>
+                        <button class="cp-etab" data-entity="actor"    onclick="ComponentPanel.setEntity('actor')">Actor</button>
+                        <button class="cp-etab" data-entity="server"   onclick="ComponentPanel.setEntity('server')">Server</button>
+                        <button class="cp-etab" data-entity="dataflow" onclick="ComponentPanel.setEntity('dataflow')">Dataflow</button>
+                        <button class="cp-etab" data-entity="data"     onclick="ComponentPanel.setEntity('data')">Data</button>
+                    </div>
+                    <button class="cp-close" onclick="ComponentPanel.close()" title="Close">&#215;</button>
+                </div>
+
+                <div class="cp-mode-row">
+                    <button class="cp-mode active" id="cp-mode-add"  onclick="ComponentPanel.setMode('add')">+ Add</button>
+                    <button class="cp-mode"         id="cp-mode-edit" onclick="ComponentPanel.setMode('edit')">&#9998; Edit</button>
+                </div>
+                <div id="cp-edit-select-row" style="display:none;">
+                    <select id="cp-entity-select" onchange="ComponentPanel.onEntitySelect()">
+                        <option value="">&#8212; select &#8212;</option>
+                    </select>
+                </div>
+
+                <div id="cp-form-area">
+                    <!-- Boundary -->
+                    <div class="cp-form" id="cp-form-boundary">
+                        <label>Name *<input type="text" id="cp-b-name" placeholder="e.g., Internet"></label>
+                        <label>Color<input type="text" id="cp-b-color" placeholder="lightcoral"></label>
+                        <label>Trusted<select id="cp-b-trusted"><option value="True">True</option><option value="False">False</option></select></label>
+                        <label>Traversal difficulty<select id="cp-b-difficulty"><option value="">(none)</option><option>low</option><option>medium</option><option>high</option></select></label>
+                    </div>
+                    <!-- Actor -->
+                    <div class="cp-form" id="cp-form-actor" style="display:none;">
+                        <label>Name *<input type="text" id="cp-a-name" placeholder="e.g., End User"></label>
+                        <label>Boundary<select id="cp-a-boundary"><option value="">(none)</option></select></label>
+                        <label>Description<input type="text" id="cp-a-desc" placeholder="Short description"></label>
+                        <label>Color<input type="text" id="cp-a-color" placeholder="e.g., blue"></label>
+                    </div>
+                    <!-- Server -->
+                    <div class="cp-form" id="cp-form-server" style="display:none;">
+                        <label>Name *<input type="text" id="cp-s-name" placeholder="e.g., Backend API"></label>
+                        <label>Boundary<select id="cp-s-boundary"><option value="">(none)</option></select></label>
+                        <label>Type<select id="cp-s-type">
+                            <option value="">&#8212;</option>
+                            <option>web_server</option><option>api_server</option>
+                            <option>database</option><option>cache</option>
+                            <option>load_balancer</option><option>microservice</option>
+                            <option>faas</option><option>message_broker</option>
+                            <option>message_queue</option><option>cdn</option>
+                            <option>api_gateway</option><option>waf</option>
+                            <option>secrets_manager</option><option>iam</option>
+                            <option>identity_provider</option><option>monitoring</option>
+                            <option>object_storage</option><option>registry</option>
+                        </select></label>
+                        <label>Description<input type="text" id="cp-s-desc" placeholder="Short description"></label>
+                        <label class="cp-check-row"><input type="checkbox" id="cp-s-internet"> internet_facing</label>
+                        <label class="cp-check-row"><input type="checkbox" id="cp-s-creds"> credentials_stored</label>
+                    </div>
+                    <!-- Dataflow -->
+                    <div class="cp-form" id="cp-form-dataflow" style="display:none;">
+                        <label>Name *<input type="text" id="cp-d-name" placeholder="e.g., API to DB"></label>
+                        <label>From<select id="cp-d-from"><option value="">(select)</option></select></label>
+                        <label>To<select id="cp-d-to"><option value="">(select)</option></select></label>
+                        <label>Protocol<input type="text" id="cp-d-proto" placeholder="e.g., HTTPS"></label>
+                        <label>Color<input type="text" id="cp-d-color" placeholder="e.g., darkgreen"></label>
+                        <label class="cp-check-row"><input type="checkbox" id="cp-d-bidir"> bidirectional</label>
+                    </div>
+                    <!-- Data -->
+                    <div class="cp-form" id="cp-form-data" style="display:none;">
+                        <label>Name *<input type="text" id="cp-dt-name" placeholder="e.g., User PII"></label>
+                        <label>Classification<select id="cp-dt-class">
+                            <option value="">&#8212;</option>
+                            <option>PUBLIC</option><option>RESTRICTED</option><option>INTERNAL</option>
+                            <option>SENSITIVE</option><option>CONFIDENTIAL</option>
+                            <option>SECRET</option><option>TOP_SECRET</option>
+                        </select></label>
+                        <label>Credentials life<select id="cp-dt-creds">
+                            <option value="">&#8212;</option>
+                            <option>NONE</option><option>SHORT</option><option>SHORTLIVED</option>
+                            <option>LONG</option><option>UNKNOWN</option>
+                        </select></label>
+                        <label>Description<input type="text" id="cp-dt-desc" placeholder="Short description"></label>
+                    </div>
+                </div>
+
+                <button id="cp-action-btn" onclick="ComponentPanel.execute()">Insert</button>
             </div>
         </div>
         <div id="preview-split" class="preview-container">
@@ -2066,6 +2259,264 @@
 
 
         // ─── DSL Autocompletion ──────────────────────────────────────────────────
+        /* ── Component Panel ───────────────────────────────────────────────── */
+        var ComponentPanel = (function() {
+            var _entity = 'boundary';
+            var _mode   = 'add';
+
+            var SECTIONS = {
+                boundary: '## Boundaries', actor:    '## Actors',
+                server:   '## Servers',   dataflow: '## Dataflows', data: '## Data',
+            };
+
+            function _ed() { return window.TabManager && TabManager.getActiveEditor(); }
+            function _val() { var e = _ed(); return e ? e.getValue() : ''; }
+
+            /* Parse entity names from the active editor for the given entity type */
+            function _parseNames(type) {
+                var sec = SECTIONS[type], lines = _val().split('\n');
+                var inSec = false, names = [];
+                for (var i = 0; i < lines.length; i++) {
+                    var l = lines[i];
+                    if (l.trim() === sec) { inSec = true; continue; }
+                    if (inSec && /^## /.test(l)) break;
+                    if (inSec) { var m = l.trim().match(/^- \*\*(.+?)\*\*/); if (m) names.push(m[1]); }
+                }
+                return names;
+            }
+
+            /* Parse attributes of one named entity */
+            function _parseAttrs(name, type) {
+                var esc = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                var re  = new RegExp('^\\s*- \\*\\*' + esc + '\\*\\*:?(.*)$');
+                var attrs = {name: name};
+                for (var line of _val().split('\n')) {
+                    var m = line.match(re);
+                    if (!m) continue;
+                    var rest = m[1], am;
+                    var ap = /(\w+)="([^"]*)"|\b(\w+)=(True|False|[\w.,\- ]+?)(?=\s*,\s*\w+=|\s*$)/g;
+                    while ((am = ap.exec(rest)) !== null) {
+                        var k = am[1] || am[3], v = am[2] !== undefined ? am[2] : am[4].trim();
+                        attrs[k] = v;
+                    }
+                    break;
+                }
+                return attrs;
+            }
+
+            /* Build DSL line from fields dict */
+            function _dsl(fields) {
+                var name = (fields.name || '').trim(); if (!name) return null;
+                var parts = [];
+                for (var k in fields) {
+                    if (k === 'name') continue;
+                    var v = fields[k];
+                    if (v === '' || v === null || v === undefined || v === false) continue;
+                    if (typeof v === 'string' && /[ ,]/.test(v)) v = '"' + v + '"';
+                    parts.push(k + '=' + v);
+                }
+                return '- **' + name + '**: ' + parts.join(', ');
+            }
+
+            /* Read form fields for the current entity type */
+            function _collect() {
+                var f = {}, g = function(id) { return document.getElementById(id); };
+                switch (_entity) {
+                    case 'boundary':
+                        f.name=g('cp-b-name').value; f.color=g('cp-b-color').value;
+                        f.isTrusted=g('cp-b-trusted').value;
+                        f.traversal_difficulty=g('cp-b-difficulty').value; break;
+                    case 'actor':
+                        f.name=g('cp-a-name').value; f.boundary=g('cp-a-boundary').value;
+                        f.description=g('cp-a-desc').value; f.color=g('cp-a-color').value; break;
+                    case 'server':
+                        f.name=g('cp-s-name').value; f.boundary=g('cp-s-boundary').value;
+                        f.type=g('cp-s-type').value; f.description=g('cp-s-desc').value;
+                        if(g('cp-s-internet').checked) f.internet_facing='True';
+                        if(g('cp-s-creds').checked)    f.credentials_stored='True'; break;
+                    case 'dataflow':
+                        f.name=g('cp-d-name').value; f.from=g('cp-d-from').value;
+                        f.to=g('cp-d-to').value; f.protocol=g('cp-d-proto').value;
+                        f.color=g('cp-d-color').value;
+                        if(g('cp-d-bidir').checked) f.bidirectional='True'; break;
+                    case 'data':
+                        f.name=g('cp-dt-name').value; f.classification=g('cp-dt-class').value;
+                        f.credentialsLife=g('cp-dt-creds').value;
+                        f.description=g('cp-dt-desc').value; break;
+                }
+                return f;
+            }
+
+            /* Fill form from attrs dict */
+            function _fill(attrs) {
+                var g = function(id) { return document.getElementById(id); };
+                switch (_entity) {
+                    case 'boundary':
+                        g('cp-b-name').value=attrs.name||''; g('cp-b-color').value=attrs.color||'';
+                        g('cp-b-trusted').value=attrs.isTrusted==='False'?'False':'True';
+                        g('cp-b-difficulty').value=attrs.traversal_difficulty||''; break;
+                    case 'actor':
+                        g('cp-a-name').value=attrs.name||''; g('cp-a-boundary').value=attrs.boundary||'';
+                        g('cp-a-desc').value=attrs.description||''; g('cp-a-color').value=attrs.color||''; break;
+                    case 'server':
+                        g('cp-s-name').value=attrs.name||''; g('cp-s-boundary').value=attrs.boundary||'';
+                        g('cp-s-type').value=attrs.type||''; g('cp-s-desc').value=attrs.description||'';
+                        g('cp-s-internet').checked=attrs.internet_facing==='True';
+                        g('cp-s-creds').checked=attrs.credentials_stored==='True'; break;
+                    case 'dataflow':
+                        g('cp-d-name').value=attrs.name||''; g('cp-d-from').value=attrs.from||'';
+                        g('cp-d-to').value=attrs.to||''; g('cp-d-proto').value=attrs.protocol||'';
+                        g('cp-d-color').value=attrs.color||'';
+                        g('cp-d-bidir').checked=attrs.bidirectional==='True'; break;
+                    case 'data':
+                        g('cp-dt-name').value=attrs.name||''; g('cp-dt-class').value=attrs.classification||'';
+                        g('cp-dt-creds').value=attrs.credentialsLife||'';
+                        g('cp-dt-desc').value=attrs.description||''; break;
+                }
+            }
+
+            /* Populate boundary dropdowns from current editor content */
+            function _syncBoundaries() {
+                var bNames = _parseNames('boundary');
+                ['cp-a-boundary','cp-s-boundary'].forEach(function(id) {
+                    var sel = document.getElementById(id); if (!sel) return;
+                    var cur = sel.value;
+                    sel.innerHTML = '<option value="">(none)</option>';
+                    bNames.forEach(function(n) {
+                        var o = document.createElement('option'); o.value = o.textContent = n; sel.appendChild(o);
+                    });
+                    sel.value = cur;
+                });
+            }
+
+            /* Populate From/To dropdowns (actors + servers) */
+            function _syncNodes() {
+                var nodes = _parseNames('actor').concat(_parseNames('server'));
+                ['cp-d-from','cp-d-to'].forEach(function(id) {
+                    var sel = document.getElementById(id); if (!sel) return;
+                    var cur = sel.value;
+                    sel.innerHTML = '<option value="">(select)</option>';
+                    nodes.forEach(function(n) {
+                        var o = document.createElement('option'); o.value = o.textContent = n; sel.appendChild(o);
+                    });
+                    sel.value = cur;
+                });
+            }
+
+            /* Insert DSL line into the correct section of the active editor */
+            function _insert(line) {
+                var ed = _ed(); if (!ed) return;
+                var sec = SECTIONS[_entity], all = ed.getValue().split('\n');
+                var si = -1, ni = all.length;
+                for (var i = 0; i < all.length; i++) {
+                    if (all[i].trim() === sec) { si = i; continue; }
+                    if (si >= 0 && /^## /.test(all[i])) { ni = i; break; }
+                }
+                if (si === -1) {
+                    ed.setValue(ed.getValue().trimEnd() + '\n\n' + sec + '\n' + line + '\n');
+                    return;
+                }
+                var last = si;
+                for (var j = si+1; j < ni; j++) { if (/^\s*- \*\*/.test(all[j])) last = j; }
+                ed.replaceRange('\n' + line, {line: last, ch: all[last].length});
+            }
+
+            /* Find entity line and replace it */
+            function _update(oldName, line) {
+                var ed = _ed(); if (!ed) return;
+                var esc = oldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                var re  = new RegExp('^\\s*- \\*\\*' + esc + '\\*\\*');
+                var all = ed.getValue().split('\n');
+                for (var i = 0; i < all.length; i++) {
+                    if (re.test(all[i])) {
+                        ed.replaceRange(line, {line:i,ch:0}, {line:i,ch:all[i].length});
+                        return;
+                    }
+                }
+            }
+
+            function _clearForm(keepName) {
+                var sel = '#cp-form-' + _entity + ' ';
+                document.querySelectorAll(sel + 'input[type=text]').forEach(function(inp) {
+                    if (!keepName || !inp.id.endsWith('-name')) inp.value = '';
+                });
+                document.querySelectorAll(sel + 'input[type=checkbox]').forEach(function(cb) { cb.checked = false; });
+                document.querySelectorAll(sel + 'select').forEach(function(s) { s.selectedIndex = 0; });
+            }
+
+            function _refreshEditSelect() {
+                var sel = document.getElementById('cp-entity-select');
+                var cur = sel.value;
+                sel.innerHTML = '<option value="">\u2014 select \u2014</option>';
+                _parseNames(_entity).forEach(function(n) {
+                    var o = document.createElement('option'); o.value = o.textContent = n; sel.appendChild(o);
+                });
+                sel.value = cur;
+            }
+
+            /* ── Public API ───────────────────────────────────────────────── */
+            return {
+                toggle: function() {
+                    document.getElementById('cp-panel').classList.contains('open') ? this.close() : this.open();
+                },
+                open: function() {
+                    var p = document.getElementById('cp-panel');
+                    p.classList.add('open'); p.setAttribute('aria-hidden','false');
+                    _syncBoundaries();
+                    if (_entity === 'dataflow') _syncNodes();
+                },
+                close: function() {
+                    var p = document.getElementById('cp-panel');
+                    p.classList.remove('open'); p.setAttribute('aria-hidden','true');
+                },
+                setEntity: function(type) {
+                    _entity = type;
+                    document.querySelectorAll('.cp-etab').forEach(function(b) {
+                        b.classList.toggle('active', b.dataset.entity === type);
+                    });
+                    document.querySelectorAll('.cp-form').forEach(function(f) {
+                        f.style.display = f.id === 'cp-form-' + type ? '' : 'none';
+                    });
+                    _syncBoundaries();
+                    if (type === 'dataflow') _syncNodes();
+                    if (_mode === 'edit') _refreshEditSelect();
+                    _clearForm();
+                },
+                setMode: function(mode) {
+                    _mode = mode;
+                    document.getElementById('cp-mode-add').classList.toggle('active', mode === 'add');
+                    document.getElementById('cp-mode-edit').classList.toggle('active', mode === 'edit');
+                    document.getElementById('cp-edit-select-row').style.display = mode === 'edit' ? '' : 'none';
+                    document.getElementById('cp-action-btn').textContent = mode === 'add' ? 'Insert' : 'Update';
+                    if (mode === 'edit') _refreshEditSelect();
+                    else _clearForm();
+                },
+                onEntitySelect: function() {
+                    var name = document.getElementById('cp-entity-select').value;
+                    if (name) _fill(_parseAttrs(name, _entity)); else _clearForm(true);
+                },
+                execute: function() {
+                    var fields = _collect();
+                    if (!fields.name || !fields.name.trim()) { alert('Name is required.'); return; }
+                    var line = _dsl(fields); if (!line) return;
+                    if (_mode === 'add') {
+                        _insert(line);
+                    } else {
+                        var old = document.getElementById('cp-entity-select').value;
+                        if (!old) { alert('Select an entity to update.'); return; }
+                        _update(old, line);
+                    }
+                    var btn = document.getElementById('cp-action-btn');
+                    var orig = btn.textContent;
+                    btn.textContent = '\u2713 Done'; btn.style.background = '#0366d6';
+                    setTimeout(function() {
+                        btn.textContent = orig; btn.style.background = '';
+                        if (_mode === 'add') _clearForm();
+                    }, 1100);
+                }
+            };
+        })();
+
         function attachDslAutocomplete(editor) {
             const SECTIONS = [
                 '## Description', '## Context', '## Boundaries', '## Actors',
