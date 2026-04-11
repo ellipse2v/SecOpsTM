@@ -980,8 +980,8 @@ def generate_all():
         # When the browser explicitly sends "extra_files" (even an empty list), it has taken
         # ownership of BOM/context delivery — skip the server-side filesystem copy (1c) to
         # prevent stale server globals from contaminating the output with a different project.
-        browser_managed_files = "extra_files" in data
         extra_files = data.get("extra_files", [])
+        browser_managed_files = len(extra_files) > 0
         for ef in extra_files:
             ef_path = ef.get("path", "").lstrip('./\\')
             ef_content = ef.get("content", "")
