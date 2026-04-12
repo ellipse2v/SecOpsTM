@@ -106,8 +106,11 @@ class ThreatModelService:
     def markdown_to_json_for_gui(self, markdown_content: str):
         return self.diagram_service.markdown_to_json_for_gui(markdown_content)
 
-    def update_diagram_logic(self, markdown_content: str, submodels: list | None = None):
-        return self.diagram_service.update_diagram_logic(markdown_content, submodels)
+    def update_diagram_logic(self, markdown_content: str, submodels: list | None = None,
+                             model_file_path: Optional[str] = None):
+        return self.diagram_service.update_diagram_logic(
+            markdown_content, submodels, model_file_path=model_file_path
+        )
 
     def export_files_logic(self, markdown_content: str, export_format: str,
                            model_file_path: Optional[str] = None):

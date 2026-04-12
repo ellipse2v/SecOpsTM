@@ -19,7 +19,7 @@ import time
 import os
 import tempfile
 import re
-from typing import Dict
+from typing import Dict, Optional
 from pathlib import Path
 
 from threat_analysis.core.model_factory import create_threat_model
@@ -212,7 +212,8 @@ class DiagramService:
                     graph_metadata["nodes"][actual_boundary_id]["connections"].append(edge_id)
         return graph_metadata
 
-    def update_diagram_logic(self, markdown_content: str, submodels: list | None = None):
+    def update_diagram_logic(self, markdown_content: str, submodels: list | None = None,
+                             model_file_path: Optional[str] = None):
         logging.info("update_diagram_logic: Starting diagram update.")
         if not markdown_content:
             logging.error("update_diagram_logic: Markdown content is empty.")
@@ -228,6 +229,9 @@ class DiagramService:
             )
             if not threat_model:
                 raise RuntimeError("Failed to create threat model")
+            # Propagate model_file_path so BOM/VEX auto-discovery works in server mode
+            if model_file_path:
+                threat_model._model_file_path = model_file_path
             if submodels and len(submodels) > 0:
                 for submodel_data in submodels:
                     sub_path = submodel_data['path']
@@ -255,6 +259,13 @@ class DiagramService:
                 svg_content = f.read()
             static_path_base = str(PROJECT_ROOT / 'threat_analysis' / 'server' / 'static')
             svg_content = svg_content.replace(static_path_base, '/static')
+            # Add sub-model navigation links for interactive editor (href="#submodel:<path>" intercepted by JS)
+            has_submodels = any(isinstance(s, dict) and 'submodel' in s for s in threat_model.servers)
+            if has_submodels:
+                svg_content = self.diagram_generator.add_links_to_svg(
+                    svg_content, threat_model,
+                    href_builder=lambda p: f"#submodel:{p}",
+                )
             # No severity section in editor preview: threats have not been generated yet
             legend_html = self.diagram_generator._generate_legend_html(threat_model, show_severity_section=False)
             full_html = self.diagram_generator._create_complete_html(svg_content, legend_html, threat_model, severity_map={})

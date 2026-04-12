@@ -36,8 +36,16 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Install AI/ML features with: pip install -e ".[ai]"
-# Or use requirements.txt for the full pinned list: pip install -r requirements.txt
+# Curated AI extras — LLM + vector store + local embeddings (no LangChain).
+# Install with:  pip install -e ".[ai]"
+#
+# For the full AI/ML stack (LangChain, jq, unstructured…) use requirements.txt:
+#   pip install -r requirements.txt
+#
+# INTENTIONAL DIVERGENCE FROM requirements.txt
+# This group is intentionally lighter: it omits langchain-* and heavy data-pipeline
+# deps (jq, unstructured) that most users don't need just for AI threat enrichment.
+# requirements.txt is the authoritative list for contributors and CI pipelines.
 ai = [
     "litellm>=1.32.2",
     "chromadb>=0.4.24",

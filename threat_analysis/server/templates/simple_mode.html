@@ -538,6 +538,15 @@
         .graph-element {
             /* No conflicting fill/stroke here */
         }
+        /* Nodes with a sub-model: pointer cursor + subtle drill-down indicator */
+        #svg-wrapper svg a[href^="#submodel:"] {
+            cursor: pointer;
+        }
+        #svg-wrapper svg a[href^="#submodel:"] polygon,
+        #svg-wrapper svg a[href^="#submodel:"] ellipse,
+        #svg-wrapper svg a[href^="#submodel:"] rect {
+            stroke-dasharray: 6 3;
+        }
 
 
         /* Modal styles */
@@ -1150,7 +1159,9 @@
                 editor.setValue(content);
 
                 // ── Draft autosave / restore ────────────────────────────────────
-                const DRAFT_KEY = 'secopstm_autosave_' + path;
+                // Include location.pathname so two projects with identically-named
+                // files (e.g. both have "main.md") don't share the same draft key.
+                const DRAFT_KEY = 'secopstm_autosave_' + location.pathname + ':' + path;
                 (function restoreDraft() {
                     let draft = null;
                     try { draft = localStorage.getItem(DRAFT_KEY); } catch(e) {}
@@ -1231,6 +1242,19 @@
                 }
                 TabBar.scrollToActive();
                 updatePreview();
+            },
+
+            openOrSwitchToTab: function(path) {
+                const existingIndex = this.editors.findIndex(e => e && e.path === path);
+                if (existingIndex !== -1) {
+                    this.switchTab(existingIndex);
+                    return;
+                }
+                // Tab doesn't exist yet — create it so the user can edit the sub-model
+                const filename = path.split('/').pop().split('\\').pop();
+                const modelName = filename.replace(/\.md$/, '') || 'Sub-Model';
+                const newIndex = this.addTab(path, `# Threat Model: ${modelName}\n\n`);
+                this.switchTab(newIndex);
             },
 
             closeTab: function(tabIndex, force = false) {
@@ -1498,6 +1522,20 @@
 
                     // Add a single click listener to the SVG container for event delegation
                     svgElement.addEventListener('click', (e) => {
+                        // Sub-model drill-down: intercept clicks on nodes that have href="#submodel:..."
+                        const link = e.target.closest('a[href^="#submodel:"]');
+                        if (link) {
+                            e.preventDefault();
+                            const submodelPath = decodeURIComponent(
+                                link.getAttribute('href').replace('#submodel:', '')
+                            );
+                            TabManager.openOrSwitchToTab(submodelPath);
+                            // Also highlight the parent node for visual feedback
+                            const g = link.closest('.graph-element');
+                            if (g) highlightElement(g.id);
+                            return;
+                        }
+
                         // Find the closest parent group that is a graph element
                         const g = e.target.closest('.graph-element');
 

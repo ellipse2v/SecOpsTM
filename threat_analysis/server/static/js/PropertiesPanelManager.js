@@ -14,396 +14,319 @@
  * limitations under the License.
  */
 // threat_analysis/server/static/js/PropertiesPanelManager.js
+//
+// Schema-driven properties panel — form fields are generated from DSL_SCHEMA
+// (dsl_schema.js) so adding a field to the schema automatically surfaces it
+// here. No hardcoded IDs, no duplicated option lists.
 
 class PropertiesPanelManager {
 
+    // Konva stereotype string → DSL_SCHEMA entity key
+    static STEREOTYPE_TO_ENTITY = {
+        BOUNDARY:    'boundary',
+        ACTOR:       'actor',
+        DATA:        'data',
+        SERVER:      'server',
+        WEB_SERVER:  'server',
+        DATABASE:    'server',
+        FIREWALL:    'server',
+        ROUTER:      'server',
+        SWITCH:      'server',
+        API_GATEWAY: 'server',
+    };
+
+    // Keys handled as universal fixed fields (always rendered first)
+    static UNIVERSAL_KEYS = new Set(['name', 'color']);
+
+    // Dataflow fields managed by the graphical editor, absent from DSL_SCHEMA dataflow.fields
+    static DATAFLOW_EXTRA_FIELDS = [
+        { key: 'isEncrypted',     label: 'Is Encrypted',    type: 'checkbox' },
+        { key: 'isAuthenticated', label: 'Is Authenticated', type: 'checkbox' },
+        { key: 'line_style',      label: 'Line Style',       type: 'select',
+          options: ['solid', 'dashed', 'dotted'] },
+    ];
+
     constructor(layer, connectionManager) {
-
-        this.layer = layer;
-
+        this.layer             = layer;
         this.connectionManager = connectionManager;
-
-        this.selectedItem = null; // Track the currently selected item (node or connection)
+        this.selectedItem      = null;
 
         this.propertiesForm = document.getElementById('properties-form');
-
         this.noSelectionDiv = document.getElementById('no-selection');
 
-        this.nameInput = document.getElementById('prop-name');
-
-        this.colorInput = document.getElementById('prop-color');
-
-        this.descriptionInput = document.getElementById('prop-description');
-
-        this.osInput = document.getElementById('prop-os');
-
-        this.stereotypeInput = document.getElementById('prop-stereotype');
-
-        this.isFilledInput = document.getElementById('prop-is-filled');
-
-        this.isTrustedInput = document.getElementById('prop-is-trusted');
-
-        this.lineStyleInput = document.getElementById('prop-line-style');
-
-        this.formatInput = document.getElementById('prop-format');
-
-        this.credentialsLifeInput = document.getElementById('prop-credentials-life');
-
-        this.classificationInput = document.getElementById('prop-classification');
-
-        this.confidentialityInput = document.getElementById('prop-confidentiality');
-
-        this.integrityInput = document.getElementById('prop-integrity');
-
-        this.availabilityInput = document.getElementById('prop-availability');
-
-        this.protocolInput = document.getElementById('prop-protocol');
-
-        this.isEncryptedInput = document.getElementById('prop-is-encrypted');
-
-        this.isAuthenticatedInput = document.getElementById('prop-is-authenticated');
-
-        this.dataInput = document.getElementById('prop-data');
-
-        
-
-        this.setupEventHandlers();
-
+        window.addEventListener('itemSelected',    (e) => this.updatePropertiesPanel(e.detail.item));
+        window.addEventListener('selectionCleared',()  => this.updatePropertiesPanel(null));
+        window.addEventListener('nodeDeleted',     ()  => this.updatePropertiesPanel(null));
     }
 
+    // ── Entity type resolution ────────────────────────────────────────────
 
-
-    setupEventHandlers() {
-
-        this.nameInput.addEventListener('input', (evt) => this.updateCellProperty('name', evt.target.value));
-
-        this.colorInput.addEventListener('input', (evt) => this.updateCellProperty('color', evt.target.value));
-
-        this.descriptionInput.addEventListener('input', (evt) => this.updateCellProperty('description', evt.target.value));
-
-        this.osInput.addEventListener('input', (evt) => this.updateCellProperty('os', evt.target.value));
-
-        this.stereotypeInput.addEventListener('input', (evt) => this.updateCellProperty('stereotype', evt.target.value));
-
-        this.isFilledInput.addEventListener('change', (evt) => this.updateCellProperty('isFilled', evt.target.checked));
-
-        this.isTrustedInput.addEventListener('change', (evt) => this.updateCellProperty('isTrusted', evt.target.checked));
-
-        this.lineStyleInput.addEventListener('change', (evt) => this.updateCellProperty('line_style', evt.target.value));
-
-        this.formatInput.addEventListener('input', (evt) => this.updateCellProperty('format', evt.target.value));
-
-        this.credentialsLifeInput.addEventListener('input', (evt) => this.updateCellProperty('credentialsLife', evt.target.value));
-
-        this.classificationInput.addEventListener('change', (evt) => this.updateCellProperty('classification', evt.target.value));
-
-        this.confidentialityInput.addEventListener('change', (evt) => this.updateCellProperty('confidentiality', evt.target.value));
-
-        this.integrityInput.addEventListener('change', (evt) => this.updateCellProperty('integrity', evt.target.value));
-
-        this.availabilityInput.addEventListener('change', (evt) => this.updateCellProperty('availability', evt.target.value));
-
-        this.protocolInput.addEventListener('change', (evt) => this.updateCellProperty('protocol', evt.target.value));
-
-        this.isEncryptedInput.addEventListener('change', (evt) => this.updateCellProperty('isEncrypted', evt.target.checked));
-
-        this.isAuthenticatedInput.addEventListener('change', (evt) => this.updateCellProperty('isAuthenticated', evt.target.checked));
-
-        this.dataInput.addEventListener('input', (evt) => this.updateCellProperty('data', evt.target.value));
-
-
-
-        window.addEventListener('itemSelected', (e) => this.updatePropertiesPanel(e.detail.item));
-
-        window.addEventListener('selectionCleared', () => this.updatePropertiesPanel(null));
-
-        window.addEventListener('nodeDeleted', () => this.updatePropertiesPanel(null)); // Clear panel on node deletion
-
+    _entityType(item) {
+        if (item instanceof Connection) return 'dataflow';
+        const stereotype = item.getAttr('threatModelProperties')?.stereotype || '';
+        return PropertiesPanelManager.STEREOTYPE_TO_ENTITY[stereotype] || 'server';
     }
 
-
-
-    updatePropertiesPanel(item) {
-
-        this.selectedItem = item; // Store the selected item
-
-        if (item instanceof Connection) {
-
-            const props = item.properties;
-
-            this.propertiesForm.style.display = 'block';
-
-            this.noSelectionDiv.style.display = 'none';
-
-
-
-            this.nameInput.value = props.name;
-
-            this.descriptionInput.value = props.description;
-
-            this.protocolInput.value = props.protocol;
-
-            this.isEncryptedInput.checked = props.isEncrypted;
-
-            this.isAuthenticatedInput.checked = props.isAuthenticated;
-
-            this.colorInput.value = props.color || '#000000';
-
-            this.dataInput.value = props.data || '';
-            // If the value doesn't exist in the dropdown, add it as a temporary option
-            if (props.data && !Array.from(this.dataInput.options).some(opt => opt.value === props.data)) {
-                const opt = document.createElement('option');
-                opt.value = props.data;
-                opt.textContent = props.data;
-                this.dataInput.appendChild(opt);
-                this.dataInput.value = props.data;
-            }
-
-            this.lineStyleInput.value = props.line_style || 'solid';
-
-
-
-            document.getElementById('prop-os-group').style.display = 'none';
-
-            document.getElementById('prop-stereotype-group').style.display = 'none';
-
-            document.getElementById('prop-is-filled-group').style.display = 'none';
-
-            document.getElementById('prop-is-trusted-group').style.display = 'none';
-
-            document.getElementById('prop-line-style-group').style.display = 'block';
-
-            document.getElementById('prop-format-group').style.display = 'none';
-
-            document.getElementById('prop-credentials-life-group').style.display = 'none';
-
-            document.getElementById('prop-classification-group').style.display = 'none';
-
-            document.getElementById('prop-cia-group').style.display = 'none';
-
-
-
-            this.colorInput.parentElement.style.display = 'block';
-
-            document.getElementById('prop-protocol-group').style.display = 'block';
-
-            document.getElementById('prop-is-encrypted-group').style.display = 'block';
-
-            document.getElementById('prop-is-authenticated-group').style.display = 'block';
-
-            document.getElementById('prop-description-group').style.display = 'block';
-
-            document.getElementById('prop-data-group').style.display = 'block';
-
-
-
-        } else if (item && item.getAttr('threatModelProperties')) {
-
-            const props = item.getAttr('threatModelProperties');
-
-            this.propertiesForm.style.display = 'block';
-
-            this.noSelectionDiv.style.display = 'none';
-
-
-
-            const type = props.stereotype;
-
-            this.nameInput.value = props.name || '';
-
-            this.descriptionInput.value = props.description || '';
-
-            this.osInput.value = props.os || '';
-
-            this.stereotypeInput.value = props.stereotype || '';
-
-            this.isFilledInput.checked = props.isFilled !== undefined ? props.isFilled : true;
-
-            this.isTrustedInput.checked = props.isTrusted !== undefined ? props.isTrusted : true;
-
-            this.lineStyleInput.value = props.lineStyle || 'solid';
-
-            this.formatInput.value = props.format || '';
-
-            this.credentialsLifeInput.value = props.credentialsLife || '';
-
-            this.classificationInput.value = props.classification || 'public';
-
-            this.confidentialityInput.value = props.confidentiality || 'medium';
-
-            this.integrityInput.value = props.integrity || 'medium';
-
-            this.availabilityInput.value = props.availability || 'medium';
-
-            this.colorInput.value = props.color || '#D1FAE5';
-
-
-
-            const isData = (type === 'DATA');
-
-            const isBoundary = (type === 'BOUNDARY');
-
-            const isServer = (type === 'SERVER' || type === 'WEB_SERVER' || type === 'DATABASE' || type === 'FIREWALL' || type === 'ROUTER' || type === 'SWITCH' || type === 'API_GATEWAY');
-
-            document.getElementById('prop-protocol-group').style.display = 'none';
-
-            document.getElementById('prop-is-encrypted-group').style.display = 'none';
-
-            document.getElementById('prop-is-authenticated-group').style.display = 'none';
-
-            document.getElementById('prop-data-group').style.display = 'none';
-
-            document.getElementById('prop-classification-group').style.display = isData ? 'block' : 'none';
-
-            document.getElementById('prop-os-group').style.display = isServer ? 'block' : 'none';
-
-            document.getElementById('prop-stereotype-group').style.display = isServer ? 'block' : 'none';
-
-            document.getElementById('prop-is-filled-group').style.display = isBoundary || type === 'ACTOR' ? 'block' : 'none';
-
-            document.getElementById('prop-is-trusted-group').style.display = isBoundary ? 'block' : 'none';
-
-            document.getElementById('prop-line-style-group').style.display = isBoundary ? 'block' : 'none';
-
-            document.getElementById('prop-format-group').style.display = isData ? 'block' : 'none';
-
-            document.getElementById('prop-credentials-life-group').style.display = isData ? 'block' : 'none';
-
-            this.colorInput.parentElement.style.display = 'block';
-
-            document.getElementById('prop-cia-group').style.display = 'block';
-
-
+    // ── Boolean coercion (DSL stores 'True'/'False' strings) ─────────────
+
+    _toBool(v) {
+        if (typeof v === 'boolean') return v;
+        return v === 'True' || v === 'true' || v === 1;
+    }
+
+    // ── Effective field type resolution ───────────────────────────────────
+    // Upgrades 'text' fields that have valueType:'select' in DSL_SCHEMA.attributes.
+    // Degrades reference selects to plain text (graphical editor resolves via canvas).
+
+    _effectiveType(field) {
+        const type = field.type;
+        if (type === 'boundary-select' || type === 'node-select') return 'text';
+        if (type !== 'text') return type;
+
+        const attr = (DSL_SCHEMA.attributes || []).find(a => a.key === field.key);
+        if (!attr) return 'text';
+        if (attr.valueType === 'select' && DSL_SCHEMA.values[field.key]) return 'select';
+        return 'text';
+    }
+
+    // ── DOM helpers ───────────────────────────────────────────────────────
+
+    _makeGroup(id) {
+        const g = document.createElement('div');
+        g.className = 'prop-group';
+        if (id) g.id = id;
+        return g;
+    }
+
+    _makeLabel(text, forId) {
+        const l = document.createElement('label');
+        l.textContent = text + ':';
+        if (forId) l.htmlFor = forId;
+        return l;
+    }
+
+    _makeSelect(id, options, currentValue) {
+        const s = document.createElement('select');
+        if (id) s.id = id;
+        options.forEach(opt => {
+            const o = document.createElement('option');
+            o.value = opt;
+            o.textContent = opt || '—';
+            s.appendChild(o);
+        });
+        s.value = currentValue != null ? String(currentValue) : '';
+        return s;
+    }
+
+    // ── Field builders ────────────────────────────────────────────────────
+
+    // Build one form row from a DSL_SCHEMA field definition + current value.
+    _buildSchemaField(field, value) {
+        const inputId = `prop-schema-${field.key}`;
+        const type    = this._effectiveType(field);
+        const group   = this._makeGroup(`schema-field-${field.key}`);
+        group.appendChild(this._makeLabel(field.label, inputId));
+
+        let input;
+
+        if (type === 'checkbox') {
+            input = document.createElement('input');
+            input.type    = 'checkbox';
+            input.id      = inputId;
+            input.checked = this._toBool(value);
+            input.addEventListener('change', (e) =>
+                this.updateCellProperty(field.key, e.target.checked));
+
+        } else if (type === 'select') {
+            const options = field.options || DSL_SCHEMA.values[field.key] || [];
+            input = this._makeSelect(inputId, options, value != null ? value : (field.default_val || ''));
+            input.addEventListener('change', (e) =>
+                this.updateCellProperty(field.key, e.target.value));
 
         } else {
-
-            this.propertiesForm.style.display = 'none';
-
-            this.noSelectionDiv.style.display = 'block';
-
+            input = document.createElement('input');
+            input.type        = 'text';
+            input.id          = inputId;
+            input.placeholder = field.placeholder || '';
+            input.value       = value != null ? String(value) : '';
+            input.addEventListener('input', (e) =>
+                this.updateCellProperty(field.key, e.target.value));
         }
 
+        group.appendChild(input);
+        return group;
     }
 
+    // Name field — always first.
+    _buildNameField(value) {
+        const group = this._makeGroup();
+        group.appendChild(this._makeLabel('Name', 'prop-name'));
+        const input = document.createElement('input');
+        input.type  = 'text';
+        input.id    = 'prop-name';
+        input.value = value || '';
+        input.addEventListener('input', (e) => this.updateCellProperty('name', e.target.value));
+        group.appendChild(input);
+        return group;
+    }
 
+    // Color field — always second.
+    _buildColorField(value) {
+        const group = this._makeGroup();
+        group.appendChild(this._makeLabel('Color', 'prop-color'));
+        const input = document.createElement('input');
+        input.type  = 'color';
+        input.id    = 'prop-color';
+        input.value = value || '#D1FAE5';
+        input.addEventListener('input', (e) => this.updateCellProperty('color', e.target.value));
+        group.appendChild(input);
+        return group;
+    }
+
+    // Data select — populated from DATA nodes currently on the canvas.
+    _buildDataSelect(currentValue) {
+        const group = this._makeGroup('schema-field-data');
+        group.appendChild(this._makeLabel('Data', 'prop-data'));
+        const select = document.createElement('select');
+        select.id = 'prop-data';
+        const empty = document.createElement('option');
+        empty.value = ''; empty.textContent = '—';
+        select.appendChild(empty);
+        this.layer.find('Group').forEach(n => {
+            const p = n.getAttr('threatModelProperties');
+            if (p && p.stereotype === 'DATA') {
+                const o = document.createElement('option');
+                o.value = p.name; o.textContent = p.name;
+                select.appendChild(o);
+            }
+        });
+        select.value = currentValue || '';
+        select.addEventListener('change', (e) => this.updateCellProperty('data', e.target.value));
+        group.appendChild(select);
+        return group;
+    }
+
+    // CIA triad selects — graphical-editor specific, not in DSL_SCHEMA.
+    _buildCIAGroup(props) {
+        const group = this._makeGroup('prop-cia-group');
+        group.appendChild(this._makeLabel('CIA'));
+        const keys    = ['confidentiality', 'integrity', 'availability'];
+        const prefixes = ['C', 'I', 'A'];
+        keys.forEach((key, i) => {
+            const p  = prefixes[i];
+            const opts = ['low', 'medium', 'high', 'critical'].map(v => `${p}: ${v}`);
+            const cur  = props[key] ? `${p}: ${props[key]}` : `${p}: medium`;
+            const sel  = this._makeSelect(`prop-${key}`, opts, cur);
+            sel.addEventListener('change', (e) =>
+                this.updateCellProperty(key, e.target.value.split(': ')[1]));
+            group.appendChild(sel);
+        });
+        return group;
+    }
+
+    // ── Form rendering ────────────────────────────────────────────────────
+
+    _renderForm(entityType, props) {
+        this.propertiesForm.innerHTML = '';
+
+        // 1. Universal fields (always present)
+        this.propertiesForm.appendChild(this._buildNameField(props.name));
+        this.propertiesForm.appendChild(this._buildColorField(props.color));
+
+        // 2. Schema-driven fields
+        const entity = DSL_SCHEMA.entities[entityType];
+        if (entity) {
+            const skip = PropertiesPanelManager.UNIVERSAL_KEYS;
+            // For dataflows, 'from' and 'to' are determined by the visual connection
+            const dfSkip = new Set(['from', 'to']);
+            entity.fields
+                .filter(f => !skip.has(f.key) && !(entityType === 'dataflow' && dfSkip.has(f.key)))
+                .forEach(f => this.propertiesForm.appendChild(
+                    this._buildSchemaField(f, props[f.key])
+                ));
+        }
+
+        // 3. Dataflow-only extras absent from DSL_SCHEMA dataflow.fields
+        if (entityType === 'dataflow') {
+            PropertiesPanelManager.DATAFLOW_EXTRA_FIELDS.forEach(f =>
+                this.propertiesForm.appendChild(this._buildSchemaField(f, props[f.key]))
+            );
+            this.propertiesForm.appendChild(this._buildDataSelect(props.data));
+        }
+
+        // 4. CIA group for server / actor (graphical-editor specific scoring)
+        if (entityType === 'server' || entityType === 'actor') {
+            this.propertiesForm.appendChild(this._buildCIAGroup(props));
+        }
+    }
+
+    // ── Public API ────────────────────────────────────────────────────────
+
+    updatePropertiesPanel(item) {
+        this.selectedItem = item;
+
+        if (!item) {
+            this.propertiesForm.style.display = 'none';
+            this.noSelectionDiv.style.display  = 'block';
+            return;
+        }
+
+        this.propertiesForm.style.display = 'block';
+        this.noSelectionDiv.style.display  = 'none';
+
+        const entityType = this._entityType(item);
+        const props      = (item instanceof Connection)
+            ? item.properties
+            : (item.getAttr('threatModelProperties') || {});
+
+        this._renderForm(entityType, props);
+    }
 
     updateCellProperty(key, value) {
-
         if (!this.selectedItem) return;
-
-
 
         if (this.selectedItem instanceof Connection) {
             this.selectedItem.properties[key] = value;
-
-            if (key === "name" || key === "data" || key === "isEncrypted" || key === "isAuthenticated") {
+            if (['name', 'data', 'isEncrypted', 'isAuthenticated'].includes(key)) {
                 this.selectedItem.updateLabel();
-            } else if (key === "color" || key === "line_style" || key === "protocol") {
+            } else if (['color', 'line_style', 'protocol'].includes(key)) {
                 this.selectedItem.updateStyle();
-                if (key === "protocol" || key === "color") {
-                    this.connectionManager.updateAllConnectionsWithProtocol(this.selectedItem.properties.protocol);
-                }
             }
             this.selectedItem.manager.layer.draw();
 
         } else if (this.selectedItem.getAttr('threatModelProperties')) {
-
-            const node = this.selectedItem;
-
+            const node  = this.selectedItem;
             const props = node.getAttr('threatModelProperties');
-
-            props[key] = value;
-
+            props[key]  = value;
             node.setAttr('threatModelProperties', props);
 
-
-
             if (key === 'name') {
-
                 const textNode = node.findOne('.label');
-
-                if (textNode) {
-
-                    textNode.text(value);
-
-                }
+                if (textNode) textNode.text(value);
 
             } else if (key === 'color') {
-
-                const shapeNode = node.findOne('.shape');
-
-                if (shapeNode) {
-
-                    props.color = value;
-
-                    if (props.isFilled) {
-
-                        shapeNode.fill(value);
-
-                    }
-
-                    if (props.stereotype !== 'BOUNDARY') {
-
-                        shapeNode.stroke(value);
-
-                    }
-
+                const shape = node.findOne('.shape');
+                if (shape) {
+                    if (props.isFilled) shape.fill(value);
+                    if (props.stereotype !== 'BOUNDARY') shape.stroke(value);
                 }
 
             } else if (key === 'isTrusted') {
-
-                const shapeNode = node.findOne('.shape');
-
-                if (shapeNode && props.stereotype === 'BOUNDARY') {
-
-                    shapeNode.stroke(value ? '#adb5bd' : 'red');
-
-                    shapeNode.strokeWidth(value ? 2 : 1);
-
+                const shape   = node.findOne('.shape');
+                const trusted = this._toBool(value);
+                props.isTrusted = trusted;
+                if (shape && props.stereotype === 'BOUNDARY') {
+                    shape.stroke(trusted ? '#adb5bd' : 'red');
+                    shape.strokeWidth(trusted ? 2 : 1);
                 }
 
             } else if (key === 'isFilled') {
-
-                const shapeNode = node.findOne('.shape');
-
-                if (shapeNode) {
-
-                    shapeNode.fill(value ? props.color : 'transparent');
-
-                }
-
-            } else if (key === 'lineStyle') {
-
-                const shapeNode = node.findOne('.shape');
-
-                if (shapeNode) {
-
-                    if (value === 'dashed') {
-
-                        shapeNode.dash([10, 5]);
-
-                    }
-
-                    else if (value === 'dotted') {
-
-                        shapeNode.dash([2, 5]);
-
-                    }
-
-                    else {
-
-                        shapeNode.dash([]);
-
-                    }
-
-                }
-
+                const shape  = node.findOne('.shape');
+                const filled = this._toBool(value);
+                if (shape) shape.fill(filled ? props.color : 'transparent');
             }
 
             this.layer.batchDraw();
-
         }
-
     }
-
 }

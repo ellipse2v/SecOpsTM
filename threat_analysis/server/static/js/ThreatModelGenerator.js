@@ -15,6 +15,16 @@
  */
 // threat_analysis/server/static/js/ThreatModelGenerator.js
 
+/** Escape a string for safe insertion into HTML content or attribute values. */
+function escHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 class ThreatModelGenerator {
     constructor(layer, connections, nodeManager, uiManager, modelManager) {
         this.layer = layer;
@@ -134,7 +144,7 @@ class ThreatModelGenerator {
                     const bh = boundary.height;
                     let contained = (group_center.x > bx && group_center.x < bx + bw &&
                                     group_center.y > by && group_center.y < by + bh);
-                    debug_info += `<tr><td>${element.name}</td><td>(${group_center.x.toFixed(2)}, ${group_center.y.toFixed(2)})</td><td>${boundary.name}</td><td>(${bx.toFixed(2)}, ${by.toFixed(2)}, ${bw.toFixed(2)}, ${bh.toFixed(2)})</td><td>${contained}</td></tr>`;
+                    debug_info += `<tr><td>${escHtml(element.name)}</td><td>(${group_center.x.toFixed(2)}, ${group_center.y.toFixed(2)})</td><td>${escHtml(boundary.name)}</td><td>(${bx.toFixed(2)}, ${by.toFixed(2)}, ${bw.toFixed(2)}, ${bh.toFixed(2)})</td><td>${contained}</td></tr>`;
                 });
             });
             debug_info += '</table>';
@@ -194,37 +204,73 @@ class ThreatModelGenerator {
                 eventSource.close();
                 if (data.error) {
                     alert('Error during generation:\n' + data.error);
-                    this.analysisResultContainer.innerHTML = '<h3>Error during generation</h3><pre>' + data.error + '</pre>' + debug_info;
+                    this._setResult([
+                        { tag: 'h3', text: 'Error during generation' },
+                        { tag: 'pre', text: data.error },
+                    ], debug_info);
                     console.error('Generation error:', data.error);
                     return;
                 }
 
-                let filesHtml = '<ul>';
-                for (const key in data.generated_files.reports) {
-                    filesHtml += `<li>${key}: ${data.generated_files.reports[key]}</li>`;
-                }
-                for (const key in data.generated_files.diagrams) {
-                    filesHtml += `<li>${key}: ${data.generated_files.diagrams[key]}</li>`;
-                }
-                filesHtml += `<li>model: ${data.generated_files.model}</li>`;
-                filesHtml += `<li>metadata: ${data.generated_files.metadata}</li>`;
-                filesHtml += '</ul>';
+                const ul = document.createElement('ul');
+                const fileEntries = [
+                    ...Object.entries(data.generated_files.reports || {}),
+                    ...Object.entries(data.generated_files.diagrams || {}),
+                    ['model', data.generated_files.model],
+                    ['metadata', data.generated_files.metadata],
+                ];
+                fileEntries.forEach(([key, val]) => {
+                    const li = document.createElement('li');
+                    li.textContent = `${key}: ${val}`;
+                    ul.appendChild(li);
+                });
 
-                this.analysisResultContainer.innerHTML = '<h3>Generation Successful</h3>' +
-                    `<p>All artifacts generated in directory: ${data.generation_dir}</p>` +
-                    '<h4>Generated Files:</h4>' +
-                    filesHtml + debug_info;
+                this._setResult([
+                    { tag: 'h3', text: 'Generation Successful' },
+                    { tag: 'p',  text: `All artifacts generated in directory: ${data.generation_dir}` },
+                    { tag: 'h4', text: 'Generated Files:' },
+                    { node: ul },
+                ], debug_info);
             })
             .catch(error => {
                 eventSource.close();
                 alert('Network Error:\n' + error.message);
-                this.analysisResultContainer.innerHTML = '<h3>Network Error</h3><pre>' + error.message + '</pre>' + debug_info;
+                this._setResult([
+                    { tag: 'h3', text: 'Network Error' },
+                    { tag: 'pre', text: error.message },
+                ], debug_info);
                 console.error('Network error:', error);
             });
 
         } catch (e) {
-            this.analysisResultContainer.innerHTML = '<h3>Error during generation</h3><pre>' + e.stack + '</pre>';
+            this._setResult([
+                { tag: 'h3', text: 'Error during generation' },
+                { tag: 'pre', text: e.stack },
+            ]);
             console.error("Error in generate function:", e);
+        }
+    }
+
+    /**
+     * Safely populate this.analysisResultContainer.
+     * @param {Array<{tag?:string, text?:string, node?:Node}>} items  Elements to append via textContent (safe).
+     * @param {string} [trustedHtml]  Optional pre-sanitised HTML appended last (debug_info table).
+     */
+    _setResult(items, trustedHtml) {
+        this.analysisResultContainer.innerHTML = '';
+        items.forEach(({ tag, text, node }) => {
+            if (node) {
+                this.analysisResultContainer.appendChild(node);
+            } else {
+                const el = document.createElement(tag);
+                el.textContent = text;
+                this.analysisResultContainer.appendChild(el);
+            }
+        });
+        if (trustedHtml) {
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = trustedHtml; // debug_info: names already escaped with escHtml()
+            this.analysisResultContainer.appendChild(wrapper);
         }
     }
 

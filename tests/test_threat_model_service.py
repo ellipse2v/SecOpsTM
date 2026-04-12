@@ -43,7 +43,7 @@ def test_check_version_compatibility(threat_model_service):
 def test_update_diagram_logic(threat_model_service):
     with patch.object(threat_model_service.diagram_service, 'update_diagram_logic') as mock_update:
         threat_model_service.update_diagram_logic("markdown")
-        mock_update.assert_called_once_with("markdown", None)
+        mock_update.assert_called_once_with("markdown", None, model_file_path=None)
 
 def test_export_files_logic(threat_model_service):
     with patch.object(threat_model_service.export_service, 'export_files_logic') as mock_export:

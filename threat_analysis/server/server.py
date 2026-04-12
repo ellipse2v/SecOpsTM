@@ -119,6 +119,15 @@ def after_request(response):
             f"Temps de génération de réponse: {generation_time_ms:.2f}ms, "
             f"Temps de transmission de réponse: {response_transmission_ms:.2f}ms"
         )
+    # Security headers — applied to every response regardless of route.
+    # CSP allows inline styles (needed by diagram legend) but blocks external scripts.
+    response.headers.setdefault('X-Content-Type-Options', 'nosniff')
+    response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
+    response.headers.setdefault(
+        'Content-Security-Policy',
+        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; worker-src 'self' blob:;"
+    )
+    response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
     return response
 
 def initialize_ai_in_background():
@@ -299,7 +308,16 @@ def run_server(model_filepath: Optional[str] = None, project_path: Optional[str]
         "\n🚀 Starting Threat Model Server. Open your browser to: http://127.0.0.1:5000/\n"
     )
     logging.info(f"[{time.time() - start_time:.4f}s] Starting Flask app...")
-    app.run(debug=os.environ.get("FLASK_DEBUG", "false").lower() == "true", port=5000, threaded=True)
+    # Debug mode must never be enabled in production: it exposes an interactive
+    # console (RCE) via Werkzeug's debugger.  Only allow it when explicitly opted
+    # in AND running on localhost.
+    _host = os.environ.get("FLASK_HOST", "127.0.0.1")
+    _port = int(os.environ.get("FLASK_PORT", "5000"))
+    _debug = os.environ.get("FLASK_DEBUG", "false").lower() == "true"
+    if _debug and not _host.startswith("127."):
+        logging.warning("FLASK_DEBUG ignored — debug mode is only allowed on loopback addresses.")
+        _debug = False
+    app.run(debug=_debug, port=_port, host=_host, threaded=True)
 
 
 @app.route("/static/<path:filename>")
@@ -493,7 +511,9 @@ def update_diagram():
         return jsonify({"error": "Markdown content is empty"}), 400
 
     try:
-        result = get_threat_model_service().update_diagram_logic(markdown_content, submodels=submodels)
+        result = get_threat_model_service().update_diagram_logic(
+            markdown_content, submodels=submodels, model_file_path=initial_model_file_path
+        )
         g.processing_time_ms = result.get("processing_time_ms", 0)
         g.generation_time_ms = result.get("generation_time_ms", 0)
         model_name = get_model_name(markdown_content)

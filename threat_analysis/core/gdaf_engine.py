@@ -358,6 +358,9 @@ class GDAFEngine:
                 if "running_services" in bom:
                     for svc in (bom["running_services"] or []):
                         node["services"].add(str(svc).lower())
+                # CVE exposure signal — used by hop_weight below
+                known_cves = bom.get("known_cves") or bom.get("active_cves") or []
+                node["cve_count"] = len(known_cves)
                 # Store BOM metadata for reference
                 node["bom"] = bom
 
@@ -580,6 +583,11 @@ class GDAFEngine:
 
             # Traversal difficulty bonus: easier segments are higher risk for the attacker
             hop_weight += _TRAVERSAL_BONUS.get(edge.get("traversal_difficulty", "low"), 0.1)
+
+            # CVE exposure bonus: unpatched CVEs on this node make it a more attractive target
+            cve_count = node.get("cve_count", 0)
+            if cve_count > 0:
+                hop_weight += min(cve_count * 0.15, 0.5)  # cap at +0.5
 
             # Track detection coverage for scenario-level average
             hop_detection_coverages.append(node.get("detection_coverage", 0.0))

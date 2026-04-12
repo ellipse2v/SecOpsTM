@@ -25,7 +25,7 @@
 # =============================================================================
 ai_providers:
   mistral:
-    enabled: true
+    enabled: false
     model: "mistral-small-latest"
     api_key_env: "MISTRAL_API_KEY"
     api_base: ""       # Enterprise: http://mistral.internal:8000/v1
@@ -51,6 +51,19 @@ ai_providers:
     api_base: ""
     ssl_verify: true
 
+  # NVIDIA Integrate API (OpenAI-compatible) — https://build.nvidia.com/models
+  # export NVIDIA_NIM_API_KEY=nvapi-...
+  nvidia_nim:
+    enabled: true
+    model: "minimaxai/minimax-m2.5"      # any model from build.nvidia.com
+    api_key_env: "NVIDIA_NIM_API_KEY"
+    api_base: "https://integrate.api.nvidia.com/v1"
+    temperature: 1.00
+    top_p: 0.95
+    max_tokens: 4096
+    timeout: 60
+    ssl_verify: true
+
   ollama:
     enabled: false
     model: "llama3:8b-instruct-q4_K_M"
@@ -72,7 +85,10 @@ threat_generation:
   # Rate limiting — set to 1.5 for Gemini free tier (15 RPM), 0.0 for paid/Ollama
   rate_limit_sleep: 0.0
   # Concurrency — 1 = sequential (safe for free tiers); 3–5 for paid/Ollama
-  max_concurrent_ai_requests: 1
+  max_concurrent_ai_requests: 3
+  # Batch enrichment — components grouped per LLM call (5 = 5× fewer API round trips)
+  # Set to 1 to disable batching and fall back to one call per component
+  batch_size: 5
 
   # Volume control (0 = no limit)
   max_total_threats: 0

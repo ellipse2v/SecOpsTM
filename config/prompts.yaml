@@ -199,6 +199,55 @@ stride_analysis:
       ]
     }
 
+  batch_template: |
+    # Batch STRIDE Threat Analysis — <<n_components>> components
+
+    <<system_desc_section>>
+    <<adversarial_context_section>>
+    ## Shared Risk Context
+    | Factor | Value |
+    |---|---|
+    | Data Sensitivity | <<data_sensitivity>> |
+    | Compliance Requirements | <<compliance>> |
+    | Deployment Environment | <<deployment>> |
+
+    ## Components to Analyze
+
+    <<components_block>>
+
+    ## Your Task
+    For EACH component listed above, identify 3 to 5 realistic STRIDE threats.
+    STRICT RULE: generate threats ONLY for the exact technology tags of each component.
+    Do NOT cross-contaminate threats between components.
+
+    Return ONLY valid JSON array — one entry per component (no markdown, no preamble):
+    [
+      {
+        "component": "<exact component name as listed above>",
+        "threats": [
+          {
+            "category": "Spoofing|Tampering|Repudiation|Information Disclosure|Denial of Service|Elevation of Privilege",
+            "title": "Specific threat title",
+            "description": "Root cause and technical detail",
+            "attack_scenario": "1. Step\n2. Step\n3. Step",
+            "prerequisites": ["network access", "valid account"],
+            "business_impact": {
+              "severity": "Critical|High|Medium|Low",
+              "financial": "...", "regulatory": "...",
+              "reputational": "...", "operational": "..."
+            },
+            "likelihood": "Low|Medium|High",
+            "likelihood_rationale": "One sentence.",
+            "capec_ids": ["CAPEC-XX"],
+            "cwe_ids": ["XX"],
+            "d3fend_techniques": ["D3-XX"],
+            "detection_opportunities": ["log source or signal"],
+            "confidence": 0.8
+          }
+        ]
+      }
+    ]
+
 # ---------------------------------------------------------------------------
 # 3. ATTACK FLOW GENERATION
 #    Used by: LiteLLMProvider.generate_attack_flow → build_attack_flow_prompt()

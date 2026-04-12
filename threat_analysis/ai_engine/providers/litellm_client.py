@@ -188,11 +188,13 @@ class LiteLLMClient:
                 api_base=self.api_base,
             )
             logging.info("[%.3fs] AI health check OK — %s", time.time() - check_start_time, self.model_name)
+            self.ai_online = True
             return True
         except Exception as e:
             logging.error("[%.3fs] AI health check FAILED — model=%s url=%s",
                           time.time() - check_start_time, self.model_name, target)
             self._log_ssl_error(e, f"check_connection({self.model_name})")
+            self.ai_online = False
             return False
 
     async def generate_content(self, prompt: str, system_prompt: str, stream: Optional[bool] = None, output_format: str = "text"):
@@ -219,6 +221,8 @@ class LiteLLMClient:
             "num_retries": 3, # Automatically retry on rate limits
             "api_base": self.api_base
         }
+        if "top_p" in self.provider_config:
+            completion_params["top_p"] = self.provider_config["top_p"]
 
         if self.ssl_verify is not True:
             self._litellm_module.ssl_verify = self.ssl_verify

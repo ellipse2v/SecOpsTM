@@ -24,7 +24,7 @@ import json
 import datetime
 import xml.etree.ElementTree as ET
 from urllib.parse import urlparse # Added line
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
@@ -287,11 +287,11 @@ class DiagramGenerator:
         
         final_fillcolor = fillcolor or color or 'lightblue'
         if final_fillcolor:
-            attributes.append(f'fillcolor="{final_fillcolor}"')
+            attributes.append(f'fillcolor="{self._safe_css_value(final_fillcolor, "lightblue")}"')
 
         if color:
             if not fillcolor or color != fillcolor:
-                attributes.append(f'color="{color}"')
+                attributes.append(f'color="{self._safe_css_value(color, "#000000")}"')
         
         # 3. Handle icon and label generation
         ICON_MAPPING = CONFIG_DATA["ICON_MAPPING"]
@@ -387,9 +387,19 @@ class DiagramGenerator:
             logging.error(f"❌ Error generating metadata: {e}")
             return None
 
-    def add_links_to_svg(self, svg_content: str, threat_model: ThreatModel) -> str:
+    def add_links_to_svg(self, svg_content: str, threat_model: ThreatModel,
+                         href_builder: Optional[Callable[[Path], str]] = None) -> str:
         """
         Adds hyperlinks to the SVG content for nodes with submodels.
+
+        Args:
+            svg_content: Raw SVG string to annotate.
+            threat_model: Parsed threat model (used to find servers with submodel=).
+            href_builder: Optional callable ``(submodel_path: Path) -> str`` that
+                returns the href value for each link.  When *None* (default, export
+                mode), the href points to the sibling ``<stem>_diagram.html`` file.
+                Pass a custom builder for interactive/server mode (e.g.
+                ``lambda p: f"#submodel:{p}"``).
         """
         ET.register_namespace("", "http://www.w3.org/2000/svg")
         ET.register_namespace("xlink", "http://www.w3.org/1999/xlink")
@@ -402,8 +412,11 @@ class DiagramGenerator:
                 sanitized_name = self._sanitize_name(server_name)
 
                 submodel_path = Path(server['submodel'])
-                # Correctly form the relative path for the link
-                link_href = str(submodel_path.with_name(f"{submodel_path.stem}_diagram.html"))
+                if href_builder is not None:
+                    link_href = href_builder(submodel_path)
+                else:
+                    # Export mode: link to the sibling diagram HTML file
+                    link_href = str(submodel_path.with_name(f"{submodel_path.stem}_diagram.html"))
 
                 # Find the node group for the server
                 node_found = False
@@ -411,6 +424,10 @@ class DiagramGenerator:
                     node_found = True
                     link = ET.Element('a')
                     link.set('{http://www.w3.org/1999/xlink}href', link_href)
+                    link.set('href', link_href)  # plain href for JS interception in server mode
+                    # Tooltip visible on hover
+                    title_el = ET.SubElement(link, '{http://www.w3.org/2000/svg}title')
+                    title_el.text = f"Open sub-model: {server['submodel']}"
 
                     # Move all children of g to the new link element
                     for child in list(g):
@@ -495,6 +512,27 @@ class DiagramGenerator:
             sanitized = f"_{sanitized}"
         
         return sanitized or "unnamed"
+
+    # Whitelist for CSS color/style values: allow hex, named colors, rgb/rgba/hsl,
+    # spaces, commas, parentheses, dots, percents — nothing that could break HTML.
+    _CSS_VALUE_RE = re.compile(r'^[a-zA-Z0-9#()\s,.\-%_]+$')
+
+    def _safe_css_value(self, value: str, fallback: str = '#888888') -> str:
+        """Returns a CSS-safe value, falling back to ``fallback`` if invalid.
+
+        Prevents CSS injection / HTML attribute breakout in legend markup.
+        Valid CSS color strings (``#rrggbb``, ``rgb(...)``, named colors) all
+        pass the whitelist; the only values that fail are those containing
+        characters like ``"`` or ``<`` that would break the surrounding
+        ``style="..."`` HTML attribute.
+        """
+        if not value:
+            return fallback
+        value = str(value).strip()
+        if self._CSS_VALUE_RE.match(value):
+            return value
+        logging.warning("Rejected unsafe CSS value %r — using fallback %r", value, fallback)
+        return fallback
 
     def _escape_label(self, text: str) -> str:
         """Escapes text for use in DOT labels and HTML contexts."""
@@ -990,7 +1028,8 @@ class DiagramGenerator:
                     legend_node_types[type_key] = (display_name, color)
                     server_types_seen.add(type_key)
         for _, (label, color) in legend_node_types.items():
-            legend_items.append(f'''<div style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 12px; height: 8px; background-color: {color}; border: 1px solid #999; margin-right: 8px; border-radius: 2px;"></div><span style="font-size: 9px;">{label}</span></div>''')
+            safe_color = self._safe_css_value(color, '#888888')
+            legend_items.append(f'''<div style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 12px; height: 8px; background-color: {safe_color}; border: 1px solid #999; margin-right: 8px; border-radius: 2px;"></div><span style="font-size: 9px;">{label}</span></div>''')
 
         # B1: Boundary trust convention legend (green solid = trusted, red dashed = untrusted)
         boundary_types = [
@@ -1033,11 +1072,11 @@ class DiagramGenerator:
             legend_items.append('<div style="margin-top: 5px; margin-bottom: 3px; font-weight: bold; font-size: 10px;">Protocoles:</div>')
             for protocol, style in sorted(protocol_styles_to_use.items()):
                 if protocol in used_protocols_to_use:
-                    color = style.get('color', '#000000')
-                    line_style = style.get('line_style', 'solid')
+                    color = self._safe_css_value(style.get('color', '#000000'), '#000000')
+                    line_style = self._safe_css_value(style.get('line_style', 'solid'), 'solid')
                     border_style = f"2px {line_style} {color}"
                     sanitized_protocol = self._sanitize_name(protocol)
-                    legend_items.append(f'''<div class="legend-item" data-protocol="{sanitized_protocol}" style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 20px; height: 0; border-top: {border_style}; margin-right: 8px;"></div><span style="font-size: 11px;">{protocol}</span></div>''')
+                    legend_items.append(f'''<div class="legend-item" data-protocol="{sanitized_protocol}" style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 20px; height: 0; border-top: {border_style}; margin-right: 8px;"></div><span style="font-size: 11px;">{html.escape(protocol)}</span></div>''')
         
         return ''.join(legend_items)
    

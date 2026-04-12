@@ -1,7 +1,26 @@
-# Full pinned dependency list for SecOpsTM (including AI/ML extras).
-# For core-only install: pip install -e .
-# For AI features:       pip install -r requirements.txt
-# See pyproject.toml [project.optional-dependencies] for the curated ai extras group.
+# Full pinned dependency list for SecOpsTM — core + AI/ML extras.
+#
+# WHY THIS FILE EXISTS SEPARATELY FROM pyproject.toml
+# ----------------------------------------------------
+# pyproject.toml [project.dependencies] lists only the *minimal runtime* deps
+# needed to run the core threat modeling pipeline (no AI, no LangChain, no
+# vector store).  This lets users install a lightweight version with:
+#     pip install -e .
+#
+# This file adds the AI/ML layer on top.  Use it when you need AI enrichment:
+#     pip install -r requirements.txt
+#
+# Alternatively, install only the curated AI extras group from pyproject.toml:
+#     pip install -e ".[ai]"
+# (lighter than requirements.txt — omits langchain, jq, unstructured)
+#
+# INTENTIONAL DIFFERENCES vs pyproject.toml
+# ------------------------------------------
+# - Includes langchain, langchain-community, langchain-chroma, langchain-litellm,
+#   langchain-huggingface (not in pyproject.toml [ai] extras — too heavy for most)
+# - Includes jq and unstructured[all] (tooling / data pipeline only)
+# - Versions are pinned with >= lower-bounds (not exact) to stay compatible with
+#   fresh environments while avoiding known-bad releases.
 pytm>=1.3.1
 Flask[async]>=3.1.1
 openpyxl>=3.1.0

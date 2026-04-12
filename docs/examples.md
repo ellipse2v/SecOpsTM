@@ -103,6 +103,19 @@ After running the analysis, you will find a timestamped folder in `output/` (e.g
 
 - `stride_mitre_report.html`:  
   ![HTML Report Screenshot](../../output/example/stride_mitre_report__example.png.jpg)
+
+  **Risk Matrix (5×5 likelihood × impact)**  
+  ![Risk Matrix](../../output/example/risk_matrix.jpg)
+
+  **Top-5 threats — executive summary with copy-as-ticket**  
+  ![Top 5 Threats](../../output/example/top5_threat.jpg)
+
+  **🕸️ Interactive Threat Graph — force-directed node/connection view**  
+  ![Threat Graph](../../output/example/threat_graph.jpg)
+
+  **CISO Risk Briefing — AI-generated executive triage**  
+  ![CISO Risk Briefing](../../output/example/ciso_risk_briefing.jpg)
+
 - `mitre_analysis.json`:  
   ```json
   {

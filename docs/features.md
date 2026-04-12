@@ -58,7 +58,8 @@ See [docs/gdaf.md](gdaf.md) for the complete reference including the context YAM
 
 ## Reporting & Export
 
-- **HTML report**: Integrated threat statistics, STRIDE/MITRE mapping, D3FEND mitigations, severity breakdown, source tagging (`pytm` / `AI` / `LLM`), risk signals (`CVE`, `CWE⚠`, `NET`, `D3F`), executive summary with KPIs + top-5 risks, interactive severity filter (CRITICAL/HIGH/MEDIUM/LOW), risk matrix 5×5.
+- **HTML report**: Integrated threat statistics, STRIDE/MITRE mapping, D3FEND mitigations, severity breakdown, source tagging (`pytm` / `AI` / `LLM`), risk signals (`CVE`, `CWE⚠`, `NET`, `D3F`), executive summary with KPIs + top-5 risks, interactive severity filter (CRITICAL/HIGH/MEDIUM/LOW), risk matrix 5×5.  
+  Screenshots: [risk matrix](../../output/example/risk_matrix.jpg) · [top-5 threats](../../output/example/top5_threat.jpg) · [threat graph](../../output/example/threat_graph.jpg) · [CISO briefing](../../output/example/ciso_risk_briefing.jpg)
 - **Executive View toggle**: A single click hides all technical sections (Attack Chain Analysis, GDAF Scenarios, ATT&CK ID Validation, Threat Graph, Severity Calculation, Legend) for clean management presentations. Implemented as a pure CSS `.exec-view` class toggle — no layout reflow.
 - **Copy-as-ticket button**: Each top-5 threat row has a "Copy ticket" button that copies a GitHub Issue–formatted markdown block to clipboard (title, severity, STRIDE category, target, description, action checklist). Supports Clipboard API with `execCommand` fallback.
 - **Collapsible report sections**: `📋 Model Completeness` and `📖 Severity Calculation Explained` are wrapped in `<details class="collapse-details">` — collapsed by default to reduce visual noise, summary line visible when closed.

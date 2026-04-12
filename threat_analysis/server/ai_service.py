@@ -365,7 +365,11 @@ class AIService:
             self._collect_markdown_chunks(prompt, markdown),
             self._get_sync_loop(),
         )
-        chunks = future.result()
+        try:
+            chunks = future.result(timeout=180)
+        except Exception as exc:
+            logging.warning("generate_markdown_from_prompt_sync failed: %s", exc)
+            return iter(["Error: AI generation failed or timed out."])
         return iter(chunks)
 
     async def _generate_rag_threats(self, threat_model) -> List[ExtendedThreat]: # Return List[ExtendedThreat]
@@ -451,25 +455,28 @@ class AIService:
         return pytm_rag_threats
 
     async def _enrich_with_ai_threats(self, threat_model, ai_status_event_queue: Optional[queue.Queue] = None):
+        """Enriches model components with AI-generated threats.
+
+        Pipeline:
+          1. RAG system-level threats (unchanged)
+          2. Build component_details for all elements (actors + servers + boundaries)
+             — dataflows are excluded (2a): their threats are covered by source/sink servers
+          3. Apply cached threats immediately (no LLM call)
+          4. Batch uncached elements (3a): one LLM call per batch of batch_size components
+             — falls back to individual calls when provider lacks generate_threats_batch
+          5. SOC analysis pass
         """
-        Iterates through model components and enriches them with AI-generated threats.
-        Also adds RAG-generated system-level threats if RAG is enabled.
-        """
-        # Generate system-level RAG threats first
+        # 1. System-level RAG threats
         if self.ai_online and self.rag_generator:
             system_rag_threats = await self._generate_rag_threats(threat_model)
             if not hasattr(threat_model.tm, 'global_threats_llm'):
                 threat_model.tm.global_threats_llm = []
             threat_model.tm.global_threats_llm.extend(system_rag_threats)
-            logging.debug(f"Appended {len(system_rag_threats)} global RAG threats to threat_model.tm.global_threats_llm.")
+            logging.debug("Appended %d global RAG threats.", len(system_rag_threats))
 
-        # Build context: DSL ## Context keys (base) ← per-model context/*.yaml ← runtime
-        # Priority: DSL context_config > context/*.yaml
+        # Build shared context
         dsl_ctx = self._load_context(threat_model)
         model_ctx = self._load_model_context(threat_model)
-
-        # DSL wins over context/*.yaml; runtime internet_facing takes final precedence
-        # only when neither source has an explicit value.
         has_internet_facing = (
             dsl_ctx.get("internet_facing") is not None
             or model_ctx.get("internet_facing") is not None
@@ -495,13 +502,11 @@ class AIService:
                          model_ctx.get("compliance_requirements", []),
                          len(model_ctx.get("threat_actor_profiles", "").splitlines()))
 
+        # 2a: actors + servers + boundaries only — dataflows excluded
         all_elements = (
             [a['object'] for a in threat_model.actors]
             + [s['object'] for s in threat_model.servers]
-            + threat_model.dataflows
         )
-
-        # A3: include trust boundaries as AI threat targets
         boundary_objects = [
             b_info['boundary']
             for b_info in threat_model.boundaries.values()
@@ -509,7 +514,6 @@ class AIService:
         ]
         all_elements = all_elements + boundary_objects
 
-        # Ensure all elements have a 'threats' attribute to append to.
         for element in all_elements:
             if not hasattr(element, 'threats'):
                 element.threats = []
@@ -517,7 +521,7 @@ class AIService:
         total_elements = len(all_elements)
         processed_elements = 0
 
-        # Build lookup: object → props dict for rich attribute extraction
+        # Lookup maps: object → DSL props dict
         _server_props_map = {s['object']: s for s in threat_model.servers}
         _actor_props_map = {a['object']: a for a in threat_model.actors}
         _boundary_props_map = {
@@ -525,8 +529,6 @@ class AIService:
             for b_info in threat_model.boundaries.values()
             if b_info.get('boundary') is not None
         }
-
-        # Keys already handled explicitly — remaining props go to extra_properties
         _KNOWN_PROPS = {
             'name', 'object', 'boundary', 'business_value', 'type', 'machine',
             'waf', 'ids', 'ips', 'redundant', 'confidentiality', 'integrity',
@@ -546,7 +548,6 @@ class AIService:
                 flags.append("encrypted")
             if getattr(df, 'vpn', False):
                 flags.append("VPN")
-            # Prefer detailed auth type over binary boolean
             auth_type = getattr(df, 'authentication', None)
             if auth_type and str(auth_type).lower() not in ('none', 'false', ''):
                 flags.append(f"auth={auth_type}")
@@ -561,7 +562,6 @@ class AIService:
                 flags.append("read-only")
             if flags:
                 parts.append(f"({', '.join(flags)})")
-            # Data objects with classification
             data_objs = getattr(df, 'data', []) or []
             if data_objs:
                 labels = []
@@ -573,7 +573,6 @@ class AIService:
                     else:
                         labels.append(d.name)
                 parts.append(f"data=[{', '.join(labels)}]")
-            # Trust crossing
             src_trusted = getattr(getattr(df.source, 'inBoundary', None), 'isTrusted', None)
             sink_trusted = getattr(getattr(df.sink, 'inBoundary', None), 'isTrusted', None)
             if src_trusted is not None and sink_trusted is not None and src_trusted != sink_trusted:
@@ -581,48 +580,30 @@ class AIService:
                 parts.append(f"[TRUST CROSSING: {direction}]")
             return " ".join(parts)
 
-        # P1 fix: single connection check before the loop instead of one per element.
-        if not self.provider:
-            logging.error("AI provider not initialized.")
-            return
-        if not await self.provider.check_connection():
-            logging.warning("AI enrichment stopped: provider is offline.")
-            self.ai_online = False
+        # 2b: trust self.ai_online — no live ping before every run
+        if not self.provider or not self.ai_online:
+            logging.warning("AI enrichment skipped: provider not available.")
             return
 
-        # Ensure semaphore is available (fallback in case init_ai was not awaited).
         if self._ai_semaphore is None:
             self._ai_semaphore = asyncio.Semaphore(self.max_concurrent)
 
-        # Load per-component AI threat cache from the model's directory (if available).
-        # Falls back to in-memory-only mode when _model_file_path is absent or not a real path.
         _model_path = getattr(threat_model, '_model_file_path', None)
         cache = AIThreatCache(
             _model_path if isinstance(_model_path, (str, Path)) else None
         )
-
-        # Counter lock for thread-safe progress tracking across concurrent tasks.
         _progress_lock = asyncio.Lock()
 
-        async def _enrich_one(element) -> None:
-            """Enriches a single element with AI-generated threats.
+        # ── Inner helpers ──────────────────────────────────────────────────────────
 
-            Uses _ai_semaphore to cap concurrent LLM requests (respects rate limits).
-            The rate_limit_sleep is intentionally kept INSIDE the semaphore block so
-            that the configured delay is always honoured even under concurrency.
-            """
-            nonlocal processed_elements
-
-            # Pull rich attributes from props dict (server/actor/boundary) or object (dataflow)
+        def _build_component_details(element) -> Dict:
+            """Extract a component_details dict from a model element."""
             props = (
                 _server_props_map.get(element)
                 or _actor_props_map.get(element)
                 or _boundary_props_map.get(element)
                 or {}
             )
-
-            # A1 + A3: enrich with boundary context.
-            # For boundary objects themselves, isTrusted is a direct attribute.
             is_boundary_element = element.__class__.__name__ in ("SecOpsBoundary", "Boundary")
             if is_boundary_element:
                 trusted = getattr(element, 'isTrusted', False)
@@ -639,23 +620,16 @@ class AIService:
                     )
                 else:
                     trust_boundary_str = "None assigned"
-                # Critical fix: use DSL type= first, then pytm stereotype, then class name
                 elem_type = (
                     props.get('type')
                     or (element.stereotype if getattr(element, 'stereotype', None) else None)
                     or element.__class__.__name__
                 )
-
-            # Machine type
             machine_type = str(props.get('machine', getattr(element, 'machine', 'unknown')))
-
-            # CIA triad
             conf = str(props.get('confidentiality', getattr(element, 'confidentiality', 'unknown')))
             integ = str(props.get('integrity', getattr(element, 'integrity', 'unknown')))
             avail = str(props.get('availability', getattr(element, 'availability', 'unknown')))
             cia_triad = f"Confidentiality: {conf} | Integrity: {integ} | Availability: {avail}"
-
-            # Security controls
             waf = props.get('waf', getattr(element, 'waf', False))
             ids_ctrl = props.get('ids', getattr(element, 'ids', False))
             ips_ctrl = props.get('ips', getattr(element, 'ips', False))
@@ -674,8 +648,6 @@ class AIService:
             if mfa is not None:
                 controls_parts.append(f"MFA: {'Yes' if mfa else 'No'}")
             security_controls = " | ".join(controls_parts)
-
-            # Technology tags
             raw_tags = props.get('tags', getattr(element, 'tags', None))
             if isinstance(raw_tags, list):
                 technology_tags = ", ".join(str(t) for t in raw_tags) if raw_tags else "N/A"
@@ -683,39 +655,24 @@ class AIService:
                 technology_tags = raw_tags.strip('[]') or "N/A"
             else:
                 technology_tags = "N/A"
-
-            # Authentication detail (prefer actor authenticity or dataflow auth type over bool)
             authenticity = props.get('authenticity', None)
             auth_detail = (
-                authenticity
-                if authenticity
+                authenticity if authenticity
                 else ("Yes" if getattr(element, 'is_authenticated', False) else "No")
             )
-
-            # Business value
             business_value = props.get('business_value', getattr(element, 'businessValue', None))
-
-            # Extra properties: all remaining DSL kwargs not already explicitly handled
             extra_props = {k: v for k, v in props.items() if k not in _KNOWN_PROPS}
             extra_properties = (
-                " | ".join(f"{k}={v}" for k, v in extra_props.items())
-                if extra_props else "None"
+                " | ".join(f"{k}={v}" for k, v in extra_props.items()) if extra_props else "None"
             )
-
-            # Description: props first (server/actor description kwarg), then pytm attribute
             description = (
-                props.get('description', '')
-                or getattr(element, 'description', '')
-                or ""
+                props.get('description', '') or getattr(element, 'description', '') or ""
             )
-
-            # Connected dataflows
             inbound = [_flow_desc(df) for df in threat_model.dataflows
                        if getattr(df, 'sink', None) is element]
             outbound = [_flow_desc(df) for df in threat_model.dataflows
                         if getattr(df, 'source', None) is element]
-
-            component_details = {
+            return {
                 "name": element.name,
                 "type": elem_type,
                 "machine_type": machine_type,
@@ -732,89 +689,133 @@ class AIService:
                 "inbound_flows": "\n".join(f"  - {f}" for f in inbound) if inbound else "  None",
                 "outbound_flows": "\n".join(f"  - {f}" for f in outbound) if outbound else "  None",
             }
-            # ── Cache lookup ───────────────────────────────────────────────────────
-            component_hash = AIThreatCache.compute_hash(component_details)
-            cached_threats = cache.get(component_hash)
 
-            if cached_threats is not None:
-                # Cache hit — reuse stored threat dicts, skip LLM call entirely.
-                ai_threats_json = cached_threats
-                logging.debug(
-                    "AI cache HIT  %-32s [%s]  (%d threats)",
-                    element.name, component_hash[:8], len(ai_threats_json),
-                )
-            else:
-                # Cache miss — call the LLM provider.
-                logging.debug("Generating AI threats for component: %s", element.name)
-                async with self._ai_semaphore:
-                    ai_threats_json = await self.provider.generate_threats(component_details, context)
-                    # Rate-limit pause (configurable via ai_config.yaml).
-                    if self.rate_limit_sleep > 0:
-                        await asyncio.sleep(self.rate_limit_sleep)
-                # Store result (including empty list) to skip this component on future runs.
-                cache.put(
-                    component_hash,
-                    element.name,
-                    type(self.provider).__name__,
-                    ai_threats_json or [],
-                )
-                logging.debug(
-                    "AI cache MISS %-32s [%s]  → stored %d threats",
-                    element.name, component_hash[:8], len(ai_threats_json or []),
-                )
-
-            # Update progress counter and emit SSE event (outside semaphore to avoid blocking).
-            async with _progress_lock:
-                processed_elements += 1
-                progress = (processed_elements / total_elements) * 100
-
-            if ai_status_event_queue:
-                data = {
-                    "status": "ai_enrichment_progress",
-                    "progress": progress,
-                    "message": f"Enriching {element.name} ({processed_elements}/{total_elements})...",
-                }
-                ai_status_event_queue.put(f"event: ai_progress\ndata: {json.dumps(data)}\n\n")
-
-            if not ai_threats_json:
-                return
-
-            for threat_json in ai_threats_json:
-                # Convert the JSON threat to an ExtendedThreat object
+        def _apply_threats_to_element(element, ai_threats_json: List[Dict]) -> None:
+            """Convert a list of threat dicts to ExtendedThreat objects on element."""
+            severity_map = {"critical": 5, "high": 4, "medium": 3, "low": 2, "info": 1}
+            likelihood_map = {"high": 5, "medium": 3, "low": 1}
+            for threat_json in (ai_threats_json or []):
+                if not isinstance(threat_json, dict):
+                    continue
                 threat_desc = f"(AI) {threat_json.get('title', 'N/A')}: {threat_json.get('description', '')}"
-
-                severity_map = {"critical": 5, "high": 4, "medium": 3, "low": 2, "info": 1}
-                likelihood_map = {"high": 5, "medium": 3, "low": 1}
-
                 business_impact = threat_json.get('business_impact', {})
-                severity = severity_map.get(business_impact.get('severity', 'medium').lower(), 3)
-                likelihood = likelihood_map.get(threat_json.get('likelihood', 'medium').lower(), 3)
-
-                new_threat = ExtendedThreat(  # Use ExtendedThreat here
+                sev_raw = business_impact.get('severity', 'medium') if isinstance(business_impact, dict) else 'medium'
+                severity = severity_map.get(str(sev_raw).lower(), 3)
+                likelihood = likelihood_map.get(
+                    str(threat_json.get('likelihood', 'medium')).lower(), 3
+                )
+                new_threat = ExtendedThreat(
                     SID=threat_json.get('title', 'Unknown AI Threat'),
                     description=threat_desc,
                     category=threat_json.get('category', 'Unknown'),
                     likelihood=likelihood,
                     impact=severity,
-                    source="AI"  # Explicitly mark source for component-level AI threats
+                    source="AI",
                 )
-                # Store CAPEC IDs from LLM — used by map_threat_to_mitre() to derive
-                # ATT&CK technique IDs from the validated static mapping (no hallucinated T-IDs).
                 new_threat.capec_ids = [
                     c for c in threat_json.get('capec_ids', [])
                     if isinstance(c, str) and c.upper().startswith('CAPEC-')
                 ]
-                # Add extra details for reporting if needed
                 new_threat.ai_details = threat_json
-
-                # Append the new threat to the element's threats list
                 element.threats.append(new_threat)
-                logging.info(f"Added AI threat '{threat_json.get('title')}' to {element.name}")
+                logging.info("Added AI threat '%s' to %s", threat_json.get('title'), element.name)
 
-        # Launch all element enrichments concurrently; _ai_semaphore limits actual parallelism.
-        await asyncio.gather(*[_enrich_one(elem) for elem in all_elements])
+        async def _update_progress(name: str) -> None:
+            nonlocal processed_elements
+            async with _progress_lock:
+                processed_elements += 1
+                progress = (processed_elements / total_elements) * 100
+            if ai_status_event_queue:
+                data = {
+                    "status": "ai_enrichment_progress",
+                    "progress": progress,
+                    "message": f"Enriching {name} ({processed_elements}/{total_elements})...",
+                }
+                ai_status_event_queue.put(f"event: ai_progress\ndata: {json.dumps(data)}\n\n")
 
-        # Persist new cache entries and log hit/miss stats for this run.
+        # ── 3. Build all component details + split cached / uncached ──────────────
+
+        Prepared = List  # alias for readability
+        all_prepared: Prepared = []
+        for element in all_elements:
+            details = _build_component_details(element)
+            h = AIThreatCache.compute_hash(details)
+            cached = cache.get(h)
+            all_prepared.append((element, details, h, cached))
+
+        # Apply cached immediately (no LLM)
+        for element, details, h, cached in all_prepared:
+            if cached is not None:
+                logging.debug("AI cache HIT  %-32s [%s]  (%d threats)",
+                              details["name"], h[:8], len(cached))
+                _apply_threats_to_element(element, cached)
+                await _update_progress(details["name"])
+
+        uncached = [(elem, det, h) for elem, det, h, cached in all_prepared if cached is None]
+
+        # ── 4. Batch enrichment for uncached elements (3a) ────────────────────────
+
+        batch_size: int = self.ai_config.get("threat_generation", {}).get("batch_size", 5)
+        provider_name = type(self.provider).__name__
+
+        async def _enrich_batch(batch: List) -> None:
+            """Send one batch of components to the LLM and distribute results."""
+            components = [det for _, det, _ in batch]
+            elem_by_name = {det["name"]: (elem, h) for elem, det, h in batch}
+
+            async with self._ai_semaphore:
+                results: Dict[str, List[Dict]] = await self.provider.generate_threats_batch(
+                    components, context
+                )
+                if self.rate_limit_sleep > 0:
+                    await asyncio.sleep(self.rate_limit_sleep)
+
+            # Distribute results back to elements
+            for comp_name, threats_json in results.items():
+                if comp_name in elem_by_name:
+                    elem, h = elem_by_name[comp_name]
+                    cache.put(h, comp_name, provider_name, threats_json or [])
+                    _apply_threats_to_element(elem, threats_json)
+                    logging.debug("AI cache MISS %-32s [%s]  → stored %d threats (batch)",
+                                  comp_name, h[:8], len(threats_json or []))
+
+            # Cache empty result for components the LLM did not mention
+            for elem, det, h in batch:
+                if det["name"] not in results:
+                    logging.warning("Batch: no threats returned for '%s' — caching empty.",
+                                    det["name"])
+                    cache.put(h, det["name"], provider_name, [])
+
+            for _, det, _ in batch:
+                await _update_progress(det["name"])
+
+        async def _enrich_one_fallback(elem, det: Dict, h: str) -> None:
+            """Individual enrichment — used when provider lacks generate_threats_batch."""
+            async with self._ai_semaphore:
+                threats_json = await self.provider.generate_threats(det, context)
+                if self.rate_limit_sleep > 0:
+                    await asyncio.sleep(self.rate_limit_sleep)
+            cache.put(h, det["name"], provider_name, threats_json or [])
+            logging.debug("AI cache MISS %-32s [%s]  → stored %d threats",
+                          det["name"], h[:8], len(threats_json or []))
+            _apply_threats_to_element(elem, threats_json)
+            await _update_progress(det["name"])
+
+        if uncached:
+            if batch_size > 1 and hasattr(self.provider, "generate_threats_batch"):
+                batches = [
+                    uncached[i: i + batch_size]
+                    for i in range(0, len(uncached), batch_size)
+                ]
+                logging.info(
+                    "AI batch enrichment: %d components → %d batch(es) of up to %d",
+                    len(uncached), len(batches), batch_size,
+                )
+                await asyncio.gather(*[_enrich_batch(b) for b in batches])
+            else:
+                await asyncio.gather(*[_enrich_one_fallback(e, d, h) for e, d, h in uncached])
+
+        # Persist cache
         cache.save()
         if cache.hits + cache.misses > 0:
             logging.info("AI cache: %s", cache.summary())

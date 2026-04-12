@@ -19,7 +19,7 @@ This module exposes module-level constants (for backward compatibility) and
 the ``build_component_prompt()`` factory used by LiteLLMProvider.
 """
 
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 from threat_analysis.ai_engine.prompt_loader import get as _get
 
 
@@ -116,4 +116,85 @@ def build_component_prompt(component: Dict, context: Dict) -> str:
         compliance=", ".join(compliance) if compliance else "None specified",
         user_base=context.get("user_base", "Unknown"),
         integrations=", ".join(integrations) if integrations else "None",
+    )
+
+
+def build_batch_prompt(components: List[Dict], context: Dict) -> str:
+    """Builds a single STRIDE analysis prompt covering multiple components.
+
+    Each component is rendered as a compact table block.  The LLM is instructed
+    to return a JSON array ``[{"component": "<name>", "threats": [...]}, ...]``.
+
+    Args:
+        components: List of component_details dicts (same schema as build_component_prompt).
+        context:    Shared system context dict.
+
+    Returns:
+        Formatted prompt string ready to send to the LLM.
+    """
+    compliance = context.get("compliance_requirements", [])
+    sector = context.get("sector", "")
+    threat_actors = context.get("threat_actor_profiles", "")
+    business_goals = context.get("business_goals_to_protect", "")
+
+    adv_lines: list = []
+    if sector:
+        adv_lines.append(f"**Sector:** {sector}")
+    if threat_actors:
+        adv_lines.append(f"**Known Threat Actors:**\n{threat_actors}")
+    if business_goals:
+        adv_lines.append(f"**Business Goals to Protect:**\n{business_goals}")
+    adversarial_context_section = (
+        "## Adversarial Context\n" + "\n\n".join(adv_lines) + "\n"
+        if adv_lines else ""
+    )
+
+    # Build the per-component blocks
+    blocks: List[str] = []
+    for i, comp in enumerate(components, 1):
+        name = comp.get("name", f"Component{i}")
+        internet_facing = (
+            "Yes" if comp.get("is_public")
+            else (
+                "No (internal — system has internet-facing components)"
+                if context.get("internet_facing")
+                else "No"
+            )
+        )
+        block_lines = [
+            f"### Component {i}: {name}",
+            "| Field | Value |",
+            "|---|---|",
+            f"| Type | {comp.get('type', 'Unknown')} |",
+            f"| Machine | {comp.get('machine_type', 'unknown')} |",
+            f"| Technology Tags | {comp.get('technology_tags', 'N/A')} |",
+            f"| Trust Boundary | {comp.get('trust_boundary', 'Unknown')} |",
+            f"| Internet-Facing | {internet_facing} |",
+            f"| Authentication | {comp.get('authentication', 'Unknown')} |",
+            f"| CIA | {comp.get('cia_triad', 'N/A')} |",
+            f"| Security Controls | {comp.get('security_controls', 'N/A')} |",
+            f"| Business Value | {comp.get('business_value', 'Not specified')} |",
+        ]
+        if comp.get("description"):
+            block_lines.append(f"| Description | {comp['description'][:120]} |")
+        block_lines.append("")
+        block_lines.append(f"**Inbound:** {comp.get('inbound_flows', '  None')}")
+        block_lines.append(f"**Outbound:** {comp.get('outbound_flows', '  None')}")
+        block_lines.append("")
+        blocks.append("\n".join(block_lines))
+
+    return _get(
+        "stride_analysis",
+        "batch_template",
+        n_components=len(components),
+        system_desc_section=(
+            f"## System Context\n    {context['system_description']}\n"
+            if context.get("system_description")
+            else ""
+        ),
+        adversarial_context_section=adversarial_context_section,
+        data_sensitivity=context.get("data_sensitivity", "Medium"),
+        compliance=", ".join(compliance) if compliance else "None specified",
+        deployment=context.get("deployment_environment", "Unknown"),
+        components_block="\n".join(blocks),
     )

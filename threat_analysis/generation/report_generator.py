@@ -344,7 +344,7 @@ class ReportGenerator:
         sev_order = {"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1}
         counts: Dict[str, int] = {}
         for t in all_threats:
-            sev = (t.get("severity") or "").upper()
+            sev = str(t.get("severity") or "").upper()
             counts[sev] = counts.get(sev, 0) + 1
 
         stride_counts: Dict[str, int] = {}
@@ -354,7 +354,7 @@ class ReportGenerator:
 
         top20 = sorted(
             all_threats,
-            key=lambda x: (sev_order.get((x.get("severity") or "").upper(), 0),
+            key=lambda x: (sev_order.get(str(x.get("severity") or "").upper(), 0),
                            x.get("_ranking_score", 0.0)),
             reverse=True,
         )[:20]
@@ -434,11 +434,19 @@ class ReportGenerator:
 
 
         logging.info(f"Enriching threats with AI using provider: {type(self.ai_provider).__name__}")
-        
-        # Check if the AI provider is reachable before proceeding
-        if not await self.ai_provider.check_connection():
-            logging.warning(f"AI enrichment skipped: Provider {type(self.ai_provider).__name__} is not reachable.")
-            return all_threats
+
+        # Use the cached ai_online flag from the underlying client — avoids a second
+        # network round-trip (the client already ran check_connection() during create()).
+        try:
+            _client = await self.ai_provider._get_client()
+            if not _client.ai_online:
+                logging.warning(
+                    "AI enrichment skipped: Provider %s is offline (cached state).",
+                    type(self.ai_provider).__name__,
+                )
+                return all_threats
+        except Exception:
+            pass  # If we can't introspect the client, proceed and let generate_threats() fail naturally
 
         # Combine all components to enrich: servers, actors, and boundaries
         components_to_enrich = []
@@ -1331,19 +1339,36 @@ class ReportGenerator:
                 "n_threats": len(threats_by_node.get(name, [])),
             })
 
-        for a in threat_model.actors:
-            aname = a.get("name") or getattr(a.get("object"), "name", "")
-            bname = a.get("boundary") or ""
+        def _extract_name(item) -> str:
+            """Extract name from a model dict (actors/servers list entry)."""
+            if isinstance(item, dict):
+                name = item.get("name")
+                if name:
+                    return str(name)
+                obj = item.get("object")
+                return str(getattr(obj, "name", "") or "")
+            return str(getattr(item, "name", "") or "")
+
+        def _extract_boundary(item) -> str:
+            bname = item.get("boundary") if isinstance(item, dict) else getattr(item, "inBoundary", "")
+            if bname is None:
+                return ""
             if hasattr(bname, "name"):
-                bname = bname.name
-            _add_node(str(aname), "Actor", str(bname))
+                return str(bname.name)
+            return str(bname)
+
+        for a in threat_model.actors:
+            _add_node(_extract_name(a), "Actor", _extract_boundary(a))
 
         for s in threat_model.servers:
-            sname = s.get("name") or getattr(s.get("object"), "name", "")
-            bname = s.get("boundary") or ""
-            if hasattr(bname, "name"):
-                bname = bname.name
-            _add_node(str(sname), "Server", str(bname))
+            _add_node(_extract_name(s), "Server", _extract_boundary(s))
+
+        # Fallback: if actors/servers lists are empty or yielded no names,
+        # reconstruct nodes from the threat targets so the graph is never blank
+        # when threats exist (e.g. servers-only model with no actors declared).
+        if not nodes and threats_by_node:
+            for target_name in threats_by_node:
+                _add_node(target_name, "Server", "")
 
         if not nodes:
             return {}

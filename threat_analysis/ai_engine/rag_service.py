@@ -132,11 +132,15 @@ class RAGThreatGenerator:
 
         for name, config in providers.items():
             if config.get('enabled'):
-                prefix = "ollama" if name == "ollama" else name.split('_')[0]
+                # Use the full provider name as the LiteLLM prefix so that
+                # compound names like "nvidia_nim" are preserved intact.
+                prefix = "ollama" if name == "ollama" else name
                 llm_model = f"{prefix}/{config.get('model')}"
                 llm_params['temperature'] = config.get('temperature', 0.5)
                 if name == "ollama":
                     llm_params['api_base'] = config.get('host', 'http://localhost:11434')
+                elif config.get('api_base'):
+                    llm_params['api_base'] = config['api_base']
                 api_key_env = config.get('api_key_env')
                 if api_key_env:
                     llm_params['api_key'] = os.getenv(api_key_env)

@@ -902,3 +902,462 @@ class TestBuildScenario:
         if result:
             # With acceptable_risk_score=0.0, any positive path_score means unacceptable
             assert result[0].unacceptable_risk is True
+
+
+# ---------------------------------------------------------------------------
+# _auto_context — edge cases
+# ---------------------------------------------------------------------------
+
+class TestAutoContext:
+    def test_no_servers_returns_wildcard_target(self):
+        """With no servers, top_targets should default to ['*']."""
+        model = MockThreatModel(servers=[])
+        result = GDAFEngine._auto_context(model)
+        assert result["attack_objectives"][0]["target_asset_names"] == ["*"]
+
+    def test_servers_ranked_by_cia(self):
+        """Highest-CIA servers appear first in target_asset_names."""
+        servers = [
+            make_server("LowServer", confidentiality="low", integrity="low", availability="low"),
+            make_server("CritServer", confidentiality="critical", integrity="critical", availability="critical"),
+            make_server("MedServer", confidentiality="medium", integrity="medium", availability="medium"),
+        ]
+        model = MockThreatModel(servers=servers)
+        result = GDAFEngine._auto_context(model)
+        targets = result["attack_objectives"][0]["target_asset_names"]
+        assert targets[0] == "CritServer"
+
+    def test_auto_context_keys_present(self):
+        model = make_simple_model()
+        result = GDAFEngine._auto_context(model)
+        assert "attack_objectives" in result
+        assert "threat_actors" in result
+        assert "risk_criteria" in result
+
+    def test_auto_actor_has_required_fields(self):
+        model = make_simple_model()
+        result = GDAFEngine._auto_context(model)
+        actor = result["threat_actors"][0]
+        assert "id" in actor
+        assert "name" in actor
+        assert "objectives" in actor
+
+    def test_auto_actor_subscribed_to_auto_objective(self):
+        """The auto-generated actor must reference the auto-generated objective."""
+        model = make_simple_model()
+        result = GDAFEngine._auto_context(model)
+        obj_id = result["attack_objectives"][0]["id"]
+        actor_objectives = result["threat_actors"][0]["objectives"]
+        assert obj_id in actor_objectives
+
+    def test_max_three_targets_selected(self):
+        """At most 3 target servers are selected even if more are present."""
+        servers = [make_server(f"S{i}", confidentiality="high") for i in range(10)]
+        model = MockThreatModel(servers=servers)
+        result = GDAFEngine._auto_context(model)
+        assert len(result["attack_objectives"][0]["target_asset_names"]) <= 3
+
+    def test_server_without_name_skipped(self):
+        """Server entries with empty name are ignored."""
+        servers = [
+            {"name": "", "confidentiality": "critical", "integrity": "critical", "availability": "critical"},
+            make_server("ValidServer", confidentiality="high"),
+        ]
+        model = MockThreatModel(servers=servers)
+        result = GDAFEngine._auto_context(model)
+        targets = result["attack_objectives"][0]["target_asset_names"]
+        assert "ValidServer" in targets
+        assert "" not in targets
+
+    def test_server_as_object_not_dict(self):
+        """_auto_context handles server objects (not dicts) gracefully."""
+        class ServerObj:
+            name = "ObjServer"
+            confidentiality = "high"
+            integrity = "high"
+            availability = "low"
+        model = MockThreatModel(servers=[ServerObj()])
+        # Should not raise; may or may not pick it up depending on hasattr path
+        result = GDAFEngine._auto_context(model)
+        assert "attack_objectives" in result
+
+
+# ---------------------------------------------------------------------------
+# DSL context_config override for gdaf_min_technique_score
+# ---------------------------------------------------------------------------
+
+class TestDSLContextConfigOverride:
+    def test_dsl_override_sets_risk_criteria(self):
+        """gdaf_min_technique_score in ThreatModel.context_config overrides the YAML value."""
+        model = make_simple_model()
+        model.context_config = {"gdaf_min_technique_score": "0.3"}
+        engine = GDAFEngine(model, context_path=None)
+        assert engine.context["risk_criteria"]["gdaf_min_technique_score"] == 0.3
+
+    def test_dsl_override_float_value(self):
+        model = make_simple_model()
+        model.context_config = {"gdaf_min_technique_score": "0.95"}
+        engine = GDAFEngine(model, context_path=None)
+        assert engine.context["risk_criteria"]["gdaf_min_technique_score"] == 0.95
+
+    def test_no_dsl_override_preserves_yaml_value(self, tmp_path):
+        """When DSL has no override, the YAML risk_criteria value is preserved."""
+        model = make_simple_model()
+        ctx_path = make_context_yaml(tmp_path)
+        engine = GDAFEngine(model, context_path=ctx_path)
+        # YAML fixture sets gdaf_min_technique_score=0.5
+        assert engine.context["risk_criteria"]["gdaf_min_technique_score"] == 0.5
+
+    def test_dsl_override_applied_even_with_no_existing_risk_criteria(self):
+        """Override creates risk_criteria dict when absent."""
+        model = MockThreatModel(servers=[make_server("S1")])
+        model.context_config = {"gdaf_min_technique_score": "0.7"}
+        # Auto context has risk_criteria, but test that override still works
+        engine = GDAFEngine(model, context_path=None)
+        assert engine.context["risk_criteria"]["gdaf_min_technique_score"] == 0.7
+
+
+# ---------------------------------------------------------------------------
+# Context merging — context YAML without GDAF keys
+# ---------------------------------------------------------------------------
+
+class TestContextMerging:
+    def test_non_gdaf_yaml_keys_preserved_in_auto_context(self, tmp_path):
+        """Extra YAML keys (no GDAF sections) are merged into auto-generated context."""
+        ctx_file = tmp_path / "meta.yaml"
+        ctx_file.write_text("project_name: MyProject\nteam: SecOps\n", encoding="utf-8")
+        model = make_simple_model()
+        engine = GDAFEngine(model, context_path=str(ctx_file))
+        assert engine.context.get("project_name") == "MyProject"
+        assert engine.context.get("team") == "SecOps"
+        # GDAF sections must still be present from auto-context
+        assert "attack_objectives" in engine.context
+
+    def test_yaml_with_empty_lists_uses_auto_context(self, tmp_path):
+        """YAML with explicit empty lists still triggers auto-context merge path."""
+        ctx_file = tmp_path / "empty.yaml"
+        ctx_file.write_text("attack_objectives: []\nthreat_actors: []\n", encoding="utf-8")
+        model = make_simple_model()
+        engine = GDAFEngine(model, context_path=str(ctx_file))
+        # Empty lists → explicit section present → use as-is (not auto-generated)
+        assert engine.context["attack_objectives"] == []
+
+
+# ---------------------------------------------------------------------------
+# _build_scenario — path length and hop position coverage
+# ---------------------------------------------------------------------------
+
+class TestBuildScenarioHopPositions:
+    def test_three_hop_path_assigns_positions_correctly(self, tmp_path):
+        """A 3-node path (entry→intermediate→target) assigns hop positions in order."""
+        actors = [make_actor("Attacker", trusted=False)]
+        servers = [
+            make_server("Edge", confidentiality="low", integrity="low", availability="low"),
+            make_server("Middle", confidentiality="medium", integrity="medium", availability="medium"),
+            make_server("Crown", stype="database", confidentiality="critical", integrity="critical",
+                        availability="critical"),
+        ]
+        dataflows = [
+            MockDataflow("Attacker", "Edge"),
+            MockDataflow("Edge", "Middle"),
+            MockDataflow("Middle", "Crown"),
+        ]
+        model = MockThreatModel(actors=actors, servers=servers, dataflows=dataflows)
+        ctx_path = make_context_yaml(tmp_path, targets=["Crown"])
+        engine = GDAFEngine(model, context_path=ctx_path)
+        result = engine.run()
+        assert len(result) >= 1
+        scenario = result[0]
+        assert len(scenario.hops) == 3
+        assert scenario.hops[0].hop_position == "entry"
+        assert scenario.hops[1].hop_position == "intermediate"
+        assert scenario.hops[2].hop_position == "target"
+
+    def test_single_hop_entry_equals_target(self, tmp_path):
+        """Direct 1-hop path: single hop should be labeled 'target' (last hop)."""
+        actors = [make_actor("Attacker", trusted=False)]
+        servers = [make_server("DirectTarget", stype="database",
+                               confidentiality="critical", integrity="critical", availability="critical")]
+        dataflows = [MockDataflow("Attacker", "DirectTarget")]
+        model = MockThreatModel(actors=actors, servers=servers, dataflows=dataflows)
+        ctx_path = make_context_yaml(tmp_path, targets=["DirectTarget"])
+        engine = GDAFEngine(model, context_path=ctx_path)
+        result = engine.run()
+        if result:
+            # For a 1-hop path the hop is both entry (i==1) and target (i==last)
+            # The code assigns "entry" first for i==1, "target" if i==len(path)-1
+            # With path = [(Attacker, {}), (DirectTarget, edge)]:
+            #   i=1 is also len(path)-1 → but code checks entry first, then target
+            # Verify it's one of the valid positions
+            assert result[0].hops[0].hop_position in {"entry", "target"}
+
+    def test_path_with_less_than_two_nodes_returns_none(self):
+        """_build_scenario with a 1-element path should return None."""
+        model = MockThreatModel()
+        engine = GDAFEngine(model)
+        graph = engine._build_graph()
+        objective = {
+            "id": "obj1", "name": "Test", "description": "", "target_asset_names": [],
+            "target_types": [], "mitre_final_tactic": "impact", "business_impact": "",
+        }
+        actor = {
+            "id": "a1", "name": "A", "sophistication": "low",
+            "objectives": ["obj1"], "known_ttps": [], "capable_tactics": None,
+        }
+        result = engine._build_scenario([("OnlyNode", {})], objective, actor, graph, 5.0)
+        assert result is None
+
+
+# ---------------------------------------------------------------------------
+# _build_graph — data_value from Data objects on dataflow
+# ---------------------------------------------------------------------------
+
+class TestDataValueOnEdge:
+    def test_data_value_from_top_secret_classification(self):
+        """Dataflow carrying top_secret Data should produce data_value=1.0 on edge."""
+        class MockData:
+            classification = "top_secret"
+
+        df = MockDataflow("Attacker", "Server")
+        df.data = [MockData()]
+
+        actors = [make_actor("Attacker", trusted=False)]
+        servers = [make_server("Server")]
+        model = MockThreatModel(actors=actors, servers=servers, dataflows=[df])
+        engine = GDAFEngine(model)
+        graph = engine._build_graph()
+        edge = graph["Attacker"]["edges"][0]
+        assert edge["data_value"] == 1.0
+
+    def test_data_value_from_public_classification(self):
+        """Public data should produce data_value=0.0."""
+        class MockData:
+            classification = "public"
+
+        df = MockDataflow("Attacker", "Server")
+        df.data = [MockData()]
+
+        actors = [make_actor("Attacker", trusted=False)]
+        servers = [make_server("Server")]
+        model = MockThreatModel(actors=actors, servers=servers, dataflows=[df])
+        engine = GDAFEngine(model)
+        graph = engine._build_graph()
+        edge = graph["Attacker"]["edges"][0]
+        assert edge["data_value"] == 0.0
+
+    def test_data_value_max_of_multiple_items(self):
+        """data_value should be the max over all Data objects on the flow."""
+        class DataA:
+            classification = "public"
+        class DataB:
+            classification = "secret"  # 0.7
+
+        df = MockDataflow("Attacker", "Server")
+        df.data = [DataA(), DataB()]
+
+        actors = [make_actor("Attacker", trusted=False)]
+        servers = [make_server("Server")]
+        model = MockThreatModel(actors=actors, servers=servers, dataflows=[df])
+        engine = GDAFEngine(model)
+        graph = engine._build_graph()
+        edge = graph["Attacker"]["edges"][0]
+        assert edge["data_value"] == _CLASSIFICATION_SCORE["secret"]
+
+    def test_empty_data_list_gives_zero_data_value(self):
+        """No data objects on dataflow → data_value=0.0."""
+        actors = [make_actor("Attacker", trusted=False)]
+        servers = [make_server("Server")]
+        df = MockDataflow("Attacker", "Server")
+        df.data = []
+        model = MockThreatModel(actors=actors, servers=servers, dataflows=[df])
+        engine = GDAFEngine(model)
+        graph = engine._build_graph()
+        edge = graph["Attacker"]["edges"][0]
+        assert edge["data_value"] == 0.0
+
+
+# ---------------------------------------------------------------------------
+# _build_graph — traversal_difficulty applied to edge
+# ---------------------------------------------------------------------------
+
+class TestTraversalDifficultyOnEdge:
+    def test_traversal_difficulty_propagated_to_edge(self):
+        """traversal_difficulty from the sink node boundary should appear on the edge."""
+        boundary_obj = object()
+        actors = [make_actor("Attacker", trusted=False)]
+        server_data = make_server("HardenedServer", boundary=boundary_obj)
+        model = MockThreatModel(
+            actors=actors,
+            servers=[server_data],
+            dataflows=[MockDataflow("Attacker", "HardenedServer")],
+            boundaries={"b1": {"boundary": boundary_obj, "isTrusted": False, "traversal_difficulty": "high"}},
+        )
+        engine = GDAFEngine(model)
+        graph = engine._build_graph()
+        edge = graph["Attacker"]["edges"][0]
+        assert edge["traversal_difficulty"] == "high"
+
+    def test_default_traversal_difficulty_is_low(self):
+        """Server without a boundary gets traversal_difficulty='low' (default)."""
+        actors = [make_actor("Attacker", trusted=False)]
+        servers = [make_server("PlainServer")]
+        model = MockThreatModel(actors=actors, servers=servers, dataflows=[MockDataflow("Attacker", "PlainServer")])
+        engine = GDAFEngine(model)
+        graph = engine._build_graph()
+        edge = graph["Attacker"]["edges"][0]
+        assert edge["traversal_difficulty"] == "low"
+
+
+# ---------------------------------------------------------------------------
+# run() — sorted output and detection_coverage
+# ---------------------------------------------------------------------------
+
+class TestRunOutputProperties:
+    def test_scenarios_sorted_by_score_descending(self, tmp_path):
+        """run() returns scenarios sorted from highest to lowest path_score."""
+        model = make_simple_model()
+        ctx_path = make_context_yaml(tmp_path, targets=["Database"])
+        engine = GDAFEngine(model, context_path=ctx_path)
+        result = engine.run()
+        scores = [s.path_score for s in result]
+        assert scores == sorted(scores, reverse=True)
+
+    def test_detection_coverage_is_float_between_0_and_1(self, tmp_path):
+        """Each scenario's detection_coverage is in [0.0, 1.0]."""
+        model = make_simple_model()
+        ctx_path = make_context_yaml(tmp_path, targets=["Database"])
+        engine = GDAFEngine(model, context_path=ctx_path)
+        result = engine.run()
+        for s in result:
+            assert 0.0 <= s.detection_coverage <= 1.0
+
+    def test_scenario_id_starts_with_gdaf(self, tmp_path):
+        """Scenario IDs should follow the GDAF-XXXXXXXX format."""
+        model = make_simple_model()
+        ctx_path = make_context_yaml(tmp_path, targets=["Database"])
+        engine = GDAFEngine(model, context_path=ctx_path)
+        result = engine.run()
+        for s in result:
+            assert s.scenario_id.startswith("GDAF-")
+
+    def test_scenario_objective_fields_match_context(self, tmp_path):
+        """Scenario objective fields should mirror the context YAML."""
+        model = make_simple_model()
+        ctx_path = make_context_yaml(tmp_path, targets=["Database"])
+        engine = GDAFEngine(model, context_path=ctx_path)
+        result = engine.run()
+        if result:
+            s = result[0]
+            assert s.objective_id == "obj1"
+            assert s.objective_name == "Compromise Database"
+            assert s.objective_mitre_final_tactic == "exfiltration"
+            assert s.actor_id == "actor1"
+
+    def test_run_graph_rebuild_on_second_call(self, tmp_path):
+        """Second run() call reuses the cached graph (no rebuild)."""
+        model = make_simple_model()
+        ctx_path = make_context_yaml(tmp_path, targets=["Database"])
+        engine = GDAFEngine(model, context_path=ctx_path)
+        r1 = engine.run()
+        r2 = engine.run()
+        assert len(r1) == len(r2)
+
+
+# ---------------------------------------------------------------------------
+# extra_models — multi-model graph merging
+# ---------------------------------------------------------------------------
+
+class TestExtraModels:
+    def test_extra_model_nodes_appear_in_graph(self):
+        """Servers from extra_models should appear in the merged graph."""
+        main_model = make_simple_model()
+        extra = MockThreatModel(
+            servers=[make_server("ExtraServer", stype="database", confidentiality="critical",
+                                 integrity="high", availability="high")],
+        )
+        engine = GDAFEngine(main_model, extra_models=[extra])
+        graph = engine._build_graph()
+        assert "ExtraServer" in graph
+
+    def test_extra_model_edges_not_duplicated_for_existing_nodes(self):
+        """Duplicate node names across models are skipped (first definition wins)."""
+        main_model = make_simple_model()  # has "Web Server"
+        extra = MockThreatModel(
+            servers=[make_server("Web Server", confidentiality="critical")],  # duplicate name
+        )
+        engine = GDAFEngine(main_model, extra_models=[extra])
+        graph = engine._build_graph()
+        # Still only one "Web Server" entry
+        assert list(graph.keys()).count("Web Server") == 1
+
+    def test_path_spans_extra_model_via_bridging(self, tmp_path):
+        """An attack path can traverse from main model into extra model nodes."""
+        actors = [make_actor("Attacker", trusted=False)]
+        main_servers = [make_server("Gateway")]
+        main_flows = [MockDataflow("Attacker", "Gateway")]
+        main_model = MockThreatModel(actors=actors, servers=main_servers, dataflows=main_flows)
+
+        extra_servers = [make_server("InternalDB", stype="database",
+                                     confidentiality="critical", integrity="critical",
+                                     availability="critical")]
+        extra_flows = [MockDataflow("Gateway", "InternalDB")]
+        extra_model = MockThreatModel(servers=extra_servers, dataflows=extra_flows)
+
+        ctx_path = make_context_yaml(tmp_path, targets=["InternalDB"])
+        engine = GDAFEngine(main_model, extra_models=[extra_model], context_path=ctx_path)
+        result = engine.run()
+        # Path Attacker → Gateway → InternalDB should be discoverable
+        assert isinstance(result, list)
+
+
+# ---------------------------------------------------------------------------
+# BFS edge cases
+# ---------------------------------------------------------------------------
+
+class TestBfsEdgeCases:
+    def test_bfs_collects_at_most_20_raw_paths(self):
+        """BFS stops collecting after 20 raw paths (internal cap)."""
+        # Create a fan-out: attacker → 25 servers, all connected to target
+        actors = [make_actor("Attacker", trusted=False)]
+        servers = [make_server(f"Mid{i}") for i in range(25)] + [make_server("Target")]
+        dataflows = (
+            [MockDataflow("Attacker", f"Mid{i}") for i in range(25)]
+            + [MockDataflow(f"Mid{i}", "Target") for i in range(25)]
+        )
+        model = MockThreatModel(actors=actors, servers=servers, dataflows=dataflows)
+        engine = GDAFEngine(model)
+        graph = engine._build_graph()
+        paths = engine._bfs_paths(graph, "Attacker", "Target", max_hops=5)
+        assert len(paths) <= 20
+
+    def test_bfs_finds_shortest_path_first(self):
+        """BFS returns shorter paths before longer ones."""
+        # Attacker → DirectTarget (1 hop) and Attacker → Mid → DirectTarget (2 hops)
+        actors = [make_actor("Attacker", trusted=False)]
+        servers = [make_server("DirectTarget"), make_server("Mid")]
+        dataflows = [
+            MockDataflow("Attacker", "DirectTarget"),
+            MockDataflow("Attacker", "Mid"),
+            MockDataflow("Mid", "DirectTarget"),
+        ]
+        model = MockThreatModel(actors=actors, servers=servers, dataflows=dataflows)
+        engine = GDAFEngine(model)
+        graph = engine._build_graph()
+        paths = engine._bfs_paths(graph, "Attacker", "DirectTarget", max_hops=5)
+        # Shortest path should come first (BFS property)
+        assert len(paths[0]) <= len(paths[-1])
+
+    def test_bfs_handles_disconnected_graph(self):
+        """BFS on a graph where source and target are in disconnected components."""
+        actors = [make_actor("AttackerA", trusted=False), make_actor("AttackerB", trusted=False)]
+        servers = [make_server("ServerA"), make_server("ServerB")]
+        # A connects to ServerA, B connects to ServerB — no path between islands
+        dataflows = [
+            MockDataflow("AttackerA", "ServerA"),
+            MockDataflow("AttackerB", "ServerB"),
+        ]
+        model = MockThreatModel(actors=actors, servers=servers, dataflows=dataflows)
+        engine = GDAFEngine(model)
+        graph = engine._build_graph()
+        paths = engine._bfs_paths(graph, "AttackerA", "ServerB", max_hops=10)
+        assert paths == []

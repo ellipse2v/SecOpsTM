@@ -166,7 +166,11 @@ class ModelManager {
             .then(response => response.json())
             .then(data => {
                 if (data.error) {
-                    this.modelListContainer.innerHTML = `<p style="color: red;">Error: ${data.error}</p>`;
+                    const p = document.createElement('p');
+                    p.style.color = 'red';
+                    p.textContent = `Error: ${data.error}`;
+                    this.modelListContainer.innerHTML = '';
+                    this.modelListContainer.appendChild(p);
                     return;
                 }
                 this.modelListContainer.innerHTML = '';
@@ -505,13 +509,30 @@ class ModelManager {
             div.style.display = 'flex';
             div.style.justifyContent = 'space-between';
             div.style.alignItems = 'center';
-            div.innerHTML = `
-                <span><strong>${name}</strong> (${item.classification})</span>
-                <div>
-                    <button class="export-btn" style="padding: 4px 8px; margin: 0 2px;" onclick="window.modelManager.editDataItem('${name}')">Edit</button>
-                    <button class="export-btn" style="padding: 4px 8px; margin: 0 2px; background-color: #f44336;" onclick="window.modelManager.deleteDataItem('${name}')">Delete</button>
-                </div>
-            `;
+            const span = document.createElement('span');
+            const strong = document.createElement('strong');
+            strong.textContent = name;
+            span.appendChild(strong);
+            span.appendChild(document.createTextNode(` (${item.classification})`));
+
+            const btnDiv = document.createElement('div');
+
+            const editBtn = document.createElement('button');
+            editBtn.className = 'export-btn';
+            editBtn.style.cssText = 'padding: 4px 8px; margin: 0 2px;';
+            editBtn.textContent = 'Edit';
+            editBtn.addEventListener('click', () => window.modelManager.editDataItem(name));
+
+            const delBtn = document.createElement('button');
+            delBtn.className = 'export-btn';
+            delBtn.style.cssText = 'padding: 4px 8px; margin: 0 2px; background-color: #f44336;';
+            delBtn.textContent = 'Delete';
+            delBtn.addEventListener('click', () => window.modelManager.deleteDataItem(name));
+
+            btnDiv.appendChild(editBtn);
+            btnDiv.appendChild(delBtn);
+            div.appendChild(span);
+            div.appendChild(btnDiv);
             this.dataListContainer.appendChild(div);
         });
     }

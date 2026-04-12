@@ -16,7 +16,7 @@ import logging
 from typing import AsyncGenerator, Dict, List, Optional
 from .base_provider import BaseLLMProvider
 from .litellm_client import LiteLLMClient
-from ..prompts.stride_prompts import build_component_prompt
+from ..prompts.stride_prompts import build_component_prompt, build_batch_prompt
 from ..prompts.attack_flow_prompts import build_attack_flow_prompt
 from threat_analysis.ai_engine.prompt_loader import get as _get_prompt
 import json
@@ -44,22 +44,68 @@ class LiteLLMProvider(BaseLLMProvider):
         prompt = build_component_prompt(component, context)
         
         try:
-            # generate_content is an async generator
-            full_response = ""
             async for chunk in client.generate_content(
                 prompt=prompt,
                 system_prompt=_get_prompt("stride_analysis", "system"),
                 output_format="json"
             ):
+                if isinstance(chunk, list):
+                    # Model returned a JSON array directly — each element is a threat.
+                    return chunk
                 if isinstance(chunk, dict):
-                    return chunk.get('threats', [])
-                full_response += str(chunk)
-            
-            # Fallback if it didn't return a dict directly
+                    # Model wrapped threats under a key — try common keys.
+                    for key in ("threats", "threat_list", "results", "items"):
+                        if key in chunk and isinstance(chunk[key], list):
+                            return chunk[key]
+                    # Dict with no known list key — treat it as a single threat.
+                    return [chunk]
             return []
         except Exception as e:
             logging.error(f"Error generating threats via LiteLLM: {e}")
             return []
+
+    async def generate_threats_batch(
+        self,
+        components: List[Dict],
+        context: Dict,
+    ) -> Dict[str, List[Dict]]:
+        """Generates STRIDE threats for multiple components in a single LLM call.
+
+        Returns a dict mapping ``component_name`` → ``list[threat_dict]``.
+        Components whose names are absent from the LLM response get empty lists
+        (handled by the caller).  Returns an empty dict on hard failure so the
+        caller can fall back to individual calls.
+        """
+        client = await self._get_client()
+        prompt = build_batch_prompt(components, context)
+
+        def _parse_batch(raw) -> Dict[str, List[Dict]]:
+            """Turn a list-of-dicts response into a name→threats mapping."""
+            result: Dict[str, List[Dict]] = {}
+            items = raw if isinstance(raw, list) else raw.get("components", raw.get("results", []))
+            if not isinstance(items, list):
+                return result
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                name = item.get("component", "")
+                threats = item.get("threats", [])
+                if name and isinstance(threats, list):
+                    result[name] = threats
+            return result
+
+        try:
+            async for chunk in client.generate_content(
+                prompt=prompt,
+                system_prompt=_get_prompt("stride_analysis", "system"),
+                output_format="json",
+            ):
+                if isinstance(chunk, (list, dict)):
+                    return _parse_batch(chunk)
+            return {}
+        except Exception as e:
+            logging.error("Error in batch threat generation: %s", e)
+            return {}
 
     async def generate_attack_flow(self, threat: Dict, component: Dict, context: Dict) -> Dict:
         client = await self._get_client()

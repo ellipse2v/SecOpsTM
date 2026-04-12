@@ -61,7 +61,7 @@ def test_update_api_success(client):
         assert 'diagram_html' in json_data
         assert json_data['diagram_html'] == "<html>Diagram</html>"
         mock_service.update_diagram_logic.assert_called_once_with(
-            markdown_payload["markdown"], submodels=[]
+            markdown_payload["markdown"], submodels=[], model_file_path=None
         )
 
 def test_update_api_empty_markdown(client):
@@ -259,7 +259,7 @@ A simple example system.
         assert 'diagram_html' in json_data
         assert json_data['diagram_html'] == "<html>Full Diagram</html>"
         mock_service.update_diagram_logic.assert_called_once_with(
-            full_markdown_content, submodels=[]
+            full_markdown_content, submodels=[], model_file_path=None
         )
 
 

@@ -101,15 +101,19 @@ def test_enrich_with_ai_threats(ai_service):
         threat_model.dataflows = []
         threat_model.tm.description = "System desc"
 
-        ai_service.provider.generate_threats = AsyncMock(return_value=[
-            {
-                "title": "SQLi",
-                "description": "SQL injection",
-                "category": "Information Disclosure",
-                "likelihood": "high",
-                "business_impact": {"severity": "critical", "details": "bad"}
-            }
-        ])
+        threat_payload = {
+            "title": "SQLi",
+            "description": "SQL injection",
+            "category": "Information Disclosure",
+            "likelihood": "high",
+            "business_impact": {"severity": "critical", "details": "bad"},
+        }
+        # Batch path (default): generate_threats_batch returns name→threats dict
+        ai_service.provider.generate_threats_batch = AsyncMock(
+            return_value={"Actor 1": [threat_payload]}
+        )
+        # Individual fallback path kept for completeness
+        ai_service.provider.generate_threats = AsyncMock(return_value=[threat_payload])
 
         await ai_service._enrich_with_ai_threats(threat_model)
 
@@ -190,9 +194,11 @@ def test_enrich_with_ai_threats_json_fallback(ai_service):
         threat_model.dataflows = []
         threat_model.tm.description = "System desc"
 
-        ai_service.provider.generate_threats = AsyncMock(return_value=[
-            {"title": "Fenced", "description": "desc"}
-        ])
+        threat_payload = {"title": "Fenced", "description": "desc"}
+        ai_service.provider.generate_threats_batch = AsyncMock(
+            return_value={"Actor 1": [threat_payload]}
+        )
+        ai_service.provider.generate_threats = AsyncMock(return_value=[threat_payload])
 
         await ai_service._enrich_with_ai_threats(threat_model)
         assert len(actor.threats) == 1
