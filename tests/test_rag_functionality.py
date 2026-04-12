@@ -117,17 +117,23 @@ def mock_provider():
     mock_provider = MagicMock()
     mock_provider.check_connection = AsyncMock(return_value=True)
 
-    # Mock for generate_threats (component-level threats)
-    mock_provider.generate_threats = AsyncMock(return_value=[
-        {
-            "title": "SQL Injection",
-            "description": "SQL Injection vulnerability in payment module.",
-            "category": "Tampering",
-            "likelihood": "high",
-            "business_impact": {"severity": "critical", "details": "Data breach"},
-            "confidence": 0.9
-        }
-    ])
+    _sql_injection_threat = {
+        "title": "SQL Injection",
+        "description": "SQL Injection vulnerability in payment module.",
+        "category": "Tampering",
+        "likelihood": "high",
+        "business_impact": {"severity": "critical", "details": "Data breach"},
+        "confidence": 0.9
+    }
+
+    # Mock for generate_threats (component-level threats — individual fallback)
+    mock_provider.generate_threats = AsyncMock(return_value=[_sql_injection_threat])
+
+    # Mock for generate_threats_batch (batch enrichment path)
+    mock_provider.generate_threats_batch = AsyncMock(return_value={
+        "WebAppRAGFinal": [_sql_injection_threat],
+        "UserRAGFinal": [],
+    })
     return mock_provider
 
 @pytest.fixture

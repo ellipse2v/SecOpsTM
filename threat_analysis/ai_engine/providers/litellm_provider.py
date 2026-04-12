@@ -80,11 +80,27 @@ class LiteLLMProvider(BaseLLMProvider):
         prompt = build_batch_prompt(components, context)
 
         def _parse_batch(raw) -> Dict[str, List[Dict]]:
-            """Turn a list-of-dicts response into a name→threats mapping."""
+            """Turn a list-of-dicts response into a name→threats mapping.
+
+            Handles three response shapes:
+            1. A bare JSON array: ``[{"component": ..., "threats": [...]}, ...]``
+            2. A dict with a known wrapper key: ``{"components": [...]}`` or ``{"results": [...]}``
+            3. A dict with any single list value (arbitrary wrapper key from LLM): ``{"data": [...]}``
+            """
             result: Dict[str, List[Dict]] = {}
-            items = raw if isinstance(raw, list) else raw.get("components", raw.get("results", []))
-            if not isinstance(items, list):
-                return result
+            if isinstance(raw, list):
+                items = raw
+            elif isinstance(raw, dict):
+                # Try known wrapper keys first
+                items = raw.get("components") or raw.get("results")
+                if not isinstance(items, list):
+                    # Fallback: look for the first list value in the dict (handles arbitrary wrappers)
+                    items = next(
+                        (v for v in raw.values() if isinstance(v, list)),
+                        []
+                    )
+            else:
+                items = []
             for item in items:
                 if not isinstance(item, dict):
                     continue
@@ -92,16 +108,37 @@ class LiteLLMProvider(BaseLLMProvider):
                 threats = item.get("threats", [])
                 if name and isinstance(threats, list):
                     result[name] = threats
+            if not result:
+                logging.debug("_parse_batch: no component entries found in response (raw type=%s)", type(raw).__name__)
             return result
+
+        # Budget ~2 000 tokens per component for the JSON response (threats are verbose).
+        # Never go below the provider's own max_tokens setting.
+        try:
+            provider_max = int(client.provider_config.get("max_tokens", 4096))
+        except (TypeError, ValueError):
+            provider_max = 4096
+        batch_max_tokens = max(len(components) * 2000, provider_max)
 
         try:
             async for chunk in client.generate_content(
                 prompt=prompt,
                 system_prompt=_get_prompt("stride_analysis", "system"),
                 output_format="json",
+                max_tokens=batch_max_tokens,
             ):
                 if isinstance(chunk, (list, dict)):
-                    return _parse_batch(chunk)
+                    parsed = _parse_batch(chunk)
+                    logging.debug(
+                        "generate_threats_batch: chunk type=%s keys=%s → %d components parsed",
+                        type(chunk).__name__,
+                        list(chunk.keys()) if isinstance(chunk, dict) else "N/A (list)",
+                        len(parsed),
+                    )
+                    return parsed
+                elif isinstance(chunk, str) and chunk.startswith("Error:"):
+                    logging.warning("generate_threats_batch: LLM returned error string: %s", chunk[:200])
+            logging.warning("generate_threats_batch: no parseable chunk received — returning {}")
             return {}
         except Exception as e:
             logging.error("Error in batch threat generation: %s", e)
@@ -127,11 +164,18 @@ class LiteLLMProvider(BaseLLMProvider):
     async def generate_ciso_triage(self, prompt: str, system_prompt: str) -> Dict:
         """Calls the LLM with the CISO persona and returns the parsed briefing."""
         client = await self._get_client()
+        # CISO triage response is a single JSON object — 2 000 tokens is ample.
+        try:
+            provider_max = int(client.provider_config.get("max_tokens", 4096))
+        except (TypeError, ValueError):
+            provider_max = 4096
+        ciso_max_tokens = max(2000, provider_max)
         try:
             async for chunk in client.generate_content(
                 prompt=prompt,
                 system_prompt=system_prompt,
                 output_format="json",
+                max_tokens=ciso_max_tokens,
             ):
                 if isinstance(chunk, dict) and "posture_score" in chunk:
                     return chunk

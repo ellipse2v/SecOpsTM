@@ -27,12 +27,15 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Now we can import the app
+import threat_analysis.server.server as _server_module
 from threat_analysis.server.server import app, run_server, DEFAULT_EMPTY_MARKDOWN, get_threat_model_service
 
 @pytest.fixture
 def client():
     """Create a test client for the Flask app."""
     app.config['TESTING'] = True
+    # Reset module-level globals so tests don't bleed state into each other
+    _server_module.initial_model_file_path = None
     with app.test_client() as client:
         yield client
 

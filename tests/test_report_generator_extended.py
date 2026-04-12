@@ -86,8 +86,10 @@ def test_enrich_threats_with_ai_no_provider(report_generator):
     assert result == threats
 
 def test_enrich_threats_with_ai_not_reachable(report_generator):
+    mock_client = MagicMock()
+    mock_client.ai_online = False
     report_generator.ai_provider = MagicMock()
-    report_generator.ai_provider.check_connection = AsyncMock(return_value=False)
+    report_generator.ai_provider._get_client = AsyncMock(return_value=mock_client)
     report_generator.ai_context = {"ctx": 1}
     threats = [{"id": 1}]
     result = asyncio.run(report_generator._enrich_threats_with_ai(None, threats))

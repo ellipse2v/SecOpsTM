@@ -197,11 +197,12 @@ class LiteLLMClient:
             self.ai_online = False
             return False
 
-    async def generate_content(self, prompt: str, system_prompt: str, stream: Optional[bool] = None, output_format: str = "text"):
+    async def generate_content(self, prompt: str, system_prompt: str, stream: Optional[bool] = None, output_format: str = "text", max_tokens: Optional[int] = None):
         """
         Generates content using LiteLLM.
         Can yield chunks if streaming is enabled.
         output_format can be "text" or "json".
+        max_tokens overrides the provider config value when provided (useful for batch calls).
         """
         if not self.ai_online or not self._litellm_module:
             raise RuntimeError("AI server is not available or litellm not loaded. This feature is disabled.")
@@ -210,13 +211,14 @@ class LiteLLMClient:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt}
         ]
-        
+
+        effective_max_tokens = max_tokens or self.provider_config.get('max_tokens', 4096)
         completion_params = {
             "model": self.model_name,
             "messages": messages,
             "stream": self.stream if stream is None else stream,
             "temperature": self.provider_config.get('temperature', 0.7),
-            "max_tokens": self.provider_config.get('max_tokens', 4096),
+            "max_tokens": effective_max_tokens,
             "timeout": self.provider_config.get('timeout', 30),
             "num_retries": 3, # Automatically retry on rate limits
             "api_base": self.api_base
@@ -228,7 +230,7 @@ class LiteLLMClient:
             self._litellm_module.ssl_verify = self.ssl_verify
 
         if output_format == "json":
-            messages[0]["content"] += "\n\nYour output MUST be a valid JSON object."
+            messages[0]["content"] += "\n\nYour output MUST be valid JSON (object or array — no markdown, no preamble)."
 
             provider_name = self.model_name.split('/')[0]
             if provider_name in ["openai", "azure", "groq"]:

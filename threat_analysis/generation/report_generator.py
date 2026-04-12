@@ -288,6 +288,8 @@ class ReportGenerator:
         self._ranking_max_total: int = 0
         self._ranking_min_stride: bool = True
         self._ranking_weights: Dict[str, float] = {}
+        self._enrich_batch_size: int = 5
+        self._enrich_max_concurrent: int = 3
 
         if ai_config_path and ai_config_path.exists():
             with open(ai_config_path, "r", encoding="utf-8") as f:
@@ -320,6 +322,8 @@ class ReportGenerator:
             self._ranking_min_stride = bool(tg.get("min_stride_coverage", True))
             rw = tg.get("ranking_weights") or {}
             self._ranking_weights = {k: float(v) for k, v in rw.items() if isinstance(v, (int, float))}
+            self._enrich_batch_size: int = int(tg.get("batch_size", 5))
+            self._enrich_max_concurrent: int = int(tg.get("max_concurrent_ai_requests", 3))
 
     async def _run_ciso_triage(self, all_threats: List[Dict]) -> Dict:
         """Generates a CISO-level risk briefing via the AI provider.
@@ -329,8 +333,18 @@ class ReportGenerator:
         """
         if not self.ai_provider:
             return {}
-        if not await self.ai_provider.check_connection():
-            return {}
+        # Use cached ai_online flag when available (avoids a second network round-trip).
+        # Fall back to check_connection() for providers that don't expose _get_client.
+        try:
+            _client = await self.ai_provider._get_client()
+            if not _client.ai_online:
+                return {}
+        except Exception:
+            try:
+                if not await self.ai_provider.check_connection():
+                    return {}
+            except Exception:
+                pass  # proceed; generate_ciso_triage() will fail safely if offline
 
         from threat_analysis.ai_engine.prompt_loader import get as _get_prompt
         try:
@@ -464,67 +478,118 @@ class ReportGenerator:
         if progress_callback:
             progress_callback(f"Starting AI enrichment for {total_components} components...")
 
-        ai_threats = []
-        semaphore = asyncio.Semaphore(5)  # Limit concurrency to 5 workers
+        ai_threats: List[Dict] = []
         processed_count = [0]
+        semaphore = asyncio.Semaphore(self._enrich_max_concurrent)
 
-        async def process_component(component):
+        def _build_threat_dict(threat: Dict, component: Dict) -> Dict:
+            """Convert a raw LLM threat dict into a normalized threat record."""
+            stride_category = threat.get("category", "InformationDisclosure")
+            target_name = component.get("name")
+            severity_info = self.severity_calculator.get_severity_info(
+                stride_category,
+                target_name,
+                impact=threat.get("business_impact", {}).get("impact_score") if isinstance(threat.get("business_impact"), dict) else None,
+                likelihood=threat.get("business_impact", {}).get("likelihood_score") if isinstance(threat.get("business_impact"), dict) else None,
+            )
+            raw_capecs = [
+                c for c in threat.get("capec_ids", [])
+                if isinstance(c, str) and c.upper().startswith("CAPEC-")
+            ]
+            mapping = self.mitre_mapping.map_threat_to_mitre({
+                "stride_category": stride_category,
+                "capec_ids": raw_capecs,
+                "description": threat.get("description", ""),
+            })
+            return {
+                "type": stride_category,
+                "description": threat.get("description"),
+                "target": target_name,
+                "severity": severity_info,
+                "mitre_techniques": mapping.get("techniques", []),
+                "stride_category": stride_category,
+                "capecs": mapping.get("capecs", []),
+                "cve": [],  # CVEs come exclusively from CVEService, never from LLM output
+                "business_value": component.get("business_value"),
+                "confidence": threat.get("confidence", 0.8),
+                "source": "AI",
+            }
+
+        def _flush_batch_results(results: Dict[str, List[Dict]], batch: List[Dict]) -> None:
+            """Distribute batch results into ai_threats and update progress."""
+            comp_by_name = {c["name"]: c for c in batch}
+            for comp_name, threats_json in results.items():
+                component = comp_by_name.get(comp_name)
+                if component is None:
+                    continue
+                for threat in threats_json or []:
+                    if not isinstance(threat, dict):
+                        continue
+                    try:
+                        ai_threats.append(_build_threat_dict(threat, component))
+                    except Exception as exc:
+                        logging.warning("Skipping malformed batch threat for %s: %s", comp_name, exc)
+            # Update progress for all components in this batch
+            processed_count[0] += len(batch)
+            if progress_callback:
+                names = ", ".join(c["name"] for c in batch)
+                progress_callback(
+                    f"AI Enrichment: {processed_count[0]}/{total_components} components processed ({names})"
+                )
+
+        async def process_batch(batch: List[Dict]) -> None:
+            async with semaphore:
+                try:
+                    results = await self.ai_provider.generate_threats_batch(batch, self.ai_context)
+                    _flush_batch_results(results, batch)
+                except Exception as e:
+                    logging.error("Batch AI enrichment failed (%s): %s — falling back to individual calls", [c["name"] for c in batch], e)
+                    # Fall back: call generate_threats per component sequentially
+                    for component in batch:
+                        try:
+                            threats_json = await self.ai_provider.generate_threats(component, self.ai_context)
+                            _flush_batch_results({component["name"]: threats_json}, [component])
+                        except Exception as exc:
+                            logging.error("Error enriching component %s: %s", component.get("name"), exc)
+                            processed_count[0] += 1
+
+        async def process_component_individual(component: Dict) -> None:
             async with semaphore:
                 try:
                     generated_threats = await self.ai_provider.generate_threats(component, self.ai_context)
                     processed_count[0] += 1
                     if progress_callback:
                         progress_callback(f"AI Enrichment: {processed_count[0]}/{total_components} components processed ({component.get('name')})")
-                    
-                    component_threats = []
                     for threat in generated_threats:
-                        stride_category = threat.get("category", "InformationDisclosure")
-                        target_name = component.get("name")
-                        
-                        # Use the severity calculator for AI-generated threats
-                        severity_info = self.severity_calculator.get_severity_info(
-                            stride_category, 
-                            target_name,
-                            impact=threat.get("business_impact", {}).get("impact_score"),
-                            likelihood=threat.get("business_impact", {}).get("likelihood_score")
-                        )
-
-                        # Derive MITRE techniques from CAPEC IDs (never use LLM-generated T-IDs)
-                        raw_capecs = [
-                            c for c in threat.get('capec_ids', [])
-                            if isinstance(c, str) and c.upper().startswith('CAPEC-')
-                        ]
-                        mapping = self.mitre_mapping.map_threat_to_mitre({
-                            "stride_category": stride_category,
-                            "capec_ids": raw_capecs,
-                            "description": threat.get("description", ""),
-                        })
-                        component_threats.append({
-                            "type": stride_category,
-                            "description": threat.get("description"),
-                            "target": target_name,
-                            "severity": severity_info,
-                            "mitre_techniques": mapping.get("techniques", []),
-                            "stride_category": stride_category,
-                            "capecs": mapping.get("capecs", []),
-                            "cve": [], # CVEs come exclusively from CVEService (VOC mapping), never from LLM output
-                            "business_value": component.get("business_value"),
-                            "confidence": threat.get("confidence", 0.8),
-                            "source": "AI"
-                        })
-                    return component_threats
+                        if not isinstance(threat, dict):
+                            continue
+                        try:
+                            ai_threats.append(_build_threat_dict(threat, component))
+                        except Exception as exc:
+                            logging.warning("Skipping malformed threat for %s: %s", component.get("name"), exc)
                 except Exception as e:
-                    logging.error(f"Error enriching component {component.get('name')}: {e}")
+                    logging.error("Error enriching component %s: %s", component.get("name"), e)
                     processed_count[0] += 1
-                    return []
 
-        # Run all components in parallel (limited by semaphore)
-        tasks = [process_component(c) for c in components_to_enrich]
-        results = await asyncio.gather(*tasks)
-        
-        # Flatten results
-        for component_threats in results:
-            ai_threats.extend(component_threats)
+        use_batch = (
+            self._enrich_batch_size > 1
+            and hasattr(self.ai_provider, "generate_threats_batch")
+        )
+        if use_batch:
+            batch_size = self._enrich_batch_size
+            batches = [
+                components_to_enrich[i: i + batch_size]
+                for i in range(0, len(components_to_enrich), batch_size)
+            ]
+            logging.info(
+                "AI report enrichment (batch): %d components → %d batch(es) of up to %d",
+                total_components, len(batches), batch_size,
+            )
+            await asyncio.gather(*[process_batch(b) for b in batches])
+        else:
+            logging.info("AI report enrichment (individual): %d components", total_components)
+            tasks = [process_component_individual(c) for c in components_to_enrich]
+            await asyncio.gather(*tasks)
 
         # Simple deduplication: identify unique AI threats based on category and description
         existing_threats_signatures = set()
