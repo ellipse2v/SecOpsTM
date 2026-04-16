@@ -1098,6 +1098,7 @@
             editors: [],
             tabCount: 0,
             extraFiles: [],
+            projectLoaded: false,
 
             init: function() {
                 const models = JSON.parse(atob("{{ initial_models | e }}"));
@@ -1295,6 +1296,8 @@
                    // Clear the editors array and reset tab count
                    this.editors = [];
                    this.tabCount = 0;
+                   this.extraFiles = [];
+                   this.projectLoaded = false;
 
                    // Add a single, new, empty tab
                    this.addTab('main.md', '', false);
@@ -1308,6 +1311,9 @@
                        panZoomInstance = null;
                    }
                    globalGraphMetadata = null;
+
+                   const badgesEl = document.getElementById('project-load-badges');
+                   if (badgesEl) badgesEl.textContent = '';
                }
            },
 
@@ -1413,6 +1419,7 @@
 
                     // Store extra files for use in generate_all
                     TabManager.extraFiles = extraFiles;
+                    TabManager.projectLoaded = true;
 
                     // Clear existing tabs
                     this.editors.forEach((editorData, index) => {
@@ -1677,7 +1684,6 @@
                                         const parts = newRelativePath.split('/');
                                         if (parts.some(p => p === 'BOM' || p === 'context')) {
                                             const file = await entry.getFile();
-                                            TabManager.extraFiles = TabManager.extraFiles || [];
                                             if (!TabManager.extraFiles.some(f => f.path === newRelativePath)) {
                                                 TabManager.extraFiles.push({ path: newRelativePath, content: await file.text() });
                                             }
@@ -1690,6 +1696,7 @@
                         }
 
                         await processDirectory(dirHandle, '');
+                        TabManager.projectLoaded = true;
 
                         const tabFilePaths = new Set(allFiles.map(f => f.path));
                         inMemoryFiles.forEach(memFile => {
@@ -1724,7 +1731,11 @@
                    body: JSON.stringify({
                        markdown: mainModelContent, // Content of the active editor
                        submodels: finalSubmodels,  // All other collected models
-                       extra_files: TabManager.extraFiles || []  // BOM/context files collected from directory picker
+                       // Only send extra_files when the browser loaded a project via directory
+                       // picker. Omitting the key lets the server fall back to its own
+                       // filesystem copy (--project globals), preventing stale-project
+                       // contamination when no picker was used.
+                       ...(TabManager.projectLoaded ? { extra_files: TabManager.extraFiles } : {})
                    }),
                });
 
@@ -1940,7 +1951,11 @@
                         markdown: mainModelContent,
                         path: mainModelPath,
                         submodels: submodels,
-                        extra_files: TabManager.extraFiles || []
+                        // Only send extra_files when the browser loaded a project via directory
+                        // picker. Omitting the key lets the server fall back to its own
+                        // filesystem copy (--project globals), preventing stale-project
+                        // contamination when no picker was used.
+                        ...(TabManager.projectLoaded ? { extra_files: TabManager.extraFiles } : {})
                     }),
                 });
 
