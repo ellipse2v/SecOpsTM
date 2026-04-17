@@ -1098,6 +1098,7 @@
             editors: [],
             tabCount: 0,
             extraFiles: [],
+            projectLoaded: false,  // Track if user loaded project via directory picker
 
             init: function() {
                 const models = JSON.parse(atob("{{ initial_models | e }}"));
@@ -1284,32 +1285,38 @@
                 }
             },
 
-           clearAllTabs: function() {
-               if (confirm('Are you sure you want to close all tabs and clear the editor?')) {
-                   // Remove all tab buttons and panes from the DOM
-                   const tabBar = document.getElementById('tab-bar');
-                   const tabContentArea = document.getElementById('tab-content-area');
-                   tabBar.innerHTML = '';
-                   tabContentArea.innerHTML = '';
+               clearAllTabs: function() {
+                   if (confirm('Are you sure you want to close all tabs and clear the editor?')) {
+                       // Remove all tab buttons and panes from the DOM
+                       const tabBar = document.getElementById('tab-bar');
+                       const tabContentArea = document.getElementById('tab-content-area');
+                       tabBar.innerHTML = '';
+                       tabContentArea.innerHTML = '';
 
-                   // Clear the editors array and reset tab count
-                   this.editors = [];
-                   this.tabCount = 0;
+                       // Clear the editors array and reset tab count
+                       this.editors = [];
+                       this.tabCount = 0;
+                       this.extraFiles = [];       // Reset extraFiles
+                       this.projectLoaded = false; // Reset projectLoaded
 
-                   // Add a single, new, empty tab
-                   this.addTab('main.md', '', false);
-                   this.switchTab(0);
+                       // Add a single, new, empty tab
+                       this.addTab('main.md', '', false);
+                       this.switchTab(0);
 
-                   // Clear the preview pane
-                   document.getElementById('svg-wrapper').innerHTML = '';
-                   document.getElementById('legend-container').innerHTML = '';
-                   if (panZoomInstance) {
-                       panZoomInstance.destroy();
-                       panZoomInstance = null;
+                       // Clear the preview pane
+                       document.getElementById('svg-wrapper').innerHTML = '';
+                       document.getElementById('legend-container').innerHTML = '';
+                       if (panZoomInstance) {
+                           panZoomInstance.destroy();
+                           panZoomInstance = null;
+                       }
+                       globalGraphMetadata = null;
+
+                       // Clear project-load-badges
+                       const badgesEl = document.getElementById('project-load-badges');
+                       if (badgesEl) badgesEl.innerHTML = '';
                    }
-                   globalGraphMetadata = null;
-               }
-           },
+               },
 
             getActiveEditorData: function() {
                 const activeTab = document.querySelector('.tab-button.active');
@@ -1413,6 +1420,7 @@
 
                     // Store extra files for use in generate_all
                     TabManager.extraFiles = extraFiles;
+                    TabManager.projectLoaded = true;  // User successfully loaded project via directory picker
 
                     // Clear existing tabs
                     this.editors.forEach((editorData, index) => {
@@ -1724,7 +1732,7 @@
                    body: JSON.stringify({
                        markdown: mainModelContent, // Content of the active editor
                        submodels: finalSubmodels,  // All other collected models
-                       extra_files: TabManager.extraFiles || []  // BOM/context files collected from directory picker
+                       ...(TabManager.projectLoaded ? { extra_files: TabManager.extraFiles } : {})
                    }),
                });
 
@@ -1940,7 +1948,7 @@
                         markdown: mainModelContent,
                         path: mainModelPath,
                         submodels: submodels,
-                        extra_files: TabManager.extraFiles || []
+                        ...(TabManager.projectLoaded ? { extra_files: TabManager.extraFiles } : {})
                     }),
                 });
 

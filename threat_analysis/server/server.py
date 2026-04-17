@@ -1000,6 +1000,9 @@ def generate_all():
         # When the browser explicitly sends "extra_files" (even an empty list), it has taken
         # ownership of BOM/context delivery — skip the server-side filesystem copy (1c) to
         # prevent stale server globals from contaminating the output with a different project.
+        #
+        # Protocol: client sets projectLoaded=true when user loads project via directory picker.
+        # If key is absent (projectLoaded=false or never loaded), server copies from globals.
         browser_managed_files = "extra_files" in data
         extra_files = data.get("extra_files", [])
         for ef in extra_files:
