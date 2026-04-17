@@ -222,29 +222,6 @@ class ExportService:
                     "html": f"{model_name}_diagram.html",
                     "svg": f"{model_name}.svg"
                 }
-
-                # GDAF in project mode: unified graph across main + all sub-models
-                try:
-                    from threat_analysis.core.gdaf_engine import GDAFEngine
-                    from threat_analysis.generation.attack_flow_builder import AttackFlowBuilder
-                    _context_path = self._resolve_gdaf_context(main_threat_model)
-                    if _context_path:
-                        _extra = getattr(main_threat_model, "sub_models", [])
-                        _bom_dir = self._resolve_bom_directory(main_threat_model)
-                        _gdaf = GDAFEngine(main_threat_model, _context_path, extra_models=_extra, bom_directory=_bom_dir)
-                        _scenarios = _gdaf.run()
-                        if _scenarios:
-                            main_threat_model.gdaf_scenarios = _scenarios
-                            _builder = AttackFlowBuilder(_scenarios, model_name=str(model_name))
-                            _builder.generate_and_save(str(export_path))
-                            logging.info(
-                                "GDAF (project): %d scenarios from %d model(s) in %s/gdaf",
-                                len(_scenarios), 1 + len(_extra), export_path,
-                            )
-                        else:
-                            logging.info("GDAF (project): no scenarios produced")
-                except Exception as _gdaf_exc:
-                    logging.warning("GDAF (project) generation skipped (non-fatal): %s", _gdaf_exc)
         else:
             logging.info("--- Starting Single-File Generation (Server Mode) ---")
             threat_model = create_threat_model(
