@@ -8,7 +8,6 @@ gdaf_context = context/iot_context.yaml
 bom_directory = BOM
 
 ## Boundaries
-- **Physical Environment**: isTrusted=False, color=red
 - **IoT Device**: isTrusted=False, color=orange
 - **IoT Gateway**: isTrusted=False, color=yellow
 - **Cloud Platform**: isTrusted=True, color=lightblue

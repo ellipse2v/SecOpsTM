@@ -45,16 +45,19 @@ ai_providers:
     ssl_verify: true
 
   openai:
-    enabled: false
-    model: "gpt-4o-mini"
+    enabled: true
+    model: "qwen3.5-122b-a10b"
     api_key_env: "OPENAI_API_KEY"
-    api_base: ""
+    api_base: "https://aip.b.qianxin-inc.cn/v1"
     ssl_verify: true
+    timeout: 120  # 增加到 120 秒，适应大模型响应时间
+#    temperature: 0.5  # 降低创造性，减少 thinking 模式
+#    max_tokens: 2048  # 限制输出长度，加快响应
 
   # NVIDIA Integrate API (OpenAI-compatible) — https://build.nvidia.com/models
   # export NVIDIA_NIM_API_KEY=nvapi-...
   nvidia_nim:
-    enabled: true
+    enabled: false
     model: "meta/llama-3.3-70b-instruct"      # any model from build.nvidia.com
     api_key_env: "NVIDIA_NIM_API_KEY"
     api_base: "https://integrate.api.nvidia.com/v1"
@@ -82,8 +85,8 @@ threat_generation:
   fallback_to_traditional: true
   max_threats_per_component: 10
 
-  # Rate limiting — set to 1.5 for Gemini free tier (15 RPM), 0.0 for paid/Ollama
-  rate_limit_sleep: 0.0
+  # Rate limiting — 5 秒间隔避免企业 API 限流
+  rate_limit_sleep: 5.0
   # Concurrency — 1 = sequential (safe for free tiers); 3–5 for paid/Ollama
   max_concurrent_ai_requests: 3
   # Batch enrichment — components grouped per LLM call (5 = 5× fewer API round trips)
@@ -114,14 +117,13 @@ rag:
   vector_db: "chroma"
   top_k_examples: 5
 
-# Embeddings — default is local HuggingFace (no API key, works offline)
+# Embeddings — Qwen embedding via OpenAI-compatible API
 # WARNING: changing the model requires rebuilding the vector store:
 #   python tooling/build_vector_store.py
 embedding:
-  provider: huggingface        # huggingface | google | mistral | ollama
-  model: all-MiniLM-L6-v2
-  device: cpu                  # cpu | cuda
-  api_base: ""
+  provider: openai             # openai | huggingface | google | mistral | ollama
+  model: Qwen3-Embedding-4B
+  api_base: "https://aip.b.qianxin-inc.cn/v1"
   ssl_verify: true
 
 # Attack Flow generation

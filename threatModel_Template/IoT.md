@@ -4,7 +4,8 @@
 This threat model describes a typical IoT architecture, including devices, gateways, cloud platforms, and user interfaces. It focuses on the data flow from sensors to the cloud and back to actuators, considering the unique security challenges of resource-constrained devices and distributed environments.
 
 ## Boundaries
-- **Physical Environment**: color=lightgray, isTrusted=False
+<!-- ERROR - Boundary 'Physical Environment' is defined but not used by any actor or server. 注掉下面这一行就不会报这个错了-->
+<!-- - **Physical Environment**: color=lightgray, isTrusted=False -->
 - **IoT Device**: color=lightblue, isTrusted=False
 - **IoT Gateway**: color=lightgreen, isTrusted=False
 - **Cloud Platform**: color=orange, isTrusted=True
