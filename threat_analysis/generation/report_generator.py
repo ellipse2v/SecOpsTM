@@ -28,7 +28,7 @@ from jinja2 import Environment, FileSystemLoader
 import os
 from pathlib import Path
 from collections import defaultdict
-from threat_analysis.utils import _validate_path_within_project
+from threat_analysis.utils import _validate_path_within_project, resolve_gdaf_context, resolve_bom_directory
 from threat_analysis.mitigation_suggestions import get_framework_mitigation_suggestions
 from threat_analysis.core.cve_service import CVEService
 from threat_analysis.core.threat_ranker import rank_and_trim
@@ -1513,6 +1513,9 @@ class ReportGenerator:
             dummy_model.dataflows.extend(model.dataflows)
 
         # Copy gdaf_scenarios from main_threat_model (if available)
+        # NOTE: all_models[0] is guaranteed to be the main_threat_model due to the
+        # ordering in generate_project_reports() where main_threat_model is built first
+        # and all_processed_models is constructed as [main_threat_model] + sub_models.
         if all_models:
             main_model = all_models[0]
             if hasattr(main_model, 'gdaf_scenarios') and main_model.gdaf_scenarios:
@@ -1526,80 +1529,6 @@ class ReportGenerator:
             report_title="🛡️ Global Project Threat Model Report"
         )
         logging.info(f"✅ Generated global project report with {len(all_threats_details)} total threats at {output_dir / 'global_threat_report.html'}")
-
-    def _resolve_gdaf_context(self, threat_model) -> Optional[str]:
-        """Resolve the GDAF context file path for a given threat model.
-        
-        Priority order:
-        1. `gdaf_context` key in the model's ## Context DSL section
-        2. `{model_parent}/context/` directory (first .yaml/.yml found)
-        3. `config/context.yaml` (project default fallback)
-        
-        Returns the resolved path as a string, or None if no context file is found.
-        """
-        from pathlib import Path
-        
-        ctx_cfg = getattr(threat_model, "context_config", {})
-        dsl_path = ctx_cfg.get("gdaf_context")
-        model_path = getattr(threat_model, "_model_file_path", None)
-        
-        if dsl_path:
-            # Resolve relative to model file directory first
-            if model_path:
-                p = Path(model_path).parent / dsl_path
-                if p.exists():
-                    logging.info("GDAF: using context from DSL ## Context: %s", p)
-                    return str(p)
-            p = Path(dsl_path)
-            if p.exists():
-                logging.info("GDAF: using context from DSL ## Context: %s", p)
-                return str(p)
-            logging.warning("GDAF: gdaf_context '%s' declared in ## Context but file not found", dsl_path)
-        
-        # Check model parent context/ subdirectory
-        if model_path:
-            context_dir = Path(model_path).parent / "context"
-            if context_dir.exists():
-                yaml_files = list(context_dir.glob("*.yaml")) + list(context_dir.glob("*.yml"))
-                if yaml_files:
-                    logging.info("GDAF: using context from model context/ dir: %s", yaml_files[0])
-                    return str(yaml_files[0])
-        
-        # Fallback: project default
-        fallback = Path("config/context.yaml")
-        if fallback.exists():
-            return str(fallback)
-        return None
-
-    def _resolve_bom_directory(self, threat_model) -> Optional[str]:
-        """Resolve BOM directory: DSL ## Context bom_directory → {model_parent}/BOM/ → None."""
-        from pathlib import Path
-        
-        ctx_cfg = getattr(threat_model, "context_config", {})
-        dsl_path = ctx_cfg.get("bom_directory")
-        model_path = getattr(threat_model, "_model_file_path", None)
-        
-        if dsl_path:
-            # Resolve relative to model file directory first
-            if model_path:
-                p = Path(model_path).parent / dsl_path
-                if p.exists():
-                    logging.info("BOM: using directory from DSL ## Context: %s", p)
-                    return str(p)
-            p = Path(dsl_path)
-            if p.exists():
-                logging.info("BOM: using directory from DSL ## Context: %s", p)
-                return str(p)
-            logging.warning("BOM: bom_directory '%s' declared in ## Context but not found", dsl_path)
-        
-        # Auto-discover from model file parent
-        if model_path:
-            bom_dir = Path(model_path).parent / "BOM"
-            if bom_dir.exists() and bom_dir.is_dir():
-                n_files = len(list(bom_dir.glob("*.json")) + list(bom_dir.glob("*.yaml")) + list(bom_dir.glob("*.yml")))
-                logging.info("BOM: auto-discovered %s (%d asset file(s))", bom_dir, n_files)
-                return str(bom_dir)
-        return None
 
     def generate_project_reports(self, project_path: Path, output_dir: Path, progress_callback = None, ai_service=None) -> Optional[ThreatModel]:
         """
@@ -1709,11 +1638,11 @@ class ReportGenerator:
             try:
                 from threat_analysis.core.gdaf_engine import GDAFEngine
                 from threat_analysis.generation.attack_flow_builder import AttackFlowBuilder
-                _context_path = self._resolve_gdaf_context(main_threat_model)
+                _context_path = resolve_gdaf_context(main_threat_model)
                 if _context_path:
                     if progress_callback: progress_callback(94, "Running GDAF cross-model analysis...")
                     _extra = getattr(main_threat_model, "sub_models", [])
-                    _bom_dir = self._resolve_bom_directory(main_threat_model)
+                    _bom_dir = resolve_bom_directory(main_threat_model)
                     _gdaf = GDAFEngine(main_threat_model, _context_path, extra_models=_extra, bom_directory=_bom_dir)
                     _scenarios = _gdaf.run()
                     if _scenarios:

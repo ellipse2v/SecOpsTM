@@ -145,3 +145,79 @@ def _validate_path_within_project(input_path: str, base_dir: Path = PROJECT_ROOT
         raise ValueError(f"Path is outside the allowed project directory: {input_path} (Base: {base_dir_resolved})")
 
     return path_obj
+
+
+def resolve_gdaf_context(threat_model) -> Optional[str]:
+    """Resolve the GDAF context file path for a given threat model.
+    
+    Priority order:
+    1. `gdaf_context` key in the model's ## Context DSL section
+    2. `{model_parent}/context/` directory (first .yaml/.yml found)
+    3. `config/context.yaml` (project default fallback)
+    
+    Returns the resolved path as a string, or None if no context file is found.
+    """
+    import logging
+    
+    ctx_cfg = getattr(threat_model, "context_config", {})
+    dsl_path = ctx_cfg.get("gdaf_context")
+    model_path = getattr(threat_model, "_model_file_path", None)
+    
+    if dsl_path:
+        # Resolve relative to model file directory first
+        if model_path:
+            p = Path(model_path).parent / dsl_path
+            if p.exists():
+                logging.info("GDAF: using context from DSL ## Context: %s", p)
+                return str(p)
+        p = Path(dsl_path)
+        if p.exists():
+            logging.info("GDAF: using context from DSL ## Context: %s", p)
+            return str(p)
+        logging.warning("GDAF: gdaf_context '%s' declared in ## Context but file not found", dsl_path)
+    
+    # Check model parent context/ subdirectory
+    if model_path:
+        context_dir = Path(model_path).parent / "context"
+        if context_dir.exists():
+            yaml_files = list(context_dir.glob("*.yaml")) + list(context_dir.glob("*.yml"))
+            if yaml_files:
+                logging.info("GDAF: using context from model context/ dir: %s", yaml_files[0])
+                return str(yaml_files[0])
+    
+    # Fallback: project default
+    fallback = Path("config/context.yaml")
+    if fallback.exists():
+        return str(fallback)
+    return None
+
+
+def resolve_bom_directory(threat_model) -> Optional[str]:
+    """Resolve BOM directory: DSL ## Context bom_directory → {model_parent}/BOM/ → None."""
+    import logging
+    
+    ctx_cfg = getattr(threat_model, "context_config", {})
+    dsl_path = ctx_cfg.get("bom_directory")
+    model_path = getattr(threat_model, "_model_file_path", None)
+    
+    if dsl_path:
+        # Resolve relative to model file directory first
+        if model_path:
+            p = Path(model_path).parent / dsl_path
+            if p.exists():
+                logging.info("BOM: using directory from DSL ## Context: %s", p)
+                return str(p)
+        p = Path(dsl_path)
+        if p.exists():
+            logging.info("BOM: using directory from DSL ## Context: %s", p)
+            return str(p)
+        logging.warning("BOM: bom_directory '%s' declared in ## Context but not found", dsl_path)
+    
+    # Auto-discover from model file parent
+    if model_path:
+        bom_dir = Path(model_path).parent / "BOM"
+        if bom_dir.exists() and bom_dir.is_dir():
+            n_files = len(list(bom_dir.glob("*.json")) + list(bom_dir.glob("*.yaml")) + list(bom_dir.glob("*.yml")))
+            logging.info("BOM: auto-discovered %s (%d asset file(s))", bom_dir, n_files)
+            return str(bom_dir)
+    return None

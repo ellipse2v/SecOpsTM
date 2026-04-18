@@ -157,11 +157,11 @@ class AIService:
     def _load_model_context(self, threat_model) -> Dict[str, Any]:
         """Load the model-specific GDAF context file and extract AI-relevant fields.
 
-        Uses the same resolution order as ExportService._resolve_gdaf_context():
+        Uses the same resolution order as utils.resolve_gdaf_context():
           1. gdaf_context key in ## Context DSL section (relative to model file)
           2. {model_dir}/context/*.yaml auto-discovery
           3. Returns {} if nothing found (no fallback to config/context.yaml —
-             that is loaded separately by _load_context()).
+              that is loaded separately by _load_context()).
 
         Extracted fields merged into the AI prompt context:
           sector, compliance_requirements, data_sensitivity,
