@@ -1247,41 +1247,30 @@
             },
 
             openOrSwitchToTab: function(submodelRef) {
-                // Strip leading "./" so "./components/db.md" matches "components/db.md"
-                const normalized = submodelRef.replace(/^\.\//, '');
+                // Extract the filename (basename) from the ref, ignoring directory parts.
+                // Works for any form: "./foo/bar.md", "../foo/bar.md", "bar.md"
+                const basename = submodelRef.split('/').pop().split('\\').pop();
 
-                // 1. Exact match on raw or normalized path
-                let idx = this.editors.findIndex(e => e && (e.path === submodelRef || e.path === normalized));
+                // Search all open tabs by filename — path-based matching is unreliable
+                // because tabs use project-root-relative paths while DSL refs are
+                // relative to the current model file.
+                const idx = this.editors.findIndex(
+                    e => e && e.path.split('/').pop().split('\\').pop() === basename
+                );
                 if (idx !== -1) { this.switchTab(idx); return; }
-
-                // 2. Suffix match: handles "../foo/model.md" refs where tabs are
-                //    stored relative to the project root ("foo/model.md")
-                idx = this.editors.findIndex(e => e && (
-                    e.path.endsWith('/' + normalized) || normalized.endsWith('/' + e.path)
-                ));
-                if (idx !== -1) { this.switchTab(idx); return; }
-
-                // 3. Basename match — only when there is exactly one open tab with
-                //    that filename (avoids false positives in multi-model projects)
-                const basename = normalized.split('/').pop();
-                const matches = this.editors.reduce((acc, e, i) => {
-                    if (e && e.path.split('/').pop() === basename) acc.push(i);
-                    return acc;
-                }, []);
-                if (matches.length === 1) { this.switchTab(matches[0]); return; }
 
                 // No match found — when a full project was loaded via picker the
                 // referenced sub-model should already be in the tabs; opening a blank
                 // tab would cause an empty SVG and an svg-pan-zoom crash.
                 if (this.projectLoaded) {
-                    console.warn(`openOrSwitchToTab: no open tab matches "${submodelRef}" — load the full project directory first.`);
+                    console.warn(`openOrSwitchToTab: no open tab matches "${basename}" — load the full project directory first.`);
                     return;
                 }
 
                 // Fallback for server-managed mode: create a new tab so the user
                 // can start editing the referenced sub-model.
-                const filename = basename.replace(/\.md$/, '') || 'Sub-Model';
-                const newIndex = this.addTab(normalized, `# Threat Model: ${filename}\n\n`);
+                const stem = basename.replace(/\.md$/, '') || 'Sub-Model';
+                const newIndex = this.addTab(basename, `# Threat Model: ${stem}\n\n`);
                 this.switchTab(newIndex);
             },
 
