@@ -953,6 +953,7 @@
 
     <script>
         let panZoomInstance;
+        let _panZoomRafId = null;
         let debounceTimer;
         let _validateTimer = null;
         let _diagramInFlight = false;
@@ -1245,16 +1246,42 @@
                 updatePreview();
             },
 
-            openOrSwitchToTab: function(path) {
-                const existingIndex = this.editors.findIndex(e => e && e.path === path);
-                if (existingIndex !== -1) {
-                    this.switchTab(existingIndex);
+            openOrSwitchToTab: function(submodelRef) {
+                // Strip leading "./" so "./components/db.md" matches "components/db.md"
+                const normalized = submodelRef.replace(/^\.\//, '');
+
+                // 1. Exact match on raw or normalized path
+                let idx = this.editors.findIndex(e => e && (e.path === submodelRef || e.path === normalized));
+                if (idx !== -1) { this.switchTab(idx); return; }
+
+                // 2. Suffix match: handles "../foo/model.md" refs where tabs are
+                //    stored relative to the project root ("foo/model.md")
+                idx = this.editors.findIndex(e => e && (
+                    e.path.endsWith('/' + normalized) || normalized.endsWith('/' + e.path)
+                ));
+                if (idx !== -1) { this.switchTab(idx); return; }
+
+                // 3. Basename match — only when there is exactly one open tab with
+                //    that filename (avoids false positives in multi-model projects)
+                const basename = normalized.split('/').pop();
+                const matches = this.editors.reduce((acc, e, i) => {
+                    if (e && e.path.split('/').pop() === basename) acc.push(i);
+                    return acc;
+                }, []);
+                if (matches.length === 1) { this.switchTab(matches[0]); return; }
+
+                // No match found — when a full project was loaded via picker the
+                // referenced sub-model should already be in the tabs; opening a blank
+                // tab would cause an empty SVG and an svg-pan-zoom crash.
+                if (this.projectLoaded) {
+                    console.warn(`openOrSwitchToTab: no open tab matches "${submodelRef}" — load the full project directory first.`);
                     return;
                 }
-                // Tab doesn't exist yet — create it so the user can edit the sub-model
-                const filename = path.split('/').pop().split('\\').pop();
-                const modelName = filename.replace(/\.md$/, '') || 'Sub-Model';
-                const newIndex = this.addTab(path, `# Threat Model: ${modelName}\n\n`);
+
+                // Fallback for server-managed mode: create a new tab so the user
+                // can start editing the referenced sub-model.
+                const filename = basename.replace(/\.md$/, '') || 'Sub-Model';
+                const newIndex = this.addTab(normalized, `# Threat Model: ${filename}\n\n`);
                 this.switchTab(newIndex);
             },
 
@@ -1279,8 +1306,10 @@
                     // Explicitly clear the preview as no valid model is active
                     svgWrapper.innerHTML = '';
                     legendContainer.innerHTML = '';
-                    if (panZoomInstance) panZoomInstance.destroy();
-                    panZoomInstance = null;
+                    if (panZoomInstance) {
+                        try { panZoomInstance.destroy(); } catch(e) { /* already destroyed */ }
+                        panZoomInstance = null;
+                    }
                     globalGraphMetadata = null;
                 }
             },
@@ -1307,7 +1336,7 @@
                    document.getElementById('svg-wrapper').innerHTML = '';
                    document.getElementById('legend-container').innerHTML = '';
                    if (panZoomInstance) {
-                       panZoomInstance.destroy();
+                       try { panZoomInstance.destroy(); } catch(e) { /* already destroyed */ }
                        panZoomInstance = null;
                    }
                    globalGraphMetadata = null;
@@ -1496,14 +1525,20 @@
                     showErrorMessage(`Error updating diagram: ${errorData.error}`);
                     svgWrapper.innerHTML = '';
                     legendContainer.innerHTML = '';
-                    if (panZoomInstance) panZoomInstance.destroy();
-                    panZoomInstance = null;
+                    if (panZoomInstance) {
+                        try { panZoomInstance.destroy(); } catch(e) { /* already destroyed */ }
+                        panZoomInstance = null;
+                    }
                     globalGraphMetadata = null; // Clear metadata on error
                     return;
                 }
                 const data = await response.json();
 
-                if (panZoomInstance) panZoomInstance.destroy();
+                if (_panZoomRafId !== null) { cancelAnimationFrame(_panZoomRafId); _panZoomRafId = null; }
+                if (panZoomInstance) {
+                    try { panZoomInstance.destroy(); } catch(e) { /* already destroyed */ }
+                    panZoomInstance = null;
+                }
                 svgWrapper.innerHTML = data.diagram_svg;
                 legendContainer.innerHTML = data.legend_html;
                 globalGraphMetadata = data.graph_metadata; // Store graph metadata
@@ -1515,17 +1550,35 @@
 
                 const svgElement = svgWrapper.querySelector('svg');
                 if (svgElement) {
-                    console.log("SVG element found in svgWrapper, initializing svgPanZoom on SVG element.");
-                    panZoomInstance = svgPanZoom(svgElement, {
-                        zoomEnabled: true,
-                        panEnabled: true,
-                        controlIconsEnabled: false,
-                        fit: true,
-                        center: true,
-                        minZoom: 0.1,
-                        maxZoom: 10
+                    // Cancel any pending RAF from a previous updatePreview call so only
+                    // the most-recent SVG gets svg-pan-zoom initialized.  Without this,
+                    // rapid tab switches schedule multiple RAFs; the earlier ones fire on
+                    // SVG elements already detached from the DOM, causing a non-finite
+                    // SVGMatrix and an uncaught error inside svg-pan-zoom's event handler.
+                    if (_panZoomRafId !== null) {
+                        cancelAnimationFrame(_panZoomRafId);
+                        _panZoomRafId = null;
+                    }
+                    _panZoomRafId = requestAnimationFrame(() => {
+                        _panZoomRafId = null;
+                        // Guard: skip if this SVG was replaced before the RAF fired.
+                        if (!svgElement.isConnected) return;
+                        try {
+                            panZoomInstance = svgPanZoom(svgElement, {
+                                zoomEnabled: true,
+                                panEnabled: true,
+                                controlIconsEnabled: false,
+                                fit: true,
+                                center: true,
+                                minZoom: 0.1,
+                                maxZoom: 10
+                            });
+                        } catch(e) {
+                            console.warn('svgPanZoom init failed:', e);
+                            panZoomInstance = null;
+                        }
                     });
-                    console.log("svgPanZoom initialized with instance:", panZoomInstance);
+                    console.log("svgPanZoom scheduled for next frame.");
 
                     // Add a single click listener to the SVG container for event delegation
                     svgElement.addEventListener('click', (e) => {
@@ -1571,8 +1624,10 @@
                 showErrorMessage(`Failed to fetch preview: ${error.message}`);
                 svgWrapper.innerHTML = '';
                 legendContainer.innerHTML = '';
-                if (panZoomInstance) panZoomInstance.destroy();
-                panZoomInstance = null;
+                if (panZoomInstance) {
+                    try { panZoomInstance.destroy(); } catch(e) { /* already destroyed */ }
+                    panZoomInstance = null;
+                }
                 globalGraphMetadata = null; // Clear metadata on error
             } finally {
                 _diagramInFlight = false;
