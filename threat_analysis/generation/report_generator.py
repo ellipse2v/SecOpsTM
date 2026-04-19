@@ -151,7 +151,7 @@ def _get_vex_loader(threat_model: Any) -> Optional[Any]:
 def _get_bom_loader(threat_model: Any) -> Optional[Any]:
     """Return a BOMLoader for the model's BOM directory, or None if unavailable.
 
-    Resolution order (mirrors ExportService._resolve_bom_directory):
+    Resolution order:
     1. ``threat_model.context_config['bom_directory']`` (DSL ## Context key)
     2. ``{model_parent}/BOM/`` auto-discovered from ``_model_file_path``
     """

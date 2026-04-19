@@ -15,6 +15,7 @@
 # # In threat_analysis/model_parser.py
 
 import re
+import json
 import logging
 from typing import List, Dict, Any, Callable, Optional, Tuple, Set
 from .models_module import ThreatModel, CustomThreat
@@ -405,11 +406,15 @@ class ModelParser:
         """Parses a custom MITRE mapping from a name and a parameter string."""
         logging.debug(f"Parsing custom MITRE mapping '{name}' with params: {params_str}")
         try:
-            # The params_str should be a string representation of a dictionary literal
-            mapping_dict = ast.literal_eval(params_str)
+            # DSL format: tactics=[...], techniques=[...]  (kwargs style, not a dict literal)
+            # Normalise to a JSON object: bare_key=value → "bare_key": value
+            s = params_str.strip()
+            if not s.startswith('{'):
+                s = '{' + re.sub(r'(\w+)=', r'"\1": ', s) + '}'
+            mapping_dict = json.loads(s)
             tactics = mapping_dict.get('tactics', [])
             techniques = mapping_dict.get('techniques', [])
             self.threat_model.add_custom_mitre_mapping(name, tactics, techniques)
             logging.debug("Custom MITRE mapping added: %s (tactics: %d, techniques: %d)", name, len(tactics), len(techniques))
-        except (SyntaxError, ValueError, AttributeError) as e: # Added AttributeError for safety
+        except (json.JSONDecodeError, AttributeError) as e:
             logging.error(f"Error evaluating custom MITRE mapping for '{name}': {e}")

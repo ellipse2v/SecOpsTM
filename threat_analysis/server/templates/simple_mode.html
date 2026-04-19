@@ -2035,17 +2035,41 @@
         }
 
         // Function to load markdown from a file
+        function openSingleModelFile(fileName, content) {
+            TabManager.editors.forEach((editorData, index) => {
+                if (editorData) {
+                    editorData.tabButton.remove();
+                    editorData.tabPane.remove();
+                    TabManager.editors[index] = null;
+                }
+            });
+            TabManager.editors = [];
+            TabManager.tabCount = 0;
+            TabManager.extraFiles = [];
+            TabManager.projectLoaded = false;
+            document.getElementById('tab-bar').replaceChildren();
+            document.getElementById('tab-content-area').replaceChildren();
+            const badgesEl = document.getElementById('project-load-badges');
+            if (badgesEl) badgesEl.textContent = '';
+            TabManager.addTab(fileName, content, false);
+            TabManager.switchTab(0);
+            document.getElementById('svg-wrapper').replaceChildren();
+            document.getElementById('legend-container').replaceChildren();
+            if (panZoomInstance) {
+                try { panZoomInstance.destroy(); } catch(err) { /* already destroyed */ }
+                panZoomInstance = null;
+            }
+            globalGraphMetadata = null;
+        }
+
         function loadMarkdownFile(event) {
             const file = event.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = (e) => {
-                const activeEditor = TabManager.getActiveEditor();
-                if (activeEditor) {
-                    activeEditor.setValue(e.target.result);
-                }
-            };
+            reader.onload = (e) => openSingleModelFile(file.name, e.target.result);
             reader.readAsText(file);
+            // Reset so the same file can be reloaded if needed
+            event.target.value = '';
         }
 
         // --- Drag and Drop functionality ---
@@ -2069,7 +2093,7 @@
             const file = e.dataTransfer.files[0];
             if (file && file.name.endsWith('.md')) {
                 const reader = new FileReader();
-                reader.onload = (event) => TabManager.getActiveEditor()?.setValue(event.target.result);
+                reader.onload = (event) => openSingleModelFile(file.name, event.target.result);
                 reader.readAsText(file);
             } else {
                 showErrorMessage('Only .md files are supported for drag and drop.');

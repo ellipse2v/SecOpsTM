@@ -201,22 +201,31 @@ def test_parse_severity_multiplier_with_comment(model_parser, threat_model):
         mock_warn.assert_called_once() # Should log a warning
 
 def test_parse_custom_mitre(model_parser, threat_model):
+    # DSL kwargs-style format (used in all templates)
     name = "Phishing"
-    params_str = "{'tactics':['Initial Access'], 'techniques':[{'id': 'T1566', 'name': 'Phishing'}]}"
+    params_str = 'tactics=["Initial Access"], techniques=[{"id": "T1566", "name": "Phishing"}]'
     model_parser._parse_custom_mitre(name, params_str)
     assert len(threat_model.custom_mitre_mappings) == 1
     mapping = threat_model.custom_mitre_mappings["Phishing"]
     assert mapping['tactics'] == ['Initial Access']
     assert mapping['techniques'] == [{'id': 'T1566', 'name': 'Phishing'}]
 
+def test_parse_custom_mitre_json_dict_format(model_parser, threat_model):
+    # Explicit JSON dict format also accepted
+    name = "Phishing"
+    params_str = '{"tactics": ["Initial Access"], "techniques": [{"id": "T1566", "name": "Phishing"}]}'
+    model_parser._parse_custom_mitre(name, params_str)
+    mapping = threat_model.custom_mitre_mappings["Phishing"]
+    assert mapping['tactics'] == ['Initial Access']
+
 def test_parse_custom_mitre_with_comment(model_parser, threat_model):
     """Tests that malformed params_str (like a comment line) passed directly to helper is warned and ignored."""
-    with patch('logging.error') as mock_error: # custom mitre logs errors on malformed input
+    with patch('logging.error') as mock_error:
         name = "CommentedMapping"
-        params_str = "# - **CommentedMapping**: {'tactics':['Initial Access'], 'techniques':[{'id': 'T1566', 'name': 'Phishing'}]}"
+        params_str = "# - **CommentedMapping**: not valid"
         model_parser._parse_custom_mitre(name, params_str)
-        assert not threat_model.custom_mitre_mappings # Should not add anything
-        mock_error.assert_called_once() # Should log an error
+        assert not threat_model.custom_mitre_mappings
+        mock_error.assert_called_once()
 
 def test_parse_key_value_params(model_parser):
     params_str = 'key1="value one", key2=True, key3=123, key4=#FF00FF, key5=unquoted_string'

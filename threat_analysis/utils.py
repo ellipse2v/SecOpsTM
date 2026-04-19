@@ -153,7 +153,6 @@ def resolve_gdaf_context(threat_model) -> Optional[str]:
     Priority order:
     1. `gdaf_context` key in the model's ## Context DSL section
     2. `{model_parent}/context/` directory (first .yaml/.yml found)
-    3. `config/context.yaml` (project default fallback)
     
     Returns the resolved path as a string, or None if no context file is found.
     """
@@ -185,10 +184,6 @@ def resolve_gdaf_context(threat_model) -> Optional[str]:
                 logging.info("GDAF: using context from model context/ dir: %s", yaml_files[0])
                 return str(yaml_files[0])
     
-    # Fallback: project default
-    fallback = Path("config/context.yaml")
-    if fallback.exists():
-        return str(fallback)
     return None
 
 
