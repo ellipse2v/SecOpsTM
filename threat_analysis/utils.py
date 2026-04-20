@@ -200,11 +200,11 @@ def resolve_bom_directory(threat_model) -> Optional[str]:
         if model_path:
             p = Path(model_path).parent / dsl_path
             if p.exists():
-                logging.info("BOM: using directory from DSL ## Context: %s", p)
+                logging.info("BOM: using context from DSL ## Context: %s", p)
                 return str(p)
         p = Path(dsl_path)
         if p.exists():
-            logging.info("BOM: using directory from DSL ## Context: %s", p)
+            logging.info("BOM: using context from DSL ## Context: %s", p)
             return str(p)
         logging.warning("BOM: bom_directory '%s' declared in ## Context but not found", dsl_path)
     
@@ -216,3 +216,53 @@ def resolve_bom_directory(threat_model) -> Optional[str]:
             logging.info("BOM: auto-discovered %s (%d asset file(s))", bom_dir, n_files)
             return str(bom_dir)
     return None
+
+
+def run_gdaf_engine(threat_model, export_path=None):
+    """Run GDAF engine on a threat model and attach scenarios.
+    
+    This is a common function used by:
+    - SecOpsTMFramework.generate_reports() (CLI --model-file mode)
+    - ExportService.export_single_file_logic() (Server mode)
+    - ReportGenerator.generate_project_reports() (Project mode)
+    
+    Args:
+        threat_model: ThreatModel instance
+        export_path: Optional path to save Attack Flow files (Path or str)
+    
+    Returns:
+        List of AttackScenario objects, or empty list if none generated
+    """
+    import logging
+    try:
+        from threat_analysis.core.gdaf_engine import GDAFEngine
+        from threat_analysis.generation.attack_flow_builder import AttackFlowBuilder
+        
+        _context_path = resolve_gdaf_context(threat_model)
+        if not _context_path:
+            logging.debug("GDAF: no context file found, skipping.")
+            return []
+        
+        _bom_dir = resolve_bom_directory(threat_model)
+        _extra = getattr(threat_model, "sub_models", [])
+        
+        _gdaf = GDAFEngine(threat_model, _context_path, extra_models=_extra, bom_directory=_bom_dir)
+        _scenarios = _gdaf.run()
+        
+        if _scenarios:
+            threat_model.gdaf_scenarios = _scenarios
+            
+            # Generate Attack Flow files if export_path provided
+            if export_path:
+                _builder = AttackFlowBuilder(_scenarios, model_name=str(threat_model.tm.name))
+                _builder.generate_and_save(str(export_path))
+            
+            logging.info("GDAF: generated %d attack scenarios", len(_scenarios))
+        else:
+            logging.info("GDAF: no scenarios produced (check context attack_objectives/threat_actors)")
+        
+        return _scenarios
+    
+    except Exception as e:
+        logging.warning("GDAF generation skipped (non-fatal): %s", e)
+        return []

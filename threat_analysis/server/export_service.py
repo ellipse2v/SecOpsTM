@@ -223,20 +223,10 @@ class ExportService:
             # GDAF: Goal-Driven Attack Flow (objective-based, requires context with attack_objectives)
             # Run BEFORE the HTML report so that gdaf_scenarios are available in the report.
             try:
-                from threat_analysis.core.gdaf_engine import GDAFEngine
-                from threat_analysis.generation.attack_flow_builder import AttackFlowBuilder
-                _context_path = resolve_gdaf_context(threat_model)
-                if _context_path:
-                    _bom_dir = resolve_bom_directory(threat_model)
-                    _gdaf = GDAFEngine(threat_model, _context_path, bom_directory=_bom_dir)
-                    _scenarios = _gdaf.run()
-                    if _scenarios:
-                        threat_model.gdaf_scenarios = _scenarios
-                        _builder = AttackFlowBuilder(_scenarios, model_name=str(threat_model.tm.name))
-                        _builder.generate_and_save(str(export_path))
-                        logging.info("GDAF: generated %d attack scenarios in %s/gdaf", len(_scenarios), export_path)
-                    else:
-                        logging.info("GDAF: no scenarios produced (check context attack_objectives/threat_actors)")
+                from threat_analysis.utils import run_gdaf_engine
+                _scenarios = run_gdaf_engine(threat_model, export_path=export_path)
+                if _scenarios:
+                    logging.info("GDAF: generated %d attack scenarios in %s/gdaf", len(_scenarios), export_path)
             except Exception as e:
                 logging.warning("GDAF generation skipped (non-fatal): %s", e)
 

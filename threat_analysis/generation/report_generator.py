@@ -1636,25 +1636,14 @@ class ReportGenerator:
 
             # GDAF: Goal-Driven Attack Flow (run BEFORE global report so scenarios are available)
             try:
-                from threat_analysis.core.gdaf_engine import GDAFEngine
-                from threat_analysis.generation.attack_flow_builder import AttackFlowBuilder
-                _context_path = resolve_gdaf_context(main_threat_model)
-                if _context_path:
-                    if progress_callback: progress_callback(94, "Running GDAF cross-model analysis...")
-                    _extra = getattr(main_threat_model, "sub_models", [])
-                    _bom_dir = resolve_bom_directory(main_threat_model)
-                    _gdaf = GDAFEngine(main_threat_model, _context_path, extra_models=_extra, bom_directory=_bom_dir)
-                    _scenarios = _gdaf.run()
-                    if _scenarios:
-                        main_threat_model.gdaf_scenarios = _scenarios
-                        _builder = AttackFlowBuilder(_scenarios, model_name=str(main_threat_model.tm.name))
-                        _builder.generate_and_save(str(output_dir))
-                        logging.info(
-                            "GDAF (project): %d scenarios from %d model(s) in %s/gdaf",
-                            len(_scenarios), 1 + len(_extra), output_dir,
-                        )
-                    else:
-                        logging.info("GDAF (project): no scenarios produced")
+                if progress_callback: progress_callback(94, "Running GDAF cross-model analysis...")
+                from threat_analysis.utils import run_gdaf_engine
+                _scenarios = run_gdaf_engine(main_threat_model, export_path=output_dir)
+                if _scenarios:
+                    logging.info(
+                        "GDAF (project): %d scenarios from %d model(s) in %s/gdaf",
+                        len(_scenarios), 1 + len(getattr(main_threat_model, "sub_models", [])), output_dir,
+                    )
             except Exception as _gdaf_exc:
                 logging.warning("GDAF (project) generation skipped (non-fatal): %s", _gdaf_exc)
 

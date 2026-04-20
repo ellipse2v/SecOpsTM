@@ -201,6 +201,10 @@ class SecOpsTMFramework:
 
         logging.info("📊 Generating reports...")
 
+        # Run GDAF engine before HTML report generation
+        from threat_analysis.utils import run_gdaf_engine
+        run_gdaf_engine(self.threat_model, export_path=Path(self.output_base_dir))
+
         html_output_full_path = os.path.join(
             self.output_base_dir, self.html_report_filename
         )
@@ -215,7 +219,6 @@ class SecOpsTMFramework:
             self.threat_model, self.grouped_threats, Path(json_output_full_path)
         )
         logging.info("✅ Reports generated.")
-        return {"html": str(html_report_path), "json": str(json_report_path)}
         return {"html": str(html_report_path), "json": str(json_report_path)}
 
     def generate_stix_report(self) -> Optional[str]:
