@@ -218,7 +218,7 @@ def resolve_bom_directory(threat_model) -> Optional[str]:
     return None
 
 
-def run_gdaf_engine(threat_model, export_path=None):
+def run_gdaf_engine(threat_model, export_path=None, progress_callback=None):
     """Run GDAF engine on a threat model and attach scenarios.
     
     This is a common function used by:
@@ -229,6 +229,8 @@ def run_gdaf_engine(threat_model, export_path=None):
     Args:
         threat_model: ThreatModel instance
         export_path: Optional path to save Attack Flow files (Path or str)
+        progress_callback: Optional callback function(progress_percent, message) 
+                          called after confirming context file exists
     
     Returns:
         List of AttackScenario objects, or empty list if none generated
@@ -242,6 +244,9 @@ def run_gdaf_engine(threat_model, export_path=None):
         if not _context_path:
             logging.debug("GDAF: no context file found, skipping.")
             return []
+        
+        if progress_callback:
+            progress_callback(94, "Running GDAF cross-model analysis...")
         
         _bom_dir = resolve_bom_directory(threat_model)
         _extra = getattr(threat_model, "sub_models", [])

@@ -1636,9 +1636,8 @@ class ReportGenerator:
 
             # GDAF: Goal-Driven Attack Flow (run BEFORE global report so scenarios are available)
             try:
-                if progress_callback: progress_callback(94, "Running GDAF cross-model analysis...")
                 from threat_analysis.utils import run_gdaf_engine
-                _scenarios = run_gdaf_engine(main_threat_model, export_path=output_dir)
+                _scenarios = run_gdaf_engine(main_threat_model, export_path=output_dir, progress_callback=progress_callback)
                 if _scenarios:
                     logging.info(
                         "GDAF (project): %d scenarios from %d model(s) in %s/gdaf",
