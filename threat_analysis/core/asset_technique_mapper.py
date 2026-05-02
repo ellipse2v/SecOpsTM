@@ -27,115 +27,16 @@ For a given asset, returns a ranked list of ScoredTechnique dicts based on:
 
 import json
 import logging
+import yaml
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
-# Map from DSL asset type string → MITRE platform tags
-ASSET_TYPE_TO_PLATFORMS = {
-    "firewall": ["Network Devices"],
-    "domain-controller": ["Windows"],
-    "auth-server": ["Windows", "Linux"],
-    "database": ["Windows", "Linux"],
-    "web-server": ["Windows", "Linux"],
-    "api-gateway": ["Windows", "Linux"],
-    "file-server": ["Windows", "Linux"],
-    "mail-server": ["Windows", "Linux", "Office Suite"],
-    "management-server": ["Windows", "Linux"],
-    "workstation": ["Windows"],
-    "load-balancer": ["Network Devices", "Linux"],
-    "vpn": ["Network Devices"],
-    "vpn-gateway": ["Network Devices"],
-    "plc": ["Linux"],  # HMI/SCADA Windows, PLC Linux/embedded
-    "scada": ["Windows", "Linux"],
-    "repository": ["Linux"],
-    "cicd": ["Linux"],
-    "backup": ["Linux", "Windows"],
-    "dns": ["Windows", "Linux"],
-    "pki": ["Windows"],
-    "siem": ["Linux"],
-    "default": ["Windows", "Linux"],
-}
-
-# Map from DSL asset type → primary tactics for that asset (ordered by likelihood)
-ASSET_TYPE_TO_TACTICS = {
-    "firewall": ["initial-access", "defense-evasion", "lateral-movement"],
-    "domain-controller": ["credential-access", "privilege-escalation", "persistence", "lateral-movement"],
-    "auth-server": ["credential-access", "privilege-escalation", "initial-access"],
-    "database": ["credential-access", "collection", "exfiltration"],
-    "web-server": ["initial-access", "execution", "persistence"],
-    "api-gateway": ["initial-access", "execution"],
-    "file-server": ["collection", "lateral-movement", "exfiltration"],
-    "mail-server": ["initial-access", "collection"],
-    "management-server": ["lateral-movement", "privilege-escalation", "execution"],
-    "workstation": ["execution", "persistence", "privilege-escalation", "credential-access"],
-    "load-balancer": ["initial-access", "defense-evasion"],
-    "vpn": ["initial-access", "credential-access"],
-    "vpn-gateway": ["initial-access", "credential-access"],
-    "plc": ["impact", "execution"],
-    "scada": ["initial-access", "execution", "impact"],
-    "repository": ["collection", "exfiltration"],
-    "cicd": ["execution", "persistence", "lateral-movement"],
-    "backup": ["collection", "exfiltration", "impact"],
-    "dns": ["defense-evasion", "lateral-movement", "command-and-control"],
-    "pki": ["credential-access", "privilege-escalation"],
-    "siem": ["defense-evasion", "collection"],
-    "default": ["initial-access", "execution", "lateral-movement"],
-}
-
-# High-value techniques to always consider for specific asset types (boosted score)
-ASSET_TYPE_KEY_TECHNIQUES = {
-    "domain-controller": ["T1550.002", "T1558.003", "T1003.006", "T1558.001", "T1003.001", "T1207"],
-    "auth-server": ["T1110", "T1212", "T1528", "T1550"],
-    "database": ["T1190", "T1078", "T1048", "T1030"],
-    "workstation": ["T1566.001", "T1059.001", "T1059.003", "T1204.002", "T1003.001", "T1055"],
-    "file-server": ["T1021.002", "T1039", "T1083", "T1135"],
-    "mail-server": ["T1566", "T1114", "T1071.003"],
-    "vpn-gateway": ["T1078", "T1133", "T1110"],
-    "firewall": ["T1190", "T1600", "T1599"],
-    "plc": ["T1565.001", "T1498", "T1489"],
-    "scada": ["T1021.001", "T1133", "T1078"],
-    "cicd": ["T1195.002", "T1059", "T1525"],
-    "management-server": ["T1021.001", "T1078", "T1570"],
-}
-
-# Map from lowercase protocol → tactiques MITRE qui s'y appliquent directement
-PROTOCOL_TO_TACTIC_BOOST = {
-    "ssh":      {"initial-access", "lateral-movement"},
-    "rdp":      {"initial-access", "lateral-movement"},
-    "smb":      {"lateral-movement", "credential-access"},
-    "ldap":     {"credential-access", "discovery"},
-    "kerberos": {"credential-access"},
-    "http":     {"initial-access"},
-    "https":    {"initial-access"},
-    "sql":      {"credential-access", "collection", "exfiltration"},
-    "winrm":    {"lateral-movement", "execution"},
-    "rpc":      {"lateral-movement"},
-    "ftp":      {"exfiltration"},
-    "smtp":     {"initial-access", "collection"},
-    "modbus":   {"execution", "impact"},
-    "ipsec":    {"initial-access"},
-    "dns":      {"command-and-control", "defense-evasion"},
-    "sap":      {"credential-access", "collection"},
-    "syslog":   {"collection", "defense-evasion"},
-}
-
-# Protocol → specific high-value technique IDs (always boosted when service exposed)
-PROTOCOL_KEY_TECHNIQUES = {
-    "ssh":      ["T1021.004", "T1098.004"],
-    "rdp":      ["T1021.001", "T1078"],
-    "smb":      ["T1021.002", "T1570", "T1039"],
-    "ldap":     ["T1069.002", "T1087.002"],
-    "kerberos": ["T1558.003", "T1558.001"],
-    "winrm":    ["T1021.006"],
-    "sql":      ["T1190", "T1078", "T1048"],
-    "modbus":   ["T1565.001", "T1498"],
-    "ftp":      ["T1048.003"],
-    "smtp":     ["T1566", "T1114"],
-    "dns":      ["T1071.004", "T1568"],
-}
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+_ASSET_TYPES_PATH = _PROJECT_ROOT / "config" / "asset_types_community.yaml"
+_PROTOCOLS_PATH = _PROJECT_ROOT / "config" / "protocols_community.yaml"
 
 
 @dataclass
@@ -152,6 +53,8 @@ class AssetTechniqueMapper:
     """Maps asset characteristics to relevant MITRE ATT&CK techniques."""
 
     _raw_techniques: Optional[List[Dict]] = None  # class-level cache
+    _asset_types: Optional[Dict] = None
+    _protocols: Optional[Dict] = None
 
     @classmethod
     def _load_raw(cls) -> List[Dict]:
@@ -172,6 +75,34 @@ class AssetTechniqueMapper:
             logger.error("AssetTechniqueMapper: cannot load enterprise-attack.json: %s", exc)
             cls._raw_techniques = []
         return cls._raw_techniques
+
+    @classmethod
+    def _load_asset_types(cls) -> Dict:
+        if cls._asset_types is not None:
+            return cls._asset_types
+        try:
+            with open(_ASSET_TYPES_PATH, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f) or {}
+            cls._asset_types = data.get("asset_types", {})
+            logger.info("AssetTechniqueMapper: loaded %d asset types", len(cls._asset_types))
+        except Exception as exc:
+            logger.error("Cannot load asset_types_community.yaml: %s", exc)
+            cls._asset_types = {}
+        return cls._asset_types
+
+    @classmethod
+    def _load_protocols(cls) -> Dict:
+        if cls._protocols is not None:
+            return cls._protocols
+        try:
+            with open(_PROTOCOLS_PATH, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f) or {}
+            cls._protocols = data.get("protocols", {})
+            logger.info("AssetTechniqueMapper: loaded %d protocols", len(cls._protocols))
+        except Exception as exc:
+            logger.error("Cannot load protocols_community.yaml: %s", exc)
+            cls._protocols = {}
+        return cls._protocols
 
     def get_techniques(
         self,
@@ -198,9 +129,11 @@ class AssetTechniqueMapper:
 
         # Resolve asset type to platforms and primary tactics
         resolved_type = self._normalize_type(asset_type)
-        platforms = set(ASSET_TYPE_TO_PLATFORMS.get(resolved_type, ASSET_TYPE_TO_PLATFORMS["default"]))
-        primary_tactics = ASSET_TYPE_TO_TACTICS.get(resolved_type, ASSET_TYPE_TO_TACTICS["default"])
-        key_techniques = set(ASSET_TYPE_KEY_TECHNIQUES.get(resolved_type, []))
+        asset_types = self._load_asset_types()
+        entry = asset_types.get(resolved_type, asset_types.get("default", {}))
+        platforms = set(entry.get("platforms", ["Windows", "Linux"]))
+        primary_tactics = entry.get("tactics", ["initial-access", "execution", "lateral-movement"])
+        key_techniques = set(entry.get("key_techniques", []))
 
         # Determine which tactics are relevant for this hop position
         hop_tactic_boost = {
@@ -219,6 +152,11 @@ class AssetTechniqueMapper:
         known_ttp_set = set(actor_known_ttps) if actor_known_ttps else set()
 
         scored: List[ScoredTechnique] = []
+
+        if services:
+            protocols = self._load_protocols()
+        else:
+            protocols = {}
 
         for tech in raw:
             tech_platforms = set(tech.get("x_mitre_platforms", []))
@@ -286,12 +224,13 @@ class AssetTechniqueMapper:
             # Service-specific boosts (protocols exposed by this asset)
             if services:
                 for svc in services:
-                    tactic_boost = PROTOCOL_TO_TACTIC_BOOST.get(svc, set())
+                    proto_entry = protocols.get(svc, {})
+                    tactic_boost = set(proto_entry.get("tactic_boost", []))
                     if tech_tactics.intersection(tactic_boost):
                         score += 0.35
                         reasons.append(f"service:{svc}")
                         break  # count each technique once for service match
-                    proto_key_techs = set(PROTOCOL_KEY_TECHNIQUES.get(svc, []))
+                    proto_key_techs = set(proto_entry.get("key_techniques", []))
                     if tech_id in proto_key_techs:
                         score += 0.5
                         reasons.append(f"key-tech:{svc}")
@@ -323,47 +262,13 @@ class AssetTechniqueMapper:
         if not asset_type:
             return "default"
         t = str(asset_type).lower().strip()
-        # Handle common variations
-        if "domain" in t or "dc" in t:
-            return "domain-controller"
-        if "database" in t or "db" in t or "sql" in t:
-            return "database"
-        if "web" in t and "server" in t:
-            return "web-server"
-        if "mail" in t:
-            return "mail-server"
-        if "vpn" in t:
-            return "vpn-gateway"
-        if "firewall" in t or "fw" in t:
-            return "firewall"
-        if t == "plc" or t.startswith("plc-") or t.endswith("-plc"):
-            return "plc"
-        if "scada" in t or "hmi" in t:
-            return "scada"
-        if "controller" in t:  # generic controller after scada/plc specifics
-            return "plc"
-        if "workstation" in t or "laptop" in t or "desktop" in t:
-            return "workstation"
-        if "file" in t:
-            return "file-server"
-        # pki/certificate must come before "auth" because "certificate-authority" contains "auth"
-        if "pki" in t or t == "ca" or "certificate" in t:
-            return "pki"
-        if "auth" in t:
-            return "auth-server"
-        if "cicd" in t or "ci_cd" in t or "pipeline" in t or "jenkins" in t:
-            return "cicd"
-        if "repository" in t or "git" in t:
-            return "repository"
-        if "backup" in t:
-            return "backup"
-        if "siem" in t or "log" in t:
-            return "siem"
-        if "jump" in t or "bastion" in t or "paw" in t:
-            return "management-server"
-        if "dns" in t:
-            return "dns"
-        # Return as-is if in our known table, else default
-        if t in ASSET_TYPE_TO_PLATFORMS:
+        asset_types = self._load_asset_types()
+        # Exact key match takes priority
+        if t in asset_types:
             return t
+        # Fuzzy substring matching — YAML declaration order determines priority
+        for type_key, entry in asset_types.items():
+            for pattern in entry.get("fuzzy_matches", []):
+                if pattern and pattern in t:
+                    return type_key
         return "default"

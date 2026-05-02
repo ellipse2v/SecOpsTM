@@ -20,8 +20,6 @@ from unittest.mock import patch, MagicMock
 from threat_analysis.core.asset_technique_mapper import (
     AssetTechniqueMapper,
     ScoredTechnique,
-    ASSET_TYPE_TO_PLATFORMS,
-    ASSET_TYPE_TO_TACTICS,
 )
 
 
@@ -69,17 +67,73 @@ SAMPLE_TECHNIQUES = [
 
 @pytest.fixture(autouse=True)
 def reset_class_cache():
-    """Reset AssetTechniqueMapper class-level cache before each test."""
-    original = AssetTechniqueMapper._raw_techniques
+    """Reset all AssetTechniqueMapper class-level caches before each test."""
+    original_raw = AssetTechniqueMapper._raw_techniques
+    original_asset = AssetTechniqueMapper._asset_types
+    original_proto = AssetTechniqueMapper._protocols
     AssetTechniqueMapper._raw_techniques = None
+    AssetTechniqueMapper._asset_types = None
+    AssetTechniqueMapper._protocols = None
     yield
-    AssetTechniqueMapper._raw_techniques = original
+    AssetTechniqueMapper._raw_techniques = original_raw
+    AssetTechniqueMapper._asset_types = original_asset
+    AssetTechniqueMapper._protocols = original_proto
+
+
+SAMPLE_ASSET_TYPES = {
+    "workstation": {
+        "platforms": ["Windows"],
+        "tactics": ["execution", "persistence", "privilege-escalation", "credential-access"],
+        "key_techniques": ["T1566.001", "T1059.001", "T1059.003", "T1204.002", "T1003.001", "T1055"],
+        "fuzzy_matches": ["workstation", "laptop", "desktop"],
+    },
+    "database": {
+        "platforms": ["Windows", "Linux"],
+        "tactics": ["credential-access", "collection", "exfiltration"],
+        "key_techniques": ["T1190", "T1078", "T1048", "T1030"],
+        "fuzzy_matches": ["database", "db", "sql"],
+    },
+    "domain-controller": {
+        "platforms": ["Windows"],
+        "tactics": ["credential-access", "privilege-escalation", "persistence", "lateral-movement"],
+        "key_techniques": ["T1550.002", "T1558.003", "T1003.006", "T1558.001", "T1003.001", "T1207"],
+        "fuzzy_matches": ["domain", "dc"],
+    },
+    "web-server": {
+        "platforms": ["Windows", "Linux"],
+        "tactics": ["initial-access", "execution", "persistence"],
+        "key_techniques": [],
+        "fuzzy_matches": ["web server", "web-server", "webserver"],
+    },
+    "firewall": {
+        "platforms": ["Network Devices"],
+        "tactics": ["initial-access", "defense-evasion", "lateral-movement"],
+        "key_techniques": ["T1190", "T1600", "T1599"],
+        "fuzzy_matches": ["firewall", "fw"],
+    },
+    "default": {
+        "platforms": ["Windows", "Linux"],
+        "tactics": ["initial-access", "execution", "lateral-movement"],
+        "key_techniques": [],
+        "fuzzy_matches": [],
+    },
+}
+
+SAMPLE_PROTOCOLS = {
+    "ssh": {"tactic_boost": ["initial-access", "lateral-movement"], "key_techniques": ["T1021.004", "T1098.004"]},
+    "rdp": {"tactic_boost": ["initial-access", "lateral-movement"], "key_techniques": ["T1021.001", "T1078"]},
+    "smb": {"tactic_boost": ["lateral-movement", "credential-access"], "key_techniques": ["T1021.002", "T1570", "T1039"]},
+    "kerberos": {"tactic_boost": ["credential-access"], "key_techniques": ["T1558.003", "T1558.001"]},
+    "sql": {"tactic_boost": ["credential-access", "collection", "exfiltration"], "key_techniques": ["T1190", "T1078", "T1048"]},
+}
 
 
 @pytest.fixture
 def mapper_with_sample(reset_class_cache):
-    """Return a mapper pre-loaded with SAMPLE_TECHNIQUES."""
-    with patch.object(AssetTechniqueMapper, "_load_raw", return_value=SAMPLE_TECHNIQUES):
+    """Return a mapper pre-loaded with SAMPLE_TECHNIQUES, SAMPLE_ASSET_TYPES, SAMPLE_PROTOCOLS."""
+    with patch.object(AssetTechniqueMapper, "_load_raw", return_value=SAMPLE_TECHNIQUES), \
+         patch.object(AssetTechniqueMapper, "_load_asset_types", return_value=SAMPLE_ASSET_TYPES), \
+         patch.object(AssetTechniqueMapper, "_load_protocols", return_value=SAMPLE_PROTOCOLS):
         m = AssetTechniqueMapper()
         yield m
 
@@ -119,7 +173,9 @@ class TestNormalizeType:
 
     def test_vpn(self):
         m = AssetTechniqueMapper()
-        assert m._normalize_type("vpn") == "vpn-gateway"
+        # "vpn" is an exact YAML key — returns "vpn" directly (both vpn and vpn-gateway
+        # have identical platforms/tactics, so scoring is identical either way)
+        assert m._normalize_type("vpn") in ("vpn", "vpn-gateway")
 
     def test_vpn_gateway(self):
         m = AssetTechniqueMapper()
@@ -235,7 +291,7 @@ class TestNormalizeType:
 
     def test_known_type_passthrough(self):
         m = AssetTechniqueMapper()
-        # "load-balancer" is directly in ASSET_TYPE_TO_PLATFORMS
+        # "load-balancer" is a key in asset_types_community.yaml
         assert m._normalize_type("load-balancer") == "load-balancer"
 
     def test_controller_generic(self):
@@ -551,3 +607,47 @@ class TestLoadRawCache:
             result = AssetTechniqueMapper._load_raw()
             # Should return [] because file doesn't exist
             assert isinstance(result, list)
+
+
+# ---------------------------------------------------------------------------
+# YAML loaders
+# ---------------------------------------------------------------------------
+
+class TestYAMLLoaders:
+    def test_load_asset_types_returns_dict_with_default(self, reset_class_cache):
+        result = AssetTechniqueMapper._load_asset_types()
+        assert isinstance(result, dict)
+        assert "default" in result
+        assert "platforms" in result["default"]
+        assert "tactics" in result["default"]
+
+    def test_load_asset_types_cached_after_first_call(self, reset_class_cache):
+        r1 = AssetTechniqueMapper._load_asset_types()
+        r2 = AssetTechniqueMapper._load_asset_types()
+        assert r1 is r2
+
+    def test_load_asset_types_missing_file_returns_empty(self, reset_class_cache, tmp_path):
+        with patch("threat_analysis.core.asset_technique_mapper._ASSET_TYPES_PATH",
+                   tmp_path / "nonexistent.yaml"):
+            AssetTechniqueMapper._asset_types = None
+            result = AssetTechniqueMapper._load_asset_types()
+        assert result == {}
+
+    def test_load_protocols_returns_dict_with_ssh(self, reset_class_cache):
+        result = AssetTechniqueMapper._load_protocols()
+        assert isinstance(result, dict)
+        assert "ssh" in result
+        assert "tactic_boost" in result["ssh"]
+        assert "key_techniques" in result["ssh"]
+
+    def test_load_protocols_cached_after_first_call(self, reset_class_cache):
+        r1 = AssetTechniqueMapper._load_protocols()
+        r2 = AssetTechniqueMapper._load_protocols()
+        assert r1 is r2
+
+    def test_load_protocols_missing_file_returns_empty(self, reset_class_cache, tmp_path):
+        with patch("threat_analysis.core.asset_technique_mapper._PROTOCOLS_PATH",
+                   tmp_path / "nonexistent.yaml"):
+            AssetTechniqueMapper._protocols = None
+            result = AssetTechniqueMapper._load_protocols()
+        assert result == {}

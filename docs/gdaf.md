@@ -245,7 +245,7 @@ cia_score = min((c×3 + i×2 + a) / 18.0, 1.0)   # maximum = 1.0
 
 ## Asset Types
 
-The following `type` values are recognized in `ASSET_TYPE_TO_PLATFORMS`. When a server's `type=` in the DSL does not exactly match, `_normalize_type()` applies fuzzy matching (e.g., `"web_server"` → `"web-server"`, `"domain_controller"` → `"domain-controller"`).
+The following `type` values are recognized in `config/asset_types_community.yaml`. When a server's `type=` in the DSL does not exactly match, `_normalize_type()` applies fuzzy matching (e.g., `"web_server"` → `"web-server"`, `"domain_controller"` → `"domain-controller"`).
 
 | Asset type | MITRE platforms | Primary tactics |
 |---|---|---|
@@ -578,7 +578,7 @@ GDAF automatically collects all protocols that appear on dataflows connected to 
 - **Tactic boost** — if the protocol maps to one or more MITRE tactics (e.g., `smb` → `lateral-movement`, `credential-access`), any technique in those tactics gets +0.35
 - **Key-technique boost** — specific high-value techniques associated with the protocol (e.g., `rdp` → `T1021.001`, `T1078`) get +0.5
 
-The `PROTOCOL_TO_TACTIC_BOOST` and `PROTOCOL_KEY_TECHNIQUES` maps in `asset_technique_mapper.py` define these relationships. Protocols from the BOM `running_services` field are merged into the same `services` set.
+The `tactic_boost` and `key_techniques` fields in `config/protocols_community.yaml` define these relationships. Protocols from the BOM `running_services` field are merged into the same `services` set.
 
 ### `bidirectional` dataflows
 
