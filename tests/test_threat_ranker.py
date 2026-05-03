@@ -301,3 +301,45 @@ class TestEdgeCases:
         assert len(result) == 10
         scores = [t["_ranking_score"] for t in result]
         assert scores == sorted(scores, reverse=True)
+
+# ---------------------------------------------------------------------------
+# Tests — ranking weights from ai_config.yaml
+# ---------------------------------------------------------------------------
+
+from unittest.mock import patch
+import threat_analysis.core.threat_ranker as ranker_mod
+from threat_analysis.core.threat_ranker import _load_ranking_weights
+
+
+@pytest.fixture(autouse=True)
+def reset_ranker_weights_cache():
+    ranker_mod._ranking_weights_cache = None
+    yield
+    ranker_mod._ranking_weights_cache = None
+
+
+class TestRankingWeightsFromConfig:
+    def test_load_ranking_weights_returns_dict(self):
+        weights = _load_ranking_weights()
+        assert "severity" in weights
+        assert "confidence" in weights
+        assert "risk_signals" in weights
+
+    def test_weights_from_config_override_defaults(self):
+        with patch("threat_analysis.core.threat_ranker._load_ranking_weights",
+                   return_value={"severity": 0.1, "confidence": 0.1, "risk_signals": 0.8}):
+            high = {"target": "A", "stride_category": "Spoofing",
+                    "severity": {"score": 5.0}, "confidence": 0.5,
+                    "risk_signals": {"cve_match": True, "cwe_high_risk": True, "network_exposed": True}}
+            low  = {"target": "B", "stride_category": "Spoofing",
+                    "severity": {"score": 10.0}, "confidence": 0.9,
+                    "risk_signals": {}}
+            # With risk_signals weight = 0.8, 'high' should rank above 'low'
+            result = rank([high, low])
+        assert result[0]["target"] == "A"
+
+    def test_missing_config_falls_back_to_defaults(self):
+        with patch("threat_analysis.core.threat_ranker._load_ranking_weights",
+                   return_value={"severity": 0.4, "confidence": 0.3, "risk_signals": 0.3}):
+            weights = ranker_mod._load_ranking_weights()
+        assert weights["severity"] == 0.4

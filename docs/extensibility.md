@@ -1,5 +1,13 @@
 # Extensibility & Customization
 
+## Configuration Files
+
+- **[Customizing Scoring](customizing_scoring.md)** — tune STRIDE base scores,
+  severity thresholds, VOC deltas, Jaccard dedup threshold, and technique mapper
+  boosts via `config/scoring_config.yaml`.
+- **[Customizing Prompts](customizing_prompts.md)** — edit the LLM prompt templates
+  used for STRIDE generation, Attack Flow, and RAG queries via `config/prompts.yaml`.
+
 ## Model Capabilities
 
 -   **STRIDE Threat Detection**: Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege.

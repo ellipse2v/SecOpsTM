@@ -24,9 +24,40 @@ Offline-safe: no HTTP calls, no NLP dependencies.
 
 import re
 import logging
-from typing import Dict, List, Set
+from pathlib import Path
+from typing import Dict, List, Optional, Set
+
+try:
+    import yaml as _yaml
+except ImportError:
+    _yaml = None  # type: ignore[assignment]
 
 logger = logging.getLogger(__name__)
+
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+_SCORING_CONFIG_PATH = _PROJECT_ROOT / "config" / "scoring_config.yaml"
+
+_scoring_config: Optional[Dict] = None
+
+
+def _load_scoring_config() -> Dict:
+    global _scoring_config
+    if _scoring_config is not None:
+        return _scoring_config
+    if _yaml is None:
+        _scoring_config = {}
+        return _scoring_config
+    try:
+        with open(_SCORING_CONFIG_PATH, "r", encoding="utf-8") as f:
+            _scoring_config = _yaml.safe_load(f) or {}
+    except Exception as exc:
+        logger.warning("Cannot load scoring_config.yaml: %s — using defaults", exc)
+        _scoring_config = {}
+    return _scoring_config
+
+
+def _get_jaccard_threshold() -> float:
+    return float(_load_scoring_config().get("deduplication", {}).get("jaccard_threshold", 0.3))
 
 # Variant spellings found in the wild → canonical form
 _STRIDE_ALIASES: Dict[str, str] = {
@@ -67,7 +98,7 @@ def _jaccard(t1: str, t2: str) -> float:
 
 def _descriptions_similar(d1: str, d2: str) -> bool:
     """Return True when d1 and d2 are semantically close enough to be duplicates."""
-    if _jaccard(d1, d2) >= 0.3:
+    if _jaccard(d1, d2) >= _get_jaccard_threshold():
         return True
     d1l, d2l = d1.lower(), d2.lower()
     return d1l in d2l or d2l in d1l

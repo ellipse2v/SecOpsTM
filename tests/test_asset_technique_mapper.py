@@ -71,13 +71,16 @@ def reset_class_cache():
     original_raw = AssetTechniqueMapper._raw_techniques
     original_asset = AssetTechniqueMapper._asset_types
     original_proto = AssetTechniqueMapper._protocols
+    original_scoring = AssetTechniqueMapper._scoring_config
     AssetTechniqueMapper._raw_techniques = None
     AssetTechniqueMapper._asset_types = None
     AssetTechniqueMapper._protocols = None
+    AssetTechniqueMapper._scoring_config = None
     yield
     AssetTechniqueMapper._raw_techniques = original_raw
     AssetTechniqueMapper._asset_types = original_asset
     AssetTechniqueMapper._protocols = original_proto
+    AssetTechniqueMapper._scoring_config = original_scoring
 
 
 SAMPLE_ASSET_TYPES = {
@@ -651,3 +654,80 @@ class TestYAMLLoaders:
             AssetTechniqueMapper._protocols = None
             result = AssetTechniqueMapper._load_protocols()
         assert result == {}
+
+
+# ---------------------------------------------------------------------------
+# Tests — configurable boosts and minimum_score
+# ---------------------------------------------------------------------------
+
+import threat_analysis.core.asset_technique_mapper as mapper_mod
+
+
+class TestScoringConfigBoosts:
+    """AssetTechniqueMapper reads boosts and minimum_score from scoring_config.yaml."""
+
+    def setup_method(self):
+        mapper_mod.AssetTechniqueMapper._raw_techniques = None
+        mapper_mod.AssetTechniqueMapper._asset_types = None
+        mapper_mod.AssetTechniqueMapper._protocols = None
+        mapper_mod.AssetTechniqueMapper._scoring_config = None
+
+    def teardown_method(self):
+        mapper_mod.AssetTechniqueMapper._raw_techniques = None
+        mapper_mod.AssetTechniqueMapper._asset_types = None
+        mapper_mod.AssetTechniqueMapper._protocols = None
+        mapper_mod.AssetTechniqueMapper._scoring_config = None
+
+    def test_load_scoring_config_returns_dict(self):
+        cfg = mapper_mod.AssetTechniqueMapper._load_scoring_config()
+        assert isinstance(cfg, dict)
+
+    def test_get_boosts_returns_dict_with_platform_match(self):
+        boosts = mapper_mod.AssetTechniqueMapper._get_boosts()
+        assert "platform_match" in boosts
+        assert isinstance(boosts["platform_match"], float)
+
+    def test_missing_scoring_config_uses_default_boosts(self):
+        with patch.object(mapper_mod.AssetTechniqueMapper, "_load_scoring_config", return_value={}):
+            boosts = mapper_mod.AssetTechniqueMapper._get_boosts()
+        assert boosts["platform_match"] == 0.5
+        assert boosts["key_technique"] == 0.6
+
+    def test_custom_minimum_score_filters_techniques(self):
+        # Technique uses "collection" tactic — doesn't match primary_tactics ("exfiltration"),
+        # hop_position boosts (entry = initial-access/execution), or no_auth boost
+        # (only fires on initial-access/lateral-movement). So only platform_match fires → score = 0.5.
+        # With minimum_score = 0.9, score 0.5 is filtered out.
+        sample_asset_types = {
+            "web-server": {
+                "platforms": ["Windows", "Linux"],
+                "tactics": ["exfiltration"],   # primary tactic won't match "collection"
+                "key_techniques": [],
+                "fuzzy_matches": [],
+            },
+            "default": {
+                "platforms": ["Windows", "Linux"],
+                "tactics": ["exfiltration"],
+                "key_techniques": [],
+                "fuzzy_matches": [],
+            },
+        }
+        sample_technique = {
+            "type": "attack-pattern",
+            "x_mitre_deprecated": False,
+            "revoked": False,
+            "x_mitre_platforms": ["Windows"],
+            "kill_chain_phases": [{"kill_chain_name": "mitre-attack", "phase_name": "collection"}],
+            "external_references": [{"source_name": "mitre-attack", "external_id": "T9999", "url": ""}],
+            "name": "Test Technique",
+        }
+        high_min_score_config = {"technique_mapper": {"minimum_score": 0.9}}
+
+        with patch.object(mapper_mod.AssetTechniqueMapper, "_load_asset_types", return_value=sample_asset_types), \
+             patch.object(mapper_mod.AssetTechniqueMapper, "_load_protocols", return_value={}), \
+             patch.object(mapper_mod.AssetTechniqueMapper, "_load_raw", return_value=[sample_technique]), \
+             patch.object(mapper_mod.AssetTechniqueMapper, "_load_scoring_config", return_value=high_min_score_config):
+            mapper = mapper_mod.AssetTechniqueMapper()
+            # is_authenticated=True prevents the no_auth boost; hop_position="entry" = initial-access/execution → no match
+            result = mapper.get_techniques("web-server", {"is_authenticated": True}, hop_position="entry")
+        assert result == []

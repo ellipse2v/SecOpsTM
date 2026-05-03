@@ -1,0 +1,95 @@
+# SecOpsTM Scoring Configuration
+# All values here are loaded lazily at first use with fallback to identical
+# hardcoded defaults when this file is absent or PyYAML is not installed.
+#
+# See docs/customizing_scoring.md for field descriptions and valid ranges.
+
+# ---------------------------------------------------------------------------
+# STRIDE base scores and severity pipeline
+# ---------------------------------------------------------------------------
+stride:
+  # Base score per STRIDE category — scale 1.0–10.0
+  base_scores:
+    ElevationOfPrivilege: 9.0
+    Tampering: 8.0
+    InformationDisclosure: 7.5
+    Spoofing: 7.0
+    DenialOfService: 6.0
+    Repudiation: 5.0
+
+  # Severity label bands [min_inclusive, max_inclusive]
+  severity_thresholds:
+    CRITICAL:      [9.0, 10.0]
+    HIGH:          [7.5,  8.9]
+    MEDIUM:        [6.0,  7.4]
+    LOW:           [4.0,  5.9]
+    INFORMATIONAL: [1.0,  3.9]
+
+  # Additive protocol adjustments applied to the base score
+  protocol_adjustments:
+    SSH:   0.5    # commonly exposed, higher attack surface
+    HTTPS: -0.3   # encrypted, lower exposure
+    HTTP:  0.2    # cleartext, slightly higher exposure
+
+  # Data classification multipliers (applied after protocol adjustments)
+  classification_multipliers:
+    PUBLIC:     1.0
+    RESTRICTED: 1.2
+    SECRET:     1.5
+    TOP_SECRET: 2.0
+
+  # VOC (Vulnerability / Observable / Context) additive deltas applied last
+  voc_deltas:
+    cve_match:          0.5   # confirmed exploitability evidence
+    cwe_high_risk:      0.3   # easily weaponisable CWE class
+    network_exposed:    0.7   # reachable without auth or encryption
+    d3fend_mitigations: -0.5  # active defensive controls (reduces risk)
+
+# ---------------------------------------------------------------------------
+# CWE IDs (numeric strings) treated as high-risk exploitability signals
+# ---------------------------------------------------------------------------
+high_risk_cwes:
+  - "22"   # Path Traversal
+  - "78"   # OS Command Injection
+  - "89"   # SQL Injection
+  - "94"   # Code Injection
+  - "119"  # Buffer Errors
+  - "120"  # Classic Buffer Overflow
+  - "125"  # Out-of-bounds Read
+  - "134"  # Format String
+  - "190"  # Integer Overflow / Wrap-around
+  - "434"  # Unrestricted Upload of Dangerous File
+  - "502"  # Deserialization of Untrusted Data
+  - "611"  # XML External Entity (XXE)
+  - "798"  # Use of Hardcoded Credentials
+  - "918"  # Server-Side Request Forgery (SSRF)
+
+# ---------------------------------------------------------------------------
+# ThreatConsolidator — AI vs pytm deduplication
+# ---------------------------------------------------------------------------
+deduplication:
+  # Jaccard word-overlap threshold: two threats with overlap >= this value
+  # are treated as duplicates; the AI version wins.
+  jaccard_threshold: 0.3
+
+# ---------------------------------------------------------------------------
+# AssetTechniqueMapper — MITRE ATT&CK technique scoring boosts
+# ---------------------------------------------------------------------------
+technique_mapper:
+  # Techniques with score below this threshold are discarded
+  minimum_score: 0.4
+
+  # Additive boost applied when the condition is met
+  boosts:
+    platform_match:    0.5   # technique platform matches asset platform
+    primary_tactic:    0.4   # technique tactic is primary for this asset type
+    hop_position:      0.3   # technique tactic matches the GDAF hop position
+    key_technique:     0.6   # technique is listed in key_techniques for this asset type
+    actor_known_ttp:   0.5   # technique is in the actor's known TTPs
+    no_auth:           0.3   # asset has no authentication
+    no_encryption:     0.2   # asset has no encryption (credential-access)
+    no_mfa:            0.2   # asset has no MFA
+    legacy:            0.2   # asset is tagged as legacy
+    service_match:     0.35  # technique tactic matches a protocol tactic boost
+    key_tech_service:  0.5   # technique is a key_technique for an exposed protocol
+    credentials_stored: 0.4  # asset stores credentials (credential-access)

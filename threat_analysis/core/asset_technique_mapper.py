@@ -55,6 +55,48 @@ class AssetTechniqueMapper:
     _raw_techniques: Optional[List[Dict]] = None  # class-level cache
     _asset_types: Optional[Dict] = None
     _protocols: Optional[Dict] = None
+    _scoring_config: Optional[Dict] = None
+
+    @classmethod
+    def _load_scoring_config(cls) -> Dict:
+        if cls._scoring_config is not None:
+            return cls._scoring_config
+        scoring_path = _PROJECT_ROOT / "config" / "scoring_config.yaml"
+        try:
+            with open(scoring_path, "r", encoding="utf-8") as f:
+                cls._scoring_config = yaml.safe_load(f) or {}
+            logger.info("AssetTechniqueMapper: loaded scoring config")
+        except Exception as exc:
+            logger.warning("Cannot load scoring_config.yaml: %s — using defaults", exc)
+            cls._scoring_config = {}
+        return cls._scoring_config
+
+    @classmethod
+    def _get_boosts(cls) -> Dict[str, float]:
+        """Return technique scoring boosts from scoring_config.yaml with hardcoded fallbacks."""
+        defaults = {
+            "platform_match": 0.5,
+            "primary_tactic": 0.4,
+            "hop_position": 0.3,
+            "key_technique": 0.6,
+            "actor_known_ttp": 0.5,
+            "no_auth": 0.3,
+            "no_encryption": 0.2,
+            "no_mfa": 0.2,
+            "legacy": 0.2,
+            "service_match": 0.35,
+            "key_tech_service": 0.5,
+            "credentials_stored": 0.4,
+        }
+        from_yaml = cls._load_scoring_config().get("technique_mapper", {}).get("boosts", {})
+        return {**defaults, **from_yaml}
+
+    @classmethod
+    def _get_minimum_score(cls) -> float:
+        """Return the minimum technique score threshold (techniques below this are discarded)."""
+        return float(
+            cls._load_scoring_config().get("technique_mapper", {}).get("minimum_score", 0.4)
+        )
 
     @classmethod
     def _load_raw(cls) -> List[Dict]:
@@ -127,6 +169,9 @@ class AssetTechniqueMapper:
         if not raw:
             return []
 
+        boosts = self._get_boosts()
+        min_score = self._get_minimum_score()
+
         # Resolve asset type to platforms and primary tactics
         resolved_type = self._normalize_type(asset_type)
         asset_types = self._load_asset_types()
@@ -184,41 +229,41 @@ class AssetTechniqueMapper:
 
             # Platform match
             if tech_platforms.intersection(platforms):
-                score += 0.5
+                score += boosts.get("platform_match", 0.5)
                 reasons.append("platform match")
 
             # Primary tactic relevance for this asset type
             if tech_tactics.intersection(set(primary_tactics[:3])):  # top 3 primary tactics
-                score += 0.4
+                score += boosts.get("primary_tactic", 0.4)
                 reasons.append("primary tactic")
 
             # Hop position tactic boost
             if tech_tactics.intersection(hop_tactic_boost):
-                score += 0.3
+                score += boosts.get("hop_position", 0.3)
                 reasons.append("hop position")
 
             # Key technique for this asset type
             if tech_id in key_techniques:
-                score += 0.6
+                score += boosts.get("key_technique", 0.6)
                 reasons.append("key technique")
 
             # Actor known TTP boost
             if tech_id in known_ttp_set:
-                score += 0.5
+                score += boosts.get("actor_known_ttp", 0.5)
                 reasons.append("actor TTP")
 
             # Vulnerability signal boosts
             if no_auth and tech_tactics.intersection({"initial-access", "lateral-movement"}):
-                score += 0.3
+                score += boosts.get("no_auth", 0.3)
                 reasons.append("no-auth asset")
             if no_encryption and tech_tactics.intersection({"credential-access"}):
-                score += 0.2
+                score += boosts.get("no_encryption", 0.2)
                 reasons.append("cleartext")
             if no_mfa and tech_tactics.intersection({"credential-access", "initial-access"}):
-                score += 0.2
+                score += boosts.get("no_mfa", 0.2)
                 reasons.append("no-MFA")
             if legacy and tech_tactics.intersection({"initial-access", "execution"}):
-                score += 0.2
+                score += boosts.get("legacy", 0.2)
                 reasons.append("legacy system")
 
             # Service-specific boosts (protocols exposed by this asset)
@@ -227,22 +272,21 @@ class AssetTechniqueMapper:
                     proto_entry = protocols.get(svc, {})
                     tactic_boost = set(proto_entry.get("tactic_boost", []))
                     if tech_tactics.intersection(tactic_boost):
-                        score += 0.35
+                        score += boosts.get("service_match", 0.35)
                         reasons.append(f"service:{svc}")
                         break  # count each technique once for service match
                     proto_key_techs = set(proto_entry.get("key_techniques", []))
                     if tech_id in proto_key_techs:
-                        score += 0.5
+                        score += boosts.get("key_tech_service", 0.5)
                         reasons.append(f"key-tech:{svc}")
                         break
 
             # Credentials stored boost
             if credentials_stored and tech_tactics.intersection({"credential-access"}):
-                score += 0.4
+                score += boosts.get("credentials_stored", 0.4)
                 reasons.append("credentials-stored")
 
-            # Skip zero-score techniques
-            if score < 0.4:
+            if score < min_score:
                 continue
 
             scored.append(ScoredTechnique(

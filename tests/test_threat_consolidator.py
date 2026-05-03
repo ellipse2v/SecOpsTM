@@ -13,9 +13,18 @@
 # limitations under the License.
 
 import pytest
+from unittest.mock import patch
+import threat_analysis.core.threat_consolidator as consolidator_mod
 from threat_analysis.core.threat_consolidator import (
     ThreatConsolidator, _normalize_category, _word_set, _jaccard, _descriptions_similar
 )
+
+
+@pytest.fixture(autouse=True)
+def reset_consolidator_config_cache():
+    consolidator_mod._scoring_config = None
+    yield
+    consolidator_mod._scoring_config = None
 
 def test_normalize_category():
     assert _normalize_category("Elevation of Privilege") == "ElevationOfPrivilege"
@@ -315,3 +324,38 @@ def test_merged_order_unique_pytm_then_ai():
     # Remaining are the AI threats
     assert merged[1].get("source") == "AI"
     assert merged[2].get("source") == "AI"
+
+
+# ---------------------------------------------------------------------------
+# Tests — configurable Jaccard threshold
+# ---------------------------------------------------------------------------
+
+class TestConfigurableJaccardThreshold:
+    def test_lower_threshold_merges_threats_that_default_wouldnt(self):
+        # Jaccard ≈ 0.2 between these descriptions — below default 0.3, above 0.1
+        pytm = [{"target": "DB", "stride_category": "Tampering",
+                  "description": "attacker modifies database records via SQL", "source": "pytm"}]
+        ai   = [{"target": "DB", "stride_category": "Tampering",
+                  "description": "SQL injection modifies records", "source": "AI"}]
+        with patch.object(consolidator_mod, "_load_scoring_config",
+                          return_value={"deduplication": {"jaccard_threshold": 0.1}}):
+            result = consolidator_mod.ThreatConsolidator.deduplicate(pytm, ai)
+        # AI wins, pytm is removed — only 1 threat
+        assert len(result) == 1
+        assert result[0]["source"] == "AI"
+
+    def test_higher_threshold_keeps_threats_that_default_would_merge(self):
+        pytm = [{"target": "DB", "stride_category": "Tampering",
+                  "description": "SQL injection attack on database", "source": "pytm"}]
+        ai   = [{"target": "DB", "stride_category": "Tampering",
+                  "description": "SQL injection allows attacker to modify database data", "source": "AI"}]
+        with patch.object(consolidator_mod, "_load_scoring_config",
+                          return_value={"deduplication": {"jaccard_threshold": 0.9}}):
+            result = consolidator_mod.ThreatConsolidator.deduplicate(pytm, ai)
+        # Threshold too high — not merged, both threats present
+        assert len(result) == 2
+
+    def test_missing_config_uses_default_threshold(self):
+        with patch.object(consolidator_mod, "_load_scoring_config", return_value={}):
+            threshold = consolidator_mod._get_jaccard_threshold()
+        assert threshold == 0.3

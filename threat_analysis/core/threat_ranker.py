@@ -25,9 +25,19 @@ mutating the input.
 """
 
 import logging
+from pathlib import Path
 from typing import Dict, List, Optional
 
+try:
+    import yaml as _yaml
+except ImportError:
+    _yaml = None  # type: ignore[assignment]
+
 logger = logging.getLogger(__name__)
+
+_AI_CONFIG_PATH = Path(__file__).resolve().parents[2] / "config" / "ai_config.yaml"
+
+_ranking_weights_cache: Optional[Dict[str, float]] = None
 
 # Threats whose stride_category matches one of these are considered valid
 # STRIDE entries when enforcing min_stride_coverage.
@@ -45,6 +55,28 @@ _DEFAULT_WEIGHTS: Dict[str, float] = {
     "confidence": 0.3,
     "risk_signals": 0.3,
 }
+
+
+def _load_ranking_weights() -> Dict[str, float]:
+    """Load ranking weights from ai_config.yaml → threat_generation.ranking_weights.
+
+    Falls back to _DEFAULT_WEIGHTS when the file is missing or the key is absent.
+    """
+    global _ranking_weights_cache
+    if _ranking_weights_cache is not None:
+        return _ranking_weights_cache
+    if _yaml is not None:
+        try:
+            with open(_AI_CONFIG_PATH, "r", encoding="utf-8") as f:
+                data = _yaml.safe_load(f) or {}
+            weights = data.get("threat_generation", {}).get("ranking_weights", {})
+            if weights:
+                _ranking_weights_cache = {**_DEFAULT_WEIGHTS, **{k: float(v) for k, v in weights.items()}}
+                return _ranking_weights_cache
+        except Exception as exc:
+            logger.warning("Cannot load ranking weights from ai_config.yaml: %s", exc)
+    _ranking_weights_cache = dict(_DEFAULT_WEIGHTS)
+    return _ranking_weights_cache
 
 
 def _composite_score(threat: Dict, weights: Dict[str, float]) -> float:
@@ -106,7 +138,7 @@ def rank(
     """
     if not threats:
         return []
-    w = {**_DEFAULT_WEIGHTS, **(weights or {})}
+    w = {**_load_ranking_weights(), **(weights or {})}
     scored: List = []
     for t in threats:
         t_copy = dict(t)

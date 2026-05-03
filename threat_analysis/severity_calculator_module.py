@@ -16,29 +16,46 @@
 Threat severity calculation module
 """
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 import re
 import logging
 
-# CWE IDs (numeric strings as stored in JSONL) that indicate high exploitability.
-# These classes are commonly weaponised (injection flaws, memory corruption,
-# hardcoded credentials, deserialization, SSRF, path traversal…).
-_HIGH_RISK_CWES: frozenset = frozenset({
-    "22",   # Path Traversal
-    "78",   # OS Command Injection
-    "89",   # SQL Injection
-    "94",   # Code Injection
-    "119",  # Buffer Errors
-    "120",  # Classic Buffer Overflow
-    "125",  # Out-of-bounds Read
-    "134",  # Format String
-    "190",  # Integer Overflow / Wrap-around
-    "434",  # Unrestricted Upload of Dangerous File
-    "502",  # Deserialization of Untrusted Data
-    "611",  # XML External Entity (XXE)
-    "798",  # Use of Hardcoded Credentials
-    "918",  # Server-Side Request Forgery (SSRF)
-})
+try:
+    import yaml as _yaml
+except ImportError:
+    _yaml = None  # type: ignore[assignment]
+
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_SCORING_CONFIG_PATH = _PROJECT_ROOT / "config" / "scoring_config.yaml"
+
+_scoring_config: Optional[Dict] = None
+
+
+def _load_scoring_config() -> Dict:
+    global _scoring_config
+    if _scoring_config is not None:
+        return _scoring_config
+    if _yaml is None:
+        _scoring_config = {}
+        return _scoring_config
+    try:
+        with open(_SCORING_CONFIG_PATH, "r", encoding="utf-8") as f:
+            _scoring_config = _yaml.safe_load(f) or {}
+    except Exception as exc:
+        logging.warning("Cannot load scoring_config.yaml: %s — using built-in defaults", exc)
+        _scoring_config = {}
+    return _scoring_config
+
+
+def _get_high_risk_cwes() -> frozenset:
+    """Return the set of high-risk CWE IDs from scoring_config.yaml (or built-in defaults)."""
+    defaults = [
+        "22", "78", "89", "94", "119", "120", "125", "134",
+        "190", "434", "502", "611", "798", "918",
+    ]
+    cwes = _load_scoring_config().get("high_risk_cwes", defaults)
+    return frozenset(str(c) for c in cwes)
 
 
 @dataclass
@@ -69,45 +86,63 @@ class RiskContext:
 
     @property
     def cwe_high_risk(self) -> bool:
-        """True when at least one CWE ID belongs to the high-risk set."""
-        return bool(set(self.cwe_ids) & _HIGH_RISK_CWES)
+        """True when at least one CWE ID belongs to the high-risk set (from scoring_config.yaml)."""
+        return bool(set(self.cwe_ids) & _get_high_risk_cwes())
 
 
 class SeverityCalculator:
     """Class for calculating threat severity"""
     
     def __init__(self, markdown_file_path: str = "threatModel_Template/threat_model.md"):
-        self.base_scores = {
+        cfg = _load_scoring_config()
+        stride_cfg = cfg.get("stride", {})
+
+        self.base_scores = stride_cfg.get("base_scores", {
             "ElevationOfPrivilege": 9.0,
             "Tampering": 8.0,
             "InformationDisclosure": 7.5,
             "Spoofing": 7.0,
             "DenialOfService": 6.0,
-            "Repudiation": 5.0
-        }
-        
+            "Repudiation": 5.0,
+        })
+
         self.target_multipliers = self._load_severity_multipliers_from_markdown(markdown_file_path)
-        
-        self.protocol_adjustments = {
+
+        self.protocol_adjustments = stride_cfg.get("protocol_adjustments", {
             "SSH": 0.5,
             "HTTPS": -0.3,
-            "HTTP": 0.2
+            "HTTP": 0.2,
+        })
+
+        raw_thresholds = stride_cfg.get("severity_thresholds", {
+            "CRITICAL":      [9.0, 10.0],
+            "HIGH":          [7.5,  8.9],
+            "MEDIUM":        [6.0,  7.4],
+            "LOW":           [4.0,  5.9],
+            "INFORMATIONAL": [1.0,  3.9],
+        })
+        css_map = {
+            "CRITICAL": "critical", "HIGH": "high", "MEDIUM": "medium",
+            "LOW": "low", "INFORMATIONAL": "info",
         }
-        
         self.severity_levels = {
-            "CRITICAL": (9.0, 10.0, "critical"),
-            "HIGH": (7.5, 8.9, "high"),
-            "MEDIUM": (6.0, 7.4, "medium"),
-            "LOW": (4.0, 5.9, "low"),
-            "INFORMATIONAL": (1.0, 3.9, "info")
+            label: (float(bounds[0]), float(bounds[1]), css_map.get(label, "info"))
+            for label, bounds in raw_thresholds.items()
         }
-        
-        self.classification_multipliers = {
+
+        self.classification_multipliers = stride_cfg.get("classification_multipliers", {
             "PUBLIC": 1.0,
             "RESTRICTED": 1.2,
             "SECRET": 1.5,
-            "TOP_SECRET": 2.0
-        }
+            "TOP_SECRET": 2.0,
+        })
+
+        self._voc_deltas = stride_cfg.get("voc_deltas", {
+            "cve_match": 0.5,
+            "cwe_high_risk": 0.3,
+            "network_exposed": 0.7,
+            "d3fend_mitigations": -0.5,
+        })
 
     def _load_severity_multipliers_from_markdown(self, markdown_file_path: str) -> Dict[str, float]:
         """
@@ -179,21 +214,14 @@ class SeverityCalculator:
 
         # --- Stage 3: VOC context factors ---
         if risk_context is not None:
-            # Known CVE match — confirmed exploitability evidence
             if risk_context.has_cve_match:
-                score += 0.5
-
-            # High-risk CWE class — easily weaponisable vulnerability
+                score += self._voc_deltas.get("cve_match", 0.5)
             if risk_context.cwe_high_risk:
-                score += 0.3
-
-            # Network-exposed — attacker can reach the target without auth/encryption
+                score += self._voc_deltas.get("cwe_high_risk", 0.3)
             if risk_context.network_exposed:
-                score += 0.7
-
-            # Active D3FEND controls — reduce residual exploitability
+                score += self._voc_deltas.get("network_exposed", 0.7)
             if risk_context.has_d3fend_mitigations:
-                score -= 0.5
+                score += self._voc_deltas.get("d3fend_mitigations", -0.5)
 
         return min(10.0, max(1.0, score))
     
@@ -233,24 +261,29 @@ class SeverityCalculator:
         self.target_multipliers.update(new_multipliers)
 
     def get_calculation_explanation(self) -> str:
-        """
-        Returns a detailed explanation of how severity scores are calculated.
-        """
-        explanation = (
+        """Returns a detailed explanation of how severity scores are calculated."""
+        bs = self.base_scores
+        voc = self._voc_deltas
+        base_lines = ", ".join(
+            f"{k}: {v}" for k, v in sorted(bs.items(), key=lambda x: -x[1])
+        )
+        return (
             "Threat severity is calculated on a scale of 1.0 to 10.0 using the following factors:\n\n"
-            "1.  **Base Score**: Each STRIDE threat category has a predefined base score "
-            "(ElevationOfPrivilege: 9.0, Tampering: 8.0, InformationDisclosure: 7.5, "
-            "Spoofing: 7.0, DenialOfService: 6.0, Repudiation: 5.0).\n"
+            f"1.  **Base Score**: Each STRIDE threat category has a predefined base score "
+            f"({base_lines}).\n"
             "2.  **Impact and Likelihood**: If provided (scale 1–5), their product is normalised and added.\n"
             "3.  **Target Multipliers**: Per-element multipliers from the '## Severity Multipliers' section of the model.\n"
-            "4.  **Protocol Adjustments**: SSH +0.5, HTTP +0.2, HTTPS −0.3.\n"
-            "5.  **Data Classification**: PUBLIC ×1.0 → TOP_SECRET ×2.0 multiplier.\n"
+            f"4.  **Protocol Adjustments**: "
+            + ", ".join(f"{p} {'+' if v >= 0 else ''}{v}" for p, v in self.protocol_adjustments.items())
+            + ".\n"
+            "5.  **Data Classification**: "
+            + ", ".join(f"{k} ×{v}" for k, v in sorted(self.classification_multipliers.items(), key=lambda x: x[1]))
+            + " multiplier.\n"
             "6.  **VOC Context (when available)**:\n"
-            "    - Known CVE match for this target: +0.5\n"
-            "    - High-risk CWE class (injection, buffer overflow, hardcoded creds…): +0.3\n"
-            "    - Network-exposed without authentication or encryption: +0.7\n"
-            "    - Active D3FEND defensive controls in place: −0.5\n\n"
+            f"    - Known CVE match for this target: {'+' if voc.get('cve_match', 0.5) >= 0 else ''}{voc.get('cve_match', 0.5)}\n"
+            f"    - High-risk CWE class (injection, buffer overflow, hardcoded creds…): {'+' if voc.get('cwe_high_risk', 0.3) >= 0 else ''}{voc.get('cwe_high_risk', 0.3)}\n"
+            f"    - Network-exposed without authentication or encryption: {'+' if voc.get('network_exposed', 0.7) >= 0 else ''}{voc.get('network_exposed', 0.7)}\n"
+            f"    - Active D3FEND defensive controls in place: {voc.get('d3fend_mitigations', -0.5)}\n\n"
             "The final score is clamped to [1.0, 10.0] and mapped to "
             "INFORMATIONAL / LOW / MEDIUM / HIGH / CRITICAL."
         )
-        return explanation
