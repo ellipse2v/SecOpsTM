@@ -171,6 +171,122 @@ technique_mapper:
 
 ---
 
+### `gdaf.classification_scores`
+
+Sensitivity weight (0.0–1.0) assigned to each data classification level when computing
+`data_value` on dataflow edges.  Higher = more attractive target for an attacker.
+
+```yaml
+gdaf:
+  classification_scores:
+    top_secret: 1.0   # range 0.0–1.0
+    secret: 0.7
+    restricted: 0.4
+    public: 0.0
+    unknown: 0.1
+```
+
+---
+
+### `gdaf.traversal_bonus`
+
+Additive bonus to `hop_weight` based on how easy a boundary is to cross
+(`traversal_difficulty` attribute on boundaries).  Easier = higher attacker probability.
+
+```yaml
+gdaf:
+  traversal_bonus:
+    low: 0.3    # easy to cross — more attractive hop
+    medium: 0.1
+    high: 0.0   # hard to cross — attacker still evaluated, lower probability
+```
+
+---
+
+### `gdaf.detection_coverage`
+
+Maps BOM `detection_level` values to a float coverage score used in the
+scenario-level detection average.
+
+```yaml
+gdaf:
+  detection_coverage:
+    none: 0.0
+    low: 0.2
+    medium: 0.5
+    high: 0.8
+```
+
+---
+
+### `gdaf.hop_weights`
+
+Additive and multiplicative weights applied when computing `hop_weight` for each
+hop in `_build_scenario()`.  `hop_weight` starts at 1.0 and each signal adds to it.
+
+```yaml
+gdaf:
+  hop_weights:
+    no_auth: 0.4           # edge has no authentication
+    no_encryption: 0.3     # edge has no encryption
+    no_mfa: 0.2            # node has no MFA
+    cia_contribution: 0.1  # multiplied by node CIA score (0–1)
+    data_value_factor: 0.3 # multiplied by edge data_value (0–1)
+    cve_per_cve: 0.15      # per unpatched CVE on the node
+    cve_cap: 0.5           # maximum total CVE bonus regardless of count
+```
+
+---
+
+### `gdaf.target_cia_bonus`
+
+Additive bonus applied to `path_score` from the target asset's CIA criticality score.
+Keeps target importance independent from the path difficulty score.
+
+```yaml
+gdaf:
+  target_cia_bonus: 0.5   # range 0.0–1.0
+```
+
+---
+
+### `gdaf.risk_thresholds`
+
+`path_score` cutoffs that map to risk labels.  Scores are calibrated for the default
+`hop_weight` range (1.0–2.0) × average technique score (1.0–2.5).
+
+```yaml
+gdaf:
+  risk_thresholds:
+    CRITICAL: 4.0   # path_score >= 4.0
+    HIGH: 2.8       # path_score >= 2.8
+    MEDIUM: 1.8     # path_score >= 1.8
+                    # below MEDIUM → LOW
+```
+
+---
+
+### `gdaf.defaults`
+
+Fallback values used when no `risk_criteria` block is present in the GDAF context YAML
+and no auto-generated context is available.
+
+> **Note:** When GDAF runs without a hand-crafted context file (`_auto_context()` is used),
+> `max_hops`, `max_paths_per_objective`, and `acceptable_risk_score` are taken from the
+> auto-generated `risk_criteria` dict (same hardcoded values) rather than from this section.
+> These defaults only apply when a context YAML exists but omits the `risk_criteria` key.
+
+```yaml
+gdaf:
+  defaults:
+    max_hops: 7                    # maximum path depth in BFS traversal
+    max_paths_per_objective: 3     # top N paths kept per objective × actor pair
+    acceptable_risk_score: 5.0     # path_score above this → unacceptable_risk=True
+    gdaf_min_technique_score: 0.8  # minimum AssetTechniqueMapper score for OR-branch rendering
+```
+
+---
+
 ## Ranking weights
 
 The composite threat ranking weights (severity / confidence / risk_signals) are

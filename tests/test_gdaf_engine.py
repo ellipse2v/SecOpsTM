@@ -158,6 +158,14 @@ def patch_mapper():
         yield
 
 
+@pytest.fixture(autouse=True)
+def reset_gdaf_scoring_cache():
+    """Reset GDAFEngine._scoring_config before each test to avoid cross-test pollution."""
+    GDAFEngine._scoring_config = None
+    yield
+    GDAFEngine._scoring_config = None
+
+
 # ---------------------------------------------------------------------------
 # _load_context
 # ---------------------------------------------------------------------------
@@ -672,6 +680,82 @@ class TestConstants:
     def test_detection_coverage_values(self):
         assert _DETECTION_COVERAGE["none"] == 0.0
         assert _DETECTION_COVERAGE["high"] > _DETECTION_COVERAGE["low"]
+
+
+# ---------------------------------------------------------------------------
+# scoring_config.yaml-driven GDAF constants
+# ---------------------------------------------------------------------------
+
+class TestGDAFScoringConfig:
+    """GDAFEngine reads hop weights, thresholds, and defaults from scoring_config.yaml."""
+
+    def test_defaults_match_module_constants(self, tmp_path):
+        """When scoring_config.yaml is absent, instance dicts must equal the module-level fallback constants."""
+        with patch("threat_analysis.core.gdaf_engine._SCORING_CONFIG_PATH",
+                   tmp_path / "absent.yaml"):
+            GDAFEngine._scoring_config = None
+            engine = GDAFEngine(make_simple_model())
+        assert engine._classification_scores == _CLASSIFICATION_SCORE
+        assert engine._traversal_bonus_map == _TRAVERSAL_BONUS
+        assert engine._detection_coverage_map == _DETECTION_COVERAGE
+
+    def test_custom_hop_weights_applied(self, tmp_path):
+        """Custom hop_weights from scoring_config.yaml override the built-in values."""
+        cfg = {
+            "gdaf": {
+                "hop_weights": {
+                    "no_auth": 0.9,
+                    "no_encryption": 0.8,
+                    "cve_per_cve": 0.25,
+                    "cve_cap": 0.75,
+                }
+            }
+        }
+        cfg_file = tmp_path / "scoring_config.yaml"
+        cfg_file.write_text(yaml.dump(cfg), encoding="utf-8")
+        with patch("threat_analysis.core.gdaf_engine._SCORING_CONFIG_PATH", cfg_file):
+            GDAFEngine._scoring_config = None
+            engine = GDAFEngine(make_simple_model())
+        assert engine._hop_weights["no_auth"] == 0.9
+        assert engine._hop_weights["no_encryption"] == 0.8
+        assert engine._hop_weights["cve_per_cve"] == 0.25
+        assert engine._hop_weights["cve_cap"] == 0.75
+        assert engine._hop_weights["no_mfa"] == 0.2   # unchanged default
+
+    def test_custom_risk_thresholds_applied(self, tmp_path):
+        """Custom risk_thresholds from YAML change the CRITICAL/HIGH/MEDIUM cutoffs."""
+        cfg = {"gdaf": {"risk_thresholds": {"CRITICAL": 5.0, "HIGH": 3.5, "MEDIUM": 2.0}}}
+        cfg_file = tmp_path / "scoring_config.yaml"
+        cfg_file.write_text(yaml.dump(cfg), encoding="utf-8")
+        with patch("threat_analysis.core.gdaf_engine._SCORING_CONFIG_PATH", cfg_file):
+            GDAFEngine._scoring_config = None
+            engine = GDAFEngine(make_simple_model())
+        assert engine._risk_thresholds["CRITICAL"] == 5.0
+        assert engine._risk_thresholds["HIGH"] == 3.5
+        assert engine._risk_thresholds["MEDIUM"] == 2.0
+
+    def test_custom_gdaf_defaults_propagate_to_run(self, tmp_path):
+        """max_hops and acceptable_risk_score from YAML are used when context has no risk_criteria."""
+        cfg = {"gdaf": {"defaults": {"max_hops": 4, "acceptable_risk_score": 3.0, "gdaf_min_technique_score": 0.6}}}
+        cfg_file = tmp_path / "scoring_config.yaml"
+        cfg_file.write_text(yaml.dump(cfg), encoding="utf-8")
+        with patch("threat_analysis.core.gdaf_engine._SCORING_CONFIG_PATH", cfg_file):
+            GDAFEngine._scoring_config = None
+            engine = GDAFEngine(make_simple_model())
+        assert engine._gdaf_defaults["max_hops"] == 4
+        assert engine._gdaf_defaults["acceptable_risk_score"] == 3.0
+        assert engine._gdaf_defaults["gdaf_min_technique_score"] == 0.6
+
+    def test_missing_config_file_falls_back_to_defaults(self, tmp_path):
+        """When scoring_config.yaml is absent, all instance values match the module defaults."""
+        nonexistent = tmp_path / "missing.yaml"
+        with patch("threat_analysis.core.gdaf_engine._SCORING_CONFIG_PATH", nonexistent):
+            GDAFEngine._scoring_config = None
+            engine = GDAFEngine(make_simple_model())
+        assert engine._hop_weights["no_auth"] == 0.4
+        assert engine._risk_thresholds["CRITICAL"] == 4.0
+        assert engine._gdaf_defaults["max_hops"] == 7
+        assert engine._target_cia_bonus == 0.5
 
 
 # ---------------------------------------------------------------------------

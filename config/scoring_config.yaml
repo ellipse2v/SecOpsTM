@@ -93,3 +93,54 @@ technique_mapper:
     service_match:     0.35  # technique tactic matches a protocol tactic boost
     key_tech_service:  0.5   # technique is a key_technique for an exposed protocol
     credentials_stored: 0.4  # asset stores credentials (credential-access)
+
+# ---------------------------------------------------------------------------
+# GDAFEngine — Goal-Driven Attack Flow scoring
+# ---------------------------------------------------------------------------
+gdaf:
+  # Data classification → sensitivity score (0.0–1.0), used for data_value on edges
+  classification_scores:
+    top_secret: 1.0
+    secret: 0.7
+    restricted: 0.4
+    public: 0.0
+    unknown: 0.1
+
+  # traversal_difficulty → hop_weight additive bonus (easier path = higher attacker risk)
+  traversal_bonus:
+    low: 0.3
+    medium: 0.1
+    high: 0.0
+
+  # BOM detection_level → detection_coverage float (used for scenario-level avg)
+  detection_coverage:
+    none: 0.0
+    low: 0.2
+    medium: 0.5
+    high: 0.8
+
+  # Additive/multiplicative weights applied per hop when computing hop_weight
+  hop_weights:
+    no_auth: 0.4          # edge has no authentication
+    no_encryption: 0.3    # edge has no encryption
+    no_mfa: 0.2           # node has no MFA
+    cia_contribution: 0.1 # multiplied by node CIA score (0–1)
+    data_value_factor: 0.3  # multiplied by edge data_value (0–1)
+    cve_per_cve: 0.15     # per unpatched CVE on the node
+    cve_cap: 0.5          # maximum CVE bonus regardless of count
+
+  # Bonus added to path_score from target node's CIA criticality
+  target_cia_bonus: 0.5
+
+  # path_score thresholds for risk level classification
+  risk_thresholds:
+    CRITICAL: 4.0
+    HIGH: 2.8
+    MEDIUM: 1.8
+
+  # Default risk_criteria values when no context YAML is provided
+  defaults:
+    max_hops: 7
+    max_paths_per_objective: 3
+    acceptable_risk_score: 5.0
+    gdaf_min_technique_score: 0.8
