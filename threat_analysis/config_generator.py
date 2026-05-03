@@ -20,28 +20,65 @@ This module generates config.js with all necessary configuration for the web int
 
 import json
 import datetime
+import logging
 from pathlib import Path
 from typing import Dict, Any
 
+try:
+    import yaml as _yaml
+except ImportError:
+    _yaml = None  # type: ignore[assignment]
 
-# Centralized configuration data - single source of truth
+logger = logging.getLogger(__name__)
+
+_ASSET_TYPES_YAML = Path(__file__).resolve().parents[1] / "config" / "asset_types_community.yaml"
+
+# Non-asset-type elements (actors, data nodes, network devices) whose icons are not
+# declared in asset_types_community.yaml.
+_STATIC_ICONS: Dict[str, str] = {
+    "actor": "/static/resources/icons/actor.svg",
+    "data": "/static/resources/icons/data.svg",
+    "router": "/static/resources/icons/routers.svg",
+    "switch": "/static/resources/icons/switch.svg",
+    "server": "/static/resources/icons/server.svg",
+    "dmz": "/static/resources/icons/dmz.svg",
+}
+
+
+def _build_icon_mapping() -> Dict[str, str]:
+    """Build ICON_MAPPING by merging static entries with icon_url values from the YAML.
+
+    For each YAML asset type with a non-empty icon_url, two key variants are emitted:
+      - hyphen→underscore  (e.g. "web_server")  — used by diagram_generator.py
+      - hyphen+underscore removed (e.g. "webserver") — used by NodeManager.js
+        (JS does type.toLowerCase().replace('_', '') before looking up)
+    """
+    mapping = dict(_STATIC_ICONS)
+    if _yaml is None:
+        return mapping
+    try:
+        with open(_ASSET_TYPES_YAML, "r", encoding="utf-8") as f:
+            data = _yaml.safe_load(f) or {}
+        for type_key, entry in data.get("asset_types", {}).items():
+            icon_url = (entry or {}).get("icon_url", "")
+            if not icon_url:
+                continue
+            underscore_key = type_key.replace("-", "_")   # Python consumer
+            stripped_key = type_key.replace("-", "").replace("_", "")  # JS consumer
+            mapping[underscore_key] = icon_url
+            if stripped_key != underscore_key:
+                mapping[stripped_key] = icon_url
+    except Exception as exc:
+        logger.warning("config_generator: cannot read asset_types_community.yaml: %s", exc)
+    return mapping
+
+
+# Centralized configuration data - single source of truth.
+# ICON_MAPPING is built dynamically from config/asset_types_community.yaml so that
+# adding icon_url to a YAML entry automatically propagates to both the Python SVG
+# generator (diagram_generator.py) and the JS Konva canvas (NodeManager.js / config.js).
 CONFIG_DATA = {
-    "ICON_MAPPING": {
-        "actor": "/static/resources/icons/actor.svg",
-        "web_server": "/static/resources/icons/web-server.svg",
-        "database": "/static/resources/icons/database.svg",
-        "firewall": "/static/resources/icons/firewall.svg",
-        "data": "/static/resources/icons/data.svg",
-        "router": "/static/resources/icons/routers.svg",
-        "switch": "/static/resources/icons/switch.svg",
-        "server": "/static/resources/icons/server.svg",
-        "api_gateway": "/static/resources/icons/api-gateway.svg",
-        "app_server": "/static/resources/icons/server.svg",
-        "central_server": "/static/resources/icons/server.svg",
-        "authentication_server": "/static/resources/icons/server.svg",
-        "load_balancer": "/static/resources/icons/load_balancer.svg",
-        "dmz": "/static/resources/icons/dmz.svg"
-    },
+    "ICON_MAPPING": _build_icon_mapping(),
     "DEFAULT_PROPERTIES": {
         "BOUNDARY": {
             "name": "New Boundary",

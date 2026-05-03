@@ -14,6 +14,7 @@
 # 
 # # In threat_analysis/model_parser.py
 
+import ast
 import re
 import json
 import logging
@@ -21,7 +22,6 @@ from typing import List, Dict, Any, Callable, Optional, Tuple, Set
 from .models_module import ThreatModel, CustomThreat
 from .mitre_mapping_module import MitreMapping
 from pytm import Classification, Lifetime
-import ast
 
 class ModelParser:
     """
@@ -411,10 +411,15 @@ class ModelParser:
             s = params_str.strip()
             if not s.startswith('{'):
                 s = '{' + re.sub(r'(\w+)=', r'"\1": ', s) + '}'
-            mapping_dict = json.loads(s)
+            try:
+                mapping_dict = json.loads(s)
+            except json.JSONDecodeError:
+                # Accept Python dict literal syntax (single quotes). Safe: tactic/technique
+                # names never contain apostrophes, so a blanket replacement is correct here.
+                mapping_dict = json.loads(s.replace("'", '"'))
             tactics = mapping_dict.get('tactics', [])
             techniques = mapping_dict.get('techniques', [])
             self.threat_model.add_custom_mitre_mapping(name, tactics, techniques)
             logging.debug("Custom MITRE mapping added: %s (tactics: %d, techniques: %d)", name, len(tactics), len(techniques))
-        except (json.JSONDecodeError, AttributeError) as e:
+        except (json.JSONDecodeError, ValueError, AttributeError) as e:
             logging.error(f"Error evaluating custom MITRE mapping for '{name}': {e}")

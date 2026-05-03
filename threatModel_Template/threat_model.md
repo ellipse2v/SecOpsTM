@@ -107,9 +107,8 @@ This model describes a network architecture with a Demilitarized Zone (DMZ), ext
 - **Command Machine**: 2.5
 
 ## Custom Mitre Mapping
-- **Protocol Tampering**: {'tactics':["Impact", "Defense Evasion"], 'techniques':[{'id': 'T1565', 'name': 'Data Manipulation'}, {'id': 'T1499', 'name': 'Endpoint Denial of Service'}]}
-- **Unauthorized Access**: {'tactics':["Initial Access", "Persistence"], 'techniques':[{'id': 'T1133', 'name': 'External Remote Services'}, {'id': 'T1078', 'name': 'Valid Accounts'}]}
-- **Weak Authentication**: {'tactics':["Credential Access"], 'techniques':[{'id': 'T1110', 'name': 'Brute Force'}, {'id': 'T1552', 'name': 'Unsecured Credentials'}]}
-- **Data Exfiltration**: {'tactics':["Exfiltration"], 'techniques':[{'id': 'T1041', 'name': 'Exfiltration Over C2 Channel'}, {'id': 'T1048', 'name': 'Exfiltration Over Alternative Protocol'}]}
-
-- **Privilege Escalation**: {'tactics':["Privilege Escalation"], 'techniques':[{'id': 'T1068', 'name': 'Exploitation for Privilege Escalation'}]}
+- **Protocol Tampering**: {"tactics": ["Impact", "Defense Evasion"], "techniques": [{"id": "T1565", "name": "Data Manipulation"}, {"id": "T1499", "name": "Endpoint Denial of Service"}]}
+- **Unauthorized Access**: {"tactics": ["Initial Access", "Persistence"], "techniques": [{"id": "T1133", "name": "External Remote Services"}, {"id": "T1078", "name": "Valid Accounts"}]}
+- **Weak Authentication**: {"tactics": ["Credential Access"], "techniques": [{"id": "T1110", "name": "Brute Force"}, {"id": "T1552", "name": "Unsecured Credentials"}]}
+- **Data Exfiltration**: {"tactics": ["Exfiltration"], "techniques": [{"id": "T1041", "name": "Exfiltration Over C2 Channel"}, {"id": "T1048", "name": "Exfiltration Over Alternative Protocol"}]}
+- **Privilege Escalation**: {"tactics": ["Privilege Escalation"], "techniques": [{"id": "T1068", "name": "Exploitation for Privilege Escalation"}]}

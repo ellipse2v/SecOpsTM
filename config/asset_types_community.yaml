@@ -10,7 +10,8 @@
 #   tactics       : kebab-case tactic IDs, ordered by likelihood for this asset type
 #   key_techniques: high-value technique IDs to boost in scoring (empty list if none)
 #   fuzzy_matches : lowercase substrings used by _normalize_type() for loose matching
-#   icon_url      : TODO(icon_url): fill when icons are added — future sprint
+#   icon_url      : path relative to Flask static root, e.g. /static/resources/icons/firewall.svg
+#                   Empty string means no icon; config_generator.py reads this to build ICON_MAPPING.
 
 asset_types:
 
@@ -21,7 +22,7 @@ asset_types:
     tactics: [initial-access, defense-evasion, lateral-movement]
     key_techniques: [T1190, T1600, T1599]
     fuzzy_matches: [firewall, fw]
-    icon_url: ""
+    icon_url: "/static/resources/icons/firewall.svg"
 
   # NOTE: pki must appear before auth-server in this file.
   # "certificate-authority" contains "auth" — pki's fuzzy_matches are checked first
@@ -60,7 +61,7 @@ asset_types:
     tactics: [credential-access, collection, exfiltration]
     key_techniques: [T1190, T1078, T1048, T1030]
     fuzzy_matches: [database, db, sql]
-    icon_url: ""
+    icon_url: "/static/resources/icons/database.svg"
 
   web-server:
     description: "HTTP/HTTPS web application server"
@@ -69,7 +70,7 @@ asset_types:
     tactics: [initial-access, execution, persistence]
     key_techniques: []
     fuzzy_matches: [web server, web-server, webserver]
-    icon_url: ""
+    icon_url: "/static/resources/icons/web-server.svg"
 
   api-gateway:
     description: "API gateway or reverse proxy"
@@ -78,7 +79,7 @@ asset_types:
     tactics: [initial-access, execution]
     key_techniques: []
     fuzzy_matches: [api-gateway, api gateway]
-    icon_url: ""
+    icon_url: "/static/resources/icons/api-gateway.svg"
 
   file-server:
     description: "File sharing server (SMB, NFS)"
@@ -123,7 +124,7 @@ asset_types:
     tactics: [initial-access, defense-evasion]
     key_techniques: []
     fuzzy_matches: [load-balancer, load balancer]
-    icon_url: ""
+    icon_url: "/static/resources/icons/load_balancer.svg"
 
   # NOTE: vpn.fuzzy_matches is intentionally empty. Any input containing "vpn" resolves to
   # vpn-gateway (which has fuzzy_matches: [vpn]). The "vpn" entry is only reached when the
