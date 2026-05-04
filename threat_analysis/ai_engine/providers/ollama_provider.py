@@ -29,9 +29,10 @@ class OllamaProvider(BaseLLMProvider):
         self.host = config.get("host", "http://localhost:11434")
         self.model = config.get("model", "mistral")
         self.temperature = config.get("temperature", 0.3)
+        self.attack_flow_temperature = config.get("attack_flow_temperature", 0.2)
         self.num_ctx = config.get("num_ctx", 4096)
         self.num_predict = config.get("num_predict", 4096)
-        self.timeout = aiohttp.ClientTimeout(total=120) # Increased timeout for potentially longer generation
+        self.timeout = aiohttp.ClientTimeout(total=config.get("timeout", 120))
 
     async def check_connection(self) -> bool:
         """Checks if Ollama server is running and reachable."""
@@ -99,7 +100,7 @@ class OllamaProvider(BaseLLMProvider):
                             "format": "json",
                             "stream": False,
                             "options": {
-                                "temperature": 0.2, # More deterministic for structured format
+                                "temperature": self.attack_flow_temperature,
                                 "num_ctx": self.num_ctx,
                                 "num_predict": self.num_predict
                             }

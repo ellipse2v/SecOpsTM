@@ -164,12 +164,12 @@ class LiteLLMProvider(BaseLLMProvider):
     async def generate_ciso_triage(self, prompt: str, system_prompt: str) -> Dict:
         """Calls the LLM with the CISO persona and returns the parsed briefing."""
         client = await self._get_client()
-        # CISO triage response is a single JSON object — 2 000 tokens is ample.
         try:
             provider_max = int(client.provider_config.get("max_tokens", 4096))
         except (TypeError, ValueError):
             provider_max = 4096
-        ciso_max_tokens = max(2000, provider_max)
+        ciso_min = int(client.ai_config.get("threat_generation", {}).get("ciso_triage_min_tokens", 2000))
+        ciso_max_tokens = max(ciso_min, provider_max)
         try:
             async for chunk in client.generate_content(
                 prompt=prompt,

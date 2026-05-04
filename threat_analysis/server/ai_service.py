@@ -47,6 +47,10 @@ class AIService:
         self.max_concurrent: int = self.ai_config.get(
             "threat_generation", {}
         ).get("max_concurrent_ai_requests", 1)
+        _st = self.ai_config.get("threat_generation", {}).get("sync_timeouts", {})
+        self._rag_prewarm_timeout: float = float(_st.get("rag_prewarm", 300))
+        self._rag_sync_timeout: float = float(_st.get("rag_sync", 120))
+        self._markdown_sync_timeout: float = float(_st.get("markdown_sync", 180))
         # Semaphore is created in init_ai() where the event loop is active.
         self._ai_semaphore: Optional[asyncio.Semaphore] = None
 
@@ -265,7 +269,7 @@ class AIService:
         if rag_enabled and self.ai_online:
             if rag_task is not None:
                 try:
-                    self.rag_generator = await asyncio.wait_for(rag_task, timeout=300)
+                    self.rag_generator = await asyncio.wait_for(rag_task, timeout=self._rag_prewarm_timeout)
                     logging.info("RAG service initialized (pre-warmed).")
                 except Exception as e:
                     logging.error(f"RAG pre-warm failed ({e}); retrying synchronously.")
@@ -347,7 +351,7 @@ class AIService:
             self._get_sync_loop(),
         )
         try:
-            return future.result(timeout=120)
+            return future.result(timeout=self._rag_sync_timeout)
         except Exception as exc:
             logging.warning("generate_rag_threats_sync failed: %s", exc)
             return []
@@ -366,7 +370,7 @@ class AIService:
             self._get_sync_loop(),
         )
         try:
-            chunks = future.result(timeout=180)
+            chunks = future.result(timeout=self._markdown_sync_timeout)
         except Exception as exc:
             logging.warning("generate_markdown_from_prompt_sync failed: %s", exc)
             return iter(["Error: AI generation failed or timed out."])

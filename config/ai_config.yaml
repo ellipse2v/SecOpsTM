@@ -71,8 +71,12 @@ ai_providers:
     stream: true
     num_ctx: 4096
     num_predict: 4096
-    timeout: 60
+    temperature: 0.3
+    attack_flow_temperature: 0.2   # lower = more deterministic for structured JSON output
+    timeout: 60                    # aiohttp session timeout (seconds); connection-level
     ssl_verify: true
+    # Note: Ollama retry count (3 attempts, exponential back-off) is fixed in
+    # ollama_provider.py and is not configurable via this file.
 
 # =============================================================================
 # SECTION 2 — Generation settings
@@ -103,6 +107,18 @@ threat_generation:
 
   confidence_threshold: 0.75
   include_attack_flows: true
+
+  # LiteLLM retry policy — applies to all providers
+  num_retries: 3         # automatic retries on rate-limit / transient errors
+
+  # Minimum token budget for CISO triage calls (budget = max(this, provider max_tokens))
+  ciso_triage_min_tokens: 2000
+
+  # Timeouts for sync wrappers (seconds) — increase for slow hardware or large models
+  sync_timeouts:
+    rag_prewarm: 300     # asyncio.wait_for for RAG pre-warm in init_ai()
+    rag_sync: 120        # future.result timeout in generate_rag_threats_sync()
+    markdown_sync: 180   # future.result timeout in generate_markdown_from_prompt_sync()
 
 # =============================================================================
 # SECTION 3 — RAG, embeddings, and GDAF (advanced)

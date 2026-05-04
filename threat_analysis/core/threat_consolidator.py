@@ -72,10 +72,25 @@ _STRIDE_ALIASES: Dict[str, str] = {
     "repudiation": "Repudiation",
 }
 
+# Default stop-word set — also exported for backward compatibility.
+# Override via deduplication.stop_words in config/scoring_config.yaml.
 _STOP_WORDS: Set[str] = {
     "a", "an", "the", "in", "on", "at", "to", "for", "of", "and", "or",
     "is", "are", "was", "be", "by", "it", "its",
 }
+
+
+def _get_stop_words() -> Set[str]:
+    """Return the effective stop-word set from YAML, falling back to the built-in default.
+
+    stop_words key absent → use _STOP_WORDS (built-in default).
+    stop_words: []        → empty set (user explicitly wants no stop-word filtering).
+    stop_words: [a, the…] → that exact set.
+    """
+    cfg = _load_scoring_config().get("deduplication", {})
+    if "stop_words" not in cfg:
+        return _STOP_WORDS
+    return set(cfg["stop_words"])
 
 
 def _normalize_category(cat: str) -> str:
@@ -86,7 +101,8 @@ def _normalize_category(cat: str) -> str:
 
 def _word_set(text: str) -> Set[str]:
     words = re.sub(r"[^a-z0-9\s]", "", text.lower()).split()
-    return {w for w in words if w not in _STOP_WORDS and len(w) > 2}
+    stop = _get_stop_words()
+    return {w for w in words if w not in stop and len(w) > 2}
 
 
 def _jaccard(t1: str, t2: str) -> float:

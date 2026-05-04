@@ -33,22 +33,13 @@ try:
 except ImportError:
     _yaml = None  # type: ignore[assignment]
 
+from threat_analysis.core.stride_constants import STRIDE_CATEGORIES as _STRIDE_CATEGORIES
+
 logger = logging.getLogger(__name__)
 
 _AI_CONFIG_PATH = Path(__file__).resolve().parents[2] / "config" / "ai_config.yaml"
 
 _ranking_weights_cache: Optional[Dict[str, float]] = None
-
-# Threats whose stride_category matches one of these are considered valid
-# STRIDE entries when enforcing min_stride_coverage.
-_STRIDE_CATEGORIES = frozenset({
-    "Spoofing",
-    "Tampering",
-    "Repudiation",
-    "Information Disclosure",
-    "Denial of Service",
-    "Elevation of Privilege",
-})
 
 _DEFAULT_WEIGHTS: Dict[str, float] = {
     "severity": 0.4,

@@ -220,7 +220,7 @@ class LiteLLMClient:
             "temperature": self.provider_config.get('temperature', 0.7),
             "max_tokens": effective_max_tokens,
             "timeout": self.provider_config.get('timeout', 30),
-            "num_retries": 3, # Automatically retry on rate limits
+            "num_retries": int(self.ai_config.get("threat_generation", {}).get("num_retries", 3)),
             "api_base": self.api_base
         }
         if "top_p" in self.provider_config:

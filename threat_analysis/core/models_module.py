@@ -46,6 +46,7 @@ from .mitre_mapping_module import MitreMapping
 from threat_analysis.severity_calculator_module import SeverityCalculator
 from .model_validator import ModelValidator
 from threat_analysis.custom_threats import get_custom_threats
+from threat_analysis.core.stride_constants import STRIDE_CATEGORIES as _STRIDE_CATEGORIES_CONST
 from .cve_service import CVEService
 
 class CustomThreat:
@@ -394,10 +395,7 @@ class ThreatModel:
         return expanded_threats
 
     # Valid STRIDE categories — threats outside this set are excluded from grouping.
-    _VALID_STRIDE_CATEGORIES: frozenset = frozenset({
-        'Spoofing', 'Tampering', 'Repudiation',
-        'Information Disclosure', 'Denial of Service', 'Elevation of Privilege',
-    })
+    _VALID_STRIDE_CATEGORIES: frozenset = _STRIDE_CATEGORIES_CONST
 
     def _group_threats(self) -> Dict[str, List[Tuple[Any, Any]]]:
         """Groups threats by STRIDE category, keeping only the 6 canonical categories."""
