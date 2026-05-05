@@ -87,7 +87,7 @@ threat_generation:
   max_threats_per_component: 10
 
   # Rate limiting — set to 1.5 for Gemini free tier (15 RPM), 0.0 for paid/Ollama
-  rate_limit_sleep: 0.0
+  rate_limit_sleep: 1.5
   # Concurrency — 1 = sequential (safe for free tiers); 3–5 for paid/Ollama
   max_concurrent_ai_requests: 3
   # Batch enrichment — components grouped per LLM call (5 = 5× fewer API round trips)
@@ -110,6 +110,13 @@ threat_generation:
 
   # LiteLLM retry policy — applies to all providers
   num_retries: 3         # automatic retries on rate-limit / transient errors
+  # Batch token budget — tokens allocated per component in a batch call (default 600).
+  # 2 000 was the previous default but caused timeouts on slow free-tier providers (70B models).
+  # Raise only if threats are being truncated; reduce if you still hit timeouts.
+  batch_tokens_per_component: 600
+  # Batch timeout multiplier — batch timeout = provider timeout × this factor.
+  # With timeout: 60 and factor: 2.0, batch calls get 120 s instead of 60 s.
+  batch_timeout_factor: 2.0
 
   # Minimum token budget for CISO triage calls (budget = max(this, provider max_tokens))
   ciso_triage_min_tokens: 2000

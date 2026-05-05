@@ -783,6 +783,15 @@ class AIService:
                     logging.debug("AI cache MISS %-32s [%s]  → stored %d threats (batch)",
                                   comp_name, h[:8], len(threats_json or []))
 
+            # Batch failed entirely — fall back to individual calls rather than caching empty.
+            if not results:
+                logging.warning(
+                    "Batch enrichment returned empty for %d component(s) — falling back to individual calls",
+                    len(batch),
+                )
+                await asyncio.gather(*[_enrich_one_fallback(elem, det, h) for elem, det, h in batch])
+                return
+
             # Cache empty result for components the LLM did not mention
             for elem, det, h in batch:
                 if det["name"] not in results:
