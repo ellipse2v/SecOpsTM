@@ -1,7 +1,7 @@
 # STRIDE Threat Analysis Framework with MITRE ATT&CK Integration
 
 ## Overview
-This is an OWASP project : [SecOpsTM](https://owasp.org/www-project-secopstm/)
+This is an OWASP project : [SecOpsTM](https://owasp.org/www-project-secopstm/)  
 This project is a Python-based, end-to-end STRIDE threat modeling and analysis framework with MITRE ATT&CK mapping. It enables you to:
 
 -   **Model your system architecture** in Markdown (`threatModel_Template/threat_model.md`), including boundaries, actors, servers, data, and dataflows.
