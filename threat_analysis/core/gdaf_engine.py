@@ -36,7 +36,11 @@ from threat_analysis.core.bom_loader import BOMLoader
 
 logger = logging.getLogger(__name__)
 
-# Classification → data sensitivity score (0.0–1.0)
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+_SCORING_CONFIG_PATH = _PROJECT_ROOT / "config" / "scoring_config.yaml"
+
+# Default constants — also exported for backward compatibility with existing tests.
+# GDAFEngine instances override these via config/scoring_config.yaml at runtime.
 _CLASSIFICATION_SCORE = {
     "top_secret": 1.0,
     "secret": 0.7,
@@ -45,10 +49,8 @@ _CLASSIFICATION_SCORE = {
     "unknown": 0.1,
 }
 
-# traversal_difficulty → hop_weight bonus (easy path = easier for attacker = higher risk)
 _TRAVERSAL_BONUS = {"low": 0.3, "medium": 0.1, "high": 0.0}
 
-# detection_level → detection_coverage float
 _DETECTION_COVERAGE = {"none": 0.0, "low": 0.2, "medium": 0.5, "high": 0.8}
 
 
@@ -94,6 +96,22 @@ class GDAFEngine:
     multiple markdown files.
     """
 
+    _scoring_config: Optional[Dict] = None  # class-level lazy cache
+
+    @classmethod
+    def _load_scoring_config(cls) -> Dict:
+        """Load scoring_config.yaml once; falls back to empty dict on error."""
+        if cls._scoring_config is not None:
+            return cls._scoring_config
+        try:
+            with open(_SCORING_CONFIG_PATH, "r", encoding="utf-8") as f:
+                cls._scoring_config = yaml.safe_load(f) or {}
+            logger.info("GDAFEngine: loaded scoring config from %s", _SCORING_CONFIG_PATH)
+        except Exception as exc:
+            logger.warning("GDAFEngine: cannot load scoring_config.yaml: %s — using defaults", exc)
+            cls._scoring_config = {}
+        return cls._scoring_config
+
     def __init__(
         self,
         threat_model: Any,
@@ -104,6 +122,42 @@ class GDAFEngine:
         self.threat_model = threat_model
         # All models whose nodes/edges should be merged into the unified graph
         self._all_models: List[Any] = [threat_model] + (extra_models or [])
+
+        # Load scoring config and compute instance-level scoring attributes
+        _cfg = self._load_scoring_config().get("gdaf", {})
+        self._classification_scores: Dict[str, float] = {
+            **_CLASSIFICATION_SCORE, **{k: float(v) for k, v in _cfg.get("classification_scores", {}).items()}
+        }
+        self._traversal_bonus_map: Dict[str, float] = {
+            **_TRAVERSAL_BONUS, **{k: float(v) for k, v in _cfg.get("traversal_bonus", {}).items()}
+        }
+        self._detection_coverage_map: Dict[str, float] = {
+            **_DETECTION_COVERAGE, **{k: float(v) for k, v in _cfg.get("detection_coverage", {}).items()}
+        }
+        _hw = _cfg.get("hop_weights", {})
+        self._hop_weights: Dict[str, float] = {
+            "no_auth":          float(_hw.get("no_auth", 0.4)),
+            "no_encryption":    float(_hw.get("no_encryption", 0.3)),
+            "no_mfa":           float(_hw.get("no_mfa", 0.2)),
+            "cia_contribution": float(_hw.get("cia_contribution", 0.1)),
+            "data_value_factor":float(_hw.get("data_value_factor", 0.3)),
+            "cve_per_cve":      float(_hw.get("cve_per_cve", 0.15)),
+            "cve_cap":          float(_hw.get("cve_cap", 0.5)),
+        }
+        self._target_cia_bonus: float = float(_cfg.get("target_cia_bonus", 0.5))
+        _rt = _cfg.get("risk_thresholds", {})
+        self._risk_thresholds: Dict[str, float] = {
+            "CRITICAL": float(_rt.get("CRITICAL", 4.0)),
+            "HIGH":     float(_rt.get("HIGH", 2.8)),
+            "MEDIUM":   float(_rt.get("MEDIUM", 1.8)),
+        }
+        _dfl = _cfg.get("defaults", {})
+        self._gdaf_defaults: Dict[str, Any] = {
+            "max_hops":               int(_dfl.get("max_hops", 7)),
+            "max_paths_per_objective":int(_dfl.get("max_paths_per_objective", 3)),
+            "acceptable_risk_score":  float(_dfl.get("acceptable_risk_score", 5.0)),
+            "gdaf_min_technique_score": float(_dfl.get("gdaf_min_technique_score", 0.8)),
+        }
         ctx = self._load_context(context_path)
         if ctx and ("attack_objectives" in ctx or "threat_actors" in ctx):
             # Context explicitly declares GDAF sections (even if empty lists) — use as-is.
@@ -156,10 +210,10 @@ class GDAFEngine:
             return []
 
         graph = self._build_graph()
-        max_hops = risk_criteria.get("max_hops", 7)
-        max_paths = risk_criteria.get("max_paths_per_objective", 3)
-        acceptable_risk = risk_criteria.get("acceptable_risk_score", 5.0)
-        self._min_technique_score = float(risk_criteria.get("gdaf_min_technique_score", 0.8))
+        max_hops = risk_criteria.get("max_hops", self._gdaf_defaults["max_hops"])
+        max_paths = risk_criteria.get("max_paths_per_objective", self._gdaf_defaults["max_paths_per_objective"])
+        acceptable_risk = risk_criteria.get("acceptable_risk_score", self._gdaf_defaults["acceptable_risk_score"])
+        self._min_technique_score = float(risk_criteria.get("gdaf_min_technique_score", self._gdaf_defaults["gdaf_min_technique_score"]))
 
         scenarios: List[AttackScenario] = []
 
@@ -296,7 +350,9 @@ class GDAFEngine:
                     data_items = df_data if isinstance(df_data, (list, tuple)) else [df_data]
                     for d in data_items:
                         cls_str = str(getattr(d, "classification", "unknown")).lower().replace(" ", "_")
-                        cls_val = _CLASSIFICATION_SCORE.get(cls_str, 0.1)
+                        cls_val = self._classification_scores.get(
+                            cls_str, self._classification_scores.get("unknown", 0.1)
+                        )
                         if cls_val > data_value:
                             data_value = cls_val
 
@@ -351,7 +407,7 @@ class GDAFEngine:
                     node["credentials_stored"] = bool(bom["credentials_stored"])
                 # detection_level → detection_coverage
                 if "detection_level" in bom:
-                    node["detection_coverage"] = _DETECTION_COVERAGE.get(
+                    node["detection_coverage"] = self._detection_coverage_map.get(
                         str(bom["detection_level"]).lower(), 0.0
                     )
                 # running_services → additional protocols in services set
@@ -570,24 +626,24 @@ class GDAFEngine:
             # Compute hop risk weight from vulnerability signals
             hop_weight = 1.0
             if not edge.get("is_authenticated", False):
-                hop_weight += 0.4
+                hop_weight += self._hop_weights["no_auth"]
             if not edge.get("is_encrypted", False):
-                hop_weight += 0.3
+                hop_weight += self._hop_weights["no_encryption"]
             if not node.get("mfa_enabled", True):
-                hop_weight += 0.2
+                hop_weight += self._hop_weights["no_mfa"]
             cia_score = self._cia_score(node)
-            hop_weight += cia_score * 0.1
+            hop_weight += cia_score * self._hop_weights["cia_contribution"]
 
             # Data value bonus: high-classification data makes this edge more attractive
-            hop_weight += edge.get("data_value", 0.0) * 0.3
+            hop_weight += edge.get("data_value", 0.0) * self._hop_weights["data_value_factor"]
 
             # Traversal difficulty bonus: easier segments are higher risk for the attacker
-            hop_weight += _TRAVERSAL_BONUS.get(edge.get("traversal_difficulty", "low"), 0.1)
+            hop_weight += self._traversal_bonus_map.get(edge.get("traversal_difficulty", "low"), 0.1)
 
             # CVE exposure bonus: unpatched CVEs on this node make it a more attractive target
             cve_count = node.get("cve_count", 0)
             if cve_count > 0:
-                hop_weight += min(cve_count * 0.15, 0.5)  # cap at +0.5
+                hop_weight += min(cve_count * self._hop_weights["cve_per_cve"], self._hop_weights["cve_cap"])
 
             # Track detection coverage for scenario-level average
             hop_detection_coverages.append(node.get("detection_coverage", 0.0))
@@ -612,11 +668,11 @@ class GDAFEngine:
 
         path_score = round(sum(h.hop_score for h in hops) / max(len(hops), 1), 2)
 
-        # Add a CIA bonus (+0–0.5) from the target asset's criticality.
+        # Add a CIA bonus from the target asset's criticality.
         # Additive to keep independent from the path difficulty score.
         target_node = graph.get(path[-1][0], {})
         target_cia = self._cia_score(target_node)
-        path_score = round(path_score + target_cia * 0.5, 2)
+        path_score = round(path_score + target_cia * self._target_cia_bonus, 2)
 
         # Compute scenario-level detection coverage (average of all hop nodes)
         avg_detection = (
@@ -628,9 +684,9 @@ class GDAFEngine:
         # hop_weight ~ 1.0–2.0, avg_tech_score ~ 1.0–2.5 → hop_score ~ 1.0–5.0
         # path_score (average) ~ 1.0–5.0 + CIA bonus 0–0.5
         risk_level = (
-            "CRITICAL" if path_score >= 4.0 else
-            "HIGH"     if path_score >= 2.8 else
-            "MEDIUM"   if path_score >= 1.8 else
+            "CRITICAL" if path_score >= self._risk_thresholds["CRITICAL"] else
+            "HIGH"     if path_score >= self._risk_thresholds["HIGH"] else
+            "MEDIUM"   if path_score >= self._risk_thresholds["MEDIUM"] else
             "LOW"
         )
 
@@ -730,6 +786,10 @@ class GDAFEngine:
                 "assumed_breach": False,
             }
         ]
+        # These values intentionally mirror gdaf.defaults in scoring_config.yaml.
+        # _auto_context() is @staticmethod and cannot access _gdaf_defaults; the
+        # hardcoded values here take precedence over YAML defaults when auto-context
+        # is active (run() reads risk_criteria first, then falls back to _gdaf_defaults).
         risk_criteria = {"max_hops": 7, "max_paths_per_objective": 3, "acceptable_risk_score": 5.0}
         return {
             "attack_objectives": objectives,

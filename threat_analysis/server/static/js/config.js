@@ -1,23 +1,23 @@
 // Threat Model Configuration - Web UI
-// Generated on: 2026-01-24 18:42:40
+// Generated on: 2026-05-04 21:14:43
 // This file contains configuration for the threat model web interface
 
 const ThreatModelConfig = {
     "ICON_MAPPING": {
         "actor": "/static/resources/icons/actor.svg",
-        "web_server": "/static/resources/icons/web-server.svg",
-        "database": "/static/resources/icons/database.svg",
-        "firewall": "/static/resources/icons/firewall.svg",
         "data": "/static/resources/icons/data.svg",
         "router": "/static/resources/icons/routers.svg",
         "switch": "/static/resources/icons/switch.svg",
         "server": "/static/resources/icons/server.svg",
+        "dmz": "/static/resources/icons/dmz.svg",
+        "firewall": "/static/resources/icons/firewall.svg",
+        "database": "/static/resources/icons/database.svg",
+        "web_server": "/static/resources/icons/web-server.svg",
+        "webserver": "/static/resources/icons/web-server.svg",
         "api_gateway": "/static/resources/icons/api-gateway.svg",
-        "app_server": "/static/resources/icons/server.svg",
-        "central_server": "/static/resources/icons/server.svg",
-        "authentication_server": "/static/resources/icons/server.svg",
+        "apigateway": "/static/resources/icons/api-gateway.svg",
         "load_balancer": "/static/resources/icons/load_balancer.svg",
-        "dmz": "/static/resources/icons/dmz.svg"
+        "loadbalancer": "/static/resources/icons/load_balancer.svg"
     },
     "DEFAULT_PROPERTIES": {
         "BOUNDARY": {

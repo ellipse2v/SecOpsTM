@@ -48,6 +48,7 @@ from threat_analysis.generation.stix_generator import StixGenerator
 from threat_analysis.generation.attack_navigator_generator import AttackNavigatorGenerator
 from threat_analysis.generation.attack_flow_generator import AttackFlowGenerator
 from threat_analysis.core.models_module import ThreatModel
+from threat_analysis.core.stride_constants import STRIDE_CATEGORIES as _STRIDE_CATEGORIES_CONST
 from threat_analysis.core.mitre_mapping_module import MitreMapping
 from threat_analysis.core.attack_chain import AttackChainAnalyzer
 from threat_analysis.core.threat_consolidator import ThreatConsolidator
@@ -1201,10 +1202,7 @@ class ReportGenerator:
         """Determines the target name for severity calculation, handling different target types."""
         return get_target_name(target)
 
-    _VALID_STRIDE: frozenset = frozenset({
-        'Spoofing', 'Tampering', 'Repudiation',
-        'Information Disclosure', 'Denial of Service', 'Elevation of Privilege',
-    })
+    _VALID_STRIDE: frozenset = _STRIDE_CATEGORIES_CONST
 
     def generate_summary_stats(self, all_detailed_threats: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Generates summary statistics based on severity scores.

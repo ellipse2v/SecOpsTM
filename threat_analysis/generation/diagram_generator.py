@@ -35,7 +35,20 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 class DiagramGenerator:
     """Enhanced class for threat model diagram generation with protocol styles and boundary attributes"""
-    
+
+    # Default (label, fill-color) per node type used in the legend.
+    # Override individual entries by setting a `color` attribute on the model element.
+    _LEGEND_NODE_COLORS: Dict[str, tuple] = {
+        "Actor":      ("👤 Actor",      "#FFFF99"),
+        "Server":     ("🖥️ Server",     "#90EE90"),
+        "Database":   ("🗄️ Database",   "#ADD8D6"),
+        "Firewall":   ("🔥 Firewall",   "#FF6B6B"),
+        "Router":     ("🌐 Router",     "#FFD700"),
+        "Switch":     ("🔀 Switch",     "orange"),
+        "Web Server": ("🌐 Web Server", "lightgreen"),
+        "API Gateway":("🔌 API Gateway","lightyellow"),
+    }
+
     def __init__(self):
         self.dot_executable = "dot"
         self.supported_formats = ["svg", "png", "pdf", "ps"]
@@ -982,20 +995,7 @@ class DiagramGenerator:
         legend_items = []
 
         # Node types legend (remains the same)
-        legend_node_types = {}
-        default_types = {
-            'Actor': ('👤 Actor', '#FFFF99'),
-            'Server': ('🖥️ Server', '#90EE90'),
-            'Database': ('🗄️ Database', '#ADD8D6'),
-            'Firewall': ('🔥 Firewall', '#FF6B6B'),
-            'Router': ('🌐 Router', '#FFD700'),
-            'Switch': ('🔀 Switch', 'orange'),
-            'Web Server': ('🌐 Web Server', 'lightgreen'),
-            'API Gateway': ('🔌 API Gateway', 'lightyellow')
-        }
-        for key, value in default_types.items():
-            if key not in legend_node_types:
-                legend_node_types[key] = value
+        legend_node_types = dict(self._LEGEND_NODE_COLORS)
 
         if hasattr(threat_model, 'actors'):
             for actor in threat_model.actors:

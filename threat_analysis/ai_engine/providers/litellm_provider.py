@@ -112,13 +112,23 @@ class LiteLLMProvider(BaseLLMProvider):
                 logging.debug("_parse_batch: no component entries found in response (raw type=%s)", type(raw).__name__)
             return result
 
-        # Budget ~2 000 tokens per component for the JSON response (threats are verbose).
-        # Never go below the provider's own max_tokens setting.
+        # Token budget per component: configurable, default 600 (not 2000 — too slow on free tiers).
+        # Cap at 4× provider max_tokens to avoid absurdly large requests.
         try:
             provider_max = int(client.provider_config.get("max_tokens", 4096))
         except (TypeError, ValueError):
             provider_max = 4096
-        batch_max_tokens = max(len(components) * 2000, provider_max)
+        ai_cfg = client.ai_config.get("threat_generation", {})
+        tokens_per_component = int(ai_cfg.get("batch_tokens_per_component", 600))
+        batch_max_tokens = min(
+            max(len(components) * tokens_per_component, provider_max),
+            provider_max * 4,
+        )
+
+        # Batch calls may need more time than single calls; scale by a configurable factor.
+        base_timeout = float(client.provider_config.get("timeout", 60))
+        batch_timeout_factor = float(ai_cfg.get("batch_timeout_factor", 2.0))
+        batch_timeout = base_timeout * batch_timeout_factor
 
         try:
             async for chunk in client.generate_content(
@@ -126,6 +136,7 @@ class LiteLLMProvider(BaseLLMProvider):
                 system_prompt=_get_prompt("stride_analysis", "system"),
                 output_format="json",
                 max_tokens=batch_max_tokens,
+                timeout=batch_timeout,
             ):
                 if isinstance(chunk, (list, dict)):
                     parsed = _parse_batch(chunk)
@@ -164,12 +175,12 @@ class LiteLLMProvider(BaseLLMProvider):
     async def generate_ciso_triage(self, prompt: str, system_prompt: str) -> Dict:
         """Calls the LLM with the CISO persona and returns the parsed briefing."""
         client = await self._get_client()
-        # CISO triage response is a single JSON object — 2 000 tokens is ample.
         try:
             provider_max = int(client.provider_config.get("max_tokens", 4096))
         except (TypeError, ValueError):
             provider_max = 4096
-        ciso_max_tokens = max(2000, provider_max)
+        ciso_min = int(client.ai_config.get("threat_generation", {}).get("ciso_triage_min_tokens", 2000))
+        ciso_max_tokens = max(ciso_min, provider_max)
         try:
             async for chunk in client.generate_content(
                 prompt=prompt,

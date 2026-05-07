@@ -13,9 +13,19 @@
 # limitations under the License.
 
 import pytest
+from unittest.mock import patch
+import threat_analysis.core.threat_consolidator as consolidator_mod
 from threat_analysis.core.threat_consolidator import (
-    ThreatConsolidator, _normalize_category, _word_set, _jaccard, _descriptions_similar
+    ThreatConsolidator, _normalize_category, _word_set, _jaccard, _descriptions_similar,
+    _get_stop_words, _STOP_WORDS,
 )
+
+
+@pytest.fixture(autouse=True)
+def reset_consolidator_config_cache():
+    consolidator_mod._scoring_config = None
+    yield
+    consolidator_mod._scoring_config = None
 
 def test_normalize_category():
     assert _normalize_category("Elevation of Privilege") == "ElevationOfPrivilege"
@@ -315,3 +325,83 @@ def test_merged_order_unique_pytm_then_ai():
     # Remaining are the AI threats
     assert merged[1].get("source") == "AI"
     assert merged[2].get("source") == "AI"
+
+
+# ---------------------------------------------------------------------------
+# Tests — configurable Jaccard threshold
+# ---------------------------------------------------------------------------
+
+class TestConfigurableJaccardThreshold:
+    def test_lower_threshold_merges_threats_that_default_wouldnt(self):
+        # Jaccard ≈ 0.2 between these descriptions — below default 0.3, above 0.1
+        pytm = [{"target": "DB", "stride_category": "Tampering",
+                  "description": "attacker modifies database records via SQL", "source": "pytm"}]
+        ai   = [{"target": "DB", "stride_category": "Tampering",
+                  "description": "SQL injection modifies records", "source": "AI"}]
+        with patch.object(consolidator_mod, "_load_scoring_config",
+                          return_value={"deduplication": {"jaccard_threshold": 0.1}}):
+            result = consolidator_mod.ThreatConsolidator.deduplicate(pytm, ai)
+        # AI wins, pytm is removed — only 1 threat
+        assert len(result) == 1
+        assert result[0]["source"] == "AI"
+
+    def test_higher_threshold_keeps_threats_that_default_would_merge(self):
+        pytm = [{"target": "DB", "stride_category": "Tampering",
+                  "description": "SQL injection attack on database", "source": "pytm"}]
+        ai   = [{"target": "DB", "stride_category": "Tampering",
+                  "description": "SQL injection allows attacker to modify database data", "source": "AI"}]
+        with patch.object(consolidator_mod, "_load_scoring_config",
+                          return_value={"deduplication": {"jaccard_threshold": 0.9}}):
+            result = consolidator_mod.ThreatConsolidator.deduplicate(pytm, ai)
+        # Threshold too high — not merged, both threats present
+        assert len(result) == 2
+
+    def test_missing_config_uses_default_threshold(self):
+        with patch.object(consolidator_mod, "_load_scoring_config", return_value={}):
+            threshold = consolidator_mod._get_jaccard_threshold()
+        assert threshold == 0.3
+
+
+# ---------------------------------------------------------------------------
+# _get_stop_words — configurable stop-word set
+# ---------------------------------------------------------------------------
+
+class TestConfigurableStopWords:
+    def test_key_absent_returns_builtin_defaults(self):
+        """When deduplication.stop_words key is absent, built-in _STOP_WORDS is returned."""
+        with patch.object(consolidator_mod, "_load_scoring_config", return_value={}):
+            result = _get_stop_words()
+        assert result is _STOP_WORDS
+
+    def test_yaml_stop_words_override_defaults(self):
+        """When stop_words list is present in YAML, it replaces the built-in set."""
+        custom = ["le", "la", "les", "de"]
+        with patch.object(consolidator_mod, "_load_scoring_config",
+                          return_value={"deduplication": {"stop_words": custom}}):
+            result = _get_stop_words()
+        assert result == set(custom)
+        assert "a" not in result   # built-in word not present in custom list
+
+    def test_empty_list_means_no_stop_words(self):
+        """stop_words: [] explicitly disables stop-word filtering (empty set returned)."""
+        with patch.object(consolidator_mod, "_load_scoring_config",
+                          return_value={"deduplication": {"stop_words": []}}):
+            result = _get_stop_words()
+        assert result == set()
+
+    def test_word_set_uses_yaml_stop_words(self):
+        """_word_set() filters using the YAML-configured stop list, not the built-in one."""
+        # "the" is in built-in _STOP_WORDS; not in the custom list → should NOT be filtered
+        with patch.object(consolidator_mod, "_load_scoring_config",
+                          return_value={"deduplication": {"stop_words": ["a", "an"]}}):
+            result = _word_set("the server exposes an endpoint")
+        assert "the" in result   # "the" kept because it's not in the custom stop list
+        assert "an" not in result  # "an" removed as it's in the custom stop list
+
+    def test_word_set_with_empty_stop_list_keeps_all_words(self):
+        """With stop_words: [], _word_set() keeps all words (>2 chars) including stop words."""
+        with patch.object(consolidator_mod, "_load_scoring_config",
+                          return_value={"deduplication": {"stop_words": []}}):
+            result = _word_set("the server is exposed")
+        assert "the" in result
+        assert "server" in result

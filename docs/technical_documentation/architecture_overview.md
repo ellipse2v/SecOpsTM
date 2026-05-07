@@ -175,7 +175,7 @@ The GDAF is a top-down attack scenario generator implemented in three cooperatin
    - Loads `enterprise-attack.json` once (class-level cache, lazy).
    - `get_techniques(asset_type, asset_attrs, hop_position, actor_known_ttps, actor_capable_tactics, top_k)` returns the top-k ranked MITRE techniques for the given asset.
    - Scoring is a sum of additive bonuses: platform match (+0.5), primary tactic (+0.4), hop position tactic (+0.3), key technique for asset type (+0.6), actor known TTP (+0.5), vulnerability signals (+0.2–0.3 each).
-   - `_normalize_type()` maps fuzzy DSL type strings to canonical keys in `ASSET_TYPE_TO_PLATFORMS` and `ASSET_TYPE_TO_TACTICS`.
+   - `_normalize_type()` maps fuzzy DSL type strings to canonical keys in `config/asset_types_community.yaml`.
 
 3. **`threat_analysis/generation/attack_flow_builder.py`** — `AttackFlowBuilder`
    - Serializes `AttackScenario` objects to Attack Flow `.afb` JSON files.

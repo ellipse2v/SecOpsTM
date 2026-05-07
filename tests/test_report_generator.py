@@ -83,7 +83,7 @@ def test_generate_html_report(mock_get_framework_mitigations, report_generator):
         mock_get_template.return_value = mock_template
         with patch("builtins.open", mock_open()) as mock_file:
             result = report_generator.generate_html_report(threat_model, grouped_threats, output_file)
-            mock_file.assert_called_once_with(output_file, "w", encoding="utf-8")
+            mock_file.assert_any_call(output_file, "w", encoding="utf-8")
 
     assert result == output_file
     mock_template.render.assert_called_once()
