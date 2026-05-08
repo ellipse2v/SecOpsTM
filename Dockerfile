@@ -28,15 +28,13 @@ COPY --chown=appuser:appuser config/ ./config/
 COPY --chown=appuser:appuser threatModel_Template/ ./threatModel_Template/
 COPY --chown=appuser:appuser pyproject.toml README.md LICENSE ./
 
-USER appuser
-
 # ── Stage: core (default) ───────────────────────────────────────────────────
 FROM base AS core
 
-# Install runtime dependencies (no AI extras)
-RUN pip install --no-cache-dir --user .
+# Install as root (system-wide), then drop to non-root for runtime
+RUN pip install --no-cache-dir .
 
-ENV PATH="/home/appuser/.local/bin:${PATH}"
+USER appuser
 
 EXPOSE 5000
 
@@ -48,8 +46,9 @@ CMD ["--server", "--port", "5000"]
 # ── Stage: ai ───────────────────────────────────────────────────────────────
 FROM core AS ai
 
-# Install AI extras: litellm, chromadb, sentence-transformers
-RUN pip install --no-cache-dir --user ".[ai]"
+USER root
+RUN pip install --no-cache-dir ".[ai]"
+USER appuser
 
 # ChromaDB vector store is large (~1.8 GB) — mount it at runtime
 VOLUME ["/app/threat_analysis/vector_store", "/app/output"]
