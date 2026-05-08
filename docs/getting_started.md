@@ -1,31 +1,59 @@
 # Getting Started
 
-## Quick Start / Installation
+## Installation options
 
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/ellipse2v/SecOpsTM.git
-    cd SecOpsTM
-    ```
+### Option A — Docker (recommended, no setup required)
 
-2.  **Install Python dependencies:**
-    ```bash
-    pip install -e .
-    ```
-    This installs all project dependencies in editable mode and makes the `secopstm` CLI command available in your environment.
-    For a standard installation (e.g., for deployment), use `pip install .`
+Graphviz and all runtime dependencies are pre-installed.
 
-    **Quick CLI test after installation:**
-    ```bash
-    secopstm --model-file threatModel_Template/threat_model.md
-    ```
+```bash
+# Core image — Flask server + offline threat modeling
+docker pull ghcr.io/ellipse2v/secopstm:latest
+docker run -p 5000:5000 -v $(pwd)/output:/app/output ghcr.io/ellipse2v/secopstm:latest
 
-3.  **Install Graphviz (for diagram generation):**
-    -   Windows: [https://graphviz.org/download/](https://graphviz.org/download/)
-    -   macOS: `brew install graphviz`
-    -   Linux: `sudo apt-get install graphviz`
+# AI-enabled image — adds LiteLLM + ChromaDB + local embeddings
+docker pull ghcr.io/ellipse2v/secopstm:ai
+docker run -p 5000:5000 \
+  -e GEMINI_API_KEY=your_key \
+  -v /path/to/vector_store:/app/threat_analysis/vector_store \
+  -v $(pwd)/output:/app/output \
+  ghcr.io/ellipse2v/secopstm:ai
+```
 
-After installation, restart your terminal or IDE.
+Open `http://localhost:5000` in your browser.
+
+### Option B — pip install
+
+```bash
+pip install SecOpsTM
+
+# Download the offline security knowledge base (~140 MB, required for full analysis)
+secopstm download-data
+
+# Install Graphviz separately
+#   Windows: https://graphviz.org/download/
+#   macOS:   brew install graphviz
+#   Linux:   sudo apt-get install graphviz
+```
+
+**Quick test:**
+```bash
+secopstm --server
+```
+
+### Option C — From source (development)
+
+```bash
+git clone https://github.com/ellipse2v/SecOpsTM.git
+cd SecOpsTM
+pip install -e .
+# external_data/ is already present in the repo — no download step needed
+```
+
+**Quick CLI test after installation:**
+```bash
+secopstm --model-file threatModel_Template/threat_model.md
+```
 
 ## Using the Web Interface (Server Mode)
 

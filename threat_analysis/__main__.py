@@ -41,6 +41,93 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+
+def download_data(args=None, package_dir=None):
+    """Download external_data.tar.gz from GitHub Releases, verify SHA-256, and extract.
+
+    Called when sys.argv[1] == 'download-data' (early-exit before heavy imports).
+    Also callable directly for testing (pass args list and package_dir).
+    """
+    import argparse as _ap
+    import hashlib
+    import tarfile as _tarfile
+    import urllib.request
+    import io as _io
+
+    try:
+        from importlib.metadata import version as _pkg_version
+        _version = _pkg_version("SecOpsTM")
+    except Exception:
+        _version = "1.1.1a1"
+
+    _p = _ap.ArgumentParser(prog="secopstm download-data")
+    _p.add_argument("--force", action="store_true", help="Overwrite existing external_data/")
+    _parsed = _p.parse_args(args if args is not None else sys.argv[2:])
+
+    if package_dir is None:
+        import threat_analysis as _ta
+        package_dir = Path(_ta.__file__).resolve().parent
+
+    ext_dir = Path(package_dir) / "external_data"
+    if ext_dir.exists() and any(ext_dir.iterdir()) and not _parsed.force:
+        print(f"external_data/ already present at {ext_dir}. Use --force to overwrite.")
+        sys.exit(0)
+
+    base_url = (
+        f"https://github.com/ellipse2v/SecOpsTM/releases/download"
+        f"/v{_version}/external_data.tar.gz"
+    )
+    sha256_url = base_url + ".sha256"
+
+    print(f"Downloading SHA-256 checksum from {sha256_url} ...")
+    with urllib.request.urlopen(sha256_url) as resp:
+        sha256_line = resp.read().decode().strip()
+    expected_sha256 = sha256_line.split()[0]
+
+    print(f"Downloading {base_url} ...")
+    with urllib.request.urlopen(base_url) as resp:
+        tarball_bytes = resp.read()
+
+    actual_sha256 = hashlib.sha256(tarball_bytes).hexdigest()
+    if actual_sha256 != expected_sha256:
+        print(
+            f"SHA-256 mismatch!\n  expected: {expected_sha256}\n  got:      {actual_sha256}"
+        )
+        sys.exit(1)
+
+    print("Checksum OK. Extracting ...")
+    import shutil
+    import tempfile
+
+    tmp_dir = Path(tempfile.mkdtemp(dir=str(package_dir), prefix=".download_tmp_"))
+    try:
+        with _tarfile.open(fileobj=_io.BytesIO(tarball_bytes), mode="r:gz") as tf:
+            members = tf.getmembers()
+            dest_resolved = Path(package_dir).resolve()
+            for m in members:
+                member_path = (dest_resolved / m.name).resolve()
+                if not str(member_path).startswith(str(dest_resolved)):
+                    print(f"Aborting: path traversal detected in tarball: {m.name}")
+                    sys.exit(1)
+            tf.extractall(path=tmp_dir)
+
+        extracted_dir = tmp_dir / "external_data"
+        if not extracted_dir.exists():
+            print("Error: tarball did not contain an external_data/ directory.")
+            sys.exit(1)
+
+        if ext_dir.exists():
+            shutil.rmtree(ext_dir)
+        extracted_dir.rename(ext_dir)
+    finally:
+        if tmp_dir.exists():
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    print(f"external_data/ extracted to {ext_dir}")
+    print("Run `secopstm --server` to start.")
+    sys.exit(0)
+
+
 class SecOpsTMFramework:
     """Main framework for threat analysis"""
 
@@ -893,6 +980,10 @@ class ColoredFormatter(logging.Formatter):
 # --- Main entry point ---
 def main():
     """Entry point for the `secopstm` CLI command."""
+    # Early-exit: download-data subcommand (no heavy imports needed)
+    if len(sys.argv) > 1 and sys.argv[1] == "download-data":
+        download_data()
+
     print("\n🚀 SecOpsTM Framework is starting...")
     # --- Argument Parsing ---
     loaded_iac_plugins = load_iac_plugins()

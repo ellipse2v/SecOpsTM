@@ -16,7 +16,7 @@
 STRIDE Threat Analysis Library with MITRE ATT&CK Integration
 """
 
-__version__ = "v1.1.1"
+__version__ = "1.1.1a1"
 __author__ = "ellipse2v"
 
 from .core import data_loader

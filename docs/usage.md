@@ -10,9 +10,62 @@ This framework is designed to be used in a "Threat Model as Code" workflow. This
 -   **Automation**: The threat modeling process can be integrated into your CI/CD pipeline, allowing you to automatically update your threat model whenever your architecture changes.
 -   **Collaboration**: Developers can collaborate on the threat model using the same tools they use for code.
 
+## 0. Installation paths
+
+### Via Docker
+
+```bash
+# Core image — Flask server + offline threat modeling (no AI)
+docker run -p 5000:5000 -v $(pwd)/output:/app/output \
+  ghcr.io/ellipse2v/secopstm:latest
+
+# CLI pipeline (no server)
+docker run --rm -v $(pwd)/models:/models \
+  ghcr.io/ellipse2v/secopstm:latest \
+  secopstm --project /models/ --output-format json --stdout
+
+# AI-enabled image — LiteLLM + ChromaDB + local embeddings
+docker run -p 5000:5000 \
+  -e GEMINI_API_KEY=your_key \
+  -v /path/to/vector_store:/app/threat_analysis/vector_store \
+  -v $(pwd)/output:/app/output \
+  ghcr.io/ellipse2v/secopstm:ai
+
+# Override AI provider config at runtime
+docker run -p 5000:5000 \
+  -e OPENAI_API_KEY=your_key \
+  -v $(pwd)/config/ai_config.yaml:/app/config/ai_config.yaml \
+  ghcr.io/ellipse2v/secopstm:ai
+```
+
+Available tags: `latest` / `1.1.1a1` (core), `ai` / `1.1.1a1-ai` (with AI extras).
+
+### Via pip
+
+```bash
+pip install SecOpsTM
+
+# Download the offline security knowledge base (required for MITRE/CVE mapping)
+secopstm download-data           # ~140 MB from GitHub Releases, SHA-256 verified
+secopstm download-data --force   # re-download and overwrite existing data
+```
+
+`download-data` is a one-time setup step. It downloads `external_data.tar.gz` from the GitHub Releases page, verifies the SHA-256 checksum, and extracts into the installed package directory. Uses only Python stdlib — no extra deps.
+
+### Via source (development)
+
+```bash
+git clone https://github.com/ellipse2v/SecOpsTM.git
+cd SecOpsTM
+pip install -e .          # external_data/ is already in the repo
+pip install -e ".[ai]"    # add AI extras (LiteLLM, ChromaDB, sentence-transformers)
+```
+
+---
+
 ## 1. Command Line Interface (CLI) Mode
 
-Use the `secopstm` command (installed via `pip install -e .`) for automated threat analysis:
+Use the `secopstm` command for automated threat analysis:
 
 ```bash
 # Full analysis — HTML + JSON + SVG in output/
