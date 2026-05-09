@@ -616,7 +616,20 @@ class CustomArgumentParser:
                     help=f"Path to the {plugin.name} configuration.",
                 )
 
+    def _add_version_argument(self):
+        try:
+            from importlib.metadata import version as _v
+            _ver = _v("SecOpsTM")
+        except Exception:
+            _ver = "unknown"
+        self.parser.add_argument(
+            "--version", "-V",
+            action="version",
+            version=f"%(prog)s {_ver}",
+        )
+
     def parse_args(self):
+        self._add_version_argument()
         return self.parser.parse_known_args()
 
 def diff_threat_reports(old_path: str, new_path: str) -> int:

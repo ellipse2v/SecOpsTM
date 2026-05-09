@@ -121,11 +121,15 @@ def compare_threat_reports(old: dict, new: dict) -> dict:
     }
 
 
-def _validate_path_within_project(input_path: str, base_dir: Path = PROJECT_ROOT) -> Path:
+def _validate_path_within_project(input_path: str, base_dir: Optional[Path] = None) -> Path:
     """
-    Validates if an input path is within the specified base directory (project root by default).
+    Validates if an input path is within the specified base directory.
+    Defaults to Path.cwd() so installed CLI usage resolves paths relative to
+    the user's working directory, not the package installation directory.
     Raises ValueError if the path is outside the base directory or does not exist.
     """
+    if base_dir is None:
+        base_dir = Path.cwd()
     path_obj = Path(input_path)
     if not path_obj.exists():
         listing = []
