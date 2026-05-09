@@ -80,7 +80,7 @@ class LiteLLMClient:
                     self._litellm_module.set_verbose = False
                     logging.debug(f"[{time.time() - start_time:.4f}s] litellm module dynamically imported.")
                 except ImportError as e:
-                    logging.error(f"[{time.time() - start_time:.4f}s] Failed to import litellm: {e}. AI features disabled.")
+                    logging.error("[%.4fs] Failed to import litellm: %s. AI features disabled.", time.time() - start_time, e)
                     return
 
                 self.model_name = f"{provider_name}/{self.provider_config.get('model')}"
