@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "SecOpsTM"
-version = "1.1.1a5"
+version = "1.1.1a6"
 authors = [
   { name="ellipse2v", email="ellipse2v@gmail.com" },
 ]
@@ -62,6 +62,19 @@ secopstm = "threat_analysis.__main__:main"
 [tool.setuptools.packages.find]
 where = ["."] # Search for packages in the current directory
 include = ["threat_analysis*"] # Include threat_analysis and its subpackages
+
+[tool.setuptools.package-data]
+"threat_analysis" = [
+    "config/*.yaml",
+    "server/static/**/*",
+    "server/templates/**/*",
+    "templates/**/*",
+    "external_data/*.json",
+    "external_data/*.csv",
+    "external_data/*.xml",
+    "external_data/cve2capec/*.jsonl",
+    "schemas/**/*",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -1,0 +1,220 @@
+# SecOpsTM Community Asset Type Registry
+# Each entry maps an asset type to MITRE ATT&CK platforms, tactics, and key techniques.
+#
+# To add a new type: see CONTRIBUTING_ASSET_TYPES.md
+#
+# Fields:
+#   description   : human-readable description
+#   category      : endpoint | network | server | ot | iot | cloud | identity
+#   platforms     : MITRE ATT&CK platform names (exact case required)
+#   tactics       : kebab-case tactic IDs, ordered by likelihood for this asset type
+#   key_techniques: high-value technique IDs to boost in scoring (empty list if none)
+#   fuzzy_matches : lowercase substrings used by _normalize_type() for loose matching
+#   icon_url      : path relative to Flask static root, e.g. /static/resources/icons/firewall.svg
+#                   Empty string means no icon; config_generator.py reads this to build ICON_MAPPING.
+
+asset_types:
+
+  firewall:
+    description: "Network firewall or packet-filtering device"
+    category: network
+    platforms: [Network Devices]
+    tactics: [initial-access, defense-evasion, lateral-movement]
+    key_techniques: [T1190, T1600, T1599]
+    fuzzy_matches: [firewall, fw]
+    icon_url: "/static/resources/icons/firewall.svg"
+
+  # NOTE: pki must appear before auth-server in this file.
+  # "certificate-authority" contains "auth" — pki's fuzzy_matches are checked first
+  # because _normalize_type() iterates entries in YAML declaration order.
+  pki:
+    description: "Public Key Infrastructure / Certificate Authority"
+    category: identity
+    platforms: [Windows]
+    tactics: [credential-access, privilege-escalation]
+    key_techniques: []
+    fuzzy_matches: [pki, certificate]
+    icon_url: ""
+
+  domain-controller:
+    description: "Active Directory Domain Controller"
+    category: identity
+    platforms: [Windows]
+    tactics: [credential-access, privilege-escalation, persistence, lateral-movement]
+    key_techniques: [T1550.002, T1558.003, T1003.006, T1558.001, T1003.001, T1207]
+    fuzzy_matches: [domain, dc]
+    icon_url: ""
+
+  auth-server:
+    description: "Authentication server (RADIUS, LDAP, SSO)"
+    category: identity
+    platforms: [Windows, Linux]
+    tactics: [credential-access, privilege-escalation, initial-access]
+    key_techniques: [T1110, T1212, T1528, T1550]
+    fuzzy_matches: [auth]
+    icon_url: ""
+
+  database:
+    description: "Relational or NoSQL database server"
+    category: server
+    platforms: [Windows, Linux]
+    tactics: [credential-access, collection, exfiltration]
+    key_techniques: [T1190, T1078, T1048, T1030]
+    fuzzy_matches: [database, db, sql]
+    icon_url: "/static/resources/icons/database.svg"
+
+  web-server:
+    description: "HTTP/HTTPS web application server"
+    category: server
+    platforms: [Windows, Linux]
+    tactics: [initial-access, execution, persistence]
+    key_techniques: []
+    fuzzy_matches: [web server, web-server, webserver]
+    icon_url: "/static/resources/icons/web-server.svg"
+
+  api-gateway:
+    description: "API gateway or reverse proxy"
+    category: server
+    platforms: [Windows, Linux]
+    tactics: [initial-access, execution]
+    key_techniques: []
+    fuzzy_matches: [api-gateway, api gateway]
+    icon_url: "/static/resources/icons/api-gateway.svg"
+
+  file-server:
+    description: "File sharing server (SMB, NFS)"
+    category: server
+    platforms: [Windows, Linux]
+    tactics: [collection, lateral-movement, exfiltration]
+    key_techniques: [T1021.002, T1039, T1083, T1135]
+    fuzzy_matches: [file]
+    icon_url: ""
+
+  mail-server:
+    description: "Email server (Exchange, Postfix)"
+    category: server
+    platforms: [Windows, Linux, Office Suite]
+    tactics: [initial-access, collection]
+    key_techniques: [T1566, T1114, T1071.003]
+    fuzzy_matches: [mail, email, smtp, exchange]
+    icon_url: ""
+
+  management-server:
+    description: "IT management, jump server, or privileged access workstation"
+    category: server
+    platforms: [Windows, Linux]
+    tactics: [lateral-movement, privilege-escalation, execution]
+    key_techniques: [T1021.001, T1078, T1570]
+    fuzzy_matches: [jump, bastion, paw]
+    icon_url: ""
+
+  workstation:
+    description: "Standard end-user workstation or laptop"
+    category: endpoint
+    platforms: [Windows]
+    tactics: [execution, persistence, privilege-escalation, credential-access]
+    key_techniques: [T1566.001, T1059.001, T1059.003, T1204.002, T1003.001, T1055]
+    fuzzy_matches: [workstation, laptop, desktop]
+    icon_url: ""
+
+  load-balancer:
+    description: "Network load balancer"
+    category: network
+    platforms: [Network Devices, Linux]
+    tactics: [initial-access, defense-evasion]
+    key_techniques: []
+    fuzzy_matches: [load-balancer, load balancer]
+    icon_url: "/static/resources/icons/load_balancer.svg"
+
+  # NOTE: vpn.fuzzy_matches is intentionally empty. Any input containing "vpn" resolves to
+  # vpn-gateway (which has fuzzy_matches: [vpn]). The "vpn" entry is only reached when the
+  # asset type is passed as the exact string "vpn".
+  vpn:
+    description: "VPN client endpoint or concentrator"
+    category: network
+    platforms: [Network Devices]
+    tactics: [initial-access, credential-access]
+    key_techniques: []
+    fuzzy_matches: []
+    icon_url: ""
+
+  vpn-gateway:
+    description: "VPN gateway or remote access server"
+    category: network
+    platforms: [Network Devices]
+    tactics: [initial-access, credential-access]
+    key_techniques: [T1078, T1133, T1110]
+    fuzzy_matches: [vpn]
+    icon_url: ""
+
+  scada:
+    description: "SCADA system or Human-Machine Interface"
+    category: ot
+    platforms: [Windows, Linux]
+    tactics: [initial-access, execution, impact]
+    key_techniques: [T1021.001, T1133, T1078]
+    fuzzy_matches: [scada, hmi]
+    icon_url: ""
+
+  plc:
+    description: "Programmable Logic Controller or RTU in ICS/OT environment"
+    category: ot
+    platforms: [Linux]
+    tactics: [impact, execution]
+    key_techniques: [T1565.001, T1498, T1489]
+    fuzzy_matches: [plc, controller, rtu]
+    icon_url: ""
+
+  repository:
+    description: "Source code repository server (Git, SVN)"
+    category: server
+    platforms: [Linux]
+    tactics: [collection, exfiltration]
+    key_techniques: []
+    fuzzy_matches: [repository, git, repo]
+    icon_url: ""
+
+  cicd:
+    description: "CI/CD pipeline server (Jenkins, GitLab CI, GitHub Actions runner)"
+    category: server
+    platforms: [Linux]
+    tactics: [execution, persistence, lateral-movement]
+    key_techniques: [T1195.002, T1059, T1525]
+    fuzzy_matches: [cicd, ci_cd, pipeline, jenkins]
+    icon_url: ""
+
+  backup:
+    description: "Backup server or storage appliance"
+    category: server
+    platforms: [Linux, Windows]
+    tactics: [collection, exfiltration, impact]
+    key_techniques: []
+    fuzzy_matches: [backup]
+    icon_url: ""
+
+  dns:
+    description: "DNS server"
+    category: server
+    platforms: [Windows, Linux]
+    tactics: [defense-evasion, lateral-movement, command-and-control]
+    key_techniques: []
+    fuzzy_matches: [dns]
+    icon_url: ""
+
+  siem:
+    description: "Security Information and Event Management system"
+    category: server
+    platforms: [Linux]
+    tactics: [defense-evasion, collection]
+    key_techniques: []
+    fuzzy_matches: [siem, log]
+    icon_url: ""
+
+  default:
+    description: "Fallback for unknown asset types"
+    category: server
+    platforms: [Windows, Linux]
+    tactics: [initial-access, execution, lateral-movement]
+    key_techniques: []
+    fuzzy_matches: []
+    icon_url: ""
