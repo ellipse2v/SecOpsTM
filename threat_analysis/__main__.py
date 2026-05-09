@@ -876,7 +876,8 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
         PROJECT_ROOT, cve_definitions_path, is_cve_path_explicit
     )
 
-    ai_config_path = PROJECT_ROOT / (args.ai_config_file if hasattr(args, "ai_config_file") else "config/ai_config.yaml")
+    _ai_config_rel = args.ai_config_file if hasattr(args, "ai_config_file") else "config/ai_config.yaml"
+    ai_config_path = Path(_ai_config_rel) if Path(_ai_config_rel).is_absolute() else Path.cwd() / _ai_config_rel
 
     framework = SecOpsTMFramework(
         markdown_content=markdown_content_for_analysis,
@@ -1096,7 +1097,8 @@ def main():
         MitreMapping = mitre_mapping_module.MitreMapping
         mitre_mapping = MitreMapping(threat_model_path=str(_root_model_file))
 
-        ai_config_path = PROJECT_ROOT / (args.ai_config_file if hasattr(args, 'ai_config_file') else "config/ai_config.yaml")
+        _ai_config_rel = args.ai_config_file if hasattr(args, 'ai_config_file') else "config/ai_config.yaml"
+        ai_config_path = Path(_ai_config_rel) if Path(_ai_config_rel).is_absolute() else Path.cwd() / _ai_config_rel
 
         # Lazy import ReportGenerator
         report_generator_module = importlib.import_module("threat_analysis.generation.report_generator")

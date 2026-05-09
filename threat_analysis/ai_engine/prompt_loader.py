@@ -28,8 +28,8 @@ from typing import Any, Dict, Optional
 
 import yaml
 
-_PROJECT_ROOT = Path(__file__).resolve().parents[2]
-_PROMPTS_PATH = _PROJECT_ROOT / "config" / "prompts.yaml"
+_PKG_ROOT = Path(__file__).resolve().parents[1]
+_PROMPTS_PATH = _PKG_ROOT / "config" / "prompts.yaml"
 
 _cache: Optional[Dict[str, Any]] = None
 

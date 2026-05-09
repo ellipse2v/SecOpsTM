@@ -48,7 +48,7 @@ class LiteLLMClient:
         start_time = time.time()
         logging.info(f"[{time.time() - start_time:.4f}s] Loading AI configuration...")
         try:
-            with open(PROJECT_ROOT / "config/ai_config.yaml", 'r') as f:
+            with open(Path.cwd() / "config" / "ai_config.yaml", 'r') as f:
                 self.ai_config = yaml.safe_load(f)
             logging.info(f"[{time.time() - start_time:.4f}s] AI configuration loaded.")
             
