@@ -42,6 +42,68 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 
+_VECTOR_STORE_RELEASE_URL = (
+    "https://github.com/ellipse2v/SecOpsTM/releases/download/"
+    "vector-store-latest/vector_store.tar.gz"
+)
+_VECTOR_STORE_DEFAULT_DIR = Path.home() / ".secopstm" / "vector_store"
+
+
+def _vector_store_dir() -> Path:
+    """Return the effective vector store directory (env override or default)."""
+    env = os.environ.get("SECOPSTM_VECTOR_STORE_DIR")
+    return Path(env) if env else _VECTOR_STORE_DEFAULT_DIR
+
+
+def init_rag(force: bool = False) -> int:
+    """Download the pre-built RAG vector store from GitHub Releases.
+
+    Called when sys.argv[1] == 'init-rag' (early-exit before heavy imports).
+    """
+    import urllib.request
+    import tarfile
+
+    dest = _vector_store_dir()
+
+    if dest.exists() and not force:
+        print(f"Vector store already present at {dest}.")
+        print("Use --force to re-download.")
+        return 0
+
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    archive = dest.parent / "vector_store.tar.gz"
+
+    print(f"Downloading vector store from GitHub Releases…")
+    print(f"  {_VECTOR_STORE_RELEASE_URL}")
+
+    def _progress(count, block_size, total):
+        if total > 0:
+            pct = min(100, count * block_size * 100 // total)
+            mb_done = count * block_size / 1_048_576
+            mb_total = total / 1_048_576
+            print(f"\r  {pct:3d}%  {mb_done:.0f} / {mb_total:.0f} MB", end="", flush=True)
+
+    try:
+        urllib.request.urlretrieve(_VECTOR_STORE_RELEASE_URL, archive, _progress)
+    except Exception as exc:
+        print(f"\nDownload failed: {exc}")
+        return 1
+
+    print(f"\nExtracting to {dest.parent} …")
+    try:
+        with tarfile.open(archive, "r:gz") as tf:
+            tf.extractall(dest.parent)
+    except Exception as exc:
+        print(f"Extraction failed: {exc}")
+        return 1
+    finally:
+        archive.unlink(missing_ok=True)
+
+    print(f"✅ RAG vector store ready at {dest}")
+    print("You can now use AI-powered RAG threat generation.")
+    return 0
+
+
 def download_data(args=None, package_dir=None):
     """Download external_data.tar.gz from GitHub Releases, verify SHA-256, and extract.
 
@@ -503,6 +565,17 @@ class CustomArgumentParser:
             type=str,
             default="threatModel_Template/threat_model.md",
             help="Path to the threat model Markdown file.",
+        )
+        common.add_argument(
+            "--init-rag",
+            action="store_true",
+            dest="init_rag",
+            help="Download the pre-built RAG vector store from GitHub Releases.",
+        )
+        common.add_argument(
+            "--force",
+            action="store_true",
+            help="Force re-download even if the vector store already exists (use with --init-rag).",
         )
         common.add_argument(
             "--server",
@@ -994,9 +1067,12 @@ class ColoredFormatter(logging.Formatter):
 # --- Main entry point ---
 def main():
     """Entry point for the `secopstm` CLI command."""
-    # Early-exit: download-data subcommand (no heavy imports needed)
+    # Early-exits: lightweight subcommands (no heavy imports needed)
     if len(sys.argv) > 1 and sys.argv[1] == "download-data":
         download_data()
+    if len(sys.argv) > 1 and sys.argv[1] == "--init-rag":
+        force = "--force" in sys.argv
+        sys.exit(init_rag(force=force))
 
     print("\n🚀 SecOpsTM Framework is starting...")
     # --- Argument Parsing ---

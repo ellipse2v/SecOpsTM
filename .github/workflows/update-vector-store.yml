@@ -1,0 +1,59 @@
+name: Update Vector Store Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'threat_analysis/vector_store/**'
+
+jobs:
+  release-vector-store:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Check vector store exists
+        run: |
+          if [ ! -d "threat_analysis/vector_store" ]; then
+            echo "Vector store directory not found — skipping release."
+            exit 1
+          fi
+          echo "Vector store size: $(du -sh threat_analysis/vector_store | cut -f1)"
+
+      - name: Compress vector store
+        run: |
+          tar -czf vector_store.tar.gz threat_analysis/vector_store/
+          echo "Archive size: $(du -sh vector_store.tar.gz | cut -f1)"
+
+      - name: Delete existing release and tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete vector-store-latest --yes 2>/dev/null || true
+          git push origin :refs/tags/vector-store-latest 2>/dev/null || true
+
+      - name: Create updated release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create vector-store-latest vector_store.tar.gz \
+            --title "Vector Store (latest)" \
+            --notes "Pre-built RAG vector store for SecOpsTM.
+
+          ## Install
+          \`\`\`bash
+          secopstm --init-rag
+          \`\`\`
+
+          Or with a custom directory:
+          \`\`\`bash
+          SECOPSTM_VECTOR_STORE_DIR=/path/to/dir secopstm --init-rag
+          \`\`\`
+
+          Built from commit ${{ github.sha }}."
