@@ -1,21 +1,46 @@
 # Getting Started
 
+## Data layers
+
+SecOpsTM relies on three data layers fetched separately:
+
+| Layer | Content | Size | Command |
+|---|---|---|---|
+| **Security knowledge base** | MITRE ATT&CK, CAPEC, D3FEND, CIS, NIST, CVE mappings | ~140 MB | `secopstm download-data` |
+| **RAG vector store** | Pre-built embeddings for AI threat generation | ~1.8 GB | `secopstm --init-rag` |
+| **Fresh CVE data** | Up-to-date CVE→CAPEC database (dev/contributors only) | ~94 MB | clone [Galeax/CVE2CAPEC](https://github.com/Galeax/CVE2CAPEC) |
+
+The **security knowledge base** is required for full STRIDE + MITRE analysis.
+The **RAG vector store** is optional and enables AI-powered threat enrichment.
+The CVE data bundled in the knowledge base covers 1999–2025 — clone CVE2CAPEC only if you need the absolute latest entries.
+
+---
+
 ## Installation options
 
-### Option A — Docker (recommended, no setup required)
+### Option A — Docker (recommended)
 
-Graphviz and all runtime dependencies are pre-installed.
+The Docker image already includes the security knowledge base. Only the RAG vector store needs to be fetched separately (optional, ~1.8 GB).
 
 ```bash
-# Core image — Flask server + offline threat modeling
+# Core image — offline threat modeling, no AI
 docker pull ghcr.io/ellipse2v/secopstm:latest
-docker run -p 5000:5000 -v $(pwd)/output:/app/output ghcr.io/ellipse2v/secopstm:latest
+docker run -p 5000:5000 -v $(pwd)/output:/app/output \
+  ghcr.io/ellipse2v/secopstm:latest
 
-# AI-enabled image — adds LiteLLM + ChromaDB + local embeddings
+# AI-enabled image — with RAG support
 docker pull ghcr.io/ellipse2v/secopstm:ai
+
+# One-time: download the RAG vector store into a named volume (~1.8 GB)
+docker run --rm \
+  -v secopstm-rag:/root/.secopstm \
+  ghcr.io/ellipse2v/secopstm:ai \
+  secopstm --init-rag
+
+# Start the server with the vector store mounted
 docker run -p 5000:5000 \
   -e GEMINI_API_KEY=your_key \
-  -v /path/to/vector_store:/app/threat_analysis/vector_store \
+  -v secopstm-rag:/root/.secopstm \
   -v $(pwd)/output:/app/output \
   ghcr.io/ellipse2v/secopstm:ai
 ```
@@ -27,19 +52,24 @@ Open `http://localhost:5000` in your browser.
 ```bash
 pip install SecOpsTM
 
-# Download the offline security knowledge base (~140 MB, required for full analysis)
-secopstm download-data
-
-# Install Graphviz separately
+# Install Graphviz (required for diagram generation)
 #   Windows: https://graphviz.org/download/
 #   macOS:   brew install graphviz
 #   Linux:   sudo apt-get install graphviz
-```
 
-**Quick test:**
-```bash
+# Step 1 — Security knowledge base (~140 MB, required for MITRE/CVE mapping)
+secopstm download-data
+
+# Step 2 — RAG vector store (~1.8 GB, optional — enables AI threat enrichment)
+secopstm --init-rag
+
+# Step 3 — Start
 secopstm --server
 ```
+
+Both `download-data` and `--init-rag` are one-time steps that download from
+[GitHub Releases](https://github.com/ellipse2v/SecOpsTM/releases) and work
+fully offline afterwards. Re-run with `--force` to update.
 
 ### Option C — From source (development)
 
@@ -47,10 +77,18 @@ secopstm --server
 git clone https://github.com/ellipse2v/SecOpsTM.git
 cd SecOpsTM
 pip install -e .
-# external_data/ is already present in the repo — no download step needed
+# external_data/ is already in the repo — no download-data step needed
 ```
 
-**Quick CLI test after installation:**
+To get the **latest CVE entries** (beyond the 1999–2025 snapshot in the repo):
+
+```bash
+# Clone the CVE2CAPEC database next to the SecOpsTM directory
+git clone https://github.com/Galeax/CVE2CAPEC.git ../CVE2CAPEC
+python tooling/copy_cve_data.py
+```
+
+**Quick CLI test:**
 ```bash
 secopstm --model-file threatModel_Template/threat_model.md
 ```

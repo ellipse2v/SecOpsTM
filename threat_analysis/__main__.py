@@ -116,12 +116,6 @@ def download_data(args=None, package_dir=None):
     import urllib.request
     import io as _io
 
-    try:
-        from importlib.metadata import version as _pkg_version
-        _version = _pkg_version("SecOpsTM")
-    except Exception:
-        _version = "1.1.1a1"
-
     _p = _ap.ArgumentParser(prog="secopstm download-data")
     _p.add_argument("--force", action="store_true", help="Overwrite existing external_data/")
     _parsed = _p.parse_args(args if args is not None else sys.argv[2:])
@@ -136,8 +130,8 @@ def download_data(args=None, package_dir=None):
         sys.exit(0)
 
     base_url = (
-        f"https://github.com/ellipse2v/SecOpsTM/releases/download"
-        f"/v{_version}/external_data.tar.gz"
+        "https://github.com/ellipse2v/SecOpsTM/releases/download"
+        "/external-data-latest/external_data.tar.gz"
     )
     sha256_url = base_url + ".sha256"
 
