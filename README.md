@@ -58,6 +58,74 @@ For detailed information on features, usage, and advanced customization, please 
 
 ## Quick Start / Installation
 
+### Option A — Docker (no Python setup required)
+
+Two images are available on Docker Hub:
+
+| Image | Size | Use case |
+|---|---|---|
+| `ellipse2v/secopstm:core` | ~500 MB | Offline STRIDE analysis, no AI |
+| `ellipse2v/secopstm:ai` | ~2 GB | Full AI enrichment (LLM + RAG) |
+
+#### Core image — offline, no API key needed
+
+```bash
+docker pull ellipse2v/secopstm:core
+docker run -p 5000:5000 \
+  -v $(pwd)/models:/models \
+  -v $(pwd)/output:/app/output \
+  ellipse2v/secopstm:core
+```
+
+Open <http://localhost:5000> in your browser. Pass your model with `--model-file /models/threat_model.md`.
+
+#### AI image — LLM + RAG enrichment
+
+```bash
+docker pull ellipse2v/secopstm:ai
+```
+
+**Step 1 — Download the RAG vector store** (one-time, ~200 MB):
+
+```bash
+docker run --rm \
+  -v secopstm-rag:/app/rag \
+  ellipse2v/secopstm:ai --init-rag
+```
+
+**Step 2 — Run the server** (reuse the same volume):
+
+```bash
+docker run -p 5000:5000 \
+  -e GEMINI_API_KEY=your_key \
+  -v secopstm-rag:/app/rag \
+  -v $(pwd)/models:/models \
+  -v $(pwd)/output:/app/output \
+  ellipse2v/secopstm:ai
+```
+
+Supported API key environment variables: `GEMINI_API_KEY`, `OPENAI_API_KEY`, `MISTRAL_API_KEY`.
+For Ollama (fully offline), no key is needed — configure the provider in `config/ai_config.yaml`.
+
+> **Output files** land in `$(pwd)/output/<timestamp>/` on your host.
+
+---
+
+### Option B — PyPI
+
+```bash
+pip install SecOpsTM
+```
+
+Install Graphviz for diagram generation:
+- Windows: <https://graphviz.org/download/>
+- macOS: `brew install graphviz`
+- Linux: `sudo apt-get install graphviz`
+
+---
+
+### Option C — From source
+
 1.  **Clone the repository:**
     ```bash
     git clone https://github.com/ellipse2v/SecOpsTM.git
@@ -70,10 +138,7 @@ For detailed information on features, usage, and advanced customization, please 
     ```
     After this step the `secopstm` command is available in your environment.
 
-3.  **Install Graphviz (for diagram generation):**
-    -   Windows: [https://graphviz.org/download/](https://graphviz.org/download/)
-    -   macOS: `brew install graphviz`
-    -   Linux: `sudo apt-get install graphviz`
+3.  **Install Graphviz** (see Option B above).
 
 After installation, restart your terminal or IDE.
 
