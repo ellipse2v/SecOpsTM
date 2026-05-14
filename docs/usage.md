@@ -26,41 +26,85 @@ The CVE data bundled in the knowledge base covers 1999–2025 — clone CVE2CAPE
 
 ### Via Docker
 
+#### Quick start
+
 ```bash
-# Core image — offline threat modeling, no AI
-docker pull ghcr.io/ellipse2v/secopstm:latest
+# Offline — no API key needed
 docker run -p 5000:5000 -v $(pwd)/output:/app/output \
   ghcr.io/ellipse2v/secopstm:latest
 
-# CLI pipeline (no server)
-docker run --rm -v $(pwd)/models:/models \
-  ghcr.io/ellipse2v/secopstm:latest \
-  secopstm --project /models/ --output-format json --stdout
-
-# AI-enabled image — with RAG support
-docker pull ghcr.io/ellipse2v/secopstm:ai
-
-# One-time: download the RAG vector store into a named volume (~1.8 GB)
-docker run --rm \
-  -v secopstm-rag:/root/.secopstm \
-  ghcr.io/ellipse2v/secopstm:ai \
-  secopstm --init-rag
-
-# Start the AI-enabled server with the vector store mounted
+# With LLM inference (NVIDIA NIM, Gemini, OpenAI or Mistral)
 docker run -p 5000:5000 \
-  -e GEMINI_API_KEY=your_key \
-  -v secopstm-rag:/root/.secopstm \
+  -e NVIDIA_NIM_API_KEY=nvapi-... \
   -v $(pwd)/output:/app/output \
-  ghcr.io/ellipse2v/secopstm:ai
+  ghcr.io/ellipse2v/secopstm:latest
 
-# Override AI provider config at runtime
+# With LLM + RAG (ai tag — requires one-time vector store download)
 docker run -p 5000:5000 \
-  -e OPENAI_API_KEY=your_key \
-  -v $(pwd)/config/ai_config.yaml:/app/config/ai_config.yaml \
+  -e NVIDIA_NIM_API_KEY=nvapi-... \
+  -v secopstm-rag:/app/rag \
+  -v $(pwd)/output:/app/output \
   ghcr.io/ellipse2v/secopstm:ai
 ```
 
-Available tags: `latest` (core, no AI), `ai` (with AI extras).
+Open `http://localhost:5000`. Generated reports land in `$(pwd)/output/<timestamp>/`.
+
+#### One-time RAG vector store download (`ai` tag only)
+
+```bash
+docker run --rm \
+  -v secopstm-rag:/app/rag \
+  ghcr.io/ellipse2v/secopstm:ai \
+  --init-rag
+```
+
+The named volume `secopstm-rag` persists across container restarts and image rebuilds.
+
+#### Docker reference
+
+**Image tags**
+
+| Tag | LLM inference | RAG vector store |
+|---|---|---|
+| `latest` | ✅ pass any API key via `-e` | ❌ |
+| `ai` | ✅ | ✅ mount `secopstm-rag:/app/rag` |
+
+**API key environment variables**
+
+| Provider | Environment variable | `ai_config.yaml` entry |
+|---|---|---|
+| NVIDIA NIM | `NVIDIA_NIM_API_KEY` | `nvidia_nim` |
+| Google Gemini | `GOOGLE_API_KEY` | `gemini` |
+| OpenAI | `OPENAI_API_KEY` | `openai` |
+| Mistral | `MISTRAL_API_KEY` | `mistral` |
+
+**Volumes and mounts**
+
+| What | Mount | Notes |
+|---|---|---|
+| Output reports | `-v $(pwd)/output:/app/output` | Files land in `output/<timestamp>/` on the host |
+| AI config | `-v $(pwd)/config/ai_config.yaml:/app/config/ai_config.yaml` | Switch provider/model without rebuilding |
+| Prompts | `-v $(pwd)/config/prompts.yaml:/app/config/prompts.yaml` | Override LLM prompts |
+| Threat model files | `-v $(pwd)/models:/models` | Pass `--model-file /models/model.md` |
+| CVE definitions | `-v $(pwd)/cve_definitions.yml:/app/cve_definitions.yml` | Per-asset CVE list |
+| RAG vector store | `-v secopstm-rag:/app/rag` | Named volume, `ai` tag only |
+
+**Changing the port**
+
+Use `-p host_port:5000` — Flask always listens on 5000 inside the container:
+```bash
+docker run -p 8080:5000 ...   # accessible on http://localhost:8080
+```
+
+#### CLI pipeline (no server)
+
+```bash
+docker run --rm \
+  -v $(pwd)/models:/models \
+  -v $(pwd)/output:/app/output \
+  ghcr.io/ellipse2v/secopstm:latest \
+  --model-file /models/threat_model.md --output-format json --stdout
+```
 
 ### Via pip
 

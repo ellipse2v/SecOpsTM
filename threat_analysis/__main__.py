@@ -99,6 +99,19 @@ def init_rag(force: bool = False) -> int:
     finally:
         archive.unlink(missing_ok=True)
 
+    # Normalise extraction: handle tarballs with a leading threat_analysis/ prefix
+    # (old format: threat_analysis/vector_store/ — new format: vector_store/ directly).
+    if not dest.exists():
+        legacy = dest.parent / "threat_analysis" / "vector_store"
+        if legacy.exists():
+            import shutil
+            shutil.move(str(legacy), str(dest))
+            legacy.parent.rmdir()  # remove now-empty threat_analysis/
+
+    if not dest.exists():
+        print(f"Extraction error: expected directory not found at {dest}")
+        return 1
+
     print(f"✅ RAG vector store ready at {dest}")
     print("You can now use AI-powered RAG threat generation.")
     return 0
@@ -575,6 +588,12 @@ class CustomArgumentParser:
             "--server",
             action="store_true",
             help="Launch the web editor (Monaco + graphical canvas).",
+        )
+        common.add_argument(
+            "--port",
+            type=int,
+            default=None,
+            help="Port for the web server (default: 5000). Sets FLASK_PORT.",
         )
         common.add_argument(
             "--project",
@@ -1103,6 +1122,9 @@ def main():
     sys.argv = [sys.argv[0]] + remaining_argv
 
     logging.info(f"[{time.time() - _start_time_main:.4f}s] Starting main execution path.")
+    if getattr(args, "init_rag", False):
+        sys.exit(init_rag(force=getattr(args, "force", False)))
+
     if getattr(args, "diff", None):
         old_path, new_path = args.diff
         sys.exit(diff_threat_reports(old_path, new_path))
@@ -1115,7 +1137,9 @@ def main():
             accepted_risks_path=getattr(args, "accepted_risks", None),
         ))
 
-    if args.server: # Use the new --server argument
+    if args.server:
+        if getattr(args, "port", None):
+            os.environ["FLASK_PORT"] = str(args.port)
         try:
             run_server(model_filepath=args.model_file, project_path=args.project)
         except ImportError:

@@ -20,30 +20,49 @@ The CVE data bundled in the knowledge base covers 1999–2025 — clone CVE2CAPE
 
 ### Option A — Docker (recommended)
 
-The Docker image already includes the security knowledge base. Only the RAG vector store needs to be fetched separately (optional, ~1.8 GB).
+The Docker image already includes the security knowledge base. LLM inference works out of the box with the `latest` tag — just pass your API key. The RAG vector store is the only extra download (optional, ~1.8 GB).
 
 ```bash
-# Core image — offline threat modeling, no AI
+# Offline threat modeling — no AI key needed
 docker pull ghcr.io/ellipse2v/secopstm:latest
 docker run -p 5000:5000 -v $(pwd)/output:/app/output \
   ghcr.io/ellipse2v/secopstm:latest
 
-# AI-enabled image — with RAG support
+# LLM-enabled — pass any supported API key (NVIDIA NIM, Gemini, OpenAI, Mistral)
+# The image already includes litellm — no extra install needed.
+docker run -p 5000:5000 \
+  -e NVIDIA_NIM_API_KEY=nvapi-... \
+  -v $(pwd)/output:/app/output \
+  ghcr.io/ellipse2v/secopstm:latest
+
+# To switch provider or model without rebuilding, mount your own ai_config.yaml:
+docker run -p 5000:5000 \
+  -e GEMINI_API_KEY=your_key \
+  -v $(pwd)/config/ai_config.yaml:/app/config/ai_config.yaml \
+  -v $(pwd)/output:/app/output \
+  ghcr.io/ellipse2v/secopstm:latest
+
+# AI + RAG image — adds pre-built vector store for deeper threat enrichment
 docker pull ghcr.io/ellipse2v/secopstm:ai
 
 # One-time: download the RAG vector store into a named volume (~1.8 GB)
 docker run --rm \
-  -v secopstm-rag:/root/.secopstm \
+  -v secopstm-rag:/app/rag \
   ghcr.io/ellipse2v/secopstm:ai \
-  secopstm --init-rag
+  --init-rag
 
-# Start the server with the vector store mounted
+# Start the server with LLM + RAG
 docker run -p 5000:5000 \
-  -e GEMINI_API_KEY=your_key \
-  -v secopstm-rag:/root/.secopstm \
+  -e NVIDIA_NIM_API_KEY=nvapi-... \
+  -v secopstm-rag:/app/rag \
   -v $(pwd)/output:/app/output \
   ghcr.io/ellipse2v/secopstm:ai
 ```
+
+| Tag | LLM inference | RAG vector store |
+|---|---|---|
+| `latest` | ✅ pass any API key via `-e` | ❌ not included |
+| `ai` | ✅ | ✅ mount `secopstm-rag:/app/rag` |
 
 Open `http://localhost:5000` in your browser.
 

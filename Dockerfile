@@ -36,22 +36,36 @@ RUN pip install --no-cache-dir .
 
 USER appuser
 
+# Bind to all interfaces so the port is reachable from the Docker host
+ENV FLASK_HOST=0.0.0.0
+
 EXPOSE 5000
 
 VOLUME ["/app/output"]
 
 ENTRYPOINT ["secopstm"]
-CMD ["--server", "--port", "5000"]
+CMD ["--server"]
 
 # ── Stage: ai ───────────────────────────────────────────────────────────────
+# All AI deps (litellm, chromadb, sentence-transformers) are required deps —
+# already installed in the core stage. This stage adds:
+#   - pre-downloaded embedding model (no HuggingFace download at runtime)
+#   - fixed vector store path mountable via Docker named volume
 FROM core AS ai
 
 USER root
-RUN pip install --no-cache-dir ".[ai]"
+
+# Pre-download the embedding model into the image so it's available offline.
+# HF_HUB_DISABLE_SYMLINKS_WARNING avoids a noisy warning on Windows hosts.
+RUN HF_HUB_DISABLE_SYMLINKS_WARNING=1 \
+    python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+
+# Fixed vector store path — mountable via Docker named volume.
+# secopstm --init-rag and the RAG service both respect this env var.
+ENV SECOPSTM_VECTOR_STORE_DIR=/app/rag/vector_store
+
+RUN mkdir -p /app/rag && chown appuser:appuser /app/rag
+
 USER appuser
 
-# ChromaDB vector store is large (~1.8 GB) — mount it at runtime
-VOLUME ["/app/threat_analysis/vector_store", "/app/output"]
-
-# Optional: override AI config at runtime
-VOLUME ["/app/config/ai_config.yaml"]
+VOLUME ["/app/rag", "/app/output"]

@@ -123,10 +123,14 @@ def compare_threat_reports(old: dict, new: dict) -> dict:
 
 def _validate_path_within_project(input_path: str, base_dir: Optional[Path] = None) -> Path:
     """
-    Validates if an input path is within the specified base directory.
-    Defaults to Path.cwd() so installed CLI usage resolves paths relative to
-    the user's working directory, not the package installation directory.
-    Raises ValueError if the path is outside the base directory or does not exist.
+    Validates an input path and, for relative paths, ensures it stays within base_dir.
+
+    Absolute paths that exist are returned as-is — they represent explicit, trusted
+    inputs (CLI flags, Docker volume mounts) and must not be restricted to base_dir.
+    The base_dir guard applies only to relative paths (sub-model references, etc.)
+    to prevent directory traversal from dynamically constructed paths.
+
+    Raises ValueError if the path does not exist or if a relative path escapes base_dir.
     """
     if base_dir is None:
         base_dir = Path.cwd()
@@ -142,6 +146,10 @@ def _validate_path_within_project(input_path: str, base_dir: Optional[Path] = No
                 listing.append(f'{subindent}{f}')
         dir_listing = "\n".join(listing)
         raise ValueError(f"Path does not exist: {input_path}. Project directory structure:\n{dir_listing}")
+
+    # Absolute paths are explicit user inputs — no base_dir restriction applied.
+    if path_obj.is_absolute():
+        return path_obj
 
     resolved_path = path_obj.resolve()
     base_dir_resolved = base_dir.resolve()

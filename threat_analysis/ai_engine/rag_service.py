@@ -34,11 +34,16 @@ _USER_VECTOR_STORE = Path.home() / ".secopstm" / "vector_store"
 
 
 def _resolve_vector_store_dir(explicit: Optional[str] = None) -> str:
-    """Return the first existing vector store directory, or the explicit path."""
+    """Return the effective vector store directory.
+
+    Priority: explicit arg → SECOPSTM_VECTOR_STORE_DIR env var → ~/.secopstm/vector_store → cwd fallback.
+    The env var is returned as-is without an existence check — it is an authoritative override
+    and a missing path produces a clear error at open time rather than a silent fallback.
+    """
     if explicit and explicit != "threat_analysis/vector_store":
         return explicit
     env = os.environ.get("SECOPSTM_VECTOR_STORE_DIR")
-    if env and Path(env).exists():
+    if env:
         return env
     if _USER_VECTOR_STORE.exists():
         return str(_USER_VECTOR_STORE)

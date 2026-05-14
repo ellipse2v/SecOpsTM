@@ -28,7 +28,7 @@ jobs:
 
       - name: Compress vector store
         run: |
-          tar -czf vector_store.tar.gz threat_analysis/vector_store/
+          tar -czf vector_store.tar.gz -C threat_analysis vector_store
           echo "Archive size: $(du -sh vector_store.tar.gz | cut -f1)"
 
       - name: Delete existing release and tag
