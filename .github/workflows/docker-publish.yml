@@ -1,4 +1,4 @@
-name: Docker — Build, Push, and Sync Hub Description
+name: Docker — Build and Push
 
 on:
   push:
@@ -76,11 +76,3 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Sync README to Docker Hub
-        uses: peter-evans/dockerhub-description@v4
-        with:
-          username: ellipse2v
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: ellipse2v/secopstm
-          readme-filepath: ./DOCKER_HUB.md
-          short-description: "STRIDE threat modeling + MITRE ATT&CK mapping + AI enrichment (OWASP project)"
