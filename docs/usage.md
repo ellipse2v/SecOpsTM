@@ -10,9 +10,148 @@ This framework is designed to be used in a "Threat Model as Code" workflow. This
 -   **Automation**: The threat modeling process can be integrated into your CI/CD pipeline, allowing you to automatically update your threat model whenever your architecture changes.
 -   **Collaboration**: Developers can collaborate on the threat model using the same tools they use for code.
 
+## 0. Data layers and installation
+
+SecOpsTM relies on three data layers fetched separately:
+
+| Layer | Content | Size | Command |
+|---|---|---|---|
+| **Security knowledge base** | MITRE ATT&CK, CAPEC, D3FEND, CIS, NIST, CVE mappings | ~140 MB | `secopstm download-data` |
+| **RAG vector store** | Pre-built embeddings for AI threat generation | ~1.8 GB | `secopstm --init-rag` |
+| **Fresh CVE data** | Up-to-date CVE→CAPEC database (dev/contributors only) | ~94 MB | clone [Galeax/CVE2CAPEC](https://github.com/Galeax/CVE2CAPEC) |
+
+The **security knowledge base** is required for full STRIDE + MITRE analysis.
+The **RAG vector store** is optional and enables AI-powered threat enrichment.
+The CVE data bundled in the knowledge base covers 1999–2025 — clone CVE2CAPEC only if you need the absolute latest entries.
+
+### Via Docker
+
+#### Quick start
+
+```bash
+# Offline — no API key needed
+docker run -p 5000:5000 -v $(pwd)/output:/app/output \
+  ghcr.io/ellipse2v/secopstm:latest
+
+# With LLM inference (NVIDIA NIM, Gemini, OpenAI or Mistral)
+docker run -p 5000:5000 \
+  -e NVIDIA_NIM_API_KEY=nvapi-... \
+  -v $(pwd)/output:/app/output \
+  ghcr.io/ellipse2v/secopstm:latest
+
+# With LLM + RAG (ai tag — requires one-time vector store download)
+docker run -p 5000:5000 \
+  -e NVIDIA_NIM_API_KEY=nvapi-... \
+  -v secopstm-rag:/app/rag \
+  -v $(pwd)/output:/app/output \
+  ghcr.io/ellipse2v/secopstm:ai
+```
+
+Open `http://localhost:5000`. Generated reports land in `$(pwd)/output/<timestamp>/`.
+
+#### One-time RAG vector store download (`ai` tag only)
+
+```bash
+docker run --rm \
+  -v secopstm-rag:/app/rag \
+  ghcr.io/ellipse2v/secopstm:ai \
+  --init-rag
+```
+
+The named volume `secopstm-rag` persists across container restarts and image rebuilds.
+
+#### Docker reference
+
+**Image tags**
+
+| Tag | LLM inference | RAG vector store |
+|---|---|---|
+| `latest` | ✅ pass any API key via `-e` | ❌ |
+| `ai` | ✅ | ✅ mount `secopstm-rag:/app/rag` |
+
+**API key environment variables**
+
+| Provider | Environment variable | `ai_config.yaml` entry |
+|---|---|---|
+| NVIDIA NIM | `NVIDIA_NIM_API_KEY` | `nvidia_nim` |
+| Google Gemini | `GOOGLE_API_KEY` | `gemini` |
+| OpenAI | `OPENAI_API_KEY` | `openai` |
+| Mistral | `MISTRAL_API_KEY` | `mistral` |
+
+**Volumes and mounts**
+
+| What | Mount | Notes |
+|---|---|---|
+| Output reports | `-v $(pwd)/output:/app/output` | Files land in `output/<timestamp>/` on the host |
+| AI config | `-v $(pwd)/config/ai_config.yaml:/app/config/ai_config.yaml` | Switch provider/model without rebuilding |
+| Prompts | `-v $(pwd)/config/prompts.yaml:/app/config/prompts.yaml` | Override LLM prompts |
+| Threat model files | `-v $(pwd)/models:/models` | Pass `--model-file /models/model.md` |
+| CVE definitions | `-v $(pwd)/cve_definitions.yml:/app/cve_definitions.yml` | Per-asset CVE list |
+| RAG vector store | `-v secopstm-rag:/app/rag` | Named volume, `ai` tag only |
+
+**Changing the port**
+
+Use `-p host_port:5000` — Flask always listens on 5000 inside the container:
+```bash
+docker run -p 8080:5000 ...   # accessible on http://localhost:8080
+```
+
+#### CLI pipeline (no server)
+
+```bash
+docker run --rm \
+  -v $(pwd)/models:/models \
+  -v $(pwd)/output:/app/output \
+  ghcr.io/ellipse2v/secopstm:latest \
+  --model-file /models/threat_model.md --output-format json --stdout
+```
+
+### Via pip
+
+```bash
+pip install SecOpsTM
+
+# Install Graphviz (required for diagram generation)
+#   Windows: https://graphviz.org/download/
+#   macOS:   brew install graphviz
+#   Linux:   sudo apt-get install graphviz
+
+# Step 1 — Security knowledge base (~140 MB, required for MITRE/CVE mapping)
+secopstm download-data
+
+# Step 2 — RAG vector store (~1.8 GB, optional — enables AI threat enrichment)
+secopstm --init-rag
+
+# Step 3 — Start
+secopstm --server
+```
+
+Both `download-data` and `--init-rag` are one-time steps that download from
+[GitHub Releases](https://github.com/ellipse2v/SecOpsTM/releases) and work
+fully offline afterwards. Re-run with `--force` to update.
+
+### Via source (development)
+
+```bash
+git clone https://github.com/ellipse2v/SecOpsTM.git
+cd SecOpsTM
+pip install -e .                  # external_data/ is already in the repo
+pip install -r requirements.txt   # full AI/ML deps for tooling scripts
+```
+
+To get the **latest CVE entries** (beyond the 1999–2025 snapshot in the repo):
+
+```bash
+# Clone the CVE2CAPEC database next to the SecOpsTM directory
+git clone https://github.com/Galeax/CVE2CAPEC.git ../CVE2CAPEC
+python tooling/copy_cve_data.py
+```
+
+---
+
 ## 1. Command Line Interface (CLI) Mode
 
-Use the `secopstm` command (installed via `pip install -e .`) for automated threat analysis:
+Use the `secopstm` command for automated threat analysis:
 
 ```bash
 # Full analysis — HTML + JSON + SVG in output/
@@ -102,23 +241,18 @@ Here's how to use the Ansible plugin with a sample playbook:
 
 This framework can generate threats based on a list of Common Vulnerabilities and Exposures (CVEs) that you provide for specific components in your threat model.
 
-#### Prerequisites
+#### CVE data source
 
-To use this feature, you must first clone the `CVE2CAPEC` repository from GitHub next to the `SecOpsTM` project directory.
+The security knowledge base (downloaded with `secopstm download-data`) includes CVE→CAPEC mappings covering **1999–2025**. This is sufficient for most use cases.
+
+If you need the **absolute latest CVE entries** (contributors and dev installs only), clone the upstream database next to the SecOpsTM directory:
 
 ```bash
-# In the same directory where you cloned SecOpsTM
-git clone https://github.com/Galeax/CVE2CAPEC.git
+git clone https://github.com/Galeax/CVE2CAPEC.git ../CVE2CAPEC
+python tooling/copy_cve_data.py
 ```
 
-This will create a directory structure like this:
-```
-/your/development/folder/
-├── SecOpsTM/
-└── CVE2CAPEC/
-```
-
-The tool will then use the `CVE2CAPEC` database to map your specified CVEs to CAPEC attack patterns, which are then used to identify relevant MITRE ATT&CK techniques.
+The tool maps your specified CVEs to CAPEC attack patterns, which are then used to identify relevant MITRE ATT&CK techniques.
 
 #### Usage
 

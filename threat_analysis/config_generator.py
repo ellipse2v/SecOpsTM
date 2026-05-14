@@ -31,7 +31,7 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-_ASSET_TYPES_YAML = Path(__file__).resolve().parents[1] / "config" / "asset_types_community.yaml"
+_ASSET_TYPES_YAML = Path(__file__).resolve().parents[0] / "config" / "asset_types_community.yaml"
 
 # Non-asset-type elements (actors, data nodes, network devices) whose icons are not
 # declared in asset_types_community.yaml.

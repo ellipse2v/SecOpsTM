@@ -35,7 +35,8 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
-_SCORING_CONFIG_PATH = _PROJECT_ROOT / "config" / "scoring_config.yaml"
+_PKG_ROOT = Path(__file__).resolve().parents[1]
+_SCORING_CONFIG_PATH = _PKG_ROOT / "config" / "scoring_config.yaml"
 
 _scoring_config: Optional[Dict] = None
 

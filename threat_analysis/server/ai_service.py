@@ -30,6 +30,34 @@ from threat_analysis.ai_engine.providers.base_provider import BaseLLMProvider
 from threat_analysis.ai_engine.providers.litellm_provider import LiteLLMProvider
 
 
+_RAG_BUILD_CMD = "python tooling/build_vector_store.py"
+_RAG_DEPS_CMD = "pip install -r requirements.txt"
+
+
+def _log_rag_init_failure(exc: Exception) -> None:
+    """Log a RAG init failure with actionable instructions."""
+    msg = str(exc)
+    if "No module named" in msg:
+        missing = msg.replace("No module named ", "").strip("'\"")
+        logging.warning(
+            "RAG unavailable — missing dependency '%s'. "
+            "1) Install deps: %s  2) Build knowledge base: %s",
+            missing, _RAG_DEPS_CMD, _RAG_BUILD_CMD,
+        )
+    elif "Vector store not found" in msg or "FileNotFoundError" in type(exc).__name__:
+        logging.warning(
+            "RAG unavailable — vector store not built yet. "
+            "1) Install deps: %s  2) Build knowledge base: %s",
+            _RAG_DEPS_CMD, _RAG_BUILD_CMD,
+        )
+    else:
+        logging.warning(
+            "RAG unavailable (%s). "
+            "1) Install deps: %s  2) Build knowledge base: %s",
+            exc, _RAG_DEPS_CMD, _RAG_BUILD_CMD,
+        )
+
+
 class AIService:
     # Class-level persistent background event loop for sync wrappers (P2).
     _sync_loop: Optional[asyncio.AbstractEventLoop] = None
@@ -272,19 +300,19 @@ class AIService:
                     self.rag_generator = await asyncio.wait_for(rag_task, timeout=self._rag_prewarm_timeout)
                     logging.info("RAG service initialized (pre-warmed).")
                 except Exception as e:
-                    logging.error(f"RAG pre-warm failed ({e}); retrying synchronously.")
+                    logging.warning("RAG pre-warm failed (%s); retrying synchronously.", e)
                     try:
                         self.rag_generator = RAGThreatGenerator()
                         logging.info("RAG service initialized (synchronous fallback).")
                     except Exception as e2:
-                        logging.error(f"Failed to initialize RAG service: {e2}")
+                        _log_rag_init_failure(e2)
                         self.rag_generator = None
             else:
                 try:
                     self.rag_generator = RAGThreatGenerator()
                     logging.info("RAG service initialized.")
                 except Exception as e:
-                    logging.error(f"Failed to initialize RAG service: {e}")
+                    _log_rag_init_failure(e)
                     self.rag_generator = None
         else:
             if rag_task is not None:

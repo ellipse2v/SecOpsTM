@@ -16,16 +16,13 @@
 STRIDE Threat Analysis Library with MITRE ATT&CK Integration
 """
 
-__version__ = "v1.1.1"
-__author__ = "ellipse2v"
+try:
+    from importlib.metadata import version as _pkg_version
+    __version__ = _pkg_version("SecOpsTM")
+except Exception:
+    __version__ = "unknown"
 
-from .core import data_loader
-from .core.models_module import ThreatModel
-from .core.mitre_mapping_module import MitreMapping
-from .severity_calculator_module import SeverityCalculator
-from .generation.report_generator import ReportGenerator
-from .generation.diagram_generator import DiagramGenerator
-from .core.model_parser import ModelParser
+__author__ = "ellipse2v"
 
 __all__ = [
     'ThreatModel',
@@ -34,5 +31,26 @@ __all__ = [
     'ReportGenerator',
     'DiagramGenerator',
     'ModelParser',
-    'data_loader'
+    'data_loader',
 ]
+
+_lazy_map = {
+    'ThreatModel':          ('.core.models_module',          'ThreatModel'),
+    'MitreMapping':         ('.core.mitre_mapping_module',   'MitreMapping'),
+    'SeverityCalculator':   ('.severity_calculator_module',  'SeverityCalculator'),
+    'ReportGenerator':      ('.generation.report_generator', 'ReportGenerator'),
+    'DiagramGenerator':     ('.generation.diagram_generator','DiagramGenerator'),
+    'ModelParser':          ('.core.model_parser',           'ModelParser'),
+    'data_loader':          ('.core.data_loader',             None),
+}
+
+
+def __getattr__(name: str):
+    if name not in _lazy_map:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    import importlib
+    mod_path, attr = _lazy_map[name]
+    mod = importlib.import_module(mod_path, package=__name__)
+    obj = mod if attr is None else getattr(mod, attr)
+    globals()[name] = obj
+    return obj

@@ -27,12 +27,19 @@ def get_embeddings(ai_config: dict):
     logger.info(f"Initializing embedding provider: {provider} with model: {model}")
 
     if provider == "huggingface":
-        from langchain_huggingface import HuggingFaceEmbeddings
+        from sentence_transformers import SentenceTransformer as _ST
+
         device = cfg.get("device", "cpu")
-        return HuggingFaceEmbeddings(
-            model_name=model,
-            model_kwargs={"device": device}
-        )
+        _model = _ST(model, device=device)
+
+        class _Embeddings:
+            def embed_query(self, text: str):
+                return _model.encode(text).tolist()
+
+            def embed_documents(self, texts):
+                return _model.encode(texts).tolist()
+
+        return _Embeddings()
     elif provider == "google":
         from langchain_google_genai import GoogleGenerativeAIEmbeddings
         kwargs = {"model": model}
