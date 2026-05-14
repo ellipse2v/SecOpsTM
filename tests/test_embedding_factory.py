@@ -32,12 +32,13 @@ def test_get_embeddings_huggingface():
             "device": "cpu"
         }
     }
-    with patch("langchain_huggingface.HuggingFaceEmbeddings") as mock_hf:
-        get_embeddings(ai_config)
-        mock_hf.assert_called_once_with(
-            model_name="test-model",
-            model_kwargs={"device": "cpu"}
-        )
+    mock_model = MagicMock()
+    mock_model.encode.return_value = [0.1, 0.2, 0.3]
+    with patch("sentence_transformers.SentenceTransformer", return_value=mock_model) as mock_st:
+        result = get_embeddings(ai_config)
+        mock_st.assert_called_once_with("test-model", device="cpu")
+        assert hasattr(result, "embed_query")
+        assert hasattr(result, "embed_documents")
 
 def test_get_embeddings_google():
     ai_config = {"embedding": {"provider": "google", "model": "test-google"}}
