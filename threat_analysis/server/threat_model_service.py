@@ -36,13 +36,13 @@ class ThreatModelService:
         self.severity_calculator = SeverityCalculator()
         self.diagram_generator = DiagramGenerator()
         
-        cve_definitions_path = PROJECT_ROOT / "cve_definitions.yml"
+        cve_definitions_path = Path.cwd() / "cve_definitions.yml"
         self.cve_service = CVEService(
             PROJECT_ROOT, cve_definitions_path, is_path_explicit=False
         )
-        
-        ai_config_path = PROJECT_ROOT / "config" / "ai_config.yaml"
-        context_path = PROJECT_ROOT / "config" / "context.yaml"
+
+        ai_config_path = Path.cwd() / "config" / "ai_config.yaml"
+        context_path = Path.cwd() / "config" / "context.yaml"
         
         # Import queue locally to avoid circular dependency issues
         from threat_analysis.server.events import ai_status_event_queue

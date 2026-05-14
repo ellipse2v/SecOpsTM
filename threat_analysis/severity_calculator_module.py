@@ -26,8 +26,8 @@ try:
 except ImportError:
     _yaml = None  # type: ignore[assignment]
 
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent
-_SCORING_CONFIG_PATH = _PROJECT_ROOT / "config" / "scoring_config.yaml"
+_PKG_ROOT = Path(__file__).resolve().parent
+_SCORING_CONFIG_PATH = _PKG_ROOT / "config" / "scoring_config.yaml"
 
 _scoring_config: Optional[Dict] = None
 

@@ -37,7 +37,8 @@ from threat_analysis.core.bom_loader import BOMLoader
 logger = logging.getLogger(__name__)
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
-_SCORING_CONFIG_PATH = _PROJECT_ROOT / "config" / "scoring_config.yaml"
+_PKG_ROOT = Path(__file__).resolve().parents[1]
+_SCORING_CONFIG_PATH = _PKG_ROOT / "config" / "scoring_config.yaml"
 
 # Default constants — also exported for backward compatibility with existing tests.
 # GDAFEngine instances override these via config/scoring_config.yaml at runtime.

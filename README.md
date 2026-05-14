@@ -131,16 +131,40 @@ Install Graphviz for diagram generation:
     git clone https://github.com/ellipse2v/SecOpsTM.git
     cd SecOpsTM
     ```
+### Docker (no setup required)
 
-2.  **Install Python dependencies:**
-    ```bash
-    pip install -e .
-    ```
-    After this step the `secopstm` command is available in your environment.
+```bash
+docker pull ghcr.io/ellipse2v/secopstm:latest
+docker run -p 5000:5000 -v $(pwd)/output:/app/output ghcr.io/ellipse2v/secopstm:latest
+```
 
 3.  **Install Graphviz** (see Option B above).
+Open `http://localhost:5000`. Graphviz included, `external_data/` bundled.
 
-After installation, restart your terminal or IDE.
+For AI features (LiteLLM + RAG):
+
+```bash
+docker pull ghcr.io/ellipse2v/secopstm:ai
+docker run -p 5000:5000 -e GEMINI_API_KEY=your_key \
+  -v $(pwd)/output:/app/output ghcr.io/ellipse2v/secopstm:ai
+```
+
+### pip
+
+```bash
+pip install SecOpsTM
+secopstm download-data   # download offline knowledge base (~140 MB, one-time)
+secopstm --server
+```
+
+### From source
+
+```bash
+git clone https://github.com/ellipse2v/SecOpsTM.git
+cd SecOpsTM
+pip install -e .
+# Install Graphviz: https://graphviz.org/download/
+```
 
 ### Basic CLI usage
 

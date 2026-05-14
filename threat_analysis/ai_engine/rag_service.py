@@ -16,6 +16,7 @@ import os
 import json
 import logging
 import threading
+from pathlib import Path
 from typing import List, Dict, Any, Optional
 import yaml
 from threat_analysis.utils import extract_json_from_llm_response
@@ -24,6 +25,29 @@ logger = logging.getLogger(__name__)
 
 # Default chromadb collection name created by langchain_chroma.Chroma.from_documents()
 _CHROMA_COLLECTION_NAME = "langchain"
+
+# Candidate locations for the vector store, in priority order:
+#   1. SECOPSTM_VECTOR_STORE_DIR env var
+#   2. ~/.secopstm/vector_store  (installed via --init-rag)
+#   3. threat_analysis/vector_store relative to CWD  (dev / legacy)
+_USER_VECTOR_STORE = Path.home() / ".secopstm" / "vector_store"
+
+
+def _resolve_vector_store_dir(explicit: Optional[str] = None) -> str:
+    """Return the effective vector store directory.
+
+    Priority: explicit arg → SECOPSTM_VECTOR_STORE_DIR env var → ~/.secopstm/vector_store → cwd fallback.
+    The env var is returned as-is without an existence check — it is an authoritative override
+    and a missing path produces a clear error at open time rather than a silent fallback.
+    """
+    if explicit and explicit != "threat_analysis/vector_store":
+        return explicit
+    env = os.environ.get("SECOPSTM_VECTOR_STORE_DIR")
+    if env:
+        return env
+    if _USER_VECTOR_STORE.exists():
+        return str(_USER_VECTOR_STORE)
+    return explicit or "threat_analysis/vector_store"
 
 
 class RAGThreatGenerator:
@@ -48,7 +72,7 @@ class RAGThreatGenerator:
         user_context_path: str = "config/user_context.example.json",
         ai_config_path: str = "config/ai_config.yaml",
     ):
-        self.vector_store_dir = vector_store_dir
+        self.vector_store_dir = _resolve_vector_store_dir(vector_store_dir)
         self.user_context_path = user_context_path
         self.ai_config_path = ai_config_path
 

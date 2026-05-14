@@ -1,16 +1,22 @@
 name: Docker — Build, Push, and Sync Hub Description
 
+
 on:
   push:
     tags:
       - 'v*'
 
 env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/secopstm
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Checkout
@@ -29,6 +35,24 @@ jobs:
         run: echo "VERSION=${REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
       - name: Build and push core image
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up QEMU (for arm64 cross-compilation)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Build and push :latest + :version (core)
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -39,6 +63,15 @@ jobs:
             ellipse2v/secopstm:${{ steps.tag.outputs.VERSION }}-core
 
       - name: Build and push ai image
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push :ai + :version-ai (ai)
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -57,3 +90,10 @@ jobs:
           repository: ellipse2v/secopstm
           readme-filepath: ./DOCKER_HUB.md
           short-description: "STRIDE threat modeling + MITRE ATT&CK mapping + AI enrichment (OWASP project)"
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ai
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}-ai
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

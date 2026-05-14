@@ -37,7 +37,7 @@ from threat_analysis.core.stride_constants import STRIDE_CATEGORIES as _STRIDE_C
 
 logger = logging.getLogger(__name__)
 
-_AI_CONFIG_PATH = Path(__file__).resolve().parents[2] / "config" / "ai_config.yaml"
+_AI_CONFIG_PATH = Path.cwd() / "config" / "ai_config.yaml"
 
 _ranking_weights_cache: Optional[Dict[str, float]] = None
 

@@ -41,6 +41,162 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+
+_VECTOR_STORE_RELEASE_URL = (
+    "https://github.com/ellipse2v/SecOpsTM/releases/download/"
+    "vector-store-latest/vector_store.tar.gz"
+)
+_VECTOR_STORE_DEFAULT_DIR = Path.home() / ".secopstm" / "vector_store"
+
+
+def _vector_store_dir() -> Path:
+    """Return the effective vector store directory (env override or default)."""
+    env = os.environ.get("SECOPSTM_VECTOR_STORE_DIR")
+    return Path(env) if env else _VECTOR_STORE_DEFAULT_DIR
+
+
+def init_rag(force: bool = False) -> int:
+    """Download the pre-built RAG vector store from GitHub Releases.
+
+    Called when sys.argv[1] == 'init-rag' (early-exit before heavy imports).
+    """
+    import urllib.request
+    import tarfile
+
+    dest = _vector_store_dir()
+
+    if dest.exists() and not force:
+        print(f"Vector store already present at {dest}.")
+        print("Use --force to re-download.")
+        return 0
+
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    archive = dest.parent / "vector_store.tar.gz"
+
+    print(f"Downloading vector store from GitHub Releases…")
+    print(f"  {_VECTOR_STORE_RELEASE_URL}")
+
+    def _progress(count, block_size, total):
+        if total > 0:
+            pct = min(100, count * block_size * 100 // total)
+            mb_done = count * block_size / 1_048_576
+            mb_total = total / 1_048_576
+            print(f"\r  {pct:3d}%  {mb_done:.0f} / {mb_total:.0f} MB", end="", flush=True)
+
+    try:
+        urllib.request.urlretrieve(_VECTOR_STORE_RELEASE_URL, archive, _progress)
+    except Exception as exc:
+        print(f"\nDownload failed: {exc}")
+        return 1
+
+    print(f"\nExtracting to {dest.parent} …")
+    try:
+        with tarfile.open(archive, "r:gz") as tf:
+            tf.extractall(dest.parent)
+    except Exception as exc:
+        print(f"Extraction failed: {exc}")
+        return 1
+    finally:
+        archive.unlink(missing_ok=True)
+
+    # Normalise extraction: handle tarballs with a leading threat_analysis/ prefix
+    # (old format: threat_analysis/vector_store/ — new format: vector_store/ directly).
+    if not dest.exists():
+        legacy = dest.parent / "threat_analysis" / "vector_store"
+        if legacy.exists():
+            import shutil
+            shutil.move(str(legacy), str(dest))
+            legacy.parent.rmdir()  # remove now-empty threat_analysis/
+
+    if not dest.exists():
+        print(f"Extraction error: expected directory not found at {dest}")
+        return 1
+
+    print(f"✅ RAG vector store ready at {dest}")
+    print("You can now use AI-powered RAG threat generation.")
+    return 0
+
+
+def download_data(args=None, package_dir=None):
+    """Download external_data.tar.gz from GitHub Releases, verify SHA-256, and extract.
+
+    Called when sys.argv[1] == 'download-data' (early-exit before heavy imports).
+    Also callable directly for testing (pass args list and package_dir).
+    """
+    import argparse as _ap
+    import hashlib
+    import tarfile as _tarfile
+    import urllib.request
+    import io as _io
+
+    _p = _ap.ArgumentParser(prog="secopstm download-data")
+    _p.add_argument("--force", action="store_true", help="Overwrite existing external_data/")
+    _parsed = _p.parse_args(args if args is not None else sys.argv[2:])
+
+    if package_dir is None:
+        import threat_analysis as _ta
+        package_dir = Path(_ta.__file__).resolve().parent
+
+    ext_dir = Path(package_dir) / "external_data"
+    if ext_dir.exists() and any(ext_dir.iterdir()) and not _parsed.force:
+        print(f"external_data/ already present at {ext_dir}. Use --force to overwrite.")
+        sys.exit(0)
+
+    base_url = (
+        "https://github.com/ellipse2v/SecOpsTM/releases/download"
+        "/external-data-latest/external_data.tar.gz"
+    )
+    sha256_url = base_url + ".sha256"
+
+    print(f"Downloading SHA-256 checksum from {sha256_url} ...")
+    with urllib.request.urlopen(sha256_url) as resp:
+        sha256_line = resp.read().decode().strip()
+    expected_sha256 = sha256_line.split()[0]
+
+    print(f"Downloading {base_url} ...")
+    with urllib.request.urlopen(base_url) as resp:
+        tarball_bytes = resp.read()
+
+    actual_sha256 = hashlib.sha256(tarball_bytes).hexdigest()
+    if actual_sha256 != expected_sha256:
+        print(
+            f"SHA-256 mismatch!\n  expected: {expected_sha256}\n  got:      {actual_sha256}"
+        )
+        sys.exit(1)
+
+    print("Checksum OK. Extracting ...")
+    import shutil
+    import tempfile
+
+    tmp_dir = Path(tempfile.mkdtemp(dir=str(package_dir), prefix=".download_tmp_"))
+    try:
+        with _tarfile.open(fileobj=_io.BytesIO(tarball_bytes), mode="r:gz") as tf:
+            members = tf.getmembers()
+            dest_resolved = Path(package_dir).resolve()
+            for m in members:
+                member_path = (dest_resolved / m.name).resolve()
+                if not str(member_path).startswith(str(dest_resolved)):
+                    print(f"Aborting: path traversal detected in tarball: {m.name}")
+                    sys.exit(1)
+            tf.extractall(path=tmp_dir)
+
+        extracted_dir = tmp_dir / "external_data"
+        if not extracted_dir.exists():
+            print("Error: tarball did not contain an external_data/ directory.")
+            sys.exit(1)
+
+        if ext_dir.exists():
+            shutil.rmtree(ext_dir)
+        extracted_dir.rename(ext_dir)
+    finally:
+        if tmp_dir.exists():
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    print(f"external_data/ extracted to {ext_dir}")
+    print("Run `secopstm --server` to start.")
+    sys.exit(0)
+
+
 class SecOpsTMFramework:
     """Main framework for threat analysis"""
 
@@ -418,9 +574,26 @@ class CustomArgumentParser:
             help="Path to the threat model Markdown file.",
         )
         common.add_argument(
+            "--init-rag",
+            action="store_true",
+            dest="init_rag",
+            help="Download the pre-built RAG vector store from GitHub Releases.",
+        )
+        common.add_argument(
+            "--force",
+            action="store_true",
+            help="Force re-download even if the vector store already exists (use with --init-rag).",
+        )
+        common.add_argument(
             "--server",
             action="store_true",
             help="Launch the web editor (Monaco + graphical canvas).",
+        )
+        common.add_argument(
+            "--port",
+            type=int,
+            default=None,
+            help="Port for the web server (default: 5000). Sets FLASK_PORT.",
         )
         common.add_argument(
             "--project",
@@ -529,7 +702,20 @@ class CustomArgumentParser:
                     help=f"Path to the {plugin.name} configuration.",
                 )
 
+    def _add_version_argument(self):
+        try:
+            from importlib.metadata import version as _v
+            _ver = _v("SecOpsTM")
+        except Exception:
+            _ver = "unknown"
+        self.parser.add_argument(
+            "--version", "-V",
+            action="version",
+            version=f"%(prog)s {_ver}",
+        )
+
     def parse_args(self):
+        self._add_version_argument()
         return self.parser.parse_known_args()
 
 def diff_threat_reports(old_path: str, new_path: str) -> int:
@@ -776,7 +962,8 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
         PROJECT_ROOT, cve_definitions_path, is_cve_path_explicit
     )
 
-    ai_config_path = PROJECT_ROOT / (args.ai_config_file if hasattr(args, "ai_config_file") else "config/ai_config.yaml")
+    _ai_config_rel = args.ai_config_file if hasattr(args, "ai_config_file") else "config/ai_config.yaml"
+    ai_config_path = Path(_ai_config_rel) if Path(_ai_config_rel).is_absolute() else Path.cwd() / _ai_config_rel
 
     framework = SecOpsTMFramework(
         markdown_content=markdown_content_for_analysis,
@@ -893,6 +1080,13 @@ class ColoredFormatter(logging.Formatter):
 # --- Main entry point ---
 def main():
     """Entry point for the `secopstm` CLI command."""
+    # Early-exits: lightweight subcommands (no heavy imports needed)
+    if len(sys.argv) > 1 and sys.argv[1] == "download-data":
+        download_data()
+    if len(sys.argv) > 1 and sys.argv[1] == "--init-rag":
+        force = "--force" in sys.argv
+        sys.exit(init_rag(force=force))
+
     print("\n🚀 SecOpsTM Framework is starting...")
     # --- Argument Parsing ---
     loaded_iac_plugins = load_iac_plugins()
@@ -928,6 +1122,9 @@ def main():
     sys.argv = [sys.argv[0]] + remaining_argv
 
     logging.info(f"[{time.time() - _start_time_main:.4f}s] Starting main execution path.")
+    if getattr(args, "init_rag", False):
+        sys.exit(init_rag(force=getattr(args, "force", False)))
+
     if getattr(args, "diff", None):
         old_path, new_path = args.diff
         sys.exit(diff_threat_reports(old_path, new_path))
@@ -940,7 +1137,9 @@ def main():
             accepted_risks_path=getattr(args, "accepted_risks", None),
         ))
 
-    if args.server: # Use the new --server argument
+    if args.server:
+        if getattr(args, "port", None):
+            os.environ["FLASK_PORT"] = str(args.port)
         try:
             run_server(model_filepath=args.model_file, project_path=args.project)
         except ImportError:
@@ -992,7 +1191,8 @@ def main():
         MitreMapping = mitre_mapping_module.MitreMapping
         mitre_mapping = MitreMapping(threat_model_path=str(_root_model_file))
 
-        ai_config_path = PROJECT_ROOT / (args.ai_config_file if hasattr(args, 'ai_config_file') else "config/ai_config.yaml")
+        _ai_config_rel = args.ai_config_file if hasattr(args, 'ai_config_file') else "config/ai_config.yaml"
+        ai_config_path = Path(_ai_config_rel) if Path(_ai_config_rel).is_absolute() else Path.cwd() / _ai_config_rel
 
         # Lazy import ReportGenerator
         report_generator_module = importlib.import_module("threat_analysis.generation.report_generator")

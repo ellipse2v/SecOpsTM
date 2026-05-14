@@ -1,0 +1,55 @@
+name: Update External Data Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'threat_analysis/external_data/**'
+
+jobs:
+  release-external-data:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check external_data exists
+        run: |
+          if [ ! -d "threat_analysis/external_data" ]; then
+            echo "external_data/ not found — skipping."
+            exit 1
+          fi
+          echo "Size: $(du -sh threat_analysis/external_data | cut -f1)"
+
+      - name: Compress external_data
+        run: |
+          tar -czf external_data.tar.gz threat_analysis/external_data/
+          sha256sum external_data.tar.gz > external_data.tar.gz.sha256
+          echo "Archive: $(du -sh external_data.tar.gz | cut -f1)"
+
+      - name: Delete existing release and tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete external-data-latest --yes 2>/dev/null || true
+          git push origin :refs/tags/external-data-latest 2>/dev/null || true
+
+      - name: Create updated release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create external-data-latest \
+            external_data.tar.gz \
+            external_data.tar.gz.sha256 \
+            --title "External Data (latest)" \
+            --notes "Security knowledge base for SecOpsTM (MITRE ATT&CK, CAPEC, CVE, D3FEND).
+
+          ## Install
+          \`\`\`bash
+          secopstm download-data
+          \`\`\`
+
+          Built from commit ${{ github.sha }}."

@@ -35,8 +35,9 @@ from dataclasses import dataclass
 logger = logging.getLogger(__name__)
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
-_ASSET_TYPES_PATH = _PROJECT_ROOT / "config" / "asset_types_community.yaml"
-_PROTOCOLS_PATH = _PROJECT_ROOT / "config" / "protocols_community.yaml"
+_PKG_ROOT = Path(__file__).resolve().parents[1]
+_ASSET_TYPES_PATH = _PKG_ROOT / "config" / "asset_types_community.yaml"
+_PROTOCOLS_PATH = _PKG_ROOT / "config" / "protocols_community.yaml"
 
 
 @dataclass
@@ -61,7 +62,7 @@ class AssetTechniqueMapper:
     def _load_scoring_config(cls) -> Dict:
         if cls._scoring_config is not None:
             return cls._scoring_config
-        scoring_path = _PROJECT_ROOT / "config" / "scoring_config.yaml"
+        scoring_path = _PKG_ROOT / "config" / "scoring_config.yaml"
         try:
             with open(scoring_path, "r", encoding="utf-8") as f:
                 cls._scoring_config = yaml.safe_load(f) or {}

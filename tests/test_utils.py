@@ -47,17 +47,26 @@ def test_validate_path_does_not_exist():
 
 
 def test_validate_path_outside_project():
-    # Create a dummy file outside the project for testing
+    # Absolute paths are explicitly trusted (CLI flags, Docker volume mounts) —
+    # the base_dir guard applies only to relative paths.
     outside_file = Path("/tmp/outside_file_test.txt")
     outside_file.touch()
-
     try:
-        with pytest.raises(ValueError, match="Path is outside the allowed project directory"):
-            _validate_path_within_project(str(outside_file), base_dir=PROJECT_ROOT)
+        result = _validate_path_within_project(str(outside_file), base_dir=PROJECT_ROOT)
+        assert result == outside_file
     finally:
-        # Clean up the dummy file
         if outside_file.exists():
             outside_file.unlink()
+
+def test_validate_relative_path_outside_project(tmp_path):
+    # Relative paths that escape base_dir must still be rejected.
+    base = tmp_path / "project"
+    base.mkdir()
+    outside = tmp_path / "outside.txt"
+    outside.touch()
+    rel = os.path.relpath(str(outside), str(Path.cwd()))
+    with pytest.raises(ValueError, match="Path is outside the allowed project directory"):
+        _validate_path_within_project(rel, base_dir=base)
 
 def test_extract_json_from_llm_response():
     # Valid JSON in code fences

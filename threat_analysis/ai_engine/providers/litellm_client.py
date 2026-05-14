@@ -48,7 +48,7 @@ class LiteLLMClient:
         start_time = time.time()
         logging.info(f"[{time.time() - start_time:.4f}s] Loading AI configuration...")
         try:
-            with open(PROJECT_ROOT / "config/ai_config.yaml", 'r') as f:
+            with open(Path.cwd() / "config" / "ai_config.yaml", 'r') as f:
                 self.ai_config = yaml.safe_load(f)
             logging.info(f"[{time.time() - start_time:.4f}s] AI configuration loaded.")
             
@@ -80,7 +80,7 @@ class LiteLLMClient:
                     self._litellm_module.set_verbose = False
                     logging.debug(f"[{time.time() - start_time:.4f}s] litellm module dynamically imported.")
                 except ImportError as e:
-                    logging.error(f"[{time.time() - start_time:.4f}s] Failed to import litellm: {e}. AI features disabled.")
+                    logging.error("[%.4fs] Failed to import litellm: %s. AI features disabled.", time.time() - start_time, e)
                     return
 
                 self.model_name = f"{provider_name}/{self.provider_config.get('model')}"

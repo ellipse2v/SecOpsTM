@@ -81,8 +81,10 @@ def load_capec_to_mitre_mapping() -> Dict[str, List[Dict[str, Any]]]:
                       f"mapped to a total of {len(all_techniques)} unique ATT&CK techniques.")
 
     except FileNotFoundError:
-        logging.error(f"Error: CAPEC to MITRE JSON mapping file not found at {json_path}. "
-                      f"Please run 'tooling/capec_to_mitre_builder.py' to generate it.")
+        logging.error(
+            "CAPEC to MITRE mapping not found at %s. "
+            "Run: secopstm download-data", json_path
+        )
     except json.JSONDecodeError:
         logging.error(f"Error decoding JSON from {json_path}. The file might be corrupt.")
     except Exception as e:
@@ -99,7 +101,10 @@ def load_stride_to_capec_map() -> Dict[str, List[Dict[str, str]]]:
         with open(capec_mapping_path, 'r', encoding='utf-8') as f:
             return json.load(f)
     except FileNotFoundError:
-        logging.error(f"Error: stride_to_capec.json not found at {capec_mapping_path}.")
+        logging.error(
+            "stride_to_capec.json not found at %s. "
+            "Run: secopstm download-data", capec_mapping_path
+        )
         return {}
     except json.JSONDecodeError:
         logging.error(f"Error decoding JSON from {capec_mapping_path}.")

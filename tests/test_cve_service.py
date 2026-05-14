@@ -93,7 +93,7 @@ def test_load_cve_to_capec_map_no_dir(tmp_path, caplog):
     cve_definitions_path.touch() # Create empty file to avoid other warning
     service = CVEService(project_root, cve_definitions_path)
     assert service.cve_to_capec_map == {}
-    assert "CVE2CAPEC database directory not found" in caplog.text
+    assert "CVE2CAPEC database not found" in caplog.text
 
 def test_load_cve_to_capec_map_with_prefix(mock_project_root):
     """Test that CAPEC IDs are correctly prefixed."""

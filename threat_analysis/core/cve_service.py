@@ -52,7 +52,11 @@ class CVEService:
         cwe_map: Dict[str, List[str]] = {}
         if not self.cve2capec_db_path.is_dir():
             logging.warning(
-                f"CVE2CAPEC database directory not found at {self.cve2capec_db_path}."
+                "CVE2CAPEC database not found at %s. "
+                "To enable CVE scoring, run: secopstm download-data  "
+                "(or manually: git clone https://github.com/Galeax/CVE2CAPEC.git "
+                "next to this project, then python tooling/copy_cve_data.py)",
+                self.cve2capec_db_path,
             )
             self._cve_to_capec_map = capec_map
             self._cve_to_cwe_map = cwe_map
