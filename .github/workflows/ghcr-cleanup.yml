@@ -1,0 +1,26 @@
+name: GHCR — Cleanup old versions
+
+on:
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+
+    steps:
+      - name: Delete all untagged versions
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: secopstm
+          package-type: container
+          delete-only-untagged-versions: true
+
+      - name: Delete old tagged versions (keep latest and 1.1.1a20)
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: secopstm
+          package-type: container
+          ignore-versions: '^(latest|1\.1\.1a20)$'
+          min-versions-to-keep: 0

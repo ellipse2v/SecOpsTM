@@ -60,61 +60,31 @@ For detailed information on features, usage, and advanced customization, please 
 
 ### Option A — Docker (no Python setup required)
 
-Two images are available on Docker Hub:
-
-| Image | Size | Use case |
-|---|---|---|
-| `ellipse2v/secopstm:core` | ~500 MB | Offline STRIDE analysis, no AI |
-| `ellipse2v/secopstm:ai` | ~2 GB | Full AI enrichment (LLM + RAG) |
-
-#### Core image — offline, no API key needed
-
-```bash
-docker pull ellipse2v/secopstm:core
-docker run -p 5000:5000 \
-  -v $(pwd)/models:/models \
-  -v $(pwd)/output:/app/output \
-  ellipse2v/secopstm:core
-```
-
-Open <http://localhost:5000> in your browser. Pass your model with `--model-file /models/threat_model.md`.
-
-#### AI image — LLM + RAG enrichment
-
-```bash
-docker pull ellipse2v/secopstm:ai
-```
-
-**Step 1 — Download the RAG vector store** (one-time, ~200 MB):
-
-```bash
-docker run --rm \
-  -v secopstm-rag:/app/rag \
-  ellipse2v/secopstm:ai --init-rag
-```
-
-**Step 2 — Run the server** (reuse the same volume):
-
 ```bash
 docker run -p 5000:5000 \
-  -e GEMINI_API_KEY=your_key \
-  -v secopstm-rag:/app/rag \
-  -v $(pwd)/models:/models \
   -v $(pwd)/output:/app/output \
-  ellipse2v/secopstm:ai
+  ellipse2v/secopstm:latest
 ```
+
+Open <http://localhost:5000>. Reports land in `$(pwd)/output/<timestamp>/`.
+
+#### With AI enrichment (LLM + RAG)
 
 **Default provider: NVIDIA NIM** (Llama 3.3 70B) — free API key at https://build.nvidia.com/meta/llama-3_3-70b-instruct
 
-| Provider | Environment variable |
-|---|---|
-| NVIDIA NIM *(default)* | `NVIDIA_API_KEY` |
-| Google Gemini | `GEMINI_API_KEY` |
-| OpenAI | `OPENAI_API_KEY` |
-| Mistral | `MISTRAL_API_KEY` |
-| Ollama (fully offline) | — no key needed — |
+```bash
+# Step 1 — Download RAG vector store (one-time, ~200 MB)
+docker run --rm -v secopstm-rag:/app/rag ellipse2v/secopstm:latest --init-rag
 
-> **Output files** land in `$(pwd)/output/<timestamp>/` on your host.
+# Step 2 — Run
+docker run -p 5000:5000 \
+  -e NVIDIA_API_KEY=your_key \
+  -v secopstm-rag:/app/rag \
+  -v $(pwd)/output:/app/output \
+  ellipse2v/secopstm:latest
+```
+
+Other supported providers: `GEMINI_API_KEY`, `OPENAI_API_KEY`, `MISTRAL_API_KEY`. Ollama works fully offline (no key needed).
 
 ---
 

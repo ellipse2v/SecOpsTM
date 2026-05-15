@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# ── Stage: base ─────────────────────────────────────────────────────────────
-FROM python:3.10-slim AS base
+FROM python:3.10-slim
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends graphviz \
@@ -28,45 +27,27 @@ COPY --chown=appuser:appuser config/ ./config/
 COPY --chown=appuser:appuser threatModel_Template/ ./threatModel_Template/
 COPY --chown=appuser:appuser pyproject.toml README.md LICENSE ./
 
-# ── Stage: core (default) ───────────────────────────────────────────────────
-FROM base AS core
-
-# Install as root (system-wide), then drop to non-root for runtime
+# Install as root (system-wide), make config.js writable by appuser,
+# then pre-download the embedding model so it's available offline.
 RUN pip install --no-cache-dir . && \
-    chown appuser:appuser /usr/local/lib/python3.10/site-packages/threat_analysis/server/static/js/config.js
-
-USER appuser
-
-# Bind to all interfaces so the port is reachable from the Docker host
-ENV FLASK_HOST=0.0.0.0
-
-EXPOSE 5000
-
-VOLUME ["/app/output"]
-
-ENTRYPOINT ["secopstm"]
-CMD ["--server"]
-
-# ── Stage: ai ───────────────────────────────────────────────────────────────
-# All AI deps (litellm, chromadb, sentence-transformers) are required deps —
-# already installed in the core stage. This stage adds:
-#   - pre-downloaded embedding model (no HuggingFace download at runtime)
-#   - fixed vector store path mountable via Docker named volume
-FROM core AS ai
-
-USER root
-
-# Pre-download the embedding model into the image so it's available offline.
-# HF_HUB_DISABLE_SYMLINKS_WARNING avoids a noisy warning on Windows hosts.
-RUN HF_HUB_DISABLE_SYMLINKS_WARNING=1 \
+    chown appuser:appuser /usr/local/lib/python3.10/site-packages/threat_analysis/server/static/js/config.js && \
+    HF_HUB_DISABLE_SYMLINKS_WARNING=1 \
     python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
 
 # Fixed vector store path — mountable via Docker named volume.
 # secopstm --init-rag and the RAG service both respect this env var.
 ENV SECOPSTM_VECTOR_STORE_DIR=/app/rag/vector_store
 
+# Bind to all interfaces so the port is reachable from the Docker host
+ENV FLASK_HOST=0.0.0.0
+
 RUN mkdir -p /app/rag && chown appuser:appuser /app/rag
 
 USER appuser
 
+EXPOSE 5000
+
 VOLUME ["/app/rag", "/app/output"]
+
+ENTRYPOINT ["secopstm"]
+CMD ["--server"]

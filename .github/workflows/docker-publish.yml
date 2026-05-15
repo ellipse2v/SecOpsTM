@@ -44,35 +44,23 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push core image
+      - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
-          target: core
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ellipse2v/secopstm:core
-            ellipse2v/secopstm:${{ steps.tag.outputs.VERSION }}-core
-            ghcr.io/ellipse2v/secopstm:core
-            ghcr.io/ellipse2v/secopstm:${{ steps.tag.outputs.VERSION }}-core
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build and push ai image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          target: ai
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: |
-            ellipse2v/secopstm:ai
             ellipse2v/secopstm:latest
             ellipse2v/secopstm:${{ steps.tag.outputs.VERSION }}
-            ghcr.io/ellipse2v/secopstm:ai
             ghcr.io/ellipse2v/secopstm:latest
             ghcr.io/ellipse2v/secopstm:${{ steps.tag.outputs.VERSION }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Delete untagged GHCR versions
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: secopstm
+          package-type: container
+          delete-only-untagged-versions: true
