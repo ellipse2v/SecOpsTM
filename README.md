@@ -104,8 +104,15 @@ docker run -p 5000:5000 \
   ellipse2v/secopstm:ai
 ```
 
-Supported API key environment variables: `GEMINI_API_KEY`, `OPENAI_API_KEY`, `MISTRAL_API_KEY`.
-For Ollama (fully offline), no key is needed — configure the provider in `config/ai_config.yaml`.
+**Default provider: NVIDIA NIM** (Llama 3.3 70B) — free API key at https://build.nvidia.com/meta/llama-3_3-70b-instruct
+
+| Provider | Environment variable |
+|---|---|
+| NVIDIA NIM *(default)* | `NVIDIA_API_KEY` |
+| Google Gemini | `GEMINI_API_KEY` |
+| OpenAI | `OPENAI_API_KEY` |
+| Mistral | `MISTRAL_API_KEY` |
+| Ollama (fully offline) | — no key needed — |
 
 > **Output files** land in `$(pwd)/output/<timestamp>/` on your host.
 

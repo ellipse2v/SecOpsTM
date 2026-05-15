@@ -32,7 +32,8 @@ COPY --chown=appuser:appuser pyproject.toml README.md LICENSE ./
 FROM base AS core
 
 # Install as root (system-wide), then drop to non-root for runtime
-RUN pip install --no-cache-dir .
+RUN pip install --no-cache-dir . && \
+    chown appuser:appuser /usr/local/lib/python3.10/site-packages/threat_analysis/server/static/js/config.js
 
 USER appuser
 

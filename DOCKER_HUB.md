@@ -32,6 +32,9 @@ Reports land in `$(pwd)/output/<timestamp>/`.
 
 ### AI — LLM + RAG
 
+> **Default provider: NVIDIA NIM** (Llama 3.3 70B). Get a free API key at
+> https://build.nvidia.com/meta/llama-3_3-70b-instruct — no credit card required for the trial tier.
+
 **Step 1 — Download the RAG vector store** (one-time, ~200 MB, stored in a named volume):
 
 ```bash
@@ -56,13 +59,13 @@ The named volume `secopstm-rag` persists across restarts and image upgrades.
 
 ## API key environment variables
 
-| Provider | Environment variable |
-|---|---|
-| Google Gemini | `GEMINI_API_KEY` |
-| OpenAI | `OPENAI_API_KEY` |
-| Mistral | `MISTRAL_API_KEY` |
-| NVIDIA NIM | `NVIDIA_API_KEY` |
-| Ollama (local, fully offline) | — no key needed — |
+| Provider | Environment variable | Free tier |
+|---|---|---|
+| NVIDIA NIM *(default)* | `NVIDIA_API_KEY` | ✅ [build.nvidia.com](https://build.nvidia.com/meta/llama-3_3-70b-instruct) |
+| Google Gemini | `GEMINI_API_KEY` | ✅ |
+| OpenAI | `OPENAI_API_KEY` | ❌ |
+| Mistral | `MISTRAL_API_KEY` | ✅ |
+| Ollama (local, fully offline) | — no key needed — | ✅ |
 
 ---
 
