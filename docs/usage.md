@@ -31,30 +31,38 @@ The CVE data bundled in the knowledge base covers 1999–2025 — clone CVE2CAPE
 ```bash
 # Offline — no API key needed
 docker run -p 5000:5000 -v $(pwd)/output:/app/output \
-  ghcr.io/ellipse2v/secopstm:latest
+  ellipse2v/secopstm:latest
 
-# With LLM inference (NVIDIA NIM, Gemini, OpenAI or Mistral)
+# With LLM inference — default provider is NVIDIA NIM (free tier available)
+# See https://build.nvidia.com/meta/llama-3_3-70b-instruct for a free API key
 docker run -p 5000:5000 \
-  -e NVIDIA_NIM_API_KEY=nvapi-... \
+  -e NVIDIA_API_KEY=your_key \
   -v $(pwd)/output:/app/output \
-  ghcr.io/ellipse2v/secopstm:latest
+  ellipse2v/secopstm:latest
 
-# With LLM + RAG (ai tag — requires one-time vector store download)
+# Switch provider or model without rebuilding — mount your own ai_config.yaml
 docker run -p 5000:5000 \
-  -e NVIDIA_NIM_API_KEY=nvapi-... \
+  -e GEMINI_API_KEY=your_key \
+  -v $(pwd)/ai_config.yaml:/app/config/ai_config.yaml:ro \
+  -v $(pwd)/output:/app/output \
+  ellipse2v/secopstm:latest
+
+# With LLM + RAG
+docker run -p 5000:5000 \
+  -e NVIDIA_API_KEY=your_key \
   -v secopstm-rag:/app/rag \
   -v $(pwd)/output:/app/output \
-  ghcr.io/ellipse2v/secopstm:ai
+  ellipse2v/secopstm:latest
 ```
 
 Open `http://localhost:5000`. Generated reports land in `$(pwd)/output/<timestamp>/`.
 
-#### One-time RAG vector store download (`ai` tag only)
+#### One-time RAG vector store download
 
 ```bash
 docker run --rm \
   -v secopstm-rag:/app/rag \
-  ghcr.io/ellipse2v/secopstm:ai \
+  ellipse2v/secopstm:latest \
   --init-rag
 ```
 
@@ -62,32 +70,26 @@ The named volume `secopstm-rag` persists across container restarts and image reb
 
 #### Docker reference
 
-**Image tags**
-
-| Tag | LLM inference | RAG vector store |
-|---|---|---|
-| `latest` | ✅ pass any API key via `-e` | ❌ |
-| `ai` | ✅ | ✅ mount `secopstm-rag:/app/rag` |
-
 **API key environment variables**
 
-| Provider | Environment variable | `ai_config.yaml` entry |
+| Provider | Environment variable | Free tier |
 |---|---|---|
-| NVIDIA NIM | `NVIDIA_NIM_API_KEY` | `nvidia_nim` |
-| Google Gemini | `GOOGLE_API_KEY` | `gemini` |
-| OpenAI | `OPENAI_API_KEY` | `openai` |
-| Mistral | `MISTRAL_API_KEY` | `mistral` |
+| NVIDIA NIM *(default)* | `NVIDIA_API_KEY` | ✅ [build.nvidia.com](https://build.nvidia.com/meta/llama-3_3-70b-instruct) |
+| Google Gemini | `GEMINI_API_KEY` | ✅ |
+| OpenAI | `OPENAI_API_KEY` | ❌ |
+| Mistral | `MISTRAL_API_KEY` | ✅ |
+| Ollama (local) | — no key needed — | ✅ |
 
 **Volumes and mounts**
 
 | What | Mount | Notes |
 |---|---|---|
 | Output reports | `-v $(pwd)/output:/app/output` | Files land in `output/<timestamp>/` on the host |
-| AI config | `-v $(pwd)/config/ai_config.yaml:/app/config/ai_config.yaml` | Switch provider/model without rebuilding |
-| Prompts | `-v $(pwd)/config/prompts.yaml:/app/config/prompts.yaml` | Override LLM prompts |
+| AI config | `-v $(pwd)/ai_config.yaml:/app/config/ai_config.yaml:ro` | Switch provider/model without rebuilding |
+| Prompts | `-v $(pwd)/prompts.yaml:/app/config/prompts.yaml:ro` | Override LLM prompts |
 | Threat model files | `-v $(pwd)/models:/models` | Pass `--model-file /models/model.md` |
-| CVE definitions | `-v $(pwd)/cve_definitions.yml:/app/cve_definitions.yml` | Per-asset CVE list |
-| RAG vector store | `-v secopstm-rag:/app/rag` | Named volume, `ai` tag only |
+| CVE definitions | `-v $(pwd)/cve_definitions.yml:/app/cve_definitions.yml:ro` | Per-asset CVE list |
+| RAG vector store | `-v secopstm-rag:/app/rag` | Named volume, required for RAG |
 
 **Changing the port**
 
@@ -102,7 +104,7 @@ docker run -p 8080:5000 ...   # accessible on http://localhost:8080
 docker run --rm \
   -v $(pwd)/models:/models \
   -v $(pwd)/output:/app/output \
-  ghcr.io/ellipse2v/secopstm:latest \
+  ellipse2v/secopstm:latest \
   --model-file /models/threat_model.md --output-format json --stdout
 ```
 

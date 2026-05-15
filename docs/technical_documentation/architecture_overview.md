@@ -278,7 +278,7 @@ The framework uses a pluggable AI provider architecture to support various Large
 2.  **`threat_analysis/ai_engine/providers/litellm_client.py`**:
     *   **Role**: A unified client leveraging the `litellm` library.
     *   **Function**: Provides a consistent interface to interact with numerous AI providers (OpenAI, Anthropic, Google Gemini, Mistral, Ollama, etc.) using a single completion function.
-    *   **Configuration**: Loads settings from `config/ai_config.yaml` and handles API keys via environment variables (e.g., `GOOGLE_API_KEY` for Gemini).
+    *   **Configuration**: Loads settings from `config/ai_config.yaml` and handles API keys via environment variables (e.g., `NVIDIA_API_KEY` for NVIDIA NIM, `GEMINI_API_KEY` for Gemini).
 
 3.  **`threat_analysis/ai_engine/providers/litellm_provider.py`**:
     *   **Role**: A concrete implementation of `BaseLLMProvider` that wraps `LiteLLMClient`.
