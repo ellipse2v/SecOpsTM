@@ -1,0 +1,25 @@
+# BOM: RTSP-Relay
+asset: "RTSP-Relay"
+vendor: "MediaMTX (formerly rtsp-simple-server)"
+model: "open-source"
+software_version: "MediaMTX v1.1.0"
+patch_level: outdated
+known_cves:
+  - CVE-2023-47137  # MediaMTX path traversal — unauthenticated path traversal via HLS endpoint allows arbitrary file read
+running_services:
+  - RTSP (port 8554)
+  - HLS (port 8888)
+  - WebRTC (port 8889)
+  - API (port 9997)
+detection_level: low
+credentials_stored: false
+notes: >
+  MediaMTX RTSP relay proxy serving live camera feeds to the Mobile-App-Server.
+  No authentication configured on any RTSP or HLS endpoints — any client that can
+  reach port 8554 or 8888 on the Camera Network VLAN can view live feeds from all cameras.
+  CVE-2023-47137 allows unauthenticated path traversal via the HLS endpoint, giving read
+  access to any file on the relay host's filesystem.
+  The management API on port 9997 has no authentication and exposes full stream management:
+  an attacker can terminate streams, add malicious stream sources, or reconfigure relay paths.
+  WebRTC endpoint is exposed to the Mobile Access boundary via Mobile-App-Server — if the
+  API server is misconfigured, this creates a direct path from Mobile Access to Camera Network.

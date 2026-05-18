@@ -1,5 +1,5 @@
 // Threat Model Configuration - Web UI
-// Generated on: 2026-05-15 21:17:23
+// Generated on: 2026-05-17 17:43:26
 // This file contains configuration for the threat model web interface
 
 const ThreatModelConfig = {
@@ -17,7 +17,23 @@ const ThreatModelConfig = {
         "api_gateway": "/static/resources/icons/api-gateway.svg",
         "apigateway": "/static/resources/icons/api-gateway.svg",
         "load_balancer": "/static/resources/icons/load_balancer.svg",
-        "loadbalancer": "/static/resources/icons/load_balancer.svg"
+        "loadbalancer": "/static/resources/icons/load_balancer.svg",
+        "ip_camera": "/static/resources/icons/ip-camera.svg",
+        "ipcamera": "/static/resources/icons/ip-camera.svg",
+        "ptz_camera": "/static/resources/icons/ptz-camera.svg",
+        "ptzcamera": "/static/resources/icons/ptz-camera.svg",
+        "thermal_camera": "/static/resources/icons/thermal-camera.svg",
+        "thermalcamera": "/static/resources/icons/thermal-camera.svg",
+        "nvr": "/static/resources/icons/nvr.svg",
+        "vms": "/static/resources/icons/vms.svg",
+        "rtsp_server": "/static/resources/icons/rtsp-server.svg",
+        "rtspserver": "/static/resources/icons/rtsp-server.svg",
+        "iot_gateway": "/static/resources/icons/iot-gateway.svg",
+        "iotgateway": "/static/resources/icons/iot-gateway.svg",
+        "smart_lock": "/static/resources/icons/smart-lock.svg",
+        "smartlock": "/static/resources/icons/smart-lock.svg",
+        "smart_meter": "/static/resources/icons/smart-meter.svg",
+        "smartmeter": "/static/resources/icons/smart-meter.svg"
     },
     "DEFAULT_PROPERTIES": {
         "BOUNDARY": {

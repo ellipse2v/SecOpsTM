@@ -1,0 +1,24 @@
+# BOM: Cam-Parking-PTZ
+asset: "Cam-Parking-PTZ"
+vendor: "Dahua"
+model: "SD49425XB-HNR"
+firmware_version: "2.820.0000000.47.R"
+patch_level: outdated
+known_cves:
+  - CVE-2021-33044  # Dahua authentication bypass — identity authentication bypass via specially crafted packet
+  - CVE-2021-33045  # Dahua authentication bypass — same vulnerability family, different code path
+  - CVE-2022-30563  # Dahua ONVIF authentication bypass — replay attack on WS-UsernameToken allows full PTZ control
+running_services:
+  - RTSP (port 554)
+  - ONVIF (port 80/8080)
+  - HTTP (port 80)
+detection_level: low
+credentials_stored: true
+notes: >
+  Dahua PTZ camera covering parking lot and main vehicle access. ONVIF is enabled
+  without TLS — CVE-2022-30563 allows an attacker who can intercept one legitimate
+  ONVIF request to replay it and gain full PTZ motor control. This can be used to
+  redirect the camera to parking lot blind spots before a physical intrusion.
+  CVE-2021-33044/33045 allow full authentication bypass: attacker obtains admin
+  session without credentials, can exfiltrate RTSP stream credentials and
+  reconfigure camera. Firmware update requires physical console access (no OTA).

@@ -210,6 +210,96 @@ asset_types:
     fuzzy_matches: [siem, log]
     icon_url: ""
 
+  # ── IoT & Video Surveillance ────────────────────────────────────────────────
+
+  # NOTE: ip-camera must appear before ptz-camera and thermal-camera.
+  # "ptz" and "thermal" do not contain "cam", so ordering is not critical here,
+  # but ip-camera is the most common fallback for any generic camera match.
+  ip-camera:
+    description: "IP surveillance camera (indoor/outdoor, fixed lens)"
+    category: iot
+    platforms: [Linux, Embedded]
+    tactics: [initial-access, execution, collection, impact, command-and-control]
+    key_techniques: [T1190, T1110, T1040, T1056, T1059, T1498, T1583]
+    fuzzy_matches: [camera, ipcam, cctv, cam, ip cam]
+    icon_url: "/static/resources/icons/ip-camera.svg"
+
+  ptz-camera:
+    description: "Pan-Tilt-Zoom motorized surveillance camera (ONVIF-controlled)"
+    category: iot
+    platforms: [Linux, Embedded]
+    tactics: [initial-access, execution, collection, impact]
+    key_techniques: [T1190, T1059, T1040, T1565, T1110]
+    fuzzy_matches: [ptz, pan-tilt, pan tilt]
+    icon_url: "/static/resources/icons/ptz-camera.svg"
+
+  thermal-camera:
+    description: "Thermal / infrared imaging camera for perimeter detection"
+    category: iot
+    platforms: [Linux, Embedded]
+    tactics: [initial-access, collection, exfiltration]
+    key_techniques: [T1190, T1040, T1048]
+    fuzzy_matches: [thermal, infrared, ir-camera, ir camera]
+    icon_url: "/static/resources/icons/thermal-camera.svg"
+
+  nvr:
+    description: "Network Video Recorder — stores and indexes IP camera feeds"
+    category: iot
+    platforms: [Linux, Windows, Embedded]
+    tactics: [initial-access, collection, exfiltration, impact]
+    key_techniques: [T1190, T1078, T1005, T1048, T1485]
+    fuzzy_matches: [nvr, dvr, video recorder, network video]
+    icon_url: "/static/resources/icons/nvr.svg"
+
+  # NOTE: vms (Video Management System) must appear before any entry whose
+  # fuzzy_matches contain "video" to avoid shadowing.
+  vms:
+    description: "Video Management System — centralized camera lifecycle platform"
+    category: server
+    platforms: [Windows, Linux]
+    tactics: [initial-access, privilege-escalation, collection, lateral-movement]
+    key_techniques: [T1190, T1078, T1003, T1021]
+    fuzzy_matches: [vms, video management, surveillance platform]
+    icon_url: "/static/resources/icons/vms.svg"
+
+  rtsp-server:
+    description: "RTSP / ONVIF streaming media relay server"
+    category: server
+    platforms: [Linux]
+    tactics: [collection, exfiltration, defense-evasion]
+    key_techniques: [T1040, T1048.002, T1071.001]
+    fuzzy_matches: [rtsp, onvif, streaming, media relay]
+    icon_url: "/static/resources/icons/rtsp-server.svg"
+
+  iot-gateway:
+    description: "IoT protocol gateway (MQTT broker, CoAP proxy, Zigbee/Z-Wave hub)"
+    category: iot
+    platforms: [Linux, Embedded]
+    tactics: [initial-access, execution, lateral-movement, command-and-control]
+    key_techniques: [T1190, T1059, T1021, T1071.001]
+    fuzzy_matches: [iot gateway, mqtt broker, zigbee hub, zwave, coap proxy]
+    icon_url: "/static/resources/icons/iot-gateway.svg"
+
+  smart-lock:
+    description: "Smart lock or electronic access control device"
+    category: iot
+    platforms: [Embedded, Android, iOS]
+    tactics: [initial-access, impact, credential-access]
+    key_techniques: [T1190, T1110, T1552, T1531]
+    fuzzy_matches: [smart lock, access control, badge reader, electronic lock]
+    icon_url: "/static/resources/icons/smart-lock.svg"
+
+  smart-meter:
+    description: "Smart utility meter (electricity, gas, water) with AMI radio"
+    category: iot
+    platforms: [Embedded]
+    tactics: [initial-access, collection, impact]
+    key_techniques: [T1190, T1040, T1565.001]
+    fuzzy_matches: [smart meter, meter, amr, ami]
+    icon_url: "/static/resources/icons/smart-meter.svg"
+
+  # ── Default ─────────────────────────────────────────────────────────────────
+
   default:
     description: "Fallback for unknown asset types"
     category: server
