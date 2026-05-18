@@ -1,0 +1,32 @@
+# BOM: NVR-Main
+asset: "NVR-Main"
+vendor: "Hikvision"
+model: "DS-7732NI-K4/16P"
+os_version: "embedded Linux 3.10 (vendor kernel)"
+software_version: "NVR firmware V4.61.000 build 220901"
+patch_level: outdated
+known_cves:
+  - CVE-2021-36260  # Hikvision NVR web interface — same command injection as cameras, CVSS 9.8
+  - CVE-2017-7921   # Hikvision auth bypass — affects NVR web interface, exposes all camera feeds
+  - CVE-2021-36227  # Hikvision NVR — improper authentication allows unauthenticated file read
+  - CVE-2023-28808  # Hikvision — information disclosure via API, leaks camera credentials
+running_services:
+  - RTSP (port 554)
+  - HTTP (port 80)
+  - HTTPS (port 443)
+  - iSCSI (port 3260)
+  - SSH (port 22)
+detection_level: low
+credentials_stored: true
+notes: >
+  16-channel PoE NVR storing 30 days of footage from all cameras at 4K resolution.
+  Approximately 20TB of storage — physical disks are hot-swappable without authentication.
+  SSH enabled with factory default credentials (root/hiklinux) — never changed.
+  CVE-2021-36260 on the NVR web interface gives unauthenticated RCE on the NVR OS,
+  from which an attacker can delete all footage (T1485), exfiltrate archives via iSCSI,
+  or use the NVR as a pivot point into the Camera Network VLAN.
+  iSCSI port 3260 is open on the Camera Network — no iSCSI authentication configured.
+  RTSP relay for mobile viewers is served directly by the NVR (not via RTSP-Relay),
+  meaning NVR compromise also cuts mobile access.
+  The NVR is the single point of failure for all footage retention: no off-site
+  backup is configured (Cloud-Archive is a planned addition, not yet operational).

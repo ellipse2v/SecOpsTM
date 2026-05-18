@@ -309,7 +309,14 @@ class DiagramGenerator:
         # 3. Handle icon and label generation
         ICON_MAPPING = CONFIG_DATA["ICON_MAPPING"]
         lookup_key = element_type if element_type else node_type
-        icon_relative_path = ICON_MAPPING.get(lookup_key)
+        # Try key variants: raw → hyphen-to-underscore → fully stripped (matches config_generator.py output)
+        icon_relative_path = None
+        if lookup_key:
+            icon_relative_path = (
+                ICON_MAPPING.get(lookup_key)
+                or ICON_MAPPING.get(lookup_key.replace('-', '_'))
+                or ICON_MAPPING.get(lookup_key.replace('-', '').replace('_', ''))
+            )
         filesystem_icon_path = None
         if icon_relative_path:
             filesystem_icon_path = PROJECT_ROOT / 'threat_analysis' / 'server' / icon_relative_path.lstrip('/')

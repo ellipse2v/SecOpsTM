@@ -1,0 +1,58 @@
+project_description: >
+  Commercial building IP camera surveillance system protecting a 5-floor office
+  building. Critical assets include the NVR footage archives (legal evidence,
+  HR investigations), VMS admin console, and server room camera feed.
+  The system is operated by a 2-person security team with no dedicated SOC.
+  Cameras run vendor firmware; update cadence is quarterly at best.
+
+objectives:
+  - name: "Footage Destruction"
+    target: "NVR-Main"
+    impact: critical
+    description: "Attacker deletes or corrupts recorded footage to cover tracks after physical intrusion"
+
+  - name: "Live Feed Interception"
+    target: "RTSP-Relay"
+    impact: high
+    description: "Intercept unencrypted RTSP streams to conduct surveillance on building occupants"
+
+  - name: "PTZ Camera Hijack"
+    target: "Cam-Parking-PTZ"
+    impact: medium
+    description: "Redirect PTZ camera to create blind spots or monitor specific targets"
+
+  - name: "VMS Admin Takeover"
+    target: "VMS-Server"
+    impact: critical
+    description: "Full VMS control: disable cameras, export footage, pivot to management network"
+
+  - name: "Server Room Blind Spot"
+    target: "Cam-Server-Room"
+    impact: critical
+    description: "Disable or tamper with server room camera to enable unmonitored physical access"
+
+  - name: "Botnet Recruitment"
+    target: "Cam-Entrance-01"
+    impact: medium
+    description: "Compromise camera for DDoS botnet (Mirai-style) using default credentials"
+
+actors:
+  - name: "Remote Attacker"
+    capabilities: [network-scanning, credential-stuffing, exploit-frameworks, rtsp-interception]
+    motivation: espionage
+    entry_points: [Cam-Thermal-Perimeter, RTSP-Relay, Mobile-App-Server]
+
+  - name: "Physical Intruder"
+    capabilities: [physical-access, rfid-cloning, camera-tampering]
+    motivation: theft
+    entry_points: [Cam-Thermal-Perimeter, Cam-Entrance-01]
+
+  - name: "Insider Threat"
+    capabilities: [vms-access, network-access, credential-reuse]
+    motivation: sabotage
+    entry_points: [VMS-Server, NVR-Main]
+
+compliance_requirements:
+  - GDPR Article 5 (lawful CCTV processing, data minimisation)
+  - ISO 27001 A.7.2 (physical security)
+  - EN 50132 (video surveillance systems standard)

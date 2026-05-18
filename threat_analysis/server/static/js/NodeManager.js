@@ -67,7 +67,7 @@ class NodeManager {
         const fill = properties.color;
         const stroke = colors.stroke;
         const textColor = colors.text;
-        const iconPath = ThreatModelConfig.ICON_MAPPING[type.toLowerCase().replace('_', '')];
+        const iconPath = ThreatModelConfig.ICON_MAPPING[type.toLowerCase().replace(/[_-]/g, '')];
 
         const group = new Konva.Group({
             x: x,
@@ -266,20 +266,30 @@ class NodeManager {
                     x: 0, y: 0, width: width, height: height,
                     fill: fill, stroke: fill, strokeWidth: 2, name: 'shape',
                 });
-                text = new Konva.Text({
-                    x: PADDING, y: (height - TEXT_HEIGHT) / 2, text: name, fontSize: TEXT_HEIGHT, fill: textColor,
-                    width: width - 2 * PADDING, align: 'center', verticalAlign: 'middle',
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', name: 'label',
-                    listening: false,
-                });
                 if (iconPath) {
+                    const iconSize = Math.min(Math.floor(height * 0.55), 22);
+                    const iconY = Math.floor((height - iconSize - 4 - TEXT_HEIGHT) / 2);
+                    text = new Konva.Text({
+                        x: PADDING, y: iconY + iconSize + 4, text: name, fontSize: TEXT_HEIGHT, fill: textColor,
+                        width: width - 2 * PADDING, align: 'center',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', name: 'label',
+                        listening: false, wrap: 'none',
+                    });
                     Konva.Image.fromURL(iconPath, (image) => {
                         image.setAttrs({
-                            x: width - 32, y: height - 32, width: 24, height: 24,
-                            listening: false, name: 'icon',
+                            x: Math.floor((width - iconSize) / 2), y: iconY,
+                            width: iconSize, height: iconSize,
+                            listening: false, name: 'image',
                         });
                         group.add(image);
                         this.layer.draw();
+                    });
+                } else {
+                    text = new Konva.Text({
+                        x: PADDING, y: (height - TEXT_HEIGHT) / 2, text: name, fontSize: TEXT_HEIGHT, fill: textColor,
+                        width: width - 2 * PADDING, align: 'center', verticalAlign: 'middle',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', name: 'label',
+                        listening: false,
                     });
                 }
                 break;
@@ -302,21 +312,32 @@ class NodeManager {
                     x: 0, y: 0, width: width, height: height,
                     fill: fill, stroke: fill, strokeWidth: 2, name: 'shape',
                 });
-                text = new Konva.Text({
-                    x: PADDING, y: (height - TEXT_HEIGHT) / 2, text: name, fontSize: TEXT_HEIGHT, fill: textColor,
-                    width: width - 2 * PADDING, align: 'center', verticalAlign: 'middle',
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', name: 'label',
-                    listening: false,
-                    wrap: 'none'
-                });
                 if (iconPath && type !== 'ACTOR') {
+                    // Icon + text centered vertically inside the shape.
+                    const iconSize = Math.min(Math.floor(height * 0.55), 22);
+                    const iconY = Math.floor((height - iconSize - 4 - TEXT_HEIGHT) / 2);
+                    const textY = iconY + iconSize + 4;
+                    text = new Konva.Text({
+                        x: PADDING, y: textY, text: name, fontSize: TEXT_HEIGHT, fill: textColor,
+                        width: width - 2 * PADDING, align: 'center',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', name: 'label',
+                        listening: false, wrap: 'none',
+                    });
                     Konva.Image.fromURL(iconPath, (image) => {
                         image.setAttrs({
-                            x: width - 32, y: height - 32, width: 24, height: 24,
-                            listening: false, name: 'icon',
+                            x: Math.floor((width - iconSize) / 2), y: iconY,
+                            width: iconSize, height: iconSize,
+                            listening: false, name: 'image',
                         });
                         group.add(image);
                         this.layer.draw();
+                    });
+                } else {
+                    text = new Konva.Text({
+                        x: PADDING, y: (height - TEXT_HEIGHT) / 2, text: name, fontSize: TEXT_HEIGHT, fill: textColor,
+                        width: width - 2 * PADDING, align: 'center', verticalAlign: 'middle',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif', name: 'label',
+                        listening: false, wrap: 'none',
                     });
                 }
                 break;

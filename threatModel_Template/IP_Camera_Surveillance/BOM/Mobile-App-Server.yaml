@@ -1,0 +1,24 @@
+# BOM: Mobile-App-Server
+asset: "Mobile-App-Server"
+vendor: "Hikvision"
+model: "iVMS-4200 Server Component"
+os_version: "Ubuntu 22.04 LTS"
+software_version: "iVMS-4200 v3.3.1"
+patch_level: current
+known_cves:
+  - CVE-2022-28219  # ManageEngine (similar mobile VMS gateway pattern) — SSRF leading to RCE — listed as architecture risk
+running_services:
+  - HTTPS (port 443)
+  - RTSP proxy (port 554)
+detection_level: medium
+credentials_stored: true
+notes: >
+  Mobile viewer gateway — authenticates mobile users (iVMS-4200 app) and proxies RTSP
+  streams from RTSP-Relay to authorized mobile clients.
+  Mobile user credentials are stored locally in iVMS SQLite database (not synced to AD).
+  The app authenticates users but does not enforce per-camera authorization — any
+  authenticated mobile user can view any camera feed including server room.
+  RTSP proxy port 554 is conditionally exposed: intended only for internal VLAN routing
+  to RTSP-Relay, but a firewall misconfiguration could expose it to Mobile Access boundary.
+  Ubuntu 22.04 is current and patched; the primary risk is the iVMS application layer,
+  not the OS.

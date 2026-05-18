@@ -1,0 +1,31 @@
+# BOM: VMS-Server
+asset: "VMS-Server"
+vendor: "Milestone Systems"
+model: "XProtect Corporate 2022 R3"
+os_version: "Windows Server 2019"
+software_version: "XProtect Corporate 22.3a (build 22.3.4.1)"
+patch_level: outdated
+known_cves:
+  - CVE-2023-3671   # Milestone XProtect — improper privilege management allows local privilege escalation
+  - CVE-2022-35637  # Milestone XProtect — SQL injection in Management Server API (auth required)
+  - CVE-2021-28378  # Windows Server 2019 — MSHTML remote code execution (MS KB5001391)
+running_services:
+  - HTTPS (port 443)
+  - SQL Server (port 1433)
+  - XProtect Management Server (port 8080)
+  - XProtect Event Server (port 22331)
+  - RDP (port 3389)
+detection_level: medium
+credentials_stored: true
+notes: >
+  Milestone XProtect Corporate VMS server — central management plane for all cameras.
+  Operator credentials are stored in XProtect's local user database (not AD-integrated).
+  RDP is enabled and accessible from the Management Network VLAN for remote maintenance.
+  CVE-2023-3671 allows a low-privilege VMS operator to escalate to SYSTEM on the VMS host.
+  CVE-2022-35637 (SQL injection) requires authentication but once exploited gives access to
+  the full XProtect database: all camera credentials, recording schedules, user accounts,
+  and event history.
+  XProtect 22.3a is two years behind the current release (2024 R1); no automatic updates.
+  An attacker with VMS admin access can: export footage, disable all cameras simultaneously,
+  reconfigure PTZ presets, and — via the Management Server — push firmware updates to all
+  Milestone-integrated cameras (supply chain risk if firmware update server is compromised).

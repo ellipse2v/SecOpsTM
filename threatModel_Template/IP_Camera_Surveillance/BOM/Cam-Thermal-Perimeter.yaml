@@ -1,0 +1,26 @@
+# BOM: Cam-Thermal-Perimeter
+asset: "Cam-Thermal-Perimeter"
+vendor: "Hikvision"
+model: "DS-2TD2628T-3/QA"
+firmware_version: "5.5.800 build 210701"
+patch_level: outdated
+known_cves:
+  - CVE-2021-36260  # Hikvision web server command injection — CVSS 9.8, affects thermal lineup
+  - CVE-2021-36261  # Hikvision improper input validation — device crash via crafted message
+running_services:
+  - RTSP (port 554)
+  - HTTP (port 80)
+  - HTTPS (port 443)
+detection_level: low
+credentials_stored: true
+notes: >
+  Hikvision thermal camera installed at rooftop perimeter, internet-facing for
+  remote monitoring by a third-party security firm. The internet exposure makes
+  CVE-2021-36260 (CVSS 9.8 unauthenticated RCE) directly exploitable from the
+  internet — no VPN or jump host required.
+  Firmware 5.5.800 is severely outdated (current is 5.7.16). The vendor's IVS
+  (Intelligent Video Surveillance) analytics module processes RTSP frames
+  locally — a compromised camera could be used to manipulate perimeter
+  intrusion detection alerts (suppress or generate false alarms).
+  RTSP accessible unauthenticated from the internet on port 554 (firewall
+  misconfiguration allows inbound 554 for third-party monitoring).

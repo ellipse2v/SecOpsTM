@@ -34,7 +34,6 @@ from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
-_PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _PKG_ROOT = Path(__file__).resolve().parents[1]
 _ASSET_TYPES_PATH = _PKG_ROOT / "config" / "asset_types_community.yaml"
 _PROTOCOLS_PATH = _PKG_ROOT / "config" / "protocols_community.yaml"

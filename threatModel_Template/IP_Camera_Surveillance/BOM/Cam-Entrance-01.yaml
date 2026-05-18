@@ -1,0 +1,24 @@
+# BOM: Cam-Entrance-01
+asset: "Cam-Entrance-01"
+vendor: "Hikvision"
+model: "DS-2CD2143G2-I"
+firmware_version: "5.7.0 build 220901"
+patch_level: outdated
+known_cves:
+  - CVE-2021-36260  # Hikvision web server command injection via /SDK/webLanguage — CVSS 9.8, unauthenticated RCE
+  - CVE-2017-7921   # Hikvision authentication bypass via crafted URL — exposes RTSP and config
+  - CVE-2023-28808  # Hikvision information disclosure via improper access control on some API endpoints
+running_services:
+  - RTSP (port 554)
+  - HTTP (port 80)
+  - HTTPS (port 443)
+detection_level: low
+credentials_stored: true
+notes: >
+  Hikvision fixed dome camera at building entrance. Firmware 5.7.0 is two major
+  versions behind current (5.7.16). CVE-2021-36260 allows unauthenticated command
+  injection via the web interface — no exploit prerequisites beyond network access.
+  Default admin credentials unchanged during installation (admin/12345).
+  RTSP stream on port 554 unauthenticated and accessible from Camera Network VLAN.
+  Camera is PoE-powered; physical access to the PoE switch allows power cycling
+  without leaving a trail in VMS logs.

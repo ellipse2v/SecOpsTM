@@ -1,0 +1,25 @@
+# BOM: Cam-Server-Room
+asset: "Cam-Server-Room"
+vendor: "Axis"
+model: "P3245-V"
+firmware_version: "10.12.187"
+patch_level: current
+known_cves:
+  - CVE-2018-10660  # Axis Communications multiple cameras — shell command injection via param handling
+  - CVE-2023-21413  # Axis OS VAPIX API — OS command injection via parameter in local API call (requires auth)
+running_services:
+  - RTSP (port 554)
+  - HTTPS (port 443)
+  - VAPIX API (port 443)
+detection_level: medium
+credentials_stored: true
+notes: >
+  Axis fixed dome camera monitoring the server room. Firmware is current (10.12.187).
+  CVE-2023-21413 requires authentication but is critical given the target (server room).
+  An insider or attacker who has already compromised VMS credentials can use this
+  to achieve RCE on the camera itself — and from there pivot to the Camera Network VLAN.
+  This camera is the highest-sensitivity asset: footage is used as evidence in
+  physical security investigations. Its compromise or footage deletion would
+  eliminate evidence of server room intrusions.
+  RTSP stream is not encrypted — captures from this camera on the VLAN would
+  expose server room equipment inventory, access patterns, and badge readers.
