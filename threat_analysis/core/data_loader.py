@@ -307,4 +307,32 @@ def load_cis_to_mitre_mapping() -> Dict[str, Dict[str, List[str]]]:
         return {}
 
 
+def load_sparta_techniques() -> Dict[str, Dict[str, Any]]:
+    """Load SPARTA techniques indexed by technique ID (e.g. 'IA-0006')."""
+    path = Path(__file__).parent.parent / 'external_data' / 'sparta-attack.json'
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        result = {}
+        for obj in data.get('objects', []):
+            if obj.get('type') != 'attack-pattern':
+                continue
+            ext_refs = obj.get('external_references', [])
+            tech_id = next((r['external_id'] for r in ext_refs if r.get('source_name') == 'sparta'), None)
+            if tech_id:
+                result[tech_id] = obj
+        return result
+    except Exception as exc:
+        logging.getLogger(__name__).error("Cannot load sparta-attack.json: %s", exc)
+        return {}
 
+
+def load_stride_to_sparta() -> Dict[str, List[str]]:
+    """Load STRIDE → SPARTA technique ID mapping."""
+    path = Path(__file__).parent.parent / 'external_data' / 'stride_to_sparta.json'
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception as exc:
+        logging.getLogger(__name__).error("Cannot load stride_to_sparta.json: %s", exc)
+        return {}

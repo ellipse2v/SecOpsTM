@@ -1,0 +1,21 @@
+asset: ADCS
+type: onboard-computer
+os: RTEMS 5.1 (RTOS)
+firmware_version: "2.2.0"
+software:
+  - name: ADCS Control Loop
+    version: "2.2.0"
+  - name: MIL-STD-1553 Bus Controller
+    version: "1.3.0"
+known_cves: []
+detection_level: none
+patch_level: never
+notes: >
+  Attitude and Orbit Control System connected to OBC via MIL-STD-1553 bus.
+  No command authentication between OBC and ADCS — unauthorized commands from
+  compromised OBC can desaturate reaction wheels, modify orbit parameters, or
+  cause uncontrolled satellite tumbling. Second attack path via on-board GPS
+  receiver: ADCS ingests GNSS navigation solutions without integrity checking.
+  A spoofed GPS signal providing false position/velocity data triggers erroneous
+  orbit correction manoeuvres without OBC involvement. No anomaly detection on
+  navigation data quality.

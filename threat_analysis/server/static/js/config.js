@@ -1,5 +1,5 @@
 // Threat Model Configuration - Web UI
-// Generated on: 2026-05-17 17:43:26
+// Generated on: 2026-05-18 21:30:14
 // This file contains configuration for the threat model web interface
 
 const ThreatModelConfig = {
@@ -33,7 +33,15 @@ const ThreatModelConfig = {
         "smart_lock": "/static/resources/icons/smart-lock.svg",
         "smartlock": "/static/resources/icons/smart-lock.svg",
         "smart_meter": "/static/resources/icons/smart-meter.svg",
-        "smartmeter": "/static/resources/icons/smart-meter.svg"
+        "smartmeter": "/static/resources/icons/smart-meter.svg",
+        "leo_satellite": "/static/resources/icons/leo-satellite.svg",
+        "leosatellite": "/static/resources/icons/leo-satellite.svg",
+        "ground_station": "/static/resources/icons/ground-station.svg",
+        "groundstation": "/static/resources/icons/ground-station.svg",
+        "ttc_link": "/static/resources/icons/ttc-link.svg",
+        "ttclink": "/static/resources/icons/ttc-link.svg",
+        "onboard_computer": "/static/resources/icons/onboard-computer.svg",
+        "onboardcomputer": "/static/resources/icons/onboard-computer.svg"
     },
     "DEFAULT_PROPERTIES": {
         "BOUNDARY": {

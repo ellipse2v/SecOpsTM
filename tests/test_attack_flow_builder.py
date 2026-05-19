@@ -481,3 +481,309 @@ class TestWriteSummary:
         with open(summary_path, "r", encoding="utf-8") as f:
             data = json.load(f)
         assert data["scenarios"] == []
+
+
+# ---------------------------------------------------------------------------
+# SPARTA AFB integration tests
+# Tests that SPARTA technique IDs produce ST00xx tactic format in AFB nodes,
+# and that ATT&CK IDs still produce phase-slug format.
+# ---------------------------------------------------------------------------
+
+def _make_sparta_tech(tech_id="IA-0006", name="RF Jamming", tactic_id="ST0003", score=2.0):
+    """Make a ScoredTechnique with a SPARTA tactic ID stored in the tactics list."""
+    return ScoredTechnique(
+        id=tech_id,
+        name=name,
+        tactics=[tactic_id],  # SPARTA stores ST00xx code here
+        score=score,
+        rationale="SPARTA technique — space segment attack",
+        url="",
+    )
+
+
+def _make_sparta_hop(asset_name="TTC-Frontend", asset_type="ttc-link",
+                     tech_id="IA-0006", tactic_id="ST0003",
+                     protocol="rf", hop_score=2.5, hop_position="entry"):
+    return AttackHop(
+        asset_name=asset_name,
+        asset_type=asset_type,
+        techniques=[_make_sparta_tech(tech_id=tech_id, tactic_id=tactic_id)],
+        dataflow_name=f"AttackerTo{asset_name}",
+        protocol=protocol,
+        is_encrypted=False,
+        is_authenticated=False,
+        hop_score=hop_score,
+        hop_position=hop_position,
+    )
+
+
+def _make_pwnsat_scenario():
+    """Recreate the Thales PWNSAT demo attack path as an AttackScenario.
+
+    Path: RF Attacker → TTC-Frontend → OBC → Mission-Payload
+    SPARTA tactics:  ST0004 (IA)    → ST0007 (EX) → ST0009 (IMP)
+    """
+    hops = [
+        AttackHop(
+            asset_name="TTC-Frontend",
+            asset_type="ttc-link",
+            techniques=[
+                _make_sparta_tech("IA-0006", "RF Jamming", "ST0004", score=2.5),
+                _make_sparta_tech("EX-0009.01", "CCSDS TC Replay", "ST0007", score=2.0),
+            ],
+            dataflow_name="AttackerToTTC",
+            protocol="rf",
+            is_encrypted=False,
+            is_authenticated=False,
+            hop_score=4.5,
+            hop_position="entry",
+        ),
+        AttackHop(
+            asset_name="OBC",
+            asset_type="onboard-computer",
+            techniques=[
+                _make_sparta_tech("EX-0012.06", "RF Spoofing", "ST0007", score=1.8),
+                _make_sparta_tech("PER-0002.02", "Firmware Backdoor", "ST0008", score=1.5),
+            ],
+            dataflow_name="TTCToOBC",
+            protocol="ccsds",
+            is_encrypted=False,
+            is_authenticated=False,
+            hop_score=3.3,
+            hop_position="intermediate",
+        ),
+        AttackHop(
+            asset_name="Mission-Payload",
+            asset_type="leo-satellite",
+            techniques=[
+                _make_sparta_tech("IMP-0004", "Payload Manipulation", "ST0009", score=2.2),
+            ],
+            dataflow_name="OBCToPayload",
+            protocol="spacewire",
+            is_encrypted=False,
+            is_authenticated=False,
+            hop_score=2.2,
+            hop_position="target",
+        ),
+    ]
+    return AttackScenario(
+        scenario_id="GDAF-PWNSAT01",
+        objective_id="obj-payload-disruption",
+        objective_name="Payload Disruption",
+        objective_description="Inject malicious CCSDS telecommands to disable mission payload",
+        objective_business_impact="Mission loss — payload permanently disabled",
+        objective_mitre_final_tactic="impact",
+        actor_id="rf-attacker",
+        actor_name="RF Attacker",
+        actor_sophistication="advanced",
+        entry_point="RF Attacker",
+        target_asset="Mission-Payload",
+        hops=hops,
+        path_score=10.0,
+        risk_level="CRITICAL",
+        detection_coverage=0.0,
+        unacceptable_risk=True,
+        min_technique_score=0.5,
+    )
+
+
+class TestSpartaAfb:
+    """Verify SPARTA-specific AFB node generation."""
+
+    # ── _make_action_node: SPARTA ID detection ───────────────────────────────
+
+    def test_sparta_tactic_format_uses_st_code(self):
+        """SPARTA tech ID → tactic field must be ST00xx, not a phase slug."""
+        builder = AttackFlowBuilder([], "SatModel")
+        tech = _make_sparta_tech("IA-0006", "RF Jamming", "ST0003")
+        result = builder._make_action_node(tech)
+        props = {k: v for k, v in result["node"]["properties"]}
+        ttp = props["ttp"]
+        tactic_entry = next(pair for pair in ttp if pair[0] == "tactic")
+        assert tactic_entry[1] == "ST0003", f"Expected ST0003, got {tactic_entry[1]}"
+
+    def test_sparta_technique_field_is_sparta_id(self):
+        """SPARTA action node technique field must be the SPARTA ID (IA-0006)."""
+        builder = AttackFlowBuilder([], "SatModel")
+        tech = _make_sparta_tech("IA-0006", "RF Jamming", "ST0003")
+        result = builder._make_action_node(tech)
+        props = {k: v for k, v in result["node"]["properties"]}
+        ttp = props["ttp"]
+        tech_entry = next(pair for pair in ttp if pair[0] == "technique")
+        assert tech_entry[1] == "IA-0006"
+
+    def test_attack_tactic_format_uses_phase_slug(self):
+        """ATT&CK tech ID (T1059) → tactic field must remain a phase slug."""
+        builder = AttackFlowBuilder([], "SatModel")
+        tech = _make_tech("T1059", "Command and Script Interpreter", tactics=["execution"])
+        result = builder._make_action_node(tech)
+        props = {k: v for k, v in result["node"]["properties"]}
+        ttp = props["ttp"]
+        tactic_entry = next(pair for pair in ttp if pair[0] == "tactic")
+        assert tactic_entry[1] == "execution"
+
+    def test_sparta_regex_matches_known_ids(self):
+        """Verify the SPARTA ID regex covers all expected technique ID patterns."""
+        import re
+        pattern = re.compile(r'^[A-Z]{2,4}-\d{4}')
+        sparta_ids = [
+            "IA-0006", "EX-0009", "EX-0009.01", "EX-0012.06",
+            "PER-0002", "PER-0002.02", "LM-0002", "IMP-0001",
+            "IMP-0004", "REC-0003", "REC-0003.04", "RD-0003",
+        ]
+        for sid in sparta_ids:
+            assert pattern.match(sid), f"SPARTA regex should match {sid}"
+
+    def test_attack_regex_does_not_match_attack_ids(self):
+        """ATT&CK IDs (T1059, T1542.003) must NOT match the SPARTA regex."""
+        import re
+        pattern = re.compile(r'^[A-Z]{2,4}-\d{4}')
+        attack_ids = ["T1059", "T1542.003", "T1190", "T1021", "T1485"]
+        for aid in attack_ids:
+            assert not pattern.match(aid), f"SPARTA regex should NOT match {aid}"
+
+    def test_sparta_no_tactics_falls_back_to_st0000(self):
+        """If a SPARTA tech has no tactics list, tactic defaults to ST0000."""
+        builder = AttackFlowBuilder([], "SatModel")
+        tech = ScoredTechnique(
+            id="EX-0009",
+            name="Uplink Interception",
+            tactics=[],  # empty
+            score=1.5,
+            rationale="test",
+        )
+        result = builder._make_action_node(tech)
+        props = {k: v for k, v in result["node"]["properties"]}
+        ttp = props["ttp"]
+        tactic_entry = next(pair for pair in ttp if pair[0] == "tactic")
+        assert tactic_entry[1] == "ST0000"
+
+    def test_action_node_has_all_required_fields(self):
+        """Action node must have id, instance, properties, anchors."""
+        builder = AttackFlowBuilder([], "SatModel")
+        tech = _make_sparta_tech("LM-0002", "Lateral Movement to Space Segment", "ST0006")
+        result = builder._make_action_node(tech)
+        node = result["node"]
+        assert node["id"] == "action"
+        assert isinstance(node["instance"], str) and len(node["instance"]) == 36
+        assert isinstance(node["properties"], list)
+        assert isinstance(node["anchors"], dict)
+
+    # ── Full PWNSAT scenario ─────────────────────────────────────────────────
+
+    def test_pwnsat_scenario_produces_correct_action_node_count(self):
+        """3 hops × up to 2 techniques each — action nodes count matches technique count."""
+        builder = AttackFlowBuilder([], "SatModel")
+        scenario = _make_pwnsat_scenario()
+        afb = builder._build_afb(scenario)
+        action_nodes = [o for o in afb["objects"] if o.get("id") == "action"]
+        # Hop0: 2 techs, Hop1: 2 techs, Hop2: 1 tech → 5 total (all above min_score=0.5)
+        assert len(action_nodes) >= 3, f"Expected ≥3 action nodes, got {len(action_nodes)}"
+
+    def test_pwnsat_scenario_schema_is_v2(self):
+        builder = AttackFlowBuilder([], "SatModel")
+        afb = builder._build_afb(_make_pwnsat_scenario())
+        assert afb["schema"] == "attack_flow_v2"
+
+    def test_pwnsat_scenario_risk_is_critical(self):
+        builder = AttackFlowBuilder([], "SatModel")
+        afb = builder._build_afb(_make_pwnsat_scenario())
+        assert afb["_gdaf_meta"]["risk_level"] == "CRITICAL"
+        assert afb["_gdaf_meta"]["unacceptable_risk"] is True
+
+    def test_pwnsat_all_sparta_action_nodes_use_st_codes(self):
+        """Every action node in the PWNSAT AFB must have an ST00xx tactic."""
+        builder = AttackFlowBuilder([], "SatModel")
+        afb = builder._build_afb(_make_pwnsat_scenario())
+        for obj in afb["objects"]:
+            if obj.get("id") != "action":
+                continue
+            props = {k: v for k, v in obj["properties"]}
+            ttp = props["ttp"]
+            tactic_val = next((pair[1] for pair in ttp if pair[0] == "tactic"), None)
+            assert tactic_val is not None
+            assert tactic_val.startswith("ST"), (
+                f"Expected ST-prefixed tactic, got {tactic_val!r} for technique "
+                f"{next((pair[1] for pair in ttp if pair[0] == 'technique'), '?')}"
+            )
+
+    def test_pwnsat_afb_is_valid_json(self, tmp_path):
+        """PWNSAT scenario produces a valid JSON-serialisable AFB."""
+        scenario = _make_pwnsat_scenario()
+        builder = AttackFlowBuilder([scenario], "SatModel")
+        builder.generate_and_save(str(tmp_path))
+        afb_path = (
+            tmp_path / "gdaf" / "obj-payload-disruption" /
+            "rf-attacker_GDAF-PWNSAT01.afb"
+        )
+        assert afb_path.exists(), f"AFB file not found at {afb_path}"
+        with open(afb_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        assert data["schema"] == "attack_flow_v2"
+        assert data["_gdaf_meta"]["risk_level"] == "CRITICAL"
+
+    def test_pwnsat_summary_lists_sparta_techniques(self, tmp_path):
+        """Summary JSON must include SPARTA technique IDs, not only ATT&CK IDs."""
+        scenario = _make_pwnsat_scenario()
+        builder = AttackFlowBuilder([scenario], "SatModel")
+        builder.generate_and_save(str(tmp_path))
+        summary_path = tmp_path / "gdaf" / "gdaf_summary.json"
+        with open(summary_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        row = data["scenarios"][0]
+        tech_ids = [t["tech_id"] for t in row["techniques"]]
+        sparta_ids = [tid for tid in tech_ids if "-" in tid and not tid.startswith("T")]
+        assert len(sparta_ids) > 0, (
+            f"Expected SPARTA IDs in summary techniques, got: {tech_ids}"
+        )
+
+    def test_mixed_sparta_and_attack_techniques_in_same_afb(self):
+        """A hop mixing SPARTA and ATT&CK techniques emits correct tactic format for each."""
+        builder = AttackFlowBuilder([], "SatModel")
+        hop = AttackHop(
+            asset_name="Ground-Station",
+            asset_type="ground-station",
+            techniques=[
+                _make_sparta_tech("IA-0001.02", "Phishing for Credentials", "ST0003", score=1.8),
+                _make_tech("T1190", "Exploit Public-Facing Application", tactics=["initial-access"], score=1.5),
+            ],
+            dataflow_name="AttackerToGS",
+            protocol="https",
+            is_encrypted=True,
+            is_authenticated=False,
+            hop_score=3.3,
+            hop_position="entry",
+        )
+        scenario = AttackScenario(
+            scenario_id="GDAF-MIX001",
+            objective_id="obj-ground-pivot",
+            objective_name="Ground Station Pivot",
+            objective_description="",
+            objective_business_impact="Operator access",
+            objective_mitre_final_tactic="lateral-movement",
+            actor_id="nation-state",
+            actor_name="Nation State",
+            actor_sophistication="expert",
+            entry_point="Attacker",
+            target_asset="Ground-Station",
+            hops=[hop],
+            path_score=3.3,
+            risk_level="HIGH",
+            detection_coverage=0.2,
+            unacceptable_risk=False,
+            min_technique_score=0.5,
+        )
+        afb = builder._build_afb(scenario)
+        action_nodes = [o for o in afb["objects"] if o.get("id") == "action"]
+        assert len(action_nodes) >= 2
+        tactic_values = []
+        for obj in action_nodes:
+            props = {k: v for k, v in obj["properties"]}
+            ttp = props["ttp"]
+            tactic_val = next((pair[1] for pair in ttp if pair[0] == "tactic"), None)
+            tactic_values.append(tactic_val)
+        # Must have both an ST-prefixed tactic and a phase-slug tactic
+        has_sparta = any(v.startswith("ST") for v in tactic_values if v)
+        has_attack = any(not v.startswith("ST") for v in tactic_values if v)
+        assert has_sparta, f"Expected at least one ST-prefixed tactic, got: {tactic_values}"
+        assert has_attack, f"Expected at least one phase-slug tactic, got: {tactic_values}"

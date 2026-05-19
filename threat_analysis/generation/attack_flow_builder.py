@@ -224,16 +224,33 @@ class AttackFlowBuilder:
         return anchors, anchor_objs
 
     def _make_action_node(self, tech) -> Dict:
-        """Create an AFB action node from a ScoredTechnique."""
+        """Create an AFB action node from a ScoredTechnique.
+
+        Detects SPARTA technique IDs (e.g. IA-0006, EX-0009.01) vs ATT&CK (T1059)
+        and emits the correct tactic field format for each framework.
+        """
+        import re
         instance_id = str(uuid.uuid4())
         anchors, anchor_objs = self._make_anchors()
-        tactic_slug = tech.tactics[0] if tech.tactics else "unknown"
+
+        is_sparta = bool(re.match(r'^[A-Z]{2,4}-\d{4}', tech.id))
+
+        if is_sparta:
+            # SPARTA format: tactic is the ST00xx code stored in the tactics list
+            # by _get_sparta_techniques (e.g. ["ST0004"])
+            tactic_id = tech.tactics[0] if tech.tactics else "ST0000"
+            ttp_value = [["tactic", tactic_id], ["technique", tech.id]]
+        else:
+            # ATT&CK format: tactic is the phase slug (e.g. "execution")
+            tactic_slug = tech.tactics[0] if tech.tactics else "unknown"
+            ttp_value = [["tactic", tactic_slug], ["technique", tech.id]]
+
         node = {
             "id": "action",
             "instance": instance_id,
             "properties": [
                 ["name", tech.name],
-                ["ttp", [["tactic", tactic_slug], ["technique", tech.id]]],
+                ["ttp", ttp_value],
                 ["description", f"{tech.name} ({tech.id}) — {tech.rationale}"],
             ],
             "anchors": anchors,

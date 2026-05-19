@@ -1,0 +1,23 @@
+asset: OBC
+type: onboard-computer
+os: VxWorks 7.0 (RTOS)
+firmware_version: "1.4.2"
+software:
+  - name: CCSDS Telecommand Decoder
+    version: "2.1.0"
+  - name: Flight Software Stack
+    version: "3.0.1"
+known_cves:
+  - CVE-2019-12255
+  - CVE-2019-12260
+detection_level: low
+patch_level: ad-hoc
+notes: >
+  On-Board Computer running VxWorks RTOS. Telecommand authentication disabled
+  for compatibility with legacy ground software. Firmware updates require ground
+  uplink session — no secure boot enforcement. CVE-2019-12255 and CVE-2019-12260
+  (URGENT/11 VxWorks TCP/IP stack vulnerabilities) apply ONLY if the OBC exposes
+  a network management interface (Ethernet, JTAG-over-IP) — not via the CCSDS
+  command interface. Primary attack surface in this model is the unauthenticated
+  CCSDS uplink, not the TCP/IP stack. During AIT phase, EGSE JTAG access provides
+  a second firmware injection path independent of the uplink.

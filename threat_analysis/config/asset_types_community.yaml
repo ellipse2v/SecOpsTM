@@ -298,6 +298,46 @@ asset_types:
     fuzzy_matches: [smart meter, meter, amr, ami]
     icon_url: "/static/resources/icons/smart-meter.svg"
 
+  # ── Space Segment ────────────────────────────────────────────────────────────
+
+  # NOTE: leo-satellite must appear before ground-station to avoid fuzzy-match
+  # shadowing on "satellite" vs "ground".
+  leo-satellite:
+    description: "Low Earth Orbit (or GEO/MEO) satellite — bus and payload"
+    category: space
+    platforms: [Embedded, Space Systems]
+    tactics: [execution, persistence, impact, collection, lateral-movement]
+    key_techniques: [T1059, T1542.003, T1485, T1040, T1021]
+    fuzzy_matches: [satellite, leo, geo, meo, cubesat, smallsat, spacecraft, sat]
+    icon_url: "/static/resources/icons/leo-satellite.svg"
+
+  ground-station:
+    description: "Satellite ground station with TT&C and mission data uplink/downlink"
+    category: space
+    platforms: [Windows, Linux]
+    tactics: [reconnaissance, initial-access, execution, lateral-movement, exfiltration]
+    key_techniques: [T1590, T1190, T1059, T1021, T1048]
+    fuzzy_matches: [ground station, ground segment, teleport, gcs, gsoc, scc]
+    icon_url: "/static/resources/icons/ground-station.svg"
+
+  ttc-link:
+    description: "Telemetry, Tracking and Command RF link (uplink / downlink)"
+    category: space
+    platforms: [Network Devices, Space Systems]
+    tactics: [initial-access, execution, defense-evasion, impact]
+    key_techniques: [T1200, T1059, T1565.001, T1498]
+    fuzzy_matches: [ttc, tt&c, uplink, downlink, telecommand, telemetry link, rf link]
+    icon_url: "/static/resources/icons/ttc-link.svg"
+
+  onboard-computer:
+    description: "On-Board Computer (OBC) — satellite flight management system"
+    category: space
+    platforms: [Embedded, Space Systems]
+    tactics: [execution, persistence, impact, lateral-movement]
+    key_techniques: [T1059, T1542.003, T1485, T1021]
+    fuzzy_matches: [obc, flight computer, onboard computer, cdh, adcs, eps]
+    icon_url: "/static/resources/icons/onboard-computer.svg"
+
   # ── Default ─────────────────────────────────────────────────────────────────
 
   default:

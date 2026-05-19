@@ -49,10 +49,26 @@ class ScoredTechnique:
     url: str = ""
 
 
+SPARTA_TACTIC_IDS: Dict[str, str] = {
+    "reconnaissance": "ST0001",
+    "resource-development": "ST0002",
+    "initial-access": "ST0003",
+    "execution": "ST0004",
+    "persistence": "ST0005",
+    "privilege-escalation": "ST0006",
+    "lateral-movement": "ST0007",
+    "collection": "ST0008",
+    "impact": "ST0009",
+    "exfiltration": "ST0010",
+    "command-and-control": "ST0011",
+}
+
+
 class AssetTechniqueMapper:
     """Maps asset characteristics to relevant MITRE ATT&CK techniques."""
 
     _raw_techniques: Optional[List[Dict]] = None  # class-level cache
+    _raw_sparta_techniques: Optional[List[Dict]] = None  # class-level cache for SPARTA
     _asset_types: Optional[Dict] = None
     _protocols: Optional[Dict] = None
     _scoring_config: Optional[Dict] = None
@@ -119,6 +135,24 @@ class AssetTechniqueMapper:
         return cls._raw_techniques
 
     @classmethod
+    def _load_raw_sparta(cls) -> List[Dict]:
+        if cls._raw_sparta_techniques is not None:
+            return cls._raw_sparta_techniques
+        sparta_path = Path(__file__).resolve().parents[1] / "external_data" / "sparta-attack.json"
+        try:
+            with open(sparta_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            cls._raw_sparta_techniques = [
+                obj for obj in data.get("objects", [])
+                if obj.get("type") == "attack-pattern"
+            ]
+            logger.info("AssetTechniqueMapper: loaded %d SPARTA techniques", len(cls._raw_sparta_techniques))
+        except Exception as exc:
+            logger.error("AssetTechniqueMapper: cannot load sparta-attack.json: %s", exc)
+            cls._raw_sparta_techniques = []
+        return cls._raw_sparta_techniques
+
+    @classmethod
     def _load_asset_types(cls) -> Dict:
         if cls._asset_types is not None:
             return cls._asset_types
@@ -166,8 +200,6 @@ class AssetTechniqueMapper:
           "target"       → favor collection, exfiltration, impact
         """
         raw = self._load_raw()
-        if not raw:
-            return []
 
         boosts = self._get_boosts()
         min_score = self._get_minimum_score()
@@ -176,6 +208,18 @@ class AssetTechniqueMapper:
         resolved_type = self._normalize_type(asset_type)
         asset_types = self._load_asset_types()
         entry = asset_types.get(resolved_type, asset_types.get("default", {}))
+
+        # Use SPARTA for space assets
+        if entry.get("category") == "space":
+            return self._get_sparta_techniques(
+                resolved_type, asset_attrs, hop_position,
+                actor_known_ttps, actor_capable_tactics, top_k,
+                services, credentials_stored, entry, boosts, min_score
+            )
+
+        if not raw:
+            return []
+
         platforms = set(entry.get("platforms", ["Windows", "Linux"]))
         primary_tactics = entry.get("tactics", ["initial-access", "execution", "lateral-movement"])
         key_techniques = set(entry.get("key_techniques", []))
@@ -299,6 +343,111 @@ class AssetTechniqueMapper:
             ))
 
         # Sort by score descending, return top_k
+        scored.sort(key=lambda t: t.score, reverse=True)
+        return scored[:top_k]
+
+    def _get_sparta_techniques(
+        self,
+        resolved_type: str,
+        asset_attrs: Dict[str, Any],
+        hop_position: str,
+        actor_known_ttps: Optional[List[str]],
+        actor_capable_tactics: Optional[List[str]],
+        top_k: int,
+        services: Optional[Set[str]],
+        credentials_stored: bool,
+        entry: Dict,
+        boosts: Dict[str, float],
+        min_score: float,
+    ) -> List[ScoredTechnique]:
+        """Return SPARTA techniques for space-category assets."""
+        raw_sparta = self._load_raw_sparta()
+        if not raw_sparta:
+            return []
+
+        primary_tactics = set(entry.get("tactics", []))
+        key_techniques = set(entry.get("key_techniques", []))
+        known_ttp_set = set(actor_known_ttps) if actor_known_ttps else set()
+        capable_tactic_set = set(actor_capable_tactics) if actor_capable_tactics else None
+
+        hop_tactic_boost = {
+            "entry": {"initial-access", "execution", "reconnaissance"},
+            "intermediate": {"lateral-movement", "persistence", "execution"},
+            "target": {"impact", "collection", "exfiltration", "command-and-control"},
+        }.get(hop_position, set())
+
+        no_auth = not asset_attrs.get("is_authenticated", False) and asset_attrs.get("authentication", "none") in ("none", "", None)
+        no_encryption = not asset_attrs.get("is_encrypted", False)
+
+        scored: List[ScoredTechnique] = []
+
+        for tech in raw_sparta:
+            ext_refs = tech.get("external_references", [])
+            tech_id = next((r["external_id"] for r in ext_refs if r.get("source_name") == "sparta"), None)
+            tech_url = next((r.get("url", "") for r in ext_refs if r.get("source_name") == "sparta"), "")
+            if not tech_id:
+                continue
+
+            # Collect tactic slugs from kill_chain_phases
+            tech_tactics = set()
+            for phase in tech.get("kill_chain_phases", []):
+                if phase.get("kill_chain_name") == "sparta":
+                    tech_tactics.add(phase.get("phase_name", ""))
+
+            if capable_tactic_set and not tech_tactics.intersection(capable_tactic_set):
+                continue
+
+            score = 0.0
+            reasons = []
+
+            # Platform always matches for space assets
+            score += boosts.get("platform_match", 0.5)
+            reasons.append("space platform")
+
+            if tech_tactics.intersection(primary_tactics):
+                score += boosts.get("primary_tactic", 0.4)
+                reasons.append("primary tactic")
+
+            if tech_tactics.intersection(hop_tactic_boost):
+                score += boosts.get("hop_position", 0.3)
+                reasons.append("hop position")
+
+            if tech_id in key_techniques:
+                score += boosts.get("key_technique", 0.6)
+                reasons.append("key technique")
+
+            if tech_id in known_ttp_set:
+                score += boosts.get("actor_known_ttp", 0.5)
+                reasons.append("actor TTP")
+
+            if no_auth and tech_tactics.intersection({"initial-access", "lateral-movement"}):
+                score += boosts.get("no_auth", 0.3)
+                reasons.append("no-auth")
+
+            if no_encryption and tech_tactics.intersection({"collection", "exfiltration"}):
+                score += boosts.get("no_encryption", 0.2)
+                reasons.append("cleartext")
+
+            if score < min_score:
+                continue
+
+            # Attach sparta_tactic_id to tactics list for AttackFlowBuilder
+            tactic_ids = []
+            for phase in tech.get("kill_chain_phases", []):
+                if phase.get("kill_chain_name") == "sparta":
+                    tid = phase.get("sparta_tactic_id", "")
+                    if tid:
+                        tactic_ids.append(tid)
+
+            scored.append(ScoredTechnique(
+                id=tech_id,
+                name=tech.get("name", ""),
+                tactics=tactic_ids if tactic_ids else list(tech_tactics),
+                score=round(score, 2),
+                rationale=", ".join(reasons),
+                url=tech_url,
+            ))
+
         scored.sort(key=lambda t: t.score, reverse=True)
         return scored[:top_k]
 

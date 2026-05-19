@@ -661,7 +661,7 @@
             border-left-color: #42a5f5;
             color: #90caf9;
         }
-        .btn-draft-discard {
+        .btn-draft-restore, .btn-draft-discard {
             padding: 2px 8px;
             font-size: 11px;
             border: 1px solid currentColor;
@@ -671,7 +671,8 @@
             cursor: pointer;
             white-space: nowrap;
         }
-        .btn-draft-discard:hover { opacity: 0.75; }
+        .btn-draft-restore { font-weight: 600; }
+        .btn-draft-restore:hover, .btn-draft-discard:hover { opacity: 0.75; }
 
         /* DSL validation banner */
         #dsl-validation-banner {
@@ -1168,12 +1169,24 @@
                     let draft = null;
                     try { draft = localStorage.getItem(DRAFT_KEY); } catch(e) {}
                     if (draft && draft.trim() && draft !== content) {
-                        editor.setValue(draft);
                         const banner = document.createElement('div');
                         banner.className = 'draft-restore-banner';
-                        banner.innerHTML = '&#128196; Draft from last session restored. <button class="btn-draft-discard">Discard</button>';
-                        banner.querySelector('.btn-draft-discard').addEventListener('click', () => {
-                            editor.setValue(content);
+                        const bannerText = document.createTextNode('📄 Unsaved draft from last session. ');
+                        const restoreBtn = document.createElement('button');
+                        restoreBtn.className = 'btn-draft-restore';
+                        restoreBtn.textContent = 'Restore';
+                        const discardBtn = document.createElement('button');
+                        discardBtn.className = 'btn-draft-discard';
+                        discardBtn.textContent = 'Discard';
+                        banner.appendChild(bannerText);
+                        banner.appendChild(restoreBtn);
+                        banner.appendChild(document.createTextNode(' '));
+                        banner.appendChild(discardBtn);
+                        restoreBtn.addEventListener('click', () => {
+                            editor.setValue(draft);
+                            banner.remove();
+                        });
+                        discardBtn.addEventListener('click', () => {
                             try { localStorage.removeItem(DRAFT_KEY); } catch(e) {}
                             banner.remove();
                         });
@@ -1448,9 +1461,13 @@
                     document.getElementById('tab-bar').innerHTML = '';
                     document.getElementById('tab-content-area').innerHTML = '';
 
-                    // Add tabs for .md files
+                    // Add tabs for .md files.
+                    // Prefix path with the directory name so the draft key
+                    // is unique per project (avoids cross-template autosave collisions
+                    // when different projects share the same filename, e.g. "model.md").
                     models.forEach((model, index) => {
-                        this.addTab(model.path, model.content, index !== 0 || models.length > 1);
+                        const tabPath = dirHandle.name + '/' + model.path;
+                        this.addTab(tabPath, model.content, index !== 0 || models.length > 1);
                     });
                     if (models.length > 0) this.switchTab(0);
 
