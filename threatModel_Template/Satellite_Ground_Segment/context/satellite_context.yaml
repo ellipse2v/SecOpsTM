@@ -1,0 +1,300 @@
+project_description: >
+  Low Earth Orbit satellite ground segment based on the Thales DEF CON 2023 demonstration.
+  The system operates a commercial LEO satellite with an unauthenticated TT&C uplink,
+  a ground station running SLE (Space Link Extension) protocol, and an On-Board Computer
+  accessible via CCSDS telecommands. No cryptographic authentication is enforced on the
+  uplink chain. The ground station is internet-connected for remote operations.
+  Reference: SPARTA framework, PWNSAT Attack Flow Builder.
+
+# ── STRIDE Prompt Enrichment ───────────────────────────────────────────────────
+# These fields are injected into every AI STRIDE analysis prompt for this model.
+
+sector: >
+  Space Systems / Critical National Infrastructure. Commercial LEO satellite operator.
+  Space segment assets (OBC, ADCS, Payload) are physically unreachable once launched —
+  there is no patch deployment path short of a ground uplink session or satellite deorbit.
+  RF interfaces are broadcast by nature: any observer with suitable hardware can receive
+  or transmit on documented frequencies. CCSDS is the dominant protocol stack;
+  SPARTA (Space Attack Research and Tactic Analysis) is the applicable threat framework
+  alongside MITRE ATT&CK.
+
+threat_actor_profiles: >
+  - RF Attacker (advanced): equipped with SDR (HackRF, USRP), directional dish antenna,
+    and signal replay tools. Operates from ground or near-ground position during satellite
+    pass windows (~10 min for LEO). Targets unauthenticated CCSDS uplink and unencrypted
+    downlink telemetry. Known TTPs: IA-0006 (RF Jamming), EX-0009.01 (CCSDS TC Replay),
+    EX-0012.06 (RF Spoofing), EX-0009.02 (passive TLM eavesdropping).
+
+  - Nation State Cyber Actor (expert): combines cyber (spear-phishing, CVE exploitation)
+    and RF capabilities. Primary target is long-term persistence on OBC via firmware
+    backdoor. Entry path: internet-facing ground station (Apache CVE-2021-41773,
+    Spring4Shell CVE-2022-22963) → Mission Control Server (PrintNightmare CVE-2021-34527)
+    → CCSDS uplink. Known TTPs: IA-0001, PER-0002.02, LM-0002, EX-0012.08.
+
+  - Supply Chain / Insider (advanced): physical access during AIT phase (clean room).
+    JTAG access to OBC via EGSE. Implants firmware backdoor before launch — undetectable
+    post-fairing-closure. Known TTPs: EX-0012.09, PER-0002.02, RD-0004.
+
+  - Hacktivist (intermediate): open-source tools, opportunistic CVE exploitation, passive
+    TLM interception using cheap SDR hardware. Low barrier to downlink eavesdropping
+    (published ITU frequencies). Known TTPs: REC-0005, EX-0012, IMP-0003.
+
+business_goals_to_protect:
+  - Satellite mission continuity (payload uptime, instrument data integrity)
+  - Orbit control integrity (ADCS commands, propellant budget)
+  - Operator command authority (no unauthorized telecommand execution)
+  - Telemetry confidentiality (mission data, bus state, orbit ephemeris)
+  - Ground segment integrity (no pivot from internet to mission network)
+  - AIT supply chain integrity (firmware authenticity before launch)
+
+data_sensitivity: >
+  Critical. Telecommands directly control satellite attitude, propellant, and payload —
+  unauthorized commands can cause permanent mission loss or satellite destruction.
+  Telemetry frames expose operational state and may contain cryptographic material.
+  GPS navigation data, if spoofed, triggers erroneous physical manoeuvres.
+
+deployment_environment: >
+  Hybrid: space segment (LEO orbit, physically unreachable, no patch path post-launch)
+  + ground segment (internet-connected Linux/Windows hosts) + RF channel (broadcast,
+  publicly documented ITU frequencies) + AIT integration environment (clean room,
+  pre-launch only). Space segment components run VxWorks, RTEMS, and bare-metal FPGA —
+  no standard OS security controls apply. Detection capability is near-zero on-orbit.
+
+integrations:
+  - CCSDS SLE (Space Link Extension) — ground-to-TTC interface, unauthenticated
+  - ITU-documented uplink/downlink frequencies — publicly available
+  - GPS L1 C/A civilian signal — no authentication, open to spoofing
+  - MIL-STD-1553 internal bus — OBC to ADCS, no command authentication
+  - SpaceWire — OBC to payload bus, no independent authentication
+  - JTAG/UART (AIT phase only) — full OBC memory read/write access
+
+user_base: >
+  Mission operators (Mission Control Server access), ground station engineers (GS
+  administration), AIT technicians (pre-launch only), and potentially hostile RF
+  observers within line-of-sight of the satellite pass.
+
+# ── Attack Objectives ─────────────────────────────────────────────────────────
+attack_objectives:
+  - id: "obj-payload-disruption"
+    name: "Payload Disruption"
+    description: >
+      Attacker injects malicious CCSDS telecommands through the unauthenticated uplink
+      to disable or corrupt mission payload instruments, permanently denying the
+      satellite's primary mission. Physical replacement requires deorbit or in-orbit
+      servicing — mission loss is effectively permanent.
+    target_asset_names: ["Mission-Payload"]
+    target_types: ["leo-satellite"]
+    business_impact: "Mission loss — payload instruments permanently disabled, no recovery without deorbit"
+    mitre_final_tactic: "impact"
+
+  - id: "obj-adcs-spoofing"
+    name: "ADCS Spoofing / Orbit Manipulation"
+    description: >
+      Modify ADCS parameters via OBC pivot: desaturate reaction wheels or alter thruster
+      firing sequences to cause uncontrolled tumbling, deorbit, or collision risk.
+      No authentication between OBC and ADCS over MIL-STD-1553 bus.
+    target_asset_names: ["ADCS"]
+    target_types: ["onboard-computer"]
+    business_impact: "Satellite loss — uncontrolled deorbit or space debris generation"
+    mitre_final_tactic: "impact"
+
+  - id: "obj-ttc-jamming"
+    name: "TT&C Denial of Service"
+    description: >
+      RF jamming or replay attack on the publicly documented uplink frequency denies
+      legitimate operator command access, rendering the satellite uncontrollable during
+      the jamming window. Frequency recoverable via SDR scanning of ITU filing.
+    target_asset_names: ["TTC-Frontend"]
+    target_types: ["ttc-link"]
+    business_impact: "Temporary loss of satellite control — mission continuity degraded"
+    mitre_final_tactic: "impact"
+
+  - id: "obj-telemetry-exfiltration"
+    name: "Telemetry Exfiltration"
+    description: >
+      Intercept unencrypted CCSDS downlink telemetry frames to extract operational
+      parameters, bus encryption keys (if any), payload data, and orbit ephemeris
+      for intelligence collection without active interference.
+    target_asset_names: ["OBC", "TTC-Frontend"]
+    target_types: ["onboard-computer", "ttc-link"]
+    business_impact: "Intelligence loss — mission data and operational parameters compromised"
+    mitre_final_tactic: "collection"
+
+  - id: "obj-obc-persistence"
+    name: "OBC Firmware Persistence"
+    description: >
+      Upload malicious firmware image to OBC non-volatile memory via CCSDS uplink.
+      Firmware update requires no secure boot enforcement — persistence survives power
+      cycles and establishes long-term undetected access to the satellite bus.
+    target_asset_names: ["OBC"]
+    target_types: ["onboard-computer"]
+    business_impact: "Long-term mission compromise — attacker retains persistent access to satellite bus"
+    mitre_final_tactic: "persistence"
+
+  - id: "obj-ground-pivot"
+    name: "Ground Station Network Pivot"
+    description: >
+      Compromise internet-facing ground station software (Apache HTTPD CVE-2021-41773,
+      Spring4Shell CVE-2022-22963) to gain operator-level access, then pivot to Mission
+      Control Server via PrintNightmare (CVE-2021-34527) for mission planning access.
+    target_asset_names: ["Mission-Control-Server"]
+    target_types: ["server"]
+    business_impact: "Operator access compromise — attacker gains mission planning and telemetry access"
+    mitre_final_tactic: "lateral-movement"
+
+  - id: "obj-downlink-eavesdrop"
+    name: "Passive Downlink Telemetry Interception"
+    description: >
+      Attacker deploys a rogue TLM receiver (SDR + directional dish) aimed at the
+      satellite during a pass window. Unencrypted CCSDS TM frames are decoded without
+      any interaction with the legitimate ground station. Extracted data includes
+      bus state, payload instrument readings, orbit ephemeris, and potentially
+      session tokens or diagnostic credentials transmitted in clear.
+    target_asset_names: ["TLM-Receiver"]
+    target_types: ["ttc-link"]
+    business_impact: "Intelligence collection — mission data and operational state compromised without triggering any alarms"
+    mitre_final_tactic: "collection"
+
+  - id: "obj-gnss-spoofing"
+    name: "GNSS Spoofing — False Orbit Injection"
+    description: >
+      Attacker transmits a stronger-than-authentic GPS L1 C/A signal providing false
+      position and velocity data to the on-board GPS receiver. The ADCS orbit
+      determination filter accepts the spoofed navigation solution and computes
+      erroneous attitude correction manoeuvres. This can trigger unintended thruster
+      firings, attitude destabilization, or fuel depletion — without any uplink
+      interaction and without triggering CCSDS command counters.
+    target_asset_names: ["ADCS"]
+    target_types: ["onboard-computer"]
+    business_impact: "Attitude/orbit loss — unintended manoeuvres drain propellant budget or destabilize satellite"
+    mitre_final_tactic: "impact"
+
+  - id: "obj-supply-chain-firmware"
+    name: "Supply Chain Firmware Implant via EGSE"
+    description: >
+      Attacker with physical access to the AIT clean room compromises the EGSE
+      engineering laptop (via CVE-2022-30190 / Follina on a malicious email or
+      USB drive), then uses the JTAG connection to the OBC to flash a modified
+      firmware image containing a backdoor command handler. Implant survives
+      integration testing (functional tests do not verify firmware integrity),
+      launch, and orbital operations indefinitely.
+    target_asset_names: ["OBC"]
+    target_types: ["onboard-computer"]
+    business_impact: "Persistent mission compromise — backdoor active from launch day with no remediation path short of deorbit"
+    mitre_final_tactic: "persistence"
+
+# ── Threat Actors ─────────────────────────────────────────────────────────────
+threat_actors:
+  - id: "rf-attacker"
+    name: "RF Attacker"
+    sophistication: "advanced"
+    objectives:
+      - "obj-payload-disruption"
+      - "obj-ttc-jamming"
+      - "obj-adcs-spoofing"
+      - "obj-telemetry-exfiltration"
+      - "obj-downlink-eavesdrop"
+      - "obj-gnss-spoofing"
+    entry_preference: "external"
+    known_ttps:
+      - "IA-0006"       # RF Jamming / GNSS spoofing
+      - "EX-0009"       # Uplink interception
+      - "EX-0009.01"    # CCSDS TC replay
+      - "EX-0009.02"    # TLM eavesdropping (passive downlink)
+      - "IMP-0003"      # Denial of Service (jamming)
+      - "IMP-0004"      # Payload manipulation
+      - "EX-0012.06"    # RF spoofing (GPS / uplink)
+      - "REC-0003"      # Orbital parameter reconnaissance
+      - "REC-0003.04"   # ITU filing / frequency enumeration
+    capable_tactics:
+      - "reconnaissance"
+      - "initial-access"
+      - "execution"
+      - "impact"
+      - "collection"
+
+  - id: "nation-state-cyber"
+    name: "Nation State Cyber Actor"
+    sophistication: "expert"
+    objectives:
+      - "obj-ground-pivot"
+      - "obj-obc-persistence"
+      - "obj-telemetry-exfiltration"
+      - "obj-payload-disruption"
+    entry_preference: "external"
+    known_ttps:
+      - "IA-0001"       # Spear phishing / credential access
+      - "IA-0001.02"    # Phishing for access credentials
+      - "PER-0002"      # Establish persistent presence
+      - "PER-0002.02"   # Implant firmware backdoor
+      - "LM-0002"       # Lateral movement to space segment
+      - "EX-0012"       # Exploit ground segment software
+      - "EX-0012.08"    # Exploit unpatched CVE (PrintNightmare)
+      - "EX-0012.09"    # Supply chain compromise
+      - "IMP-0001"      # Destroy mission data
+      - "IMP-0005"      # Exfiltrate mission payload data
+      - "REC-0003"      # Gather satellite orbital parameters
+      - "REC-0003.04"   # ITU filing / frequency enumeration
+    capable_tactics:
+      - "reconnaissance"
+      - "initial-access"
+      - "execution"
+      - "persistence"
+      - "lateral-movement"
+      - "collection"
+      - "impact"
+
+  - id: "hacktivist"
+    name: "Hacktivist"
+    sophistication: "intermediate"
+    objectives:
+      - "obj-ttc-jamming"
+      - "obj-ground-pivot"
+      - "obj-downlink-eavesdrop"
+    entry_preference: "external"
+    known_ttps:
+      - "REC-0005"      # Open-source reconnaissance
+      - "REC-0003.04"   # ITU filing / frequency enumeration
+      - "IA-0001"       # Credential stuffing / phishing
+      - "EX-0012"       # Exploit known CVEs
+      - "IMP-0003"      # Denial of service
+      - "EX-0009.02"    # Passive TLM eavesdropping (low barrier to entry)
+    capable_tactics:
+      - "reconnaissance"
+      - "initial-access"
+      - "execution"
+      - "collection"
+      - "impact"
+
+  - id: "supply-chain-attacker"
+    name: "Supply Chain / Insider Attacker"
+    sophistication: "advanced"
+    objectives:
+      - "obj-supply-chain-firmware"
+      - "obj-obc-persistence"
+    entry_preference: "insider"
+    known_ttps:
+      - "EX-0012.09"    # Supply chain compromise
+      - "PER-0002"      # Establish persistent presence
+      - "PER-0002.02"   # Implant firmware backdoor via JTAG
+      - "RD-0004"       # Alter ground systems / EGSE
+      - "IMP-0001"      # Destroy mission capability (dormant backdoor)
+    capable_tactics:
+      - "initial-access"
+      - "execution"
+      - "persistence"
+      - "impact"
+
+# ── Risk Criteria ──────────────────────────────────────────────────────────────
+risk_criteria:
+  max_hops: 6
+  max_paths_per_objective: 3
+  gdaf_min_technique_score: 0.6
+  acceptable_risk_threshold: 6.0
+
+compliance_requirements:
+  - NIST SP 800-53 Rev 5 (SC, SI, AU controls)
+  - CCSDS Security Architecture (SDLS protocol, 350.0-G-3)
+  - SPARTA Space Attack Research and Tactic Analysis framework
+  - ESA Space System Cybersecurity Requirements (ECSS-E-ST-10-04C draft)
+  - ITU Radio Regulations (interference / jamming prohibition)

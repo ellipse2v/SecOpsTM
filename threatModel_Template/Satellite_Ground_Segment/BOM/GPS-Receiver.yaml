@@ -1,0 +1,20 @@
+asset: GPS-Receiver
+type: onboard-computer
+os: Bare-metal (FPGA + GPS chipset)
+firmware_version: "3.1.0"
+software:
+  - name: GNSS Navigation Processor
+    version: "3.1.0"
+  - name: Orbit Determination Filter
+    version: "2.0.1"
+known_cves: []
+detection_level: none
+patch_level: never
+notes: >
+  On-board GNSS receiver providing GPS position and timing data to the ADCS orbit
+  determination subsystem. Receives civilian L1 C/A GPS signal — no authentication
+  (GPS civilian signal is open and unencrypted). Susceptible to RF spoofing attacks
+  (false GPS signal injection) causing ADCS to compute incorrect orbit parameters,
+  potentially triggering erroneous thruster firings or orbit correction manoeuvres.
+  No anomaly detection on GPS data quality — ADCS trusts all navigation solutions
+  within plausible bounds. Physical replacement requires satellite deorbit.

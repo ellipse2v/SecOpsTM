@@ -1,0 +1,26 @@
+asset: EGSE
+type: server
+os: Windows 10 Pro (engineering laptop)
+firmware_version: "N/A"
+software:
+  - name: SCOS-2000 (Spacecraft Control and Operations System)
+    version: "5.1"
+  - name: JTAG Debugger (Lauterbach TRACE32)
+    version: "2022.09"
+  - name: Satellite Test Framework (vendor-specific)
+    version: "3.4.2"
+known_cves:
+  - CVE-2021-34527
+  - CVE-2022-30190
+detection_level: low
+patch_level: ad-hoc
+notes: >
+  Electrical Ground Support Equipment used during satellite AIT (Assembly, Integration
+  and Test) phase. Connected to OBC via JTAG and serial debug interfaces for full
+  read/write access to all memory regions, firmware, and configuration registers.
+  This is the only phase where OBC firmware is physically accessible without a ground
+  uplink session. CVE-2021-34527 (PrintNightmare) and CVE-2022-30190 (Follina) are
+  unpatched on the AIT laptop. A supply chain attacker with access to the clean room
+  can implant malicious firmware at this stage — persistence survives integration,
+  testing, and launch, and is undetectable after fairing closure. EGSE is removed
+  before launch and not present in the operational segment.

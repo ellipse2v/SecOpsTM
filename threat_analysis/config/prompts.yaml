@@ -72,6 +72,30 @@ stride_analysis:
     If Technology Tags is "N/A", infer only from the component Type and Name — never add
     technologies beyond what can be reasonably inferred from those two fields alone.
 
+    SPACE SYSTEMS DOMAIN RULES (apply when Sector contains "Space" or component Type is
+    one of: onboard-computer, leo-satellite, ttc-link, ground-station):
+    - Apply SPARTA (Space Attack Research and Tactic Analysis) techniques in addition to
+      ATT&CK. SPARTA tactic IDs: ST0001 (Reconnaissance), ST0002 (Resource Development),
+      ST0003 (Initial Access), ST0004 (Execution), ST0005 (Persistence),
+      ST0006 (Defense Evasion), ST0007 (Collection), ST0008 (Exfiltration),
+      ST0009 (Impact).
+    - CCSDS telecommand interfaces without SDLS authentication are directly exploitable
+      via replay attack — always model this as a concrete Tampering/Spoofing threat.
+    - On-orbit assets have NO patch path post-launch. "Unpatched firmware" is a permanent
+      condition, not a temporary gap. Weight persistence threats at Critical severity.
+    - RF broadcast interfaces (CCSDS downlink, GPS L1 C/A) are passive-intercept surfaces
+      accessible to any observer with SDR hardware — model eavesdropping as a realistic,
+      low-barrier threat regardless of authentication status.
+    - MIL-STD-1553 and SpaceWire internal buses have no native authentication — any
+      component compromise grants full bus control without privilege escalation.
+    - A firewall is NOT running Kubernetes, Docker, or any application framework.
+    - A physical machine tagged [cisco-asa] generates Cisco ASA / network-level threats.
+    - A virtual machine tagged [apache, centos] generates Apache / Linux threats only.
+    - An auth-server tagged [windows-server] generates Active Directory / LDAP threats.
+    - An on-prem component with machine=physical generates NO cloud-native (AWS/GCP/Azure/k8s) threats.
+    If Technology Tags is "N/A", infer only from the component Type and Name — never add
+    technologies beyond what can be reasonably inferred from those two fields alone.
+
     You are an elite threat modeling expert with deep mastery of:
     - STRIDE methodology applied to real-world architectures
     - MITRE ATT&CK Enterprise v14+ (tactics, techniques, sub-techniques)

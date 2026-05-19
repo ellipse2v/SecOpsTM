@@ -1,0 +1,22 @@
+asset: TLM-Receiver
+type: ttc-link
+os: Embedded Linux (Raspberry Pi CM4 / custom SDR)
+firmware_version: "1.2.0"
+software:
+  - name: CCSDS TM Frame Decoder
+    version: "1.2.0"
+  - name: SDR Receiver (GNU Radio)
+    version: "3.10.4"
+known_cves:
+  - CVE-2023-38408
+detection_level: low
+patch_level: rarely
+notes: >
+  Ground-based downlink telemetry receiver decoding CCSDS TM frames from satellite
+  on the publicly filed ITU downlink frequency. Frames are unencrypted and
+  unauthenticated — any observer with a suitable dish antenna and SDR can receive
+  and decode full telemetry. This is a passive-intercept attack surface: the attacker
+  does not need to interact with the legitimate ground station. CVE-2023-38408
+  (ssh-agent remote code execution) applies if the receiver host is remotely managed
+  via SSH. Detection level is low — no monitoring of who is receiving the downlink
+  frequency.
