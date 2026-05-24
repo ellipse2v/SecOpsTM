@@ -21,18 +21,18 @@ RUN apt-get update \
 RUN useradd --create-home --shell /bin/bash appuser
 WORKDIR /app
 
-# ── Layer 1 : dépendances Python (reconstruite seulement si requirements.txt change) ──
-# Séparer deps / code source permet de bénéficier du cache Docker sur les rebuilds
-# de code source (cas le plus fréquent).
+# ── Layer 1: Python dependencies (rebuilt only when requirements.txt changes) ──
+# Splitting deps from source code maximises Docker cache reuse on source-only
+# rebuilds, which is the most frequent case.
 COPY requirements.txt ./
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install -r requirements.txt
 
-# ── Layer 2 : modèle d'embedding (reconstruite seulement si sentence-transformers change) ──
+# ── Layer 2: embedding model (rebuilt only when sentence-transformers changes) ──
 RUN HF_HUB_DISABLE_SYMLINKS_WARNING=1 \
     python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
 
-# ── Layer 3 : code source (change souvent — pip install --no-deps est quasi-instantané) ──
+# ── Layer 3: source code (changes often — pip install --no-deps is near-instant) ──
 COPY --chown=appuser:appuser threat_analysis/ ./threat_analysis/
 COPY --chown=appuser:appuser config/ ./config/
 COPY --chown=appuser:appuser threatModel_Template/ ./threatModel_Template/
