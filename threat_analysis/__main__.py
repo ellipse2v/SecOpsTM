@@ -561,6 +561,7 @@ class CustomArgumentParser:
                 "  secopstm --model-file model.md --stdout  # JSON to stdout (CI/SIEM)\n"
                 "  secopstm --server                        # launch web editor\n"
                 "  secopstm --diff old.json new.json        # compare two reports\n"
+                "  secopstm validate --model-dir .          # validate DSL syntax and references\n"
             ),
             formatter_class=argparse.RawTextHelpFormatter,
         )
@@ -1081,6 +1082,9 @@ class ColoredFormatter(logging.Formatter):
 def main():
     """Entry point for the `secopstm` CLI command."""
     # Early-exits: lightweight subcommands (no heavy imports needed)
+    if len(sys.argv) > 1 and sys.argv[1] == "validate":
+        from threat_analysis.validate import main as _validate_main
+        sys.exit(_validate_main(sys.argv[2:]))
     if len(sys.argv) > 1 and sys.argv[1] == "download-data":
         download_data()
     if len(sys.argv) > 1 and sys.argv[1] == "--init-rag":
