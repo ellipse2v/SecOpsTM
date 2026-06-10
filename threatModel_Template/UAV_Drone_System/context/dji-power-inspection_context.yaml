@@ -1,0 +1,94 @@
+# GDAF Attack Scenario Context
+# dji-power-inspection Threat Model Context
+# Generated: 2026-05-17T19:28:56.403212
+# 
+# IMPORTANT: Review and customize:
+# - sector, compliance_requirements, attack_objectives, threat_actors
+
+system_description: 'The DJI Power Inspection Drone System is an integrated unmanned aerial vehicle (UAV) solution designed
+  for electrical infrastructure inspection, including power lines, substations, and transmission towers. The system comprises
+  aircraft platforms (Matrice 350 RTK, M30T, M400, Mavic 3 Enterprise), ground control systems (RC Plus controller, mobile
+  devices with DJI Pilot 2), backend analysis workstations (DJI Terra), and optional cloud services (FlightHub 2, DJI Account
+  servers, RTK services).
+
+
+  The system supports three network security modes: Standard Mode (full connectivity), Restricted Network Mode (maps/RTK/cloud
+  services only, no DJI account), and Local Data Mode (LDM) which provides complete network isolation. This threat model focuses
+  on a deployment scenario for critical power infrastructure inspection with high-security requirements.'
+sector: Web Application / SaaS
+data_sensitivity: SECRET
+internet_facing: true
+compliance_requirements: ['[Organization-specific]']
+attack_objectives:
+- id: OBJ-001
+  name: Data Theft
+  description: Steal sensitive data or credentials from the system
+  target_asset_names: [Infrastructure Coordinates, User Credentials]
+  target_types: [sensitive_data, secret_data, credentials]
+  attacker_intent: Exfiltrate sensitive information for financial gain, espionage, or blackmail
+  business_impact: Data breach, regulatory compliance violation (GDPR, HIPAA, etc.), reputational damage, financial loss
+  mitre_final_tactic: exfiltration
+  min_severity_score: 8.5
+- id: OBJ-002
+  name: Critical Infrastructure Compromise
+  description: Compromise critical infrastructure components to disrupt operations or gain elevated access
+  target_asset_names: [Aircraft Flight Controller]
+  target_types: [critical_infrastructure, database, auth-server, pki, domain-controller]
+  attacker_intent: Gain control over critical systems for sabotage, ransom, or strategic advantage
+  business_impact: Service disruption, operational downtime, potential safety incidents, financial loss
+  mitre_final_tactic: impact
+  min_severity_score: 9.0
+- id: OBJ-003
+  name: Persistent Access Establishment
+  description: Establish persistent access through internet-facing assets for long-term operations
+  target_asset_names: [DJI FlightHub 2, DJI Account Servers]
+  target_types: [internet_facing_asset]
+  attacker_intent: Maintain long-term access for future operations, data theft, or lateral movement
+  business_impact: Long-term compromise, ongoing data theft, potential lateral movement to internal systems
+  mitre_final_tactic: persistence
+  min_severity_score: 8.5
+threat_actors:
+- id: TA-001
+  name: External Attacker
+  sophistication: medium
+  objectives: [OBJ-001, OBJ-002, OBJ-003]
+  entry_preference: external
+  entry_points: [Airborne, Cloud External]
+  description: External threat actors attempting to compromise the system from outside the trust boundary
+  known_ttps: [T1190, T1566, T1078]
+  capable_tactics: [initial-access, collection, exfiltration]
+- id: TA-002
+  name: Insider Threat
+  sophistication: high
+  objectives: [OBJ-001, OBJ-002]
+  entry_preference: insider
+  entry_points: [Ground Station, Office Backend]
+  description: Malicious or negligent insiders with legitimate access to trusted systems
+  known_ttps: [T1003, T1078, T1567, T1070]
+  capable_tactics: [credential-access, exfiltration, persistence, privilege-escalation]
+- id: TA-003
+  name: Automated Attacker
+  sophistication: low
+  objectives: [OBJ-002, OBJ-003]
+  entry_preference: internet-facing
+  entry_points: []
+  description: Automated bots and scripts attempting credential stuffing, brute force, or vulnerability scanning
+  known_ttps: [T1110, T1190, T1592]
+  capable_tactics: [initial-access, credential-access, discovery]
+risk_criteria:
+  acceptable_risk_score: 5.0
+  max_hops: 6
+  max_paths_per_objective: 3
+  gdaf_min_technique_score: 0.75
+  likelihood_scale: {Very Low (1): Requires nation-state resources and zero-day exploits, Low (2): Requires advanced skills
+      and specialized equipment, Medium (3): 'Requires moderate skills, known vulnerabilities', High (4): 'Requires basic
+      skills, publicly available tools', Very High (5): 'Simple execution, no special skills required'}
+  impact_scale: {Negligible (1): 'Minor operational delay, no data exposure', Minor (2): 'Temporary service disruption, limited
+      data exposure', Moderate (3): 'Significant operational impact, sensitive data exposure', Major (4): 'Extended service
+      outage, critical data breach', Catastrophic (5): Critical infrastructure damage or casualties}
+  risk_acceptance_threshold: {Critical: Immediate remediation required, High: Remediation within 30 days, Medium: Remediation
+      within 90 days, Low: Remediation within 180 days}
+assumptions: [Default security configurations are enabled, Regular security updates are applied, Network segmentation follows
+    best practices]
+limitations: [Threat model based on available documentation, Some technical details may require verification, Third-party
+    dependencies not fully assessed]

@@ -1,0 +1,35 @@
+# Custom Asset Types for DJI Power Inspection Drone System
+# These asset types extend the standard 31 DSL types for UAV-specific components
+
+asset_types:
+  uav_aircraft:
+    description: "Unmanned aerial vehicle platform with embedded flight control systems"
+    category: iot
+    platforms: [Embedded, UAV]
+    tactics: [impact, execution, defense-evasion]
+    key_techniques: [T1498.003, T1498.004, T1531]
+    fuzzy_matches: [uav, drone, matrice, m350, m30t, m400, mavic]
+
+  ground_controller:
+    description: "Dedicated ground control station with integrated display and radio transmission"
+    category: mobile_device
+    platforms: [Android, Embedded]
+    tactics: [initial-access, credential-access, collection]
+    key_techniques: [T1416, T1428, T1078]
+    fuzzy_matches: [rc, controller, ground station, rc plus, remote controller]
+
+  gimbal_payload:
+    description: "Multi-sensor inspection payload with thermal, zoom, RGB cameras and laser rangefinder"
+    category: iot
+    platforms: [Embedded, UAV]
+    tactics: [collection, impact]
+    key_techniques: [T1498, T1600.004]
+    fuzzy_matches: [payload, gimbal, zenmuse, h30t, h20t, camera, sensor]
+
+  cloud_fleet_management:
+    description: "Cloud-based drone fleet management platform for live streaming and data storage"
+    category: saas
+    platforms: [SaaS, Cloud]
+    tactics: [initial-access, exfiltration, lateral-movement]
+    key_techniques: [T1190, T1133, T1530]
+    fuzzy_matches: [flighthub, fleet management, cloud platform, dji cloud]

@@ -1,0 +1,51 @@
+# Custom Protocols for DJI Power Inspection Drone System
+# These protocols extend standard protocol lists for DJI-proprietary communications
+
+protocols:
+  o3-enterprise:
+    description: "DJI O3 Enterprise proprietary transmission protocol with AES-256 encryption"
+    category: wireless
+    encryption: AES-256
+    tactic_boost: [lateral-movement, collection]
+  
+  dji-cloud-api:
+    description: "DJI FlightHub 2 Cloud API for fleet management using MQTTS/HTTPS/WebSocket"
+    category: cloud
+    encryption: TLS
+    tactic_boost: [initial-access, exfiltration]
+  
+  ntrip:
+    description: "Networked Transport of RTCM via Internet Protocol for RTK correction data"
+    category: industrial
+    encryption: TLS
+    tactic_boost: [collection, manipulation]
+  
+  internal-bus:
+    description: "Internal hardware bus for onboard data storage and sensor communication"
+    category: hardware
+    encryption: AES-256-XTS
+    tactic_boost: [collection]
+  
+  physical-media:
+    description: "Physical SD card transfer for offline firmware updates and data transfer"
+    category: physical
+    encryption: code-signing
+    tactic_boost: [initial-access, execution]
+  
+  https:
+    description: "Hypertext Transfer Protocol Secure with TLS encryption"
+    category: internet
+    encryption: TLS
+    tactic_boost: [initial-access, exfiltration]
+  
+  usb:
+    description: "Universal Serial Bus for physical data transfer"
+    category: physical
+    encryption: none
+    tactic_boost: [collection, initial-access]
+  
+  rtmp:
+    description: "Real-Time Messaging Protocol for live video streaming"
+    category: streaming
+    encryption: TLS
+    tactic_boost: [exfiltration, collection]
