@@ -29,6 +29,7 @@ CI/CD pipelines and cross-functional workflows.
 ## Documentation
 
 - [Getting Started](getting_started.md) — Installation, first run, web editor
+- [**Claude Code Skill**](claude-code-skill.md) — AI-assisted threat model generation: describe your system, Claude writes the DSL
 - [**Workflow: Conception to Run**](workflow.md) — Complete end-to-end guide: conception, modeling, enrichment, CI/CD
 - [Usage](usage.md) — CLI flags, project mode, export formats
 - [Features](features.md) — Full feature list: AI engines, diagrams, exports
