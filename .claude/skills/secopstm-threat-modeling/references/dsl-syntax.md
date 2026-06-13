@@ -491,6 +491,14 @@ Use `config/asset_types_community.yaml` and `config/protocols_community.yaml` to
 gdaf_context = context/{project-name}_context.yaml
 bom_directory = BOM
 gdaf_min_technique_score = 0.75
+system_description = "One sentence describing the system's purpose and main components."
+sector = DevSecOps / Internal Platform
+deployment_environment = on-prem
+data_sensitivity = HIGH
+internet_facing = true
+user_base = internal_employees
+compliance_requirements = [PCI-DSS, SOC2]
+integrations = [Active Directory, SIEM]
 
 ## Boundaries
 - **Internet**: isTrusted=False, type=network-on-prem, traversal_difficulty=low, description="Untrusted public internet — external attack surface", businessValue="External attack surface — no internal trust"

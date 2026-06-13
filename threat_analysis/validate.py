@@ -25,7 +25,7 @@ Usage (programmatic):
 
 Checks:
     - DSL enum values (Boundary, Actor, Server, Data, Dataflow)
-    - Reference integrity (boundary=, from=, to=, data=)
+    - Reference integrity (boundary=, from=, to=)
     - Element name uniqueness
     - Dataflow endpoint constraints (no direct Boundary connections)
     - Unused boundary detection
@@ -358,6 +358,49 @@ class ThreatModelValidator:
                     f"[{SEVERITY_MULTIPLIER_MIN}, {SEVERITY_MULTIPLIER_MAX}]"
                 )
 
+    def _check_unused_boundaries(self) -> None:
+        """Flag boundaries defined in ## Boundaries but not referenced by any actor or server."""
+        assert self._model is not None
+        m = self._model
+        used: set = set()
+        for props in (*m.actors.values(), *m.servers.values()):
+            b = props.get('boundary')
+            if isinstance(b, str):
+                used.add(b.lower())
+        for boundary_name in m.boundaries:
+            if boundary_name.lower() not in used:
+                self._fail(
+                    f"Boundary '{boundary_name}': defined but not used by any actor or server",
+                    section="Boundaries",
+                )
+
+    def _check_name_uniqueness(self) -> None:
+        """Detect duplicate element names within each DSL section."""
+        section_re = re.compile(r'^## (.+)$', re.MULTILINE)
+        element_name_re = re.compile(r'^\s*-\s*\*\*([^*:]+)\*\*\s*:', re.MULTILINE)
+        matches = list(section_re.finditer(self._model_content))
+        for i, m in enumerate(matches):
+            title = m.group(1).strip()
+            start = m.end()
+            end = matches[i + 1].start() if i + 1 < len(matches) else len(self._model_content)
+            body = self._model_content[start:end]
+            seen: set = set()
+            for em in element_name_re.finditer(body):
+                name = em.group(1).strip()
+                if name in seen:
+                    self._fail(
+                        f"## {title}: duplicate element name '{name}'",
+                        section=title,
+                    )
+                seen.add(name)
+
+    def _run_check(self, fn: Any, ok_message: str) -> None:
+        """Run a check; record a passing result if it introduced no failures."""
+        failures_before = sum(1 for r in self.results if not r.passed)
+        fn()
+        if sum(1 for r in self.results if not r.passed) == failures_before:
+            self._ok(ok_message)
+
     def run(self) -> Tuple[int, int]:
         """Run all checks. Returns (failure_count, warning_count)."""
         print(f"\nValidating: {self.model_dir}\n")
@@ -366,27 +409,42 @@ class ThreatModelValidator:
         self._load_custom_types()
         assert self._model is not None
         m = self._model
-        for name, props in m.boundaries.items():
-            self._check_enum('Boundary', name, props)
-        for name, props in m.actors.items():
-            self._check_enum('Actor', name, props)
-        for name, props in m.servers.items():
-            self._check_enum('Server', name, props)
-            self._check_server_type(name, props)
-        for name, props in m.data_objects.items():
-            self._check_enum('Data', name, props)
-        for name, props in m.dataflows.items():
-            self._check_enum('Dataflow', name, props)
-        self._check_references()
-        self._check_bom()
-        self._check_yaml_files()
-        self._check_submodel_paths()
-        self._check_english()
-        self._check_severity_multipliers()
+        self._run_check(
+            lambda: [self._check_enum('Boundary', n, p) for n, p in m.boundaries.items()],
+            f"Boundary enum values OK ({len(m.boundaries)} boundaries)",
+        )
+        self._run_check(
+            lambda: [self._check_enum('Actor', n, p) for n, p in m.actors.items()],
+            f"Actor enum values OK ({len(m.actors)} actors)",
+        )
+        self._run_check(
+            lambda: [
+                (self._check_enum('Server', n, p), self._check_server_type(n, p))
+                for n, p in m.servers.items()
+            ],
+            f"Server enum values and types OK ({len(m.servers)} servers)",
+        )
+        self._run_check(
+            lambda: [self._check_enum('Data', n, p) for n, p in m.data_objects.items()],
+            f"Data enum values OK ({len(m.data_objects)} data objects)",
+        )
+        self._run_check(
+            lambda: [self._check_enum('Dataflow', n, p) for n, p in m.dataflows.items()],
+            f"Dataflow enum values OK ({len(m.dataflows)} dataflows)",
+        )
+        self._run_check(self._check_unused_boundaries, "No unused boundaries")
+        self._run_check(self._check_name_uniqueness, "Element names unique")
+        self._run_check(self._check_references, "Reference integrity OK")
+        self._run_check(self._check_bom, "BOM correspondence OK")
+        self._run_check(self._check_yaml_files, "YAML syntax OK")
+        self._run_check(self._check_submodel_paths, "Submodel paths OK")
+        self._run_check(self._check_english, "English-only content OK")
+        self._run_check(self._check_severity_multipliers, "Severity multipliers OK")
         failures = sum(1 for r in self.results if not r.passed)
-        total = len(self.results)
+        passed = sum(1 for r in self.results if r.passed)
+        total = failures + passed
         print(f"\n{'─'*50}")
-        print(f"Results: {total - failures}/{total} checks passed, {failures} failure(s)")
+        print(f"Results: {passed}/{total} checks passed, {failures} failure(s)")
         return (failures, 0)
 
 

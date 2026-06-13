@@ -1501,6 +1501,8 @@ class ReportGenerator:
         total_mitre_techniques_mapped = len(set(tech['id'] for threat in all_threats_details for tech in threat.get('mitre_techniques', [])))
 
         dummy_model = ThreatModel("Global Project", cve_service=self.cve_service)
+        if all_models:
+            dummy_model.context_config = all_models[0].context_config.copy()
         dummy_model.mitre_analysis_results = {
             'total_threats': total_threats_analyzed,
             'mitre_techniques_count': total_mitre_techniques_mapped,

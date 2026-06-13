@@ -30,7 +30,6 @@ import inspect
 import traceback
 
 from threat_analysis import config # Re-add config import
-from threat_analysis.server.server import run_server, get_model_name # Re-add this import
 from threat_analysis.utils import resolve_path, _validate_path_within_project, compare_threat_reports
 
 # Import library modules
@@ -1090,6 +1089,8 @@ def main():
     if len(sys.argv) > 1 and sys.argv[1] == "--init-rag":
         force = "--force" in sys.argv
         sys.exit(init_rag(force=force))
+
+    from threat_analysis.server.server import run_server, get_model_name
 
     print("\n🚀 SecOpsTM Framework is starting...")
     # --- Argument Parsing ---
