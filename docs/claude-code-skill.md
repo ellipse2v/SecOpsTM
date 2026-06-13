@@ -36,6 +36,43 @@ name the skill explicitly.
 
 ---
 
+## Example Prompt
+
+You do not need to structure your description — write it the way you would describe the system
+to a colleague. Claude handles the mapping to DSL entities.
+
+The following prompt produced the `appsec-platform` multi-subsystem model
+(18 servers, 3 subsystems, 69 GDAF attack scenarios):
+
+> Generate a threat model for an internal AppSec platform. It has 5 Proxmox hypervisors, a NAS,
+> 3 machines running DependencyTrack — two prod and one preprod — two test machines, an nginx
+> reverse proxy, a mail server, and a VM connected to the internet for downloading vulnerability
+> data (NVD, OSV, GHSA) that then feeds the DependencyTrack instances behind the reverse proxy.
+> There's a second reverse proxy with a tooling machine behind it (script server + attack flow
+> engine). The internet-facing VM is on a separate LAN connected to the main network via a
+> backbone — only that segment has internet egress. Proxmox management is on the same flat LAN
+> as everything else (no VLANs). The two reverse proxies are internal-only. The VM Fetcher
+> initiates outbound connections, notifies RP1 when data is ready, and RP1 pulls it back. DT
+> instances pull feeds from RP1. All SSH goes through RP1 which is a passhport bastion with
+> key-based auth. One Proxmox node runs a Proxmox Backup Server VM for VM snapshots to NAS.
+> Authentication is local accounts per app.
+
+**What the skill produced:**
+
+| | |
+|---|---|
+| Structure | Multi-subsystem (>15 servers) |
+| Subsystems | `infrastructure/` · `appsec/` · `tooling/` |
+| Servers | 18 total (5 Proxmox + NAS + Backup VM + Mail Server + RP1 + VM Fetcher + 3×DT + RP2 + Tooling VM + 2×Test Machine) |
+| Custom types | `hypervisor`, `sca_platform`, `data_fetcher` |
+| GDAF scenarios | 69 (6 attack objectives × 4 threat actors) |
+| Validation | 0 failures across all 4 models |
+
+Claude asked one clarifying question mid-way (network topology of the fetcher LAN) and
+presented the subsystem breakdown for confirmation before writing any file.
+
+---
+
 ## Workflow
 
 The skill follows a ten-step process. Steps 1–4 run autonomously; **step 5 always pauses for
@@ -227,11 +264,8 @@ Target: **0 failures**. Claude fixes any failures and re-runs before reporting c
 Once validation passes, run SecOpsTM normally:
 
 ```bash
-# CLI — offline STRIDE + MITRE report
+# CLI — offline STRIDE + MITRE report (AI enrichment and GDAF run automatically when configured)
 secopstm --model-file {system-name}/model.md
-
-# CLI — with AI enrichment and GDAF attack flows
-secopstm --model-file {system-name}/model.md --gdaf
 
 # Web editor — load and iterate
 secopstm --server

@@ -143,6 +143,16 @@ Output modeling strategy for user confirmation: system name, complexity (high/me
 - Read `.tm-raw/dataflows.md` → generate `## Dataflows`
 - Read `.tm-raw/compliance.md` → supplement Context and descriptions
 
+**⚠️ AI Context Keys (mandatory in `## Context`)**: Always populate these 8 keys from staging files — they drive AI threat enrichment quality. Without them, AI threats are generic and unpersonalized:
+- `system_description` — one concise sentence on the system's purpose (from `.tm-raw/architecture.md`)
+- `sector` — domain classification, e.g. `DevSecOps / Internal Platform` (from `.tm-raw/architecture.md`)
+- `deployment_environment` — `on-prem`, `cloud`, `hybrid`, or `air-gapped` (from `.tm-raw/assets.md`)
+- `data_sensitivity` — highest data classification in the system: `LOW`, `MEDIUM`, `HIGH`, `CRITICAL`
+- `internet_facing` — `true` or `false`
+- `user_base` — e.g. `internal_employees`, `external_customers`, `developers` (from `.tm-raw/actors.md`)
+- `compliance_requirements` — list, e.g. `[PCI-DSS, SOC2]` or `[]` if none (from `.tm-raw/compliance.md`)
+- `integrations` — list of key external systems, e.g. `[Active Directory, SIEM, NVD]` (from staging)
+
 **Language Requirements**: **All output files must be in English** (model.md, Context YAML, BOM YAML, config YAML). Staging files and information gathering phase can use Chinese.
 
 **DSL Enum Values**: See [references/dsl-syntax.md](references/dsl-syntax.md), must strictly comply.
