@@ -186,6 +186,7 @@ class LiteLLMClient:
                 timeout=self.provider_config.get('timeout', 10),
                 stream=False,
                 api_base=self.api_base,
+                enable_thinking=False,
             )
             logging.info("[%.3fs] AI health check OK — %s", time.time() - check_start_time, self.model_name)
             self.ai_online = True
@@ -223,7 +224,8 @@ class LiteLLMClient:
             "max_tokens": effective_max_tokens,
             "timeout": effective_timeout,
             "num_retries": int(self.ai_config.get("threat_generation", {}).get("num_retries", 3)),
-            "api_base": self.api_base
+            "api_base": self.api_base,
+            "enable_thinking": False,
         }
         if "top_p" in self.provider_config:
             completion_params["top_p"] = self.provider_config["top_p"]
