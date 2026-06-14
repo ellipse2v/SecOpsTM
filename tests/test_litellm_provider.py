@@ -180,6 +180,70 @@ def test_litellm_client_file_not_found():
             assert client.ai_config == {}
     asyncio.run(_run())
 
+# --- enable_thinking config tests ---
+
+def test_enable_thinking_defaults_to_false():
+    """enable_thinking must be False when not set in provider config."""
+    async def _run():
+        client = LiteLLMClient()
+        client.ai_online = True
+        client.model_name = "openai/test"
+        client.provider_config = {}
+        client.ai_config = {}
+        client.stream = False
+        client._litellm_module = MagicMock()
+
+        mock_response = MagicMock()
+        mock_response.choices[0].message.content = "ok"
+        client._litellm_module.acompletion = AsyncMock(return_value=mock_response)
+
+        async for _ in client.generate_content("p", "s", stream=False):
+            pass
+
+        call_kwargs = client._litellm_module.acompletion.call_args[1]
+        assert call_kwargs["enable_thinking"] is False
+    asyncio.run(_run())
+
+
+def test_enable_thinking_true_from_provider_config():
+    """enable_thinking=True is forwarded to acompletion when set in provider config."""
+    async def _run():
+        client = LiteLLMClient()
+        client.ai_online = True
+        client.model_name = "anthropic/claude-3-5-sonnet"
+        client.provider_config = {"enable_thinking": True, "max_tokens": 8192, "temperature": 0.7}
+        client.ai_config = {}
+        client.stream = False
+        client._litellm_module = MagicMock()
+
+        mock_response = MagicMock()
+        mock_response.choices[0].message.content = "ok"
+        client._litellm_module.acompletion = AsyncMock(return_value=mock_response)
+
+        async for _ in client.generate_content("p", "s", stream=False):
+            pass
+
+        call_kwargs = client._litellm_module.acompletion.call_args[1]
+        assert call_kwargs["enable_thinking"] is True
+    asyncio.run(_run())
+
+
+def test_check_connection_does_not_pass_enable_thinking():
+    """check_connection health ping must not pass enable_thinking (max_tokens=1, param is useless there)."""
+    async def _run():
+        client = LiteLLMClient()
+        client.model_name = "openai/test"
+        client.provider_config = {"enable_thinking": True}
+        client._litellm_module = MagicMock()
+        client._litellm_module.acompletion = AsyncMock(return_value=MagicMock())
+
+        await client.check_connection()
+
+        call_kwargs = client._litellm_module.acompletion.call_args[1]
+        assert "enable_thinking" not in call_kwargs
+    asyncio.run(_run())
+
+
 # --- LiteLLMProvider Tests ---
 
 def test_litellm_provider_check_connection():
