@@ -2,7 +2,7 @@
 
 ## Overview
 
-The GDAF (Generic Threat Modeling and Attack Framework) context file defines the attack context for threat modeling. It includes attack objectives, threat actors, and risk criteria.
+The GDAF (Goal-Driven Attack Flow) context file defines the attack context used for attack path analysis. It includes attack objectives, threat actors, and risk criteria.
 
 ## File Location
 

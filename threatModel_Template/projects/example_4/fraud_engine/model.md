@@ -1,4 +1,4 @@
-# Threat Model: PayFlow — Fraud Detection Engine
+# System Model: PayFlow — Fraud Detection Engine
 
 ## Description
 The fraud detection engine provides real-time payment risk scoring with a latency SLA of

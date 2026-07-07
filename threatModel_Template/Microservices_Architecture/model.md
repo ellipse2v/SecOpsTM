@@ -3,7 +3,7 @@ Copyright 2024 ellipse2v — Apache License, Version 2.0
 https://www.apache.org/licenses/LICENSE-2.0
 -->
 
-# Threat Model: Microservices Architecture
+# System Model: Microservices Architecture
 
 ## Description
 This threat model covers a microservices-based application with an API gateway, service mesh, message broker, and shared database.

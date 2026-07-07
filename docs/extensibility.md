@@ -29,7 +29,7 @@
 
 ## PyTM-Based Extensions & Evolutions
 
-You can leverage and extend all PyTM features, including:
+You can use and extend all PyTM features, including:
 
 -   **Custom Threat Patterns**: Define new threat types and detection logic.
 -   **Advanced Dataflow Modeling**: Use PyTM's dataflow and element types.

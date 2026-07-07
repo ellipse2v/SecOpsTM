@@ -24,7 +24,7 @@ import threading
 import time
 from pathlib import Path
 from typing import Dict, List, Any, Optional
-from flask import Flask, render_template, request, jsonify, send_from_directory, send_file, make_response, Response, stream_with_context, g
+from flask import Flask, render_template, request, jsonify, send_from_directory, send_file, make_response, Response, stream_with_context, g, abort
 from threat_analysis import config
 import asyncio
 from threat_analysis.server.events import ai_status_event_queue
@@ -217,8 +217,9 @@ if attempt == max_attempts:
 initial_markdown_content = ""
 initial_project_path = None
 initial_model_file_path: Optional[str] = None
+graphical_editor_enabled = False
 
-DEFAULT_EMPTY_MARKDOWN = """# Threat Model: New Model
+DEFAULT_EMPTY_MARKDOWN = """# System Model: New Model
 
 ## Description
 A new threat model. Describe your system here.
@@ -246,13 +247,23 @@ A new threat model. Describe your system here.
 
 
 def get_model_name(markdown_content: str) -> str:
-    match = re.search(r"^# Threat Model: (.*)$", markdown_content, re.MULTILINE)
+    match = re.search(r"^# (Threat|System) Model: (.*)$", markdown_content, re.MULTILINE)
     if match:
-        return match.group(1).strip()
+        if match.group(1) == "Threat":
+            logging.warning(
+                "Model title uses the deprecated '# Threat Model: ...' tag — use "
+                "'# System Model: ...' instead (the DSL file describes the system model; "
+                "the threat model is what SecOpsTM generates from it)."
+            )
+        return match.group(2).strip()
     return "Untitled Model"
 
 
-def run_server(model_filepath: Optional[str] = None, project_path: Optional[str] = None):
+def run_server(
+    model_filepath: Optional[str] = None,
+    project_path: Optional[str] = None,
+    enable_graphical_editor: bool = False,
+):
     """
     This function is the main entry point for the web server.
     It launches the Flask application on a single port and serves a menu
@@ -264,6 +275,8 @@ def run_server(model_filepath: Optional[str] = None, project_path: Optional[str]
     global initial_markdown_content
     global initial_project_path
     global initial_model_file_path
+    global graphical_editor_enabled
+    graphical_editor_enabled = enable_graphical_editor
     effective_model_path = None
 
     if project_path and os.path.isdir(project_path):
@@ -337,7 +350,7 @@ def get_data_dictionary():
 @app.route("/")
 def index():
     """Serves the main menu."""
-    return render_template("index.html")
+    return render_template("index.html", graphical_editor_enabled=graphical_editor_enabled)
 
 @app.route("/simple")
 def simple_mode():
@@ -373,6 +386,8 @@ def graphical_editor():
     """
     Serves the main web interface.
     """
+    if not graphical_editor_enabled:
+        abort(404)
     return render_template(
         "graphical_editor.html",
         ai_online=get_threat_model_service().ai_online  # Pass AI status to template
@@ -473,7 +488,8 @@ async def generate_markdown_from_prompt():
         else:
             logging.warning(f"AI response did not contain a clear markdown block. Raw response preview: {full_response[:200]}")
             # Fallback: find the start of the threat model and clean up common AI chatter.
-            model_start_index = full_response.find("# Threat Model:")
+            model_start_match = re.search(r"# (?:Threat|System) Model:", full_response)
+            model_start_index = model_start_match.start() if model_start_match else -1
             if model_start_index != -1:
                 extracted_markdown = full_response[model_start_index:].strip()
                 end_block_index = extracted_markdown.rfind("```")
@@ -542,7 +558,7 @@ def _format_properties(item: dict, props_to_include: list) -> str:
 
 def convert_json_to_markdown(data: dict) -> str:
     """Converts JSON from the graphical editor to Markdown DSL."""
-    markdown_lines = ["# Threat Model: Graphical Editor"]
+    markdown_lines = ["# System Model: Graphical Editor"]
     
     boundaries = data.get("boundaries", [])
     actors = data.get("actors", [])
@@ -594,6 +610,8 @@ def graphical_update():
     """
     Receives JSON graph data, converts it to Markdown, and returns the analysis.
     """
+    if not graphical_editor_enabled:
+        abort(404)
     logging.debug("Entering graphical_update function.")
     json_data = request.json
     if not json_data:

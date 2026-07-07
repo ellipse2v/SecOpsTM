@@ -229,7 +229,7 @@ sub-model internals transparently.
 
 ## Sub-model Drill-down
 
-Sub-model drill-down connects a server in a parent model to a child threat model file via the
+Sub-model drill-down connects a server in a parent model to a child system model file via the
 `submodel=./path/to/model.md` DSL keyword. The child IS the parent server at higher detail.
 
 ### Parent diagram (hyperlink nodes)
@@ -288,9 +288,9 @@ The framework uses a pluggable AI provider architecture to support various Large
     *   **Role**: A dedicated provider for local Ollama instances.
     *   **Function**: Uses direct HTTP calls to the Ollama API for low-latency local inference.
 
-## AI-Powered Threat Model Generation and Modification
+## AI-Powered System Model Generation and Modification
 
-This section details the architecture behind the AI-driven generation and modification of threat models, available primarily through the "simple mode" interface.
+This section details the architecture behind the AI-driven generation and modification of system models, available primarily through the "simple mode" interface.
 
 ### Workflow:
 
@@ -306,7 +306,7 @@ This section details the architecture behind the AI-driven generation and modifi
 3.  **Service Layer Logic (`threat_analysis/server/ai_service.py`)**:
     *   The `AiService` (formerly integrated into the threat model service) is the central orchestrator.
     *   It utilizes `LiteLLMClient` to communicate with the configured AI provider.
-    *   It supports streaming responses, allowing the user to see the threat model being generated in real-time.
+    *   It supports streaming responses, allowing the user to see the system model being generated in real-time.
 
 4.  **AI Provider Interaction**:
     *   Based on `config/ai_config.yaml`, the `LiteLLMClient` identifies the enabled provider (e.g., `gemini`, `openai`, or `ollama`).
@@ -316,7 +316,7 @@ This section details the architecture behind the AI-driven generation and modifi
     *   The generated Markdown content is streamed back to the frontend.
     *   The CodeMirror editor is updated, and the diagram is re-rendered.
 
-This architecture enables an iterative threat modeling process, allowing users to start with a basic model and refine it incrementally through natural language commands, significantly enhancing the usability and flexibility of the tool compared to an overwrite-only approach.
+This architecture enables an iterative threat modeling process, allowing users to start with a basic model and refine it incrementally through natural language commands, improving the usability and flexibility of the tool compared to an overwrite-only approach.
 
 ## Frontend JavaScript Architecture (Graphical Editor)
 
@@ -355,13 +355,13 @@ The JavaScript codebase for the graphical editor (`threat_analysis/server/templa
     *   **Details**: Utilizes `NodeManager` to create new nodes and `PropertiesPanelManager` to immediately display their properties upon creation.
 
 *   **`ThreatModelGenerator.js`**:
-    *   **Role**: Handles the process of converting the visual graph into a structured threat model representation and initiating the backend generation process.
-    *   **Function**: Collects all nodes and connections from the canvas, constructs a JSON representation of the threat model, converts it to Markdown, and sends it to the `/api/generate_all` endpoint.
+    *   **Role**: Handles the process of converting the visual graph into a structured system model representation and initiating the backend generation process.
+    *   **Function**: Collects all nodes and connections from the canvas, constructs a JSON representation of the system model, converts it to Markdown, and sends it to the `/api/generate_all` endpoint.
     *   **Details**: Also responsible for displaying generation status and results.
 
 *   **`ModelManager.js`**:
-    *   **Role**: Manages loading and saving threat models from the server or local files.
+    *   **Role**: Manages loading and saving system models from the server or local files.
     *   **Function**: Handles interactions with the "Open Model" modal, fetches lists of saved models, loads models via API calls, and handles local file uploads (Markdown and metadata JSON).
     *   **Details**: Utilizes `NodeManager` and `ConnectionManager` to repopulate the graph from loaded model data and positions.
 
-This modular design promotes reusability, testability, and a clear separation of concerns, making the graphical editor more robust and easier to extend.
+This modular design promotes reusability, testability, and a clear separation of concerns, making the graphical editor easier to maintain and extend.

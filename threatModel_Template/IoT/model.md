@@ -1,4 +1,4 @@
-# Threat Model: IoT Architecture
+# System Model: IoT Architecture
 
 ## Description
 IoT system with sensors, gateway, cloud platform, analytics, and device management.

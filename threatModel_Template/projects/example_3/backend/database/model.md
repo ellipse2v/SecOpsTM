@@ -1,4 +1,4 @@
-# Threat Model: EcoShop — Database Cluster
+# System Model: EcoShop — Database Cluster
 
 ## Description
 The database cluster consists of a primary PostgreSQL instance and a streaming replica.

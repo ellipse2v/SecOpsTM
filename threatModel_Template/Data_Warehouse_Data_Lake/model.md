@@ -1,4 +1,4 @@
-# Threat Model: Data Warehouse / Data Lake Architecture
+# System Model: Data Warehouse / Data Lake Architecture
 
 ## Description
 Data warehouse and data lake architecture with ETL pipelines, object storage, data lakehouse, and BI tools.

@@ -291,6 +291,7 @@ class ReportGenerator:
         self._ranking_weights: Dict[str, float] = {}
         self._enrich_batch_size: int = 5
         self._enrich_max_concurrent: int = 3
+        self._debate_config: Dict = {}
 
         if ai_config_path and ai_config_path.exists():
             with open(ai_config_path, "r", encoding="utf-8") as f:
@@ -325,6 +326,7 @@ class ReportGenerator:
             self._ranking_weights = {k: float(v) for k, v in rw.items() if isinstance(v, (int, float))}
             self._enrich_batch_size: int = int(tg.get("batch_size", 5))
             self._enrich_max_concurrent: int = int(tg.get("max_concurrent_ai_requests", 3))
+            self._debate_config = ai_config.get("debate", {}) or {}
 
     async def _run_ciso_triage(self, all_threats: List[Dict]) -> Dict:
         """Generates a CISO-level risk briefing via the AI provider.
@@ -417,6 +419,46 @@ class ReportGenerator:
             result.get("posture_label", "?"),
         )
         return result
+
+    async def _run_debate(self, threat_model: Any) -> List[Any]:
+        """Runs the Red/Blue adversarial debate over GDAF attack scenarios.
+
+        Returns an empty list when debate is disabled, AI is unavailable, or no
+        GDAF scenarios exist. Never raises — mirrors _run_ciso_triage's
+        degrade-silently contract.
+        """
+        if not self._debate_config.get("enabled", False):
+            return []
+        if not self.ai_provider:
+            return []
+
+        scenarios = getattr(threat_model, "gdaf_scenarios", None) or []
+        if not scenarios:
+            return []
+
+        try:
+            _client = await self.ai_provider._get_client()
+            if not _client.ai_online:
+                return []
+        except Exception:
+            try:
+                if not await self.ai_provider.check_connection():
+                    return []
+            except Exception:
+                pass  # proceed; generate_debate_turn() will fail safely if offline
+
+        from threat_analysis.core.debate_engine import RedBlueDebateEngine  # noqa: PLC0415
+        bom_dir = resolve_bom_directory(threat_model)
+
+        engine = RedBlueDebateEngine(self.ai_provider, config=self._debate_config, bom_directory=bom_dir)
+        try:
+            results = await engine.run(scenarios)
+        except Exception as exc:
+            logging.warning("Red/Blue debate failed (non-fatal): %s", exc)
+            return []
+
+        logging.info("Red/Blue debate: produced %d results", len(results))
+        return results
 
     @staticmethod
     def _build_ai_context_from_model(threat_model: "ThreatModel") -> Dict[str, Any]:
@@ -672,6 +714,15 @@ class ReportGenerator:
             threat_model._completeness = completeness
             threat_model._attack_id_validation = attack_id_validation
 
+            # Red/Blue adversarial debate — mutates gdaf_scenarios in place (score/risk_level only).
+            debate_results = []
+            if self._debate_config.get("enabled") and self.ai_provider and getattr(threat_model, "gdaf_scenarios", None):
+                try:
+                    debate_results = asyncio.run(self._run_debate(threat_model))
+                except Exception as exc:
+                    logging.warning("Red/Blue debate failed (non-fatal): %s", exc)
+            threat_model.debate_results = debate_results
+
             # Build a serialised summary of GDAF scenarios for the HTML template.
             # Uses getattr for safety — works even if gdaf_scenarios was never populated.
             gdaf_data = []
@@ -710,11 +761,67 @@ class ReportGenerator:
                     "target_asset": getattr(scenario, 'target_asset', ''),
                     "path": " → ".join(h["node"] for h in hops_summary),
                     "score": round(float(getattr(scenario, 'path_score', 0)), 2),
+                    "pre_debate_score": (
+                        round(float(getattr(scenario, 'path_score_pre_debate')), 2)
+                        if getattr(scenario, 'path_score_pre_debate', None) is not None else None
+                    ),
                     "risk_level": getattr(scenario, 'risk_level', 'LOW'),
                     "hop_count": len(hops_summary),
                     "hops": hops_summary,
                     "detection_coverage": round(float(getattr(scenario, 'detection_coverage', 0.0)), 2),
                     "unacceptable_risk": bool(getattr(scenario, 'unacceptable_risk', False)),
+                })
+
+            # Build a serialised summary of debate results for the HTML template.
+            debate_data = []
+            for result in debate_results:
+                rounds_data = []
+                for turn in result.rounds:
+                    rounds_data.append({
+                        "role": turn.role,
+                        "round_index": turn.round_index,
+                        "viability_score": turn.viability_score,
+                        "techniques_attempted": turn.techniques_attempted,
+                        "techniques_blocked": turn.techniques_blocked,
+                        "failed_alternatives": turn.failed_alternatives,
+                        "rationale": turn.rationale,
+                        "detection_gaps": [
+                            {
+                                "step": g.step, "control_family": g.control_family,
+                                "covered": g.covered, "detail": g.detail, "confidence": g.confidence,
+                            }
+                            for g in turn.detection_gaps
+                        ],
+                        "evidence": [
+                            {
+                                "claim": e.claim, "evidence_type": e.evidence_type,
+                                "evidence_ref": e.evidence_ref, "confidence": e.confidence,
+                                "verified": e.verified,
+                            }
+                            for e in turn.evidence
+                        ],
+                    })
+                debate_data.append({
+                    "scenario_id": result.scenario_id,
+                    "objective_name": result.objective_name,
+                    "entry_point": result.entry_point,
+                    "target_asset": result.target_asset,
+                    "blocked_paths": result.blocked_paths,
+                    "residual_detection_gaps": [
+                        {
+                            "step": g.step, "control_family": g.control_family,
+                            "covered": g.covered, "detail": g.detail, "confidence": g.confidence,
+                        }
+                        for g in result.residual_detection_gaps
+                    ],
+                    "red_failed_attempts": result.red_failed_attempts,
+                    "round_count": result.round_count,
+                    "convergence_delta": result.convergence_delta,
+                    "converged": result.converged,
+                    "final_viability": result.final_viability,
+                    "residual_path_viable": result.residual_path_viable,
+                    "debate_factor": result.debate_factor,
+                    "rounds": rounds_data,
                 })
 
             template = self.env.get_template('report_template.html')
@@ -733,6 +840,7 @@ class ReportGenerator:
                 implemented_mitigation_ids=self.implemented_mitigations,
                 attack_chains=attack_chains,
                 gdaf_scenarios=gdaf_data,
+                debate_results=debate_data,
                 ciso_triage=ciso_triage,
                 completeness=completeness,
                 attack_id_validation=attack_id_validation,

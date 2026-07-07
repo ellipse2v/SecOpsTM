@@ -3,7 +3,7 @@ Copyright 2024 ellipse2v — Apache License, Version 2.0
 https://www.apache.org/licenses/LICENSE-2.0
 -->
 
-# Threat Model: Zero Trust Architecture
+# System Model: Zero Trust Architecture
 
 ## Description
 This threat model describes a zero trust network architecture with identity-based access control.

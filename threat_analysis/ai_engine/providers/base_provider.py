@@ -97,3 +97,26 @@ class BaseLLMProvider(ABC):
             ``siem_rules``, ``iocs``.
         """
         return []
+
+    async def generate_debate_turn(
+        self,
+        prompt: str,
+        system_prompt: str,
+    ) -> Dict:
+        """Generates one Red or Blue turn in an adversarial debate round.
+
+        Optional — providers that do not override this return an empty dict,
+        which causes RedBlueDebateEngine to skip the turn gracefully.
+
+        Args:
+            prompt:        Role-specific user prompt (grounding + prior turn summary).
+            system_prompt: Red or Blue persona system instruction from prompts.yaml.
+
+        Returns:
+            A dict with keys: ``viability_score`` and role-specific keys
+            (``techniques_attempted``/``failed_alternatives`` for Red,
+            ``techniques_blocked``/``detection_gaps`` for Blue), plus
+            ``rationale`` and ``evidence``. Returns ``{}`` on failure or when
+            not overridden.
+        """
+        return {}

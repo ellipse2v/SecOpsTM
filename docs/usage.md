@@ -2,13 +2,13 @@
 
 This framework supports two modes of operation: Command Line Interface (CLI) for automated analysis and a Web-based Graphical User Interface (GUI) for interactive editing and visualization.
 
-## Threat Model as Code Philosophy
+## Threat Modeling as Code Philosophy
 
-This framework is designed to be used in a "Threat Model as Code" workflow. This means that the threat model is defined in a simple, version-controllable format (Markdown), and the analysis is performed by running a script. This approach has several advantages:
+This framework is designed to be used in a "Threat Modeling as Code" workflow. This means that the system model is defined in a simple, version-controllable format (Markdown), and the threat analysis is performed by running a script. This approach has several advantages:
 
--   **Version Control**: Threat models can be stored in a Git repository, allowing you to track changes over time.
+-   **Version Control**: System models can be stored in a Git repository, allowing you to track changes over time.
 -   **Automation**: The threat modeling process can be integrated into your CI/CD pipeline, allowing you to automatically update your threat model whenever your architecture changes.
--   **Collaboration**: Developers can collaborate on the threat model using the same tools they use for code.
+-   **Collaboration**: Developers can collaborate on the system model using the same tools they use for code.
 
 ## 0. Data layers and installation
 
@@ -87,7 +87,7 @@ The named volume `secopstm-rag` persists across container restarts and image reb
 | Output reports | `-v $(pwd)/output:/app/output` | Files land in `output/<timestamp>/` on the host |
 | AI config | `-v $(pwd)/ai_config.yaml:/app/config/ai_config.yaml:ro` | Switch provider/model without rebuilding |
 | Prompts | `-v $(pwd)/prompts.yaml:/app/config/prompts.yaml:ro` | Override LLM prompts |
-| Threat model files | `-v $(pwd)/models:/models` | Pass `--model-file /models/model.md` |
+| System model files | `-v $(pwd)/models:/models` | Pass `--model-file /models/model.md` |
 | CVE definitions | `-v $(pwd)/cve_definitions.yml:/app/cve_definitions.yml:ro` | Per-asset CVE list |
 | RAG vector store | `-v secopstm-rag:/app/rag` | Named volume, required for RAG |
 
@@ -174,7 +174,7 @@ secopstm --server
 
 You can also still use `python -m threat_analysis` with all the same flags — they are 100% equivalent.
 
-1.  **Learn how to define your threat model in Markdown** by reading the [Defining Your Threat Model](defining_threat_models.md) guide.
+1.  **Learn how to define your system model in Markdown** by reading the [Defining Your System Model](defining_threat_models.md) guide.
 2.  **Generate Attack Flow diagrams:** Add the `--attack-flow` flag to generate `.afb` files for key STRIDE objectives (Tampering, Spoofing, Information Disclosure, Repudiation).
     ```bash
     secopstm --model-file path/to/your_model.md --attack-flow
@@ -200,7 +200,7 @@ Example:
 python -m threat_analysis --model-file path/to/your_model.md --implemented-mitigations-file path/to/your/mitigations.txt --cve-definitions-file path/to/your/cves.yml
 ```
 
-Here's a more comprehensive example using test files:
+Here's another example using test files:
 ```bash
 python -m threat_analysis --model-file threatModel_Template/threat_model.md \
       --navigator \
@@ -209,9 +209,9 @@ python -m threat_analysis --model-file threatModel_Template/threat_model.md \
       --cve-definitions-file tests/cve_definitions.yml
 ```
 
-### 2. Project Mode: Hierarchical Threat Models
+### 2. Project Mode: Hierarchical System Models
 
-The framework excels at handling complex projects with multiple, nested threat models. While you can run project-based analysis from the CLI, the recommended workflow is to use the **Web-based User Interface (Server Mode)**, which provides a more interactive and intuitive experience.
+The framework handles projects with multiple, nested system models. You can run project-based analysis from the CLI, but the recommended workflow is the **Web-based User Interface (Server Mode)**, which is more interactive.
 
 1.  **Organize your project** in a directory, with a `main.md` at the root and sub-models in sub-directories (e.g., `my_project/main.md`, `my_project/backend/model.md`).
 2.  **Launch the server with your project path:**
@@ -222,7 +222,7 @@ The framework excels at handling complex projects with multiple, nested threat m
 
 ### 3. Infrastructure as Code (IaC) Integration (Ansible Example)
 
-This framework can automatically generate a complete threat model directly from IaC configurations. It automatically includes a set of default protocol styles from `threatModel_Template/base_protocol_styles.md` to ensure consistent visualization.
+This framework can generate a complete system model directly from IaC configurations. It automatically includes a set of default protocol styles from `threatModel_Template/base_protocol_styles.md` to ensure consistent visualization.
 
 Here's how to use the Ansible plugin with a sample playbook:
 
@@ -231,7 +231,7 @@ Here's how to use the Ansible plugin with a sample playbook:
     ```bash
     python -m threat_analysis --ansible-path tests/ansible_playbooks/simple_web_server/simple_web_server.yml
     ```
-    This command will generate a complete threat model based on the Ansible playbook. The generated Markdown model will be saved in the `output/` directory with a filename derived from your Ansible playbook (e.g., `simple_web_server.md`).
+    This command will generate a complete system model based on the Ansible playbook. The generated Markdown model will be saved in the `output/` directory with a filename derived from your Ansible playbook (e.g., `simple_web_server.md`).
 
     If you wish to specify a different output file for the generated model, you can use the `--model-file` option:
     ```bash
@@ -241,7 +241,7 @@ Here's how to use the Ansible plugin with a sample playbook:
 
 ### 4. CVE-Based Threat Generation (Optional)
 
-This framework can generate threats based on a list of Common Vulnerabilities and Exposures (CVEs) that you provide for specific components in your threat model.
+This framework can generate threats based on a list of Common Vulnerabilities and Exposures (CVEs) that you provide for specific components in your system model.
 
 #### CVE data source
 
@@ -260,7 +260,7 @@ The tool maps your specified CVEs to CAPEC attack patterns, which are then used 
 
 1.  **Create `cve_definitions.yml`**: By default, the tool looks for `cve_definitions.yml` in the directory of the model or project. You can override this path using the `--cve-definitions-file` command-line argument.
 
-2.  **Define CVEs for your equipment**: In this file, list the equipment (servers or actors from your threat model) and the CVEs associated with them.
+2.  **Define CVEs for your equipment**: In this file, list the equipment (servers or actors from your system model) and the CVEs associated with them.
 
     **Example `cve_definitions.yml`:**
     ```yaml
@@ -301,8 +301,8 @@ For a more interactive experience, the framework provides a web-based UI that ru
     The console will display the address (e.g., `http://127.0.0.1:5000`) to open in your web browser.
 
 2.  **Choose a Mode from the Menu:**
-    -   **Simple Mode**: An interface designed for editing and visualizing threat models described in Markdown. It features a tabbed editor, a live interactive diagram, and full reporting capabilities. When a project is loaded, all model files are automatically opened in separate tabs.
-    -   **Graphical Editor**: A full-featured, interactive canvas to build, modify, and analyze threat models from scratch directly in the browser. It includes a toolbar for adding elements, a properties panel for editing, and the ability to generate all artifacts without touching Markdown directly.
+    -   **Simple Mode**: An interface for editing and visualizing system models described in Markdown. It features a tabbed editor, a live interactive diagram, and full reporting. When a project is loaded, all model files open automatically in separate tabs.
+    -   **Graphical Editor**: An interactive canvas to build, modify, and analyze system models from scratch directly in the browser. It includes a toolbar for adding elements, a properties panel for editing, and the ability to generate all artifacts without touching Markdown directly.
 
 ### Working with Projects and Sub-models (Simple Mode)
 
@@ -316,11 +316,11 @@ The Simple Mode is optimized for working with complex, multi-file projects.
     - **Backend Services**: submodel=backend/model.md, boundary="Internal"
     ```
 
-3.  **Generate the Full Project**: Click the **"Generate All"** button. The system is designed to be robust:
+3.  **Generate the Full Project**: Click the **"Generate All"** button:
     -   It gathers the content from all open tabs.
-    -   It intelligently detects if any model references a sub-model that is not currently open.
-    -   If a missing sub-model is found, it will prompt you to select your project's root directory. It then scans this directory to find the missing files and includes them in the generation process.
-    -   This ensures that a complete, unified, and navigable set of reports and diagrams is always generated.
+    -   It detects if any model references a sub-model that is not currently open.
+    -   If a missing sub-model is found, it prompts you to select your project's root directory, then scans this directory to find the missing files and includes them in the generation process.
+    -   The result is a complete, unified, navigable set of reports and diagrams.
 
 #### Loading a Project with the Directory Picker
 
@@ -372,7 +372,7 @@ Both the web and CLI interfaces expect files generated by `--output-format json`
 
 ## 4. GitHub Action (CI/CD)
 
-SecOpsTM ships as an official GitHub Action for threat-model-as-code workflows:
+SecOpsTM ships as an official GitHub Action for threat-modeling-as-code workflows:
 
 ```yaml
 # .github/workflows/threat-model.yml

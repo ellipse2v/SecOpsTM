@@ -8,7 +8,7 @@ This document describes the output structure for SecOpsTM threat modeling.
 
 ```
 {system-name}/
-├── model.md                    # Threat model
+├── model.md                    # System model
 ├── context/
 │   └── {system-name}_context.yaml
 ├── BOM/
@@ -22,7 +22,7 @@ This document describes the output structure for SecOpsTM threat modeling.
 
 | File | Required | Description |
 |------|----------|-------------|
-| `model.md` | ✅ | Main threat model file in SecOpsTM DSL format |
+| `model.md` | ✅ | Main system model file in SecOpsTM DSL format |
 | `context/{system-name}_context.yaml` | ✅ | GDAF attack context (objectives, threat actors, risk criteria) |
 | `BOM/{asset_name}.yaml` | ✅ | Bill of Materials - one file per key asset |
 | `config/asset_types_community.yaml` | ❌ | Custom asset type definitions (if needed) |
@@ -56,7 +56,7 @@ This document describes the output structure for SecOpsTM threat modeling.
 |------|----------|-------------|
 | `main.md` | ✅ | Top-level architecture showing subsystem boundaries and data flows |
 | `context/{project-name}_context.yaml` | ✅ | Global GDAF context for the entire project |
-| `{subsystem}/model.md` | ✅ | Subsystem-specific threat model |
+| `{subsystem}/model.md` | ✅ | Subsystem-specific system model |
 | `{subsystem}/BOM/{asset}.yaml` | ✅ | Subsystem-specific BOM files |
 | `config/*` | ❌ | Custom asset types and protocols (shared across subsystems) |
 

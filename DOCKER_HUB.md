@@ -16,7 +16,7 @@ docker run -p 5000:5000 \
   ellipse2v/secopstm:latest
 ```
 
-Open **http://localhost:5000**, paste your threat model and click **Generate**.
+Open **http://localhost:5000**, paste your system model and click **Generate**.
 Reports land in `$(pwd)/output/<timestamp>/`.
 
 ---
@@ -65,7 +65,7 @@ The named volume `secopstm-rag` persists across restarts and image upgrades.
 | What | Docker flag | Notes |
 |---|---|---|
 | Output reports | `-v $(pwd)/output:/app/output` | Files land in `output/<timestamp>/` on the host |
-| Threat model files | `-v $(pwd)/models:/models` | Then pass `--model-file /models/model.md` |
+| System model files | `-v $(pwd)/models:/models` | Then pass `--model-file /models/model.md` |
 | AI config | `-v $(pwd)/ai_config.yaml:/app/config/ai_config.yaml:ro` | Change provider or model without rebuilding |
 | LLM prompts | `-v $(pwd)/prompts.yaml:/app/config/prompts.yaml:ro` | Override system prompts |
 | CVE definitions | `-v $(pwd)/cve_definitions.yml:/app/cve_definitions.yml:ro` | Per-asset CVE list |

@@ -3,7 +3,7 @@ Copyright 2024 ellipse2v — Apache License, Version 2.0
 https://www.apache.org/licenses/LICENSE-2.0
 -->
 
-# Threat Model: CI/CD Pipeline (Continuous Integration and Deployment)
+# System Model: CI/CD Pipeline (Continuous Integration and Deployment)
 
 ## Description
 This threat model focuses on a CI/CD pipeline, covering the development, integration, testing, and deployment stages.

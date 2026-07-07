@@ -1,4 +1,4 @@
-# Threat Model: EcoShop — DMZ Tier
+# System Model: EcoShop — DMZ Tier
 
 ## Description
 The DMZ contains two redundant hardware firewalls (active/passive HA pair) and an API

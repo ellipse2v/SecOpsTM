@@ -133,7 +133,7 @@ forking all downstream threat processing logic.
 CVE JSONL, NIST XLSX) are separate one-shot tools, not part of the runtime application.
 
 **Why it matters:** The transformed artifacts (`external_data/*.json`, `vector_store/`) are committed
-to the repo so end users do not need network access or tool dependencies to use the threat model.
+to the repo so end users do not need network access or tool dependencies to use the tool.
 The pipeline only needs to run when upstream data sources update.
 
 **Trade-off accepted:** The repo is large (CVE JSONL files from 1999–2025 are significant).
@@ -329,7 +329,7 @@ crossing them). Adding boundaries as AI targets surfaces zone-level threats that
 misses.
 
 **What was rejected:** Generating boundary threats as a separate post-processing step (e.g. from
-the ATT&CK mapping alone) was considered but would not leverage the contextual knowledge of the
+the ATT&CK mapping alone) was considered but would not use the contextual knowledge of the
 LLM about the specific architecture described in the model.
 
 ---
@@ -399,13 +399,13 @@ that cannot be inferred from the architecture model alone.
 
 ## Decision: Sub-model drill-down — child IS the parent at higher detail
 
-**Choice:** A server in a threat model can reference a child model via `submodel=./path/to/model.md`.
+**Choice:** A server in a system model can reference a child model via `submodel=./path/to/model.md`.
 The child is not a separate dependency or a called service — it IS the same component described
 at a finer granularity. The parent diagram links to the child; the child diagram shows ghost
 nodes for external connections from the parent.
 
 **Why it matters:** Large architectures become unreadable when everything is in one flat diagram.
-Drill-down allows a threat model to be decomposed: the top-level model shows the overall
+Drill-down allows a system model to be decomposed: the top-level model shows the overall
 architecture with summarized components, and each component that merits deeper analysis gets its
 own model file with the same full DSL support (actors, servers, dataflows, STRIDE analysis, AI
 enrichment).

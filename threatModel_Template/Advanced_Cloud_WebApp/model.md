@@ -3,7 +3,7 @@ Copyright 2024 ellipse2v — Apache License, Version 2.0
 https://www.apache.org/licenses/LICENSE-2.0
 -->
 
-# Threat Model: Advanced Cloud Web Application
+# System Model: Advanced Cloud Web Application
 
 ## Description
 Advanced cloud web app with CDN, API gateway, auth service, product microservice, and managed database.

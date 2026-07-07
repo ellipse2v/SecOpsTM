@@ -39,7 +39,7 @@
 
   - Remote code execution via the web server (`--server` mode)
   - Unauthorized access to the filesystem through the API
-  - Injection vulnerabilities (YAML, template, command) in threat model parsing
+  - Injection vulnerabilities (YAML, template, command) in system model parsing
   - Authentication bypass (if authentication is added in future versions)
 
   The following are **out of scope**:

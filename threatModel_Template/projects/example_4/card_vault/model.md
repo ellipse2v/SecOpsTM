@@ -1,4 +1,4 @@
-# Threat Model: PayFlow — Card Data Vault
+# System Model: PayFlow — Card Data Vault
 
 ## Description
 The card data vault is the most sensitive component in the PayFlow architecture. A TokenProxy

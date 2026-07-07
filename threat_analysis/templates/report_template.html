@@ -904,6 +904,29 @@
         .gdaf-risk-MEDIUM   { background: linear-gradient(135deg,#d97706,#ea580c); color:#fff; }
         .gdaf-risk-LOW      { background: linear-gradient(135deg,#16a34a,#15803d); color:#fff; }
         .gdaf-unacceptable  { border-left: 3px solid #dc2626 !important; }
+
+        /* ── Red/Blue Adversarial Debate ── */
+        .debate-card {
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 12px 16px;
+            margin: 12px 0;
+            background: var(--background-main);
+        }
+        .debate-card-header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+        .debate-summary-line { font-size: 0.85rem; color: var(--text-secondary); margin: 4px 0 10px; }
+        .debate-block { margin: 10px 0; }
+        .debate-block-title { font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; }
+        .debate-footnote { font-size: 0.75rem; color: var(--text-secondary); margin-top: 10px; }
+        .debate-transcript { margin-top: 10px; font-size: 0.8rem; }
+        .debate-transcript > summary { cursor: pointer; color: var(--text-secondary); }
+        .debate-turn { padding: 6px 10px; margin: 6px 0; border-left: 3px solid var(--border-color); }
+        .debate-turn-red { border-left-color: #dc2626; }
+        .debate-turn-blue { border-left-color: #2563eb; }
+        .debate-turn-header { font-weight: 600; font-size: 0.78rem; }
+        .debate-turn-rationale { font-size: 0.8rem; margin: 2px 0; }
+        .debate-evidence-list { margin: 4px 0 0; padding-left: 18px; font-size: 0.75rem; }
+        .debate-evidence-unverified { color: #b45309; }
         .gdaf-hop-meta { font-size: 0.72rem; color: var(--text-secondary); margin-top: 1px; }
 
         /* ── Executive View toggle ── */
@@ -1561,7 +1584,7 @@
                     <div style="font-size:0.75rem;color:var(--text-secondary);">{{ s.actor_sophistication }}</div>
                   </td>
                   <td class="gdaf-path">{{ s.path }}</td>
-                  <td class="gdaf-score-{{ s.risk_level | lower }}">{{ s.score }}</td>
+                  <td class="gdaf-score-{{ s.risk_level | lower }}"{% if s.pre_debate_score is not none %} title="Adjusted by Red/Blue debate — original score: {{ s.pre_debate_score }}"{% endif %}>{{ s.score }}{% if s.pre_debate_score is not none %}&nbsp;🥊{% endif %}</td>
                   <td style="text-align:center;">{{ s.hop_count }}</td>
                   <td style="text-align:center;font-size:0.8rem;">{{ "%.0f%%"|format(s.detection_coverage * 100) }}</td>
                 </tr>
@@ -1604,6 +1627,114 @@
           </div>
         </details>
         {% endif %}
+
+        <!-- DEBATE_SECTION_START -->
+        {% if debate_results %}
+        <details class="gdaf-section technical-section">
+          <summary>
+            <span class="gdaf-summary-arrow"></span>
+            🥊 Red/Blue Adversarial Debate
+            <span class="gdaf-badge-count">{{ debate_results | length }}</span>
+            <span class="gdaf-hint">Adversarial challenge on top attack paths — click to expand</span>
+          </summary>
+          <div class="gdaf-content">
+            <p class="gdaf-description">
+              Each residual attack path below survived a multi-round Red (attack) vs. Blue (defence)
+              debate. The headline is what Blue blocked and where detection gaps remain — not the
+              round count.
+            </p>
+            {% for d in debate_results %}
+            <div class="debate-card">
+              <div class="debate-card-header">
+                <span class="gdaf-risk-badge gdaf-risk-{{ 'HIGH' if d.residual_path_viable else 'LOW' }}">
+                  {{ 'RESIDUAL PATH VIABLE' if d.residual_path_viable else 'PATH BLOCKED' }}
+                </span>
+                <strong>{{ d.objective_name }}</strong>
+                <span class="gdaf-path">{{ d.entry_point }} → {{ d.target_asset }}</span>
+              </div>
+              <p class="debate-summary-line">
+                Detection gaps confirmed via adversarial challenge → Red tried and failed to bypass
+                {{ d.blocked_paths | length }} technique(s) → residual viability
+                {{ "%.0f%%"|format(d.final_viability * 100) }}.
+              </p>
+
+              {% if d.blocked_paths %}
+              <div class="debate-block">
+                <div class="debate-block-title">✅ Paths Blue successfully blocked</div>
+                <ul>
+                  {% for technique in d.blocked_paths %}
+                  <li>{{ technique }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+              {% endif %}
+
+              {% if d.residual_detection_gaps %}
+              <div class="debate-block">
+                <div class="debate-block-title">🕳️ Detection gaps on the residual path</div>
+                <table class="gdaf-table">
+                  <thead>
+                    <tr><th>Step</th><th>Control family</th><th>Covered</th><th>Detail</th><th>Confidence</th></tr>
+                  </thead>
+                  <tbody>
+                    {% for gap in d.residual_detection_gaps %}
+                    <tr>
+                      <td>{{ gap.step }}</td>
+                      <td>{{ gap.control_family }}</td>
+                      <td>{{ '✅' if gap.covered else '❌' }}</td>
+                      <td>{{ gap.detail }}</td>
+                      <td>{{ gap.confidence }}</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              {% endif %}
+
+              {% if d.red_failed_attempts %}
+              <div class="debate-block">
+                <div class="debate-block-title">🚫 Red's failed alternative attempts</div>
+                <ul>
+                  {% for attempt in d.red_failed_attempts %}
+                  <li>{{ attempt }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+              {% endif %}
+
+              <div class="debate-footnote">
+                {{ d.round_count }} round(s) · converged: {{ 'yes' if d.converged else 'no' }}
+                · convergence delta: {{ d.convergence_delta }}
+                · score adjustment factor: {{ d.debate_factor }}×
+              </div>
+
+              <details class="debate-transcript">
+                <summary>📜 Full debate transcript</summary>
+                {% for turn in d.rounds %}
+                <div class="debate-turn debate-turn-{{ turn.role }}">
+                  <div class="debate-turn-header">
+                    Round {{ turn.round_index + 1 }} · {{ turn.role | upper }} · viability {{ "%.2f"|format(turn.viability_score) }}
+                  </div>
+                  <div class="debate-turn-rationale">{{ turn.rationale }}</div>
+                  {% if turn.evidence %}
+                  <ul class="debate-evidence-list">
+                    {% for e in turn.evidence %}
+                    <li class="{{ 'debate-evidence-verified' if e.verified else 'debate-evidence-unverified' }}">
+                      {{ e.claim }} — <em>{{ e.evidence_type }}: {{ e.evidence_ref or 'none' }}</em>
+                      ({{ e.confidence }}{{ '' if e.verified else ', unverified' }})
+                    </li>
+                    {% endfor %}
+                  </ul>
+                  {% endif %}
+                </div>
+                {% endfor %}
+              </details>
+            </div>
+            {% endfor %}
+          </div>
+        </details>
+        {% endif %}
+        <!-- DEBATE_SECTION_END -->
 
         <details class="collapse-details technical-section">
         <summary>📖 Severity Calculation Explained<span class="c-arrow">▶</span></summary>

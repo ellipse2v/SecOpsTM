@@ -116,5 +116,5 @@ The framework includes a web-based interface for interactive threat modeling, ac
 2.  **Open your browser** to the address shown in the console (usually `http://127.0.0.1:5000/`).
 
 3.  **Choose a mode:**
-    -   **Simple Mode**: Ideal for quick visualization and editing of threat models written in Markdown. It features a live preview and now supports multi-file projects through a tabbed interface, allowing you to edit a main model and its sub-models together.
-    -   **Graphical Editor**: A visual, drag-and-drop canvas for building threat models from scratch without writing Markdown. This mode is under active development.
+    -   **Simple Mode**: For quick visualization and editing of system models written in Markdown. It features a live preview and supports multi-file projects through a tabbed interface, so you can edit a main model and its sub-models together.
+    -   **Graphical Editor**: A visual, drag-and-drop canvas for building system models from scratch without writing Markdown. This mode is under active development.

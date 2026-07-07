@@ -1,4 +1,4 @@
-# Threat Model: On-Prem Enterprise Network
+# System Model: On-Prem Enterprise Network
 
 ## Description
 This model describes a complex on-premises enterprise network for a large multinational manufacturing organization. It covers 9 security zones ranging from an untrusted internet perimeter to a highly restricted OT/SCADA environment. The architecture includes Active Directory infrastructure, a financial ERP system, a CI/CD development pipeline, and legacy industrial control systems. This model highlights threats related to lateral movement, credential theft, legacy protocols, and OT network security.

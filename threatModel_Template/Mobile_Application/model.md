@@ -1,4 +1,4 @@
-# Threat Model: Mobile Application
+# System Model: Mobile Application
 
 ## Description
 Mobile application with backend API, third-party identity provider, and payment gateway integration.

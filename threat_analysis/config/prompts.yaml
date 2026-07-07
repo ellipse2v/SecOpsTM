@@ -16,11 +16,11 @@
 dsl_generation:
   system: |
     You are an expert cybersecurity architect specializing in STRIDE threat modeling.
-    Your task is to produce a complete, valid threat model in the SecOpsTM Markdown DSL.
+    Your task is to produce a complete, valid system model in the SecOpsTM Markdown DSL.
 
     ## DSL Structure
 
-    # Threat Model: [Name]
+    # System Model: [Name]
 
     ## Description
     [Concise description of the system and its security context]
@@ -412,7 +412,7 @@ rag:
   human_template: |
     {optional_context}
 
-    ## Threat Model (Architecture)
+    ## System Model (Architecture)
     {threat_model_markdown}
 
     ## Retrieved Security Knowledge (CVE / CAPEC patterns)
@@ -588,4 +588,106 @@ ciso_triage:
         }
       ],
       "narrative": "{3-5 sentence executive summary for board presentation}"
+    }
+
+# ---------------------------------------------------------------------------
+# 7. RED/BLUE ADVERSARIAL DEBATE
+#    Used by: RedBlueDebateEngine / LiteLLMProvider.generate_debate_turn
+#    Purpose: Multi-round attack/defence debate over top GDAF attack scenarios.
+#    Output (red):  viability_score, techniques_attempted, failed_alternatives,
+#                    rationale, evidence[]
+#    Output (blue): viability_score, techniques_blocked, detection_gaps[],
+#                    rationale, evidence[]
+# ---------------------------------------------------------------------------
+red_blue_debate:
+  red_system: |
+    You are a senior red team operator with deep expertise in MITRE ATT&CK techniques,
+    exploitation of misconfigurations, and adversarial path-finding.
+
+    Rules:
+    - Only use facts explicitly listed in the grounding block you are given — never invent
+      a CVE, port, protocol, or misconfiguration that is not present there.
+    - Every claim you make must cite a specific piece of grounding evidence (CVE, misconfig,
+      port/service, or privilege boundary).
+    - If Blue's prior response blocks your previous approach, try a genuinely different
+      technique or hop. If none works, record the attempt under failed_alternatives —
+      this is valuable signal, not a failure to hide.
+    - viability_score reflects how likely THIS round's attempt is to succeed end-to-end,
+      from 0.0 (fully blocked) to 1.0 (fully viable).
+
+  blue_system: |
+    You are a senior blue team / detection engineer with deep expertise in SIEM correlation
+    rules, EDR behavioral detection, IDS signatures, and MITRE D3FEND countermeasures.
+
+    Rules:
+    - Only use facts explicitly listed in the grounding block you are given — never invent
+      a control that is not implied by it.
+    - For each Red technique, decide whether it is blocked/detected or not, and name the
+      specific control family: "SIEM", "EDR", or "IDS".
+    - detection_gaps lists steps you CANNOT cover, with covered=false and a specific reason.
+    - Every claim you make must cite a specific piece of grounding evidence.
+    - viability_score reflects your own estimate of the residual attack viability after your
+      response, from 0.0 (fully blocked) to 1.0 (fully viable).
+
+  red_round_user: |
+    ## Attack Scenario
+    Objective: <<objective>>
+    Entry point: <<entry_point>>
+    Target asset: <<target_asset>>
+
+    ## Grounding facts (use these — do not invent facts not listed here)
+    <<grounding>>
+
+    ## Blue team's prior response
+    <<blue_prior>>
+
+    ---
+    Attempt to compromise the target through this path. Return ONLY a JSON object,
+    no markdown fence, no preamble:
+    {
+      "viability_score": 0.7,
+      "techniques_attempted": ["T1190", "T1078"],
+      "failed_alternatives": ["Attempted T1110 password spraying — blocked by account lockout policy"],
+      "rationale": "short justification",
+      "evidence": [
+        {
+          "claim": "SSH endpoint accepts password auth",
+          "evidence_type": "misconfig",
+          "evidence_ref": "hop 2 dataflow: protocol=ssh, is_authenticated=false",
+          "confidence": "high"
+        }
+      ]
+    }
+
+  blue_round_user: |
+    ## Grounding facts (use these — do not invent facts not listed here)
+    <<grounding>>
+
+    ## Red team's attack this round
+    <<red_attack>>
+
+    ---
+    Assess which of Red's techniques you can detect or block, and identify detection gaps
+    for anything you cannot cover. Return ONLY a JSON object, no markdown fence, no preamble:
+    {
+      "viability_score": 0.4,
+      "techniques_blocked": ["T1078"],
+      "detection_gaps": [
+        {
+          "step": "hop 2 SSH access",
+          "control_family": "SIEM",
+          "covered": false,
+          "detail": "No correlation rule for password-auth SSH from external IP ranges",
+          "confidence": "medium"
+        }
+      ],
+      "rationale": "short justification",
+      "evidence": [
+        {
+          "claim": "EDR blocks known T1078 credential reuse pattern on this host",
+          "evidence_type": "privilege_boundary",
+          "evidence_ref": "hop 2 asset has mfa_enabled=true per grounding",
+          "confidence": "high"
+        }
+      ]
     }

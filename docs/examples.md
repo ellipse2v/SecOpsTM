@@ -1,9 +1,9 @@
-# Threat Model DSL & Examples
+# System Model DSL & Examples
 
-This framework leverages PyTM's modeling primitives. For a comprehensive reference of all available attributes and their usage, please refer to the [PyTM Documentation](https://owasp.github.io/PyTM/Threat-Model-as-Code/). Note that this framework may extend PyTM with additional attributes or behaviors.
+This framework uses PyTM's modeling primitives. For a full reference of all available attributes and their usage, see the [PyTM Documentation](https://owasp.github.io/PyTM/Threat-Model-as-Code/). This framework may extend PyTM with additional attributes or behaviors.
 
 ```markdown
-# Threat Model: Advanced DMZ Architecture
+# System Model: Advanced DMZ Architecture
 
 ## Description
 A network with a DMZ, external/internal firewalls, and a command zone. The goal is to identify STRIDE threats and map them to MITRE ATT&CK.
@@ -39,7 +39,7 @@ A network with a DMZ, external/internal firewalls, and a command zone. The goal 
 
 ## Common Attributes
 
-Several elements in the threat model DSL support common attributes to enhance their representation and behavior:
+Several elements in the system model DSL support common attributes that affect their representation and behavior:
 
 -   **`color`**: Specifies the color of the element in the generated diagrams.
     -   **Applies to**: Boundaries, Actors, Dataflows, Protocol Styles.
@@ -59,7 +59,7 @@ Several elements in the threat model DSL support common attributes to enhance th
 
 ## Protocol Styles and Legends
 
-To ensure that protocols are correctly styled in diagrams and appear in the legend, you must define them in the `## Protocol Styles` section of your threat model. The system **intentionally does not** assign default colors to new protocols. This gives you full control over the final visualization.
+To ensure that protocols are correctly styled in diagrams and appear in the legend, you must define them in the `## Protocol Styles` section of your system model. The system **intentionally does not** assign default colors to new protocols. This gives you full control over the final visualization.
 
 **How it works:**
 
@@ -212,6 +212,6 @@ After running the analysis, you will find a timestamped folder in `output/` (e.g
 
 ### Using Pre-defined Templates
 
-To accelerate the creation of new threat models, the framework includes a set of pre-defined templates for common architectures. You can load these templates directly from the web interface.
+To speed up the creation of new system models, the framework includes a set of pre-defined templates for common architectures. You can load these templates directly from the web interface.
 
 ![Loading a template](../../output/example/gui_example.gif)

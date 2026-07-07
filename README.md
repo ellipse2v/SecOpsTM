@@ -23,13 +23,13 @@ This project is a Python-based, end-to-end STRIDE threat modeling and analysis f
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/yourusername/cybersec-mapping/graphs/commit-activity)
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/ellipse2v/SecOpsTM/graphs/commit-activity)
 
 ---
 
 ## ✨ New Interactive Features
 
-The framework's web interface has been significantly updated to provide a more powerful and seamless threat modeling experience.
+The web interface now supports the following.
 
 ### Interactive Diagrams
 The generated diagrams (both in the live editor and in exported HTML reports) are not static images. They are fully interactive SVGs that allow you to:
@@ -40,13 +40,12 @@ The generated diagrams (both in the live editor and in exported HTML reports) ar
 ### Interactive Legend
 -   **Filter Connections**: The diagram legend is now interactive. Click on a protocol (e.g., HTTPS, TCP) to instantly show or hide all dataflows using that protocol, making it easy to analyze specific parts of your data flow.
 
-### Robust Project Generation
--   The **"Generate All"** feature is designed to handle complex projects with nested sub-models.
--   If you have a project with multiple threat model files, it intelligently detects if any referenced sub-models are not currently open in the editor and prompts you to select your project's root directory. This ensures that all necessary files are found and included for a complete and accurate generation of all reports and diagrams.
+### Project Generation
+-   The **"Generate All"** feature handles projects with nested sub-models.
+-   If you have a project with multiple system model files, it detects when a referenced sub-model is not currently open in the editor and prompts you to select your project's root directory, so all files are found before generating reports and diagrams.
 
 ### Simple Server Mode
--   The integrated web server can be started with a path to a project directory (`--project path/to/your/project`). It will automatically find all `*.md` threat model files within that project and open them in tabs, ready for editing.
-[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/ellipse2v/cybersec-mapping/graphs/commit-activity)
+-   The integrated web server can be started with a path to a project directory (`--project path/to/your/project`). It automatically finds all `*.md` system model files within that project and opens them in tabs, ready for editing.
 
 ---
 

@@ -18,7 +18,7 @@
 
 ## Overview
 
-SecOpsTM threat model is a Markdown file parsed in three passes:
+A SecOpsTM system model is a Markdown file parsed in three passes:
 
 1. **Pass 0** — `## Context` (model-level configuration)
 2. **First pass** — `## Boundaries`, `## Actors`, `## Servers`, `## Data` (element definitions)
@@ -40,14 +40,16 @@ SecOpsTM threat model is a Markdown file parsed in three passes:
 **⚠️ CRITICAL**: model.md must use the following title format:
 
 ```markdown
-# Threat Model: {System Name}
+# System Model: {System Name}
 ```
 
 **Format requirements**:
-- Must start with `# Threat Model: ` (English colon `:` + space)
+- Must start with `# System Model: ` (English colon `:` + space)
 - System name follows after the space
-- **Correct**: `# Threat Model: DJI Power Inspection Drone System`
-- **Incorrect**: `# DJI Power Inspection Drone System - Threat Model`
+- **Correct**: `# System Model: DJI Power Inspection Drone System`
+- **Incorrect**: `# DJI Power Inspection Drone System - System Model`
+- The legacy `# Threat Model: {System Name}` form is still read correctly (with a
+  deprecation warning) — always write new models with `# System Model:`.
 
 **Impact**: Incorrect title format causes SecOpsTM to fail generating report filenames correctly.
 
@@ -163,7 +165,7 @@ Actors represent people, external systems, or roles interacting with the system,
 
 ## Section: Servers
 
-Servers represent assets, components, or systems in the threat model.
+Servers represent assets, components, or systems in the system model.
 
 ### Server Attributes
 
@@ -482,7 +484,7 @@ Use `config/asset_types_community.yaml` and `config/protocols_community.yaml` to
 **⚠️ CRITICAL FORMAT REQUIREMENT**: SecOpsTM parser requires EXACT DSL syntax. DO NOT use custom Markdown formats like `### Boundary:` or `**Name**:`. Use ONLY the list format shown below.
 
 ```markdown
-# Threat Model: {System English Name}
+# System Model: {System English Name}
 
 ## Description
 {High-level system description in English}

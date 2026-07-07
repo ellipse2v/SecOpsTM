@@ -1,6 +1,6 @@
-# How to Create a Threat Model with SecOpsTM DSL
+# How to Create a System Model with SecOpsTM DSL
 
-This guide walks you through building a complete, production-quality threat model for a real
+This guide walks you through building a complete, production-quality system model for a real
 system. By the end, you will have a working SecOpsTM model file (`.md`) that produces STRIDE
 threat reports, MITRE ATT&CK mappings, GDAF attack paths, and navigable HTML diagrams.
 
@@ -68,7 +68,7 @@ Multi-line definitions are supported — indent continuation lines:
 Start the file with:
 
 ```markdown
-# Threat Model: My Application Name
+# System Model: My Application Name
 
 ## Description
 Brief description of the system under analysis. Include:

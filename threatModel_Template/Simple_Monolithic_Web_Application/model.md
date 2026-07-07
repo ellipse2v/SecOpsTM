@@ -1,4 +1,4 @@
-# Threat Model: Simple Monolithic Web Application
+# System Model: Simple Monolithic Web Application
 
 ## Description
 A monolithic web application with a single application server handling all business logic.

@@ -3,9 +3,9 @@
 This roadmap outlines the SecOpsTM framework's current capabilities and future plans.
 
 ### Implemented Features:
-- **Hierarchical & Interactive Threat Models**: Support for linked sub-models and navigable diagrams.
+- **Hierarchical & Interactive System Models**: Support for linked sub-models and navigable diagrams.
 - **Automated Mitigations**: Context-aware suggestions from OWASP ASVS, NIST, and CIS Controls.
-- **Ansible IaC Integration**: Automatic threat model generation from Ansible playbooks.
+- **Ansible IaC Integration**: Automatic system model generation from Ansible playbooks.
 - **Web-Based GUI**: Interactive web interface for real-time model editing and preview.
 - **MITRE ATT&CK Integration**: Export to Navigator and STIX 2.1 formats for visualization and threat intelligence.
 

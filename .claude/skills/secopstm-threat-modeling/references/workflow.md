@@ -266,11 +266,11 @@ After information gathering and complexity assessment, **present the modeling st
 - Rationale: {Why this decomposition}
 
 Please confirm if the modeling strategy is appropriate:
-1. Confirm - Generate threat model with this strategy
+1. Confirm - Generate system model with this strategy
 2. Adjust - User provides modification suggestions (e.g., merge some subsystems/change to single-model)
 ```
 
-**After user confirmation**, then generate the specific threat model files.
+**After user confirmation**, then generate the specific system model files.
 ---
 
 ### Step 6: Generate Model File

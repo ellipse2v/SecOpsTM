@@ -1,4 +1,4 @@
-# Threat Model: EcoShop — Order Service Cluster
+# System Model: EcoShop — Order Service Cluster
 
 ## Description
 The Order Service is an event-driven microservices cluster responsible for the full order

@@ -1,4 +1,4 @@
-# Threat Model: PayFlow — Cloud-Native Fintech Payment Platform
+# System Model: PayFlow — Cloud-Native Fintech Payment Platform
 
 ## Description
 PayFlow is a PCI-DSS Level 1 certified payment processing platform serving EU and US markets.

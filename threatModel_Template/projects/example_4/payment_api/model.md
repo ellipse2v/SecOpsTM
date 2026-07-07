@@ -1,4 +1,4 @@
-# Threat Model: PayFlow — Payment API Services
+# System Model: PayFlow — Payment API Services
 
 ## Description
 The payment API tier contains the core payment processing microservices behind the Kong reverse
