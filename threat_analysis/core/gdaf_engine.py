@@ -55,6 +55,17 @@ _TRAVERSAL_BONUS = {"low": 0.3, "medium": 0.1, "high": 0.0}
 _DETECTION_COVERAGE = {"none": 0.0, "low": 0.2, "medium": 0.5, "high": 0.8}
 
 
+def compute_risk_level(path_score: float, thresholds: Dict[str, float]) -> str:
+    """Classify a GDAF path_score into CRITICAL/HIGH/MEDIUM/LOW using calibrated thresholds."""
+    if path_score >= thresholds.get("CRITICAL", 4.0):
+        return "CRITICAL"
+    if path_score >= thresholds.get("HIGH", 2.8):
+        return "HIGH"
+    if path_score >= thresholds.get("MEDIUM", 1.8):
+        return "MEDIUM"
+    return "LOW"
+
+
 @dataclass
 class AttackHop:
     asset_name: str
@@ -87,6 +98,8 @@ class AttackScenario:
     detection_coverage: float  # 0.0 (no detection controls mapped)
     unacceptable_risk: bool
     min_technique_score: float = 0.8  # threshold for OR-branch rendering in .afb
+    path_score_pre_debate: Optional[float] = None  # set by RedBlueDebateEngine; None if never debated
+    debate_factor: float = 1.0  # multiplier applied to path_score by RedBlueDebateEngine
 
 
 class GDAFEngine:
@@ -112,6 +125,17 @@ class GDAFEngine:
             logger.warning("GDAFEngine: cannot load scoring_config.yaml: %s — using defaults", exc)
             cls._scoring_config = {}
         return cls._scoring_config
+
+    @classmethod
+    def get_risk_thresholds(cls) -> Dict[str, float]:
+        """Return merged risk_thresholds (scoring_config.yaml overrides over built-in defaults)."""
+        cfg = cls._load_scoring_config().get("gdaf", {})
+        rt = cfg.get("risk_thresholds", {})
+        return {
+            "CRITICAL": float(rt.get("CRITICAL", 4.0)),
+            "HIGH": float(rt.get("HIGH", 2.8)),
+            "MEDIUM": float(rt.get("MEDIUM", 1.8)),
+        }
 
     def __init__(
         self,
@@ -684,12 +708,7 @@ class GDAFEngine:
         # Thresholds calibrated for avg_tech_score × hop_weight scoring:
         # hop_weight ~ 1.0–2.0, avg_tech_score ~ 1.0–2.5 → hop_score ~ 1.0–5.0
         # path_score (average) ~ 1.0–5.0 + CIA bonus 0–0.5
-        risk_level = (
-            "CRITICAL" if path_score >= self._risk_thresholds["CRITICAL"] else
-            "HIGH"     if path_score >= self._risk_thresholds["HIGH"] else
-            "MEDIUM"   if path_score >= self._risk_thresholds["MEDIUM"] else
-            "LOW"
-        )
+        risk_level = compute_risk_level(path_score, self._risk_thresholds)
 
         target_name = path[-1][0]
 

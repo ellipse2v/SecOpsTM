@@ -2,7 +2,7 @@
 
 ## Overview
 
-Before generating the threat model, collect and structure information in the `{project-name}/.tm-raw/` directory. This enables incremental collection, source tracking, and conflict resolution.
+Before generating the system model, collect and structure information in the `{project-name}/.tm-raw/` directory. This enables incremental collection, source tracking, and conflict resolution.
 
 ## Directory Structure
 

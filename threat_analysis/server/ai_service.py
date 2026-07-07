@@ -419,7 +419,7 @@ class AIService:
         def _model_markdown(tm, label: str = "") -> str:
             """Render a single ThreatModel as Markdown for RAG context."""
             header = label or tm.tm.name
-            md = f"# Threat Model: {header}\n\n"
+            md = f"# System Model: {header}\n\n"
             md += f"## Description\n\n{tm.tm.description}\n\n"
             md += "## Components\n\n"
             # Actors and servers may be stored as dicts (with 'object' key) or as objects

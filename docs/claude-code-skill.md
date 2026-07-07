@@ -1,4 +1,4 @@
-# Claude Code Skill — AI-Assisted Threat Model Generation
+# Claude Code Skill — AI-Assisted System Model Generation
 
 SecOpsTM ships a **Claude Code skill** that guides an AI agent through the full threat modeling
 workflow: information gathering, DSL file generation, BOM/context YAML generation, and validation.
@@ -159,7 +159,7 @@ after the initial description.
 
 ### Step 6 — model.md Generation
 
-Claude writes the threat model DSL file. All output is in English regardless of the language
+Claude writes the system model DSL file. All output is in English regardless of the language
 used during information gathering.
 
 Key rules enforced automatically:
@@ -230,7 +230,7 @@ Target: **0 failures**. Claude fixes any failures and re-runs before reporting c
 ```
 {system-name}/
 ├── .tm-raw/                              # scratch files (not committed)
-├── model.md                              # threat model DSL
+├── model.md                              # system model DSL
 ├── context/
 │   └── {system-name}_context.yaml       # GDAF objectives, actors, risk criteria
 ├── BOM/

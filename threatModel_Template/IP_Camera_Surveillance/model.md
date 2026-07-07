@@ -1,4 +1,4 @@
-# Threat Model: IP Camera Surveillance System
+# System Model: IP Camera Surveillance System
 
 ## Description
 IP-based video surveillance system for a commercial building: fixed and PTZ cameras,

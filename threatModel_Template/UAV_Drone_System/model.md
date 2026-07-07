@@ -1,4 +1,4 @@
-# Threat Model: DJI Power Inspection Drone System
+# System Model: DJI Power Inspection Drone System
 
 ## Description
 

@@ -1,4 +1,4 @@
-# Threat Model: EcoShop — Frontend Tier
+# System Model: EcoShop — Frontend Tier
 
 ## Description
 The frontend tier consists of an nginx web server delivering the React SPA and a HAProxy

@@ -275,7 +275,7 @@ class ThreatModelGenerator {
     }
 
     convertJsonToMarkdown(data) {
-        const markdown_lines = ["# Threat Model: Graphical Editor"];
+        const markdown_lines = ["# System Model: Graphical Editor"];
 
         const boundaries = data.boundaries || [];
         const actors = data.actors || [];
@@ -360,7 +360,7 @@ class ThreatModelGenerator {
     }
 
     getModelName(markdownContent) {
-        const match = markdownContent.match(/^# Threat Model: (.*)$/m);
+        const match = markdownContent.match(/^# (?:Threat|System) Model: (.*)$/m);
         return match ? match[1].trim() : "Untitled Model";
     }
 }

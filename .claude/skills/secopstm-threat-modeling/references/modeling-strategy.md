@@ -41,7 +41,7 @@ Use single-model when **ALL** of the following are true:
 
 ```
 {system-name}/
-├── model.md                    # Single threat model
+├── model.md                    # Single system model
 ├── context/
 │   └── {system-name}_context.yaml
 ├── BOM/

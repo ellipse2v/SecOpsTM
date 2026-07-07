@@ -4,17 +4,17 @@
 
 ### 1.1. The Challenge: From Manual Diagrams to Automated Analysis
 
-As software systems grow in complexity, proactively identifying security vulnerabilities during the design phase is significantly more effective than reacting to them post-deployment. Threat modeling provides a structured process for this, but traditional approaches often rely on manual diagramming and static documents that are difficult to maintain and impossible to integrate into automated development pipelines.
+As software systems grow in complexity, proactively identifying security vulnerabilities during the design phase is more effective than reacting to them post-deployment. Threat modeling provides a structured process for this, but traditional approaches often rely on manual diagramming and static documents that are difficult to maintain and impossible to integrate into automated development pipelines.
 
-This document provides a detailed technical overview of the **SecOpsTM** framework, a tool designed to address these challenges by treating the threat model as a living artifact that evolves with the system itself.
+This document provides a detailed technical overview of the **SecOpsTM** framework, a tool designed to address these challenges by treating the system model as a living artifact that evolves with the system itself.
 
-### 1.2. Core Philosophy: System-Level Threat Model as Code
+### 1.2. Core Philosophy: System-Level Threat Modeling as Code
 
-The guiding philosophy of this framework is **Threat Model as Code (TMaC)**, applied at the **system level**. Instead of focusing on abstract application components, our approach defines the entire system architecture—including infrastructure, network boundaries, and data flows—in a simple, version-controllable format.
+The guiding philosophy of this framework is **Threat Modeling as Code (TMasC)**, applied at the **system level**. Instead of focusing on abstract application components, our approach defines the entire system architecture—including infrastructure, network boundaries, and data flows—in a simple, version-controllable format.
 
-This is particularly powerful when generating models directly from **Infrastructure as Code (IaC)** sources like Ansible playbooks. By parsing the same files that define the deployed environment, the framework creates a threat model that is a true representation of the running system. This enables a seamless, automated workflow where changes in infrastructure are immediately reflected in the threat analysis.
+This is especially useful when generating models directly from **Infrastructure as Code (IaC)** sources like Ansible playbooks. By parsing the same files that define the deployed environment, the framework creates a system model that is a true representation of the running system. This enables an automated workflow where changes in infrastructure are immediately reflected in the threat analysis.
 
-By defining the system in a Markdown DSL, the threat model becomes:
+By defining the system in a Markdown DSL, the system model becomes:
 -   **Versioned**: Stored in Git to track its evolution alongside the source code and infrastructure code.
 -   **Automated**: Integrated directly into CI/CD pipelines to run analysis on every change.
 -   **Collaborative**: Developers and operations engineers can contribute using the same tools and workflows they use for code.
@@ -25,17 +25,17 @@ To understand the unique value of SecOpsTM, it's useful to compare it to other p
 
 | Feature | Microsoft TMT | OWASP Threat Dragon | SecOpsTM (This Tool) |
 | :--- | :--- | :--- | :--- |
-| **Primary Paradigm** | GUI-based Diagramming | Web-based Diagramming | **Threat Model as Code (TMaC)** |
+| **Primary Paradigm** | GUI-based Diagramming | Web-based Diagramming | **Threat Modeling as Code (TMasC)** |
 | **Input Format** | Proprietary `.tm7` format | JSON, with a web UI | **Markdown (DSL) / IaC Playbooks** |
 | **Automation & CI/CD** | None. Fully manual process. | Limited. Has an API but is not designed for pipeline integration. | **Core Feature**. Designed to be run from the CLI in a pipeline. |
 | **IaC Integration** | None. | None. | **Yes (Ansible)**. Can generate a model directly from infrastructure definitions. |
-| **Version Control** | Possible by archiving the `.tm7` model file. However, the format is complex (XML-based) and not well-suited for line-by-line diffing or merging. | Feasible (JSON), but the diagram is the primary source of truth, not the code. | **Seamless**. Markdown is text-based and ideal for Git. |
+| **Version Control** | Possible by archiving the `.tm7` model file. However, the format is complex (XML-based) and not well-suited for line-by-line diffing or merging. | Feasible (JSON), but the diagram is the primary source of truth, not the code. | **Direct**. Markdown is text-based and ideal for Git. |
 | **Extensibility** | Limited to templates. | Good. Open-source and extensible. | **High**. Mappings and logic are in simple Python dictionaries and modules. |
 | **Visualization & Reporting** | Basic reports. | Printable report, basic threat view. | Rich HTML reports, STIX 2.1 export, **MITRE ATT&CK Navigator layers**. |
 
 ## 3. High-Level Architecture
 
-The framework is a Python-based application that can be run as a command-line tool (for automation) or a web server (for interactive editing). It ingests a threat model source and produces a suite of artifacts.
+The framework is a Python-based application that can be run as a command-line tool (for automation) or a web server (for interactive editing). It ingests a system model source and produces a suite of artifacts.
 
 ```mermaid
 graph TD
@@ -76,7 +76,7 @@ graph TD
 
 ## 4. Technical Deep Dive: Module by Module
 
-This section provides a comprehensive breakdown of each component of the SecOpsTM framework.
+This section provides a detailed breakdown of each component of the SecOpsTM framework.
 
 ### 4.1. Entrypoint and Orchestration (`threat_analysis/__main__.py`)
 
@@ -93,7 +93,7 @@ The execution of the framework begins in `__main__.py`. This script is responsib
 
 The `ThreatModel` class is the heart of the framework, serving as the in-memory representation of the system under analysis. It is designed to be a rich, stateful object that not only holds the architectural components but also orchestrates the analysis process.
 
--   **A Wrapper Around PyTM**: At its core, the `ThreatModel` class wraps a `pytm.TM` object. This allows the framework to leverage the foundational threat generation logic of the PyTM library while extending it with custom features, more detailed component attributes, and advanced analysis capabilities.
+-   **A Wrapper Around PyTM**: At its core, the `ThreatModel` class wraps a `pytm.TM` object. This allows the framework to use the foundational threat generation logic of the PyTM library while extending it with custom features, more detailed component attributes, and advanced analysis capabilities.
 
 -   **Self-Initialization of MitreMapping**: The `ThreatModel` class now self-initializes its `MitreMapping` instance. This simplifies the constructor of `ThreatModel` and centralizes the management of the `MitreMapping` dependency within the `ThreatModel` itself, improving modularity and testability.
 
@@ -118,7 +118,7 @@ The `ThreatModel` class is the heart of the framework, serving as the in-memory 
     5.  **Grouping**: It groups all generated threats (both from PyTM and custom rules) by their STRIDE category.
     6.  **MITRE Analysis**: Finally, it triggers the MITRE ATT&CK mapping and enrichment process.
 
--   **`get_all_threats_details()`**: This method provides a clean, comprehensive list of all identified threats, including their description, target, STRIDE category, severity, and associated MITRE techniques. This is the primary data source for the report generation modules.
+-   **`get_all_threats_details()`**: This method provides a clean, complete list of all identified threats, including their description, target, STRIDE category, severity, and associated MITRE techniques. This is the primary data source for the report generation modules.
 
 ### 4.3. Model Parsing and Validation
 
@@ -141,19 +141,19 @@ The framework's custom threat generation is driven by a flexible, rule-based eng
 The core of the framework leverages the `pytm` library for its foundational threat generation capabilities. When `threat_model.process_threats()` is called, `pytm` automatically analyzes the defined architecture (actors, servers, dataflows, and their properties) to identify potential STRIDE threats.
 
 **How PyTM Generates Threats:**
-`pytm` applies a set of predefined rules based on the relationships and properties of elements in the threat model. For example:
+`pytm` applies a set of predefined rules based on the relationships and properties of elements in the system model. For example:
 *   A dataflow between an actor and a server might trigger "Spoofing" or "Repudiation" threats.
 *   Dataflows marked as unencrypted (`is_encrypted=False`) can lead to "Information Disclosure" threats.
 *   Servers with specific stereotypes (e.g., "Database") might generate threats related to data tampering or unauthorized access.
 
 **Influencing PyTM's Threats:**
-To "add" or "remove" threats generated directly by `pytm`, you primarily need to modify the underlying architecture of your threat model. This includes:
+To "add" or "remove" threats generated directly by `pytm`, you primarily need to modify the underlying architecture of your system model. This includes:
 *   **Adding/Removing Elements:** Introducing new actors, servers, or dataflows can trigger new `pytm` threats. Conversely, removing elements can eliminate threats associated with them.
 *   **Modifying Element Properties:** Changing properties like `is_encrypted` for dataflows, or `stereotype` for servers, can alter the set of threats `pytm` generates.
 *   **Structuring Boundaries:** How elements are placed within trust boundaries can also influence `pytm`'s threat identification.
 
 **Filtering PyTM Threats:**
-While `pytm` generates a comprehensive set of threats, the framework allows for post-processing and filtering. The `_expand_class_targets` method in `models_module.py` and the overall threat processing pipeline can be extended to filter or modify `pytm`-generated threats before they are presented in reports.
+While `pytm` generates a broad set of threats, the framework allows for post-processing and filtering. The `_expand_class_targets` method in `models_module.py` and the overall threat processing pipeline can be extended to filter or modify `pytm`-generated threats before they are presented in reports.
 
 ### 4.4.2. Customizing PyTM's Threat Database
 
@@ -232,7 +232,7 @@ The framework does not currently expose a direct `-ignore` parameter for `pytm`-
         ```
         This rule states: "If a dataflow is not encrypted AND uses the HTTP protocol, then generate an 'Information Disclosure' threat."
 
--   **`custom_threats.py`: The Engine Itself**: This module contains the `get_custom_threats` function which acts as the engine that interprets the rules. This module has been refactored to use a more robust property lookup mechanism (`_get_property`) that supports nested attributes (e.g., `source.inBoundary.isTrusted`), making the rule application more powerful and flexible.
+-   **`custom_threats.py`: The Engine Itself**: This module contains the `get_custom_threats` function which acts as the engine that interprets the rules. This module has been refactored to use a more resilient property lookup mechanism (`_get_property`) that supports nested attributes (e.g., `source.inBoundary.isTrusted`), making the rule application more flexible.
     -   **`get_custom_threats(threat_model)`**: This function is the main entry point for the custom threat generation process. It takes the fully parsed `ThreatModel` object as input.
     -   **Iteration and Matching**: The function iterates through every component (server, dataflow, actor, etc.) in the `threat_model`. For each component, it retrieves the relevant rules from `THREAT_RULES` (based on the component's type). It then checks if the component's properties match all the `conditions` specified in a rule.
     -   **Boundary-Aware Logic**: A key feature of the engine is its ability to handle complex conditions, especially for dataflows. It can check the properties of the source and sink of a dataflow, including which boundary they are in. For example, a rule can be written to only trigger a threat if a dataflow crosses from an untrusted boundary (like the "Internet") to a trusted one (like the "Internal Network").
@@ -264,7 +264,7 @@ graph TD
 
 ### 4.5. The STRIDE, CAPEC, and ATT&CK Mapping (`mitre_mapping_module.py`)
 
-This is the most complex and critical module for enriching the raw threat data. It transforms high-level STRIDE threats into specific, actionable MITRE ATT&CK techniques through a chained mapping process that leverages established cybersecurity knowledge bases. The module was recently updated to fix a bug where the D3FEND mitigation name was not being correctly displayed in the report. The fix involved updating the regex to correctly parse the mitigation name from the `ATTACK_D3FEND_MAPPING` and updating the report template to display the name instead of the description.
+This is the most complex and critical module for enriching the raw threat data. It transforms high-level STRIDE threats into specific, actionable MITRE ATT&CK techniques through a chained mapping process that uses established cybersecurity knowledge bases. The module was recently updated to fix a bug where the D3FEND mitigation name was not being correctly displayed in the report. The fix involved updating the regex to correctly parse the mitigation name from the `ATTACK_D3FEND_MAPPING` and updating the report template to display the name instead of the description.
 
 -   **`MitreMapping` Class**: The central class that orchestrates the entire enrichment pipeline.
     -   **Initialization**: When instantiated, it pre-loads and processes several external data sources to build its mapping tables:
@@ -308,7 +308,7 @@ The `SeverityCalculator` provides a nuanced risk score for each threat.
 -   **Multi-Factor Calculation**: The final score is not a static value but a composite calculated from:
     1.  **Base Score**: A default score for each STRIDE category.
     2.  **Rule-Defined Score**: The impact and likelihood values (1-5) defined in the `threat_rules.py` entry for that threat.
-    3.  **Target Multipliers**: The score can be increased by multipliers defined in the `## Severity Multipliers` section of the threat model, which are loaded from the markdown file.
+    3.  **Target Multipliers**: The score can be increased by multipliers defined in the `## Severity Multipliers` section of the system model, which are loaded from the markdown file.
     4.  **Protocol Adjustments**: The protocol of a dataflow can adjust the score (e.g., HTTP increases it, HTTPS decreases it).
     5.  **Data Classification**: The classification of the data in a flow (`PUBLIC`, `SECRET`, etc.) acts as a final multiplier.
 -   **Normalization**: The final score is clamped between 1.0 and 10.0 and assigned a qualitative level (e.g., "HIGH", "CRITICAL").
@@ -356,7 +356,7 @@ Results appear in a **"⛓️ Attack Chain Analysis"** section in the HTML repor
     -   It uses a Jinja2 template (`threat_model.dot.j2`) to generate Graphviz DOT language code from the `ThreatModel` object.
     -   **Trust Boundary Colors**: Trusted boundaries use `color="#2e7d32"` (dark green, solid); untrusted use `color="#c62828"` (dark red, dashed). These values are baked into the DOT template and thus appear in both exported SVG and HTML diagrams.
     -   **Severity Heat Map**: `_generate_html_with_legend()` accepts `severity_map` (dict of component → severity label) and `report_url`. The HTML diagram template injects these as JavaScript variables, enabling a toggle button that applies/restores per-component colour overlays and shows hover tooltips with "View threats →" deep-links into the HTML report.
-    -   **Visual Styling**: The generator includes sophisticated logic for rich visual styling, combining native Graphviz shapes with embedded SVG icons. The layout of the icon and text is adjusted based on the element type for maximum clarity:
+    -   **Visual Styling**: The generator includes detailed logic for rich visual styling, combining native Graphviz shapes with embedded SVG icons. The layout of the icon and text is adjusted based on the element type for maximum clarity:
         -   **Native Shapes & Sizing**: It assigns semantic shapes to elements and sets their sizes for a clean visual hierarchy:
             -   **Actors**: Rendered as fixed-size **circles**.
             -   **Switches and Firewalls**: Rendered as fixed-size diamonds and hexagons, respectively, which are smaller than other nodes for visual distinction.
@@ -399,7 +399,7 @@ graph TD
 ```
 -   **`stix_generator.py`**: This module provides interoperability.
     -   It translates the framework's findings into STIX 2.1, a standardized language for cyber threat intelligence.
-    -   It leverages the `attack-flow` STIX extension to create a structured representation of the attack chains, creating `attack-action` and `attack-asset` objects and linking them with relationships.
+    -   It uses the `attack-flow` STIX extension to create a structured representation of the attack chains, creating `attack-action` and `attack-asset` objects and linking them with relationships.
 -   **`attack_navigator_generator.py`**: This module creates a JSON layer file compatible with the [MITRE ATT&CK Navigator](https://mitre-attack.github.io/attack-navigator/) to visualize the results of the analysis.
     -   The `AttackNavigatorGenerator` class takes the threat model's name and a list of all detailed threats.
     -   It processes the threats to extract all unique ATT&CK techniques. For each technique, it aggregates the findings, using the highest severity score as the technique's score and compiling the descriptions of all threats mapped to it in the comments.
@@ -409,7 +409,7 @@ graph TD
 
 -   **`server.py`**: A simple Flask application that defines the API endpoints:
     -   `/`: Serves the main `web_interface.html`.
-    -   `/fullGUI`: Serves the `full_gui.html` with a more comprehensive interface.
+    -   `/fullGUI`: Serves the `full_gui.html` with a fuller interface.
     -   `/api/update`: Receives Markdown from the editor, triggers a live analysis, and returns the resulting SVG diagram and legend.
     -   `/api/export` & `/api/export_all`: Handle requests to download the generated artifacts.
 -   **`threat_model_service.py`**: This service layer acts as a bridge between the web server and the core analysis engine. It encapsulates the logic for handling web requests, calling the appropriate framework components, and managing temporary files, keeping the Flask app clean and focused on routing. It has been updated to align with the new `create_threat_model` signature, removing the `mitre_mapping` argument from its calls.
@@ -426,8 +426,8 @@ This module provides actionable mitigation advice for the threats identified dur
 
 -   **`get_framework_mitigation_suggestions()` Function**: This is the primary function exposed by the module.
     -   It takes a list of ATT&CK technique IDs (extracted from the threats during the report generation phase).
-    -   It now leverages the `MITRE_TO_CIS_MAP` (generated by `_create_mitre_to_cis_map`) to provide CIS control suggestions.
-    -   The `FRAMEWORK_MITIGATION_MAP` has been updated with more relevant OWASP ASVS entries, particularly for Information Disclosure threats, ensuring more comprehensive and accurate mitigation advice.
+    -   It now uses the `MITRE_TO_CIS_MAP` (generated by `_create_mitre_to_cis_map`) to provide CIS control suggestions.
+    -   The `FRAMEWORK_MITIGATION_MAP` has been updated with more relevant OWASP ASVS entries, particularly for Information Disclosure threats, giving more complete and accurate mitigation advice.
 
 -   **Architecture Flow**:
     ```mermaid
@@ -456,7 +456,7 @@ Key configurations include:
 
 ### 4.11. IaC Plugin Architecture (`iac_plugins/`)
 
-The framework is designed to be extensible through a dedicated Infrastructure as Code (IaC) plugin system, allowing it to generate threat models from various IaC sources.
+The framework is designed to be extensible through a dedicated Infrastructure as Code (IaC) plugin system, allowing it to generate system models from various IaC sources.
 
 -   **Abstract Base Class**: The `iac_plugins/__init__.py` file defines an abstract base class called `IaCPlugin`. To create a new plugin, a developer must create a class that inherits from `IaCPlugin`.
 -   **Required Implementations**: Any new plugin must implement three key methods:
@@ -467,14 +467,14 @@ The framework is designed to be extensible through a dedicated Infrastructure as
 
 ### 4.12. Ansible Plugin and Metadata (`iac_plugins/ansible_plugin.py`)
 
-The Ansible plugin is a concrete implementation of the IaC plugin architecture, designed to translate an existing Ansible project into a threat model. It works by combining information from the Ansible playbook and inventory with a dedicated metadata structure that describes the security-relevant aspects of the architecture.
+The Ansible plugin is a concrete implementation of the IaC plugin architecture, designed to translate an existing Ansible project into a system model. It works by combining information from the Ansible playbook and inventory with a dedicated metadata structure that describes the security-relevant aspects of the architecture.
 
 -   **How it Works**: The plugin is triggered when the `--ansible-path` argument is used, pointing to a main playbook file (e.g., `playbook.yml`).
     1.  **Parsing**: The plugin first parses the specified playbook. It also looks for a corresponding inventory file named `hosts.ini` in the same directory.
-    2.  **Metadata Extraction**: The crucial step is the extraction of a special variable named `threat_model_metadata` from the `vars` section of the playbook. This variable must be a dictionary that contains the threat model definition.
-    3.  **Model Generation**: The plugin then uses the data from the `threat_model_metadata` dictionary to generate the components of the threat model (Boundaries, Actors, Servers, Dataflows) in the Markdown DSL format.
+    2.  **Metadata Extraction**: The crucial step is the extraction of a special variable named `threat_model_metadata` from the `vars` section of the playbook. This variable must be a dictionary that contains the system model definition.
+    3.  **Model Generation**: The plugin then uses the data from the `threat_model_metadata` dictionary to generate the components of the system model (Boundaries, Actors, Servers, Dataflows) in the Markdown DSL format.
 
--   **The `threat_model_metadata` Structure**: This is the core concept for the Ansible integration. Instead of trying to infer the entire architecture from Ansible tasks and roles (which can be ambiguous), the framework requires the user to explicitly define the threat model's structure within the playbook itself. This approach keeps the threat model definition alongside the infrastructure code that it describes.
+-   **The `threat_model_metadata` Structure**: This is the core concept for the Ansible integration. Instead of trying to infer the entire architecture from Ansible tasks and roles (which can be ambiguous), the framework requires the user to explicitly define the system model's structure within the playbook itself. This approach keeps the system model definition alongside the infrastructure code that it describes.
     -   The `threat_analysis/iac_plugins/ansible_threat_model_config.yml` file serves as a **template or example** of what this `threat_model_metadata` variable should look like. It is **not** a configuration file that is read by the plugin.
     -   The user is expected to copy and adapt this structure into the `vars` section of their own Ansible playbook.
 
@@ -502,7 +502,7 @@ The Ansible plugin is a concrete implementation of the IaC plugin architecture, 
       roles:
         - webserver
     ```
-    In this example, the `threat_model_metadata` variable is defined directly within the playbook. The plugin will parse this variable to create the "Public DMZ" and "Internal Network" boundaries, the "WebApp Server" component, and the "User Traffic" dataflow. The use of Ansible variables like `{{ ansible_default_ipv4.address }}` within the metadata is also supported, allowing the threat model to be dynamically updated with information from the inventory.
+    In this example, the `threat_model_metadata` variable is defined directly within the playbook. The plugin will parse this variable to create the "Public DMZ" and "Internal Network" boundaries, the "WebApp Server" component, and the "User Traffic" dataflow. The use of Ansible variables like `{{ ansible_default_ipv4.address }}` within the metadata is also supported, allowing the system model to be dynamically updated with information from the inventory.
 
 ## 5. Tooling and Data Maintenance
 
@@ -534,7 +534,7 @@ The framework relies on external data from MITRE ATT&CK, CAPEC, and other source
 
 ### 4.13. Attack Flow Generation (`generation/attack_flow_generator.py`)
 
-This module is responsible for generating visual, end-to-end attack scenarios based on the identified threats, compatible with the [Attack Flow](https://attackflow.io/) tool. It has been significantly enhanced to provide more realistic and optimized attack paths.
+This module is responsible for generating visual, end-to-end attack scenarios based on the identified threats, compatible with the [Attack Flow](https://attackflow.io/) tool. It has been enhanced to provide more realistic and optimized attack paths.
 
 -   **Core Philosophy**: The generator's goal is to transform a flat list of threats into meaningful narratives. It achieves this by sequencing threats according to the logical progression of adversary tactics as defined by the MITRE ATT&CK framework.
 -   **Path Discovery Logic (`_find_attack_paths`)**:
@@ -550,7 +550,7 @@ This module is responsible for generating visual, end-to-end attack scenarios ba
     -   It filters out threats targeting generic classes (e.g., `pytm.Server` class itself) or tuples of classes, focusing only on threats against specific asset instances.
 -   **Diagram Structure and Content**:
     -   Each generated `.afb` file represents a single, complete attack path.
-    -   The diagram illustrates the progression by alternating between **Actions** (MITRE ATT&CK techniques) and **Assets** (the specific components from your threat model).
+    -   The diagram illustrates the progression by alternating between **Actions** (MITRE ATT&CK techniques) and **Assets** (the specific components from your system model).
     -   The final node in the chain is a conceptual `asset` representing the adversary's objective, derived from the STRIDE category of the final threat (e.g., "Impact: Tampering").
     -   The resulting flow visually communicates a clear narrative: `(Action 1) -> (targets Asset A) -> (enabling Action 2) -> (targets Asset B) -> ... -> (achieves Impact)`.
 -   **Asset Name Resolution**: Uses dedicated helper methods (`_get_target_name`, `_extract_name_from_object`) to accurately resolve asset names from raw `pytm` objects, ensuring human-readable labels in the generated attack flows.

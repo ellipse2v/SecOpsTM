@@ -25,7 +25,7 @@ description: Perform comprehensive threat modeling for target systems using SecO
 
 ```
 {system-name}/
-├── model.md                    # Threat model
+├── model.md                    # System model
 ├── context/
 │   └── {system-name}_context.yaml
 ├── BOM/
@@ -129,7 +129,7 @@ Output modeling strategy for user confirmation: system name, complexity (high/me
   - "Drone 350" → `drone-350`
 
 **Filename Consistency**:
-- model.md title: `# Threat Model: DJI Power Inspection`
+- model.md title: `# System Model: DJI Power Inspection`
 - Context file: `context/dji-power-inspection_context.yaml`
 - Ensure consistent use of hyphens/underscores
 

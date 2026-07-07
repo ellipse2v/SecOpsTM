@@ -1,4 +1,4 @@
-# Threat Model: Kubernetes / Helm Cluster
+# System Model: Kubernetes / Helm Cluster
 
 ## Description
 Production Kubernetes cluster deployed via Helm, with three application namespaces

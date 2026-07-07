@@ -1,4 +1,4 @@
-# Threat Model: EcoShop — Backend Services Tier
+# System Model: EcoShop — Backend Services Tier
 
 ## Description
 The backend services tier hosts the core business microservices: an authentication service,

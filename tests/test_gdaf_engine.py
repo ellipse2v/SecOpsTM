@@ -23,6 +23,7 @@ from threat_analysis.core.gdaf_engine import (
     GDAFEngine,
     AttackScenario,
     AttackHop,
+    compute_risk_level,
     _CLASSIFICATION_SCORE,
     _TRAVERSAL_BONUS,
     _DETECTION_COVERAGE,
@@ -1445,3 +1446,38 @@ class TestBfsEdgeCases:
         graph = engine._build_graph()
         paths = engine._bfs_paths(graph, "AttackerA", "ServerB", max_hops=10)
         assert paths == []
+
+
+# ---------------------------------------------------------------------------
+# compute_risk_level function and debate fields
+# ---------------------------------------------------------------------------
+
+class TestComputeRiskLevel:
+    def test_compute_risk_level_thresholds(self):
+        thresholds = {"CRITICAL": 4.0, "HIGH": 2.8, "MEDIUM": 1.8}
+        assert compute_risk_level(4.5, thresholds) == "CRITICAL"
+        assert compute_risk_level(4.0, thresholds) == "CRITICAL"
+        assert compute_risk_level(3.0, thresholds) == "HIGH"
+        assert compute_risk_level(2.0, thresholds) == "MEDIUM"
+        assert compute_risk_level(1.0, thresholds) == "LOW"
+
+
+class TestGDAFEngineGetRiskThresholds:
+    def test_get_risk_thresholds_defaults(self):
+        GDAFEngine._scoring_config = None  # reset class-level cache
+        with patch.object(GDAFEngine, "_load_scoring_config", return_value={}):
+            thresholds = GDAFEngine.get_risk_thresholds()
+        assert thresholds == {"CRITICAL": 4.0, "HIGH": 2.8, "MEDIUM": 1.8}
+
+
+class TestAttackScenarioDebateFields:
+    def test_attack_scenario_debate_fields_default(self):
+        scenario = AttackScenario(
+            scenario_id="s1", objective_id="o1", objective_name="Obj",
+            objective_description="", objective_business_impact="", objective_mitre_final_tactic="",
+            actor_id="a1", actor_name="Actor", actor_sophistication="medium",
+            entry_point="Entry", target_asset="Target", hops=[], path_score=3.0,
+            risk_level="HIGH", detection_coverage=0.5, unacceptable_risk=False,
+        )
+        assert scenario.path_score_pre_debate is None
+        assert scenario.debate_factor == 1.0

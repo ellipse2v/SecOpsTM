@@ -1,4 +1,4 @@
-# Threat Model: EcoShop — E-commerce Platform (Overview)
+# System Model: EcoShop — E-commerce Platform (Overview)
 
 ## Description
 EcoShop is a B2C e-commerce platform serving EU and US customers. The architecture follows

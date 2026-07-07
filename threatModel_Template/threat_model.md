@@ -1,4 +1,4 @@
-# Threat Model: Advanced DMZ Architecture
+# System Model: Advanced DMZ Architecture
 
 ## Description
 This model describes a network architecture with a Demilitarized Zone (DMZ), external and internal dataflows, a scalable gateway, and a potentially untrusted command zone. The goal is to identify STRIDE threats and map them to MITRE ATT&CK techniques.

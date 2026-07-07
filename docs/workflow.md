@@ -18,7 +18,7 @@ whiteboard conversation with the system owner to automated reports in CI/CD.
    gathering)
 ```
 
-Phases 1 and 2 are mandatory. Phase 3 is optional but significantly improves AI-generated threats.
+Phases 1 and 2 are mandatory. Phase 3 is optional but improves AI-generated threats.
 Phase 4 can be automated.
 
 ---
@@ -442,7 +442,7 @@ secopstm --server
 
 ## Related Documentation
 
-- [Defining Threat Models](defining_threat_models.md) — complete DSL reference (all attributes, all sections)
+- [Defining Your System Model](defining_threat_models.md) — complete DSL reference (all attributes, all sections)
 - [Enriching AI Threats](enriching_ai_threats.md) — which attributes improve AI output and how
 - [Data Collection Guide](data_collection_guide.md) — questionnaire for Phase 1 information gathering
 - [Examples](examples.md) — ready-to-use model templates

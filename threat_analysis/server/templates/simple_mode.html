@@ -1240,7 +1240,7 @@
                     const filename = path.split('/').pop().split('\\').pop(); // Handle both / and \ separators
                     const modelName = filename.split('.').slice(0, -1).join('.') || 'New Sub-Model';
 
-                    const newIndex = this.addTab(path, `# Threat Model: ${modelName}\n\n`);
+                    const newIndex = this.addTab(path, `# System Model: ${modelName}\n\n`);
                     this.switchTab(newIndex);
                 }
             },
@@ -1283,7 +1283,7 @@
                 // Fallback for server-managed mode: create a new tab so the user
                 // can start editing the referenced sub-model.
                 const stem = basename.replace(/\.md$/, '') || 'Sub-Model';
-                const newIndex = this.addTab(basename, `# Threat Model: ${stem}\n\n`);
+                const newIndex = this.addTab(basename, `# System Model: ${stem}\n\n`);
                 this.switchTab(newIndex);
             },
 
@@ -1303,7 +1303,7 @@
                     // All tabs have been closed, properly reset the state
                     this.tabCount = 0; // Reset counter
                     this.editors = []; // Clear array
-                    this.addTab('main.md', `# Threat Model: New Model`, false);
+                    this.addTab('main.md', `# System Model: New Model`, false);
                     this.switchTab(0);
                     // Explicitly clear the preview as no valid model is active
                     svgWrapper.innerHTML = '';

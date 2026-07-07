@@ -2,7 +2,7 @@
 
 This document is the authoritative reference for the SecOpsTM Markdown Domain-Specific Language
 (DSL). It covers every section, every attribute, and every accepted value. After reading this, you
-can write any threat model from scratch without consulting the source code.
+can write any system model from scratch without consulting the source code.
 
 **Target audience:** DevOps engineers, security architects, threat modelers.
 
@@ -10,7 +10,8 @@ can write any threat model from scratch without consulting the source code.
 
 ## Overview
 
-A SecOpsTM threat model is a Markdown file. The file is parsed in three passes:
+A SecOpsTM system model is a Markdown file describing the architecture to analyze; SecOpsTM
+generates the threat model from it. The file is parsed in three passes:
 
 1. **Pass 0** — `## Context` (standalone key-value block, model-level settings)
 2. **First pass** — `## Boundaries`, `## Actors`, `## Servers`, `## Data` (element definitions)
@@ -36,7 +37,7 @@ This order matters: dataflows can only reference elements that were defined in t
 ## File Structure
 
 ```markdown
-# Threat Model: My System Name
+# System Model: My System Name
 
 ## Description
 Free-form text describing the system under analysis.
@@ -70,8 +71,9 @@ bom_directory = BOM
 - **Attack Name**: {"tactics": ["Lateral Movement"], "techniques": [{"id": "T1021.002", "name": "SMB/Windows Admin Shares"}]}
 ```
 
-The title (`# Threat Model: ...`) is used as the model name in reports and diagrams. Everything
-else is controlled by the sections described below.
+The title (`# System Model: ...`) is used as the model name in reports and diagrams. Everything
+else is controlled by the sections described below. The legacy `# Threat Model: ...` form still
+works (with a deprecation warning) — always write new models with `# System Model:`.
 
 ---
 
@@ -666,7 +668,7 @@ The recommended structure for a project-mode model (with GDAF context, BOM, and 
 
 ```
 My_System/
-  model.md                       # Main threat model DSL file
+  model.md                       # Main system model DSL file
   context/                       # GDAF context YAML (auto-discovered)
     context.yaml
   BOM/                           # Per-asset Bill of Materials (auto-discovered)
@@ -994,7 +996,7 @@ features. It models a large enterprise with 9 security zones, Active Directory, 
 OT/SCADA.
 
 ```markdown
-# Threat Model: On-Prem Enterprise Network
+# System Model: On-Prem Enterprise Network
 
 ## Description
 Large multinational manufacturing enterprise with on-premises Active Directory infrastructure,

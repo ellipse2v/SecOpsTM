@@ -36,6 +36,7 @@ def client():
     app.config['TESTING'] = True
     # Reset module-level globals so tests don't bleed state into each other
     _server_module.initial_model_file_path = None
+    _server_module.graphical_editor_enabled = False
     with app.test_client() as client:
         yield client
 
@@ -294,6 +295,7 @@ def test_save_model_missing_markdown(client):
 
 def test_graphical_update_success(client):
     """Test the /api/graphical_update endpoint with valid JSON data."""
+    _server_module.graphical_editor_enabled = True
     with patch('threat_analysis.server.server.convert_json_to_markdown') as mock_convert, \
          patch('threat_analysis.server.server.get_threat_model_service') as mock_get_service:
         
@@ -312,6 +314,7 @@ def test_graphical_update_success(client):
 
 def test_graphical_update_empty_json(client):
     """Test the /api/graphical_update endpoint with empty JSON data."""
+    _server_module.graphical_editor_enabled = True
     response = client.post('/api/graphical_update', data=json.dumps({}), content_type='application/json')
     assert response.status_code == 400
     assert 'JSON data is empty' in response.get_json()['error']
@@ -479,6 +482,11 @@ def test_get_model_name_function():
     markdown_whitespace = "# Threat Model:   Test Model  \n## Description\nTest"
     assert get_model_name(markdown_whitespace) == "Test Model"
 
+    # "System Model:" prefix is also accepted (terminology: the DSL file describes
+    # the system model; "Threat Model" is reserved for the analysis output).
+    markdown_system_model = "# System Model: My Test Model\n## Description\nTest"
+    assert get_model_name(markdown_system_model) == "My Test Model"
+
 
 def test_convert_json_to_markdown_function():
     """Test the convert_json_to_markdown function."""
@@ -505,7 +513,7 @@ def test_convert_json_to_markdown_function():
     markdown = convert_json_to_markdown(json_data)
     
     # Check that all sections are present
-    assert '# Threat Model: Graphical Editor' in markdown
+    assert '# System Model: Graphical Editor' in markdown
     assert '## Boundaries' in markdown
     assert '## Actors' in markdown
     assert '## Servers' in markdown
@@ -532,11 +540,28 @@ def test_simple_mode_route(client):
     # Check that the initial markdown is base64 encoded in the response
     assert b'Threat Model Editor' in response.data
 
-def test_graphical_editor_route(client):
-    """Test the /graphical route."""
+def test_graphical_editor_route_disabled_by_default(client):
+    """The /graphical route is disabled unless explicitly enabled."""
+    response = client.get('/graphical')
+    assert response.status_code == 404
+
+
+def test_graphical_editor_route_enabled(client):
+    """The /graphical route serves the editor once explicitly enabled."""
+    _server_module.graphical_editor_enabled = True
     response = client.get('/graphical')
     assert response.status_code == 200
     assert b'Graphical Editor' in response.data or b'threat-model' in response.data
+
+
+def test_index_route_hides_graphical_editor_link_by_default(client):
+    """The main menu only links to the Graphical Editor when it is enabled."""
+    response = client.get('/')
+    assert b'/graphical' not in response.data
+
+    _server_module.graphical_editor_enabled = True
+    response = client.get('/')
+    assert b'/graphical' in response.data
 
 
 def test_static_files_route(client):
@@ -1143,6 +1168,7 @@ def test_update_api_value_error_from_service(client):
 
 def test_graphical_update_exception(client):
     """Unhandled exception in /api/graphical_update → 500 (lines 598-600)."""
+    _server_module.graphical_editor_enabled = True
     with patch('threat_analysis.server.server.convert_json_to_markdown') as mock_convert, \
          patch('threat_analysis.server.server.get_threat_model_service') as mock_get:
         mock_svc = MagicMock()

@@ -3,7 +3,7 @@ Copyright 2024 ellipse2v — Apache License, Version 2.0
 https://www.apache.org/licenses/LICENSE-2.0
 -->
 
-# Threat Model: Cloud-Native Architecture
+# System Model: Cloud-Native Architecture
 
 ## Description
 This threat model addresses cloud-native architectures, focusing on serverless functions, API gateways, managed databases, and object storage.

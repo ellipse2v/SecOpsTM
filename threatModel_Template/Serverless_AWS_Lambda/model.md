@@ -1,4 +1,4 @@
-# Threat Model: Serverless — AWS Lambda Event-Driven Architecture
+# System Model: Serverless — AWS Lambda Event-Driven Architecture
 
 ## Description
 Event-driven serverless application on AWS. External clients reach the system via

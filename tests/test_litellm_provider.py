@@ -285,3 +285,17 @@ def test_litellm_provider_generate_attack_flow():
             result = await provider.generate_attack_flow({}, {}, {})
             assert result == {"flow": "steps"}
     asyncio.run(_run())
+
+def test_litellm_provider_generate_debate_turn():
+    async def _run():
+        with patch("threat_analysis.ai_engine.providers.litellm_client.LiteLLMClient.create", new_callable=AsyncMock) as mock_create:
+            mock_client = MagicMock()
+            async def mock_gen(**kwargs):
+                yield {"viability_score": 0.6, "techniques_attempted": ["T1190"]}
+            mock_client.generate_content = mock_gen
+            mock_create.return_value = mock_client
+
+            provider = LiteLLMProvider({})
+            result = await provider.generate_debate_turn("prompt", "system")
+            assert result == {"viability_score": 0.6, "techniques_attempted": ["T1190"]}
+    asyncio.run(_run())

@@ -23,7 +23,7 @@ GDAF reads a YAML file that defines `attack_objectives`, `threat_actors`, and `r
 
 ### Step 2 — Build a directed graph
 
-`GDAFEngine._build_graph()` creates a node for every actor and server defined in the threat model. Dataflows become directed edges carrying metadata (protocol, encryption, authentication). In project mode, the graph is unified across the main model and all sub-models.
+`GDAFEngine._build_graph()` creates a node for every actor and server defined in the system model. Dataflows become directed edges carrying metadata (protocol, encryption, authentication). In project mode, the graph is unified across the main model and all sub-models.
 
 ### Step 3 — Identify entry points
 

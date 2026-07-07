@@ -78,7 +78,7 @@ See [docs/gdaf.md](gdaf.md) for the complete reference including the context YAM
 
 ## GitHub Action
 
-SecOpsTM ships as an **official GitHub Action** (`action.yml`) for threat-model-as-code CI/CD:
+SecOpsTM ships as an **official GitHub Action** (`action.yml`) for threat-modeling-as-code CI/CD:
 
 ```yaml
 - uses: your-org/secopstm@v1
@@ -120,7 +120,7 @@ See `.github/workflows/threat-model.yml` for the example workflow.
 - **Graphical Editor**: Visual drag-and-drop canvas for building models without writing Markdown.
 - **Reports are fully self-contained** and work offline.
 
-## Threat Model Templates
+## System Model Templates
 
 Ready-to-use DSL templates in `threatModel_Template/`:
 

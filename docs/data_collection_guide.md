@@ -1,11 +1,11 @@
 # Data Collection Guide for Threat Modeling
 
-This guide tells you exactly what information to gather before building a SecOpsTM threat model.
+This guide tells you exactly what information to gather before building a SecOpsTM system model.
 It is written for security architects and DevOps engineers who are conducting or commissioning a
 threat modeling session. You can hand this document to a system owner and expect to receive back
 everything the tool needs.
 
-A well-filled threat model produces: a STRIDE threat report with MITRE ATT&CK mappings, a
+A well-filled system model produces: a STRIDE threat report with MITRE ATT&CK mappings, a
 severity-colored architecture diagram, goal-driven attack scenarios (GDAF), and exports to STIX
 2.1 and ATT&CK Navigator.
 
@@ -26,7 +26,7 @@ SecOpsTM models a system by describing:
 6. **What the system inventory looks like** (BOM)
 7. **What attackers want** and **who they are** (GDAF context)
 
-Each piece of information maps directly to a section in the threat model file. Missing information
+Each piece of information maps directly to a section in the system model file. Missing information
 produces lower-quality threat coverage — for example, a server without CIA ratings gets no GDAF
 path scoring, and a dataflow without `is_encrypted` gets a default of `False` which adds threat
 noise.
@@ -557,7 +557,7 @@ build the DSL file.
 **Minimal viable model template to fill in:**
 
 ```markdown
-# Threat Model: [SYSTEM NAME]
+# System Model: [SYSTEM NAME]
 
 ## Description
 [2–5 sentences describing the system, its purpose, user count, deployment, compliance scope]
@@ -627,7 +627,7 @@ A small e-commerce application with a public API, an internal database, and an a
 **Resulting model.md:**
 
 ```markdown
-# Threat Model: E-Commerce Platform
+# System Model: E-Commerce Platform
 
 ## Description
 Customer-facing e-commerce API built on Node.js and PostgreSQL. Approximately 50,000 customers

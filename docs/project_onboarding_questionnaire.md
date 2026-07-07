@@ -234,4 +234,4 @@ Before handing this to the security team, confirm:
 
 ---
 
-*SecOpsTM — Threat Model as Code. For questions, see `docs/getting_started.md` or open an issue.*
+*SecOpsTM — Threat Modeling as Code. For questions, see `docs/getting_started.md` or open an issue.*

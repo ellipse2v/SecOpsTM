@@ -587,7 +587,13 @@ class CustomArgumentParser:
         common.add_argument(
             "--server",
             action="store_true",
-            help="Launch the web editor (Monaco + graphical canvas).",
+            help="Launch the web editor (Monaco editor, Simple Mode).",
+        )
+        common.add_argument(
+            "--graphical-editor",
+            action="store_true",
+            dest="graphical_editor",
+            help="Enable the experimental drag-and-drop Graphical Editor mode (disabled by default; use with --server).",
         )
         common.add_argument(
             "--port",
@@ -1146,7 +1152,11 @@ def main():
         if getattr(args, "port", None):
             os.environ["FLASK_PORT"] = str(args.port)
         try:
-            run_server(model_filepath=args.model_file, project_path=args.project)
+            run_server(
+                model_filepath=args.model_file,
+                project_path=args.project,
+                enable_graphical_editor=args.graphical_editor,
+            )
         except ImportError:
             logging.error(
                 f"[{time.time() - _start_time_main:.4f}s] ❌ Flask is not installed. Please install it to use the web server: "

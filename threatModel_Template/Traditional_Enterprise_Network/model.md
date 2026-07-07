@@ -1,4 +1,4 @@
-# Threat Model: Traditional Enterprise Network
+# System Model: Traditional Enterprise Network
 
 ## Description
 Traditional enterprise with Active Directory, DMZ, file servers, and application servers.

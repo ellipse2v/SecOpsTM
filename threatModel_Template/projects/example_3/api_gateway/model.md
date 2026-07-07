@@ -1,4 +1,4 @@
-# Threat Model: EcoShop — API Gateway Cluster
+# System Model: EcoShop — API Gateway Cluster
 
 ## Description
 The API gateway cluster consists of a load balancer distributing requests across two Kong

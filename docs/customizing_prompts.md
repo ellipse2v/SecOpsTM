@@ -51,7 +51,7 @@ converts it into the SecOpsTM Markdown DSL.
 dsl_generation:
   system: |
     You are an expert cybersecurity architect for a payment-processing organisation.
-    Generate threat models in the SecOpsTM Markdown DSL.
+    Generate system models in the SecOpsTM Markdown DSL.
 
     Naming conventions:
     - Boundaries: use zone names (e.g. "DMZ", "CardholderDataEnvironment", "Management")
@@ -311,7 +311,7 @@ rag:
     ## Threat Intelligence
     {user_threat_intelligence}
 
-    ## Architecture (Threat Model)
+    ## Architecture (System Model)
     {threat_model_markdown}
 
     ## Retrieved Security Knowledge

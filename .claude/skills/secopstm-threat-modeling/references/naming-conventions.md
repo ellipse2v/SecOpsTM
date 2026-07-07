@@ -2,7 +2,7 @@
 
 ## Overview
 
-Proper naming conventions ensure consistency and readability in threat models.
+Proper naming conventions ensure consistency and readability in system models.
 
 ## Asset Names
 

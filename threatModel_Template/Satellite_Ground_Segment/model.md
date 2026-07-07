@@ -1,4 +1,4 @@
-# Threat Model: Satellite Ground Segment (Thales Demo Scenario)
+# System Model: Satellite Ground Segment (Thales Demo Scenario)
 
 ## Description
 Low Earth Orbit satellite system modelling the attack surface demonstrated by Thales
