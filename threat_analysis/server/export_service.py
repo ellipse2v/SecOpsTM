@@ -98,7 +98,7 @@ class ExportService:
             self.report_generator.generate_html_report(threat_model, grouped_threats, output_path)
             return str(output_path), output_filename
         elif export_format == "markdown":
-            output_filename = "threat_model.md"
+            output_filename = "system_model.md"
             output_path = output_dir / output_filename
             with open(output_path, "w", encoding="utf-8") as f:
                 f.write(markdown_content)
@@ -170,7 +170,7 @@ class ExportService:
             if errors := validator.validate():
                 raise ValueError("Validation failed: " + ", ".join(errors))
 
-            (export_path / "threat_model.md").write_text(markdown_content, encoding="utf-8")
+            (export_path / "system_model.md").write_text(markdown_content, encoding="utf-8")
 
             # Process threats first so severity_map is available for the diagram HTML
             def single_file_progress_cb(message, is_new_model=False):
@@ -274,7 +274,7 @@ class ExportService:
         metadata = {
             "version": "1.0", "version_id": version_id,
             "last_updated": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "model_file": "threat_model.md", "positions": element_positions
+            "model_file": "system_model.md", "positions": element_positions
         }
         (export_path / "element_positions.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
 

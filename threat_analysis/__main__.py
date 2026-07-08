@@ -971,6 +971,8 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
     _ai_config_rel = args.ai_config_file if hasattr(args, "ai_config_file") else "config/ai_config.yaml"
     ai_config_path = Path(_ai_config_rel) if Path(_ai_config_rel).is_absolute() else Path.cwd() / _ai_config_rel
 
+    from threat_analysis.server.server import get_model_name  # noqa: PLC0415
+
     framework = SecOpsTMFramework(
         markdown_content=markdown_content_for_analysis,
         model_name=get_model_name(markdown_content_for_analysis), # Derive from content

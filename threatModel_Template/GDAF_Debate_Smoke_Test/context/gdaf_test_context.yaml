@@ -1,0 +1,35 @@
+system_description: "Minimal test system for GDAF and Red/Blue debate smoke testing."
+sector: "technology"
+internet_facing: true
+compliance_requirements: []
+
+attack_objectives:
+  - id: "OBJ-TEST"
+    name: "Compromise Target Server"
+    description: "Reach and compromise the single target server from the internet."
+    target_asset_names:
+      - "Target Server"
+    target_types: ["web-server"]
+    attacker_intent: "Proof-of-concept access — smoke test only."
+    business_impact: "Test scenario — no real impact."
+    mitre_final_tactic: "impact"
+    min_severity_score: 1.0
+
+threat_actors:
+  - id: "TA-TEST"
+    name: "Test Attacker"
+    sophistication: "low"
+    objectives: ["OBJ-TEST"]
+    entry_preference: "internet-facing"
+    description: "Minimal low-sophistication attacker profile for smoke testing."
+    known_ttps:
+      - "T1190"
+    capable_tactics:
+      - "initial-access"
+      - "impact"
+
+risk_criteria:
+  acceptable_risk_score: 5.0
+  max_hops: 2
+  max_paths_per_objective: 1
+  gdaf_min_technique_score: 0.8
