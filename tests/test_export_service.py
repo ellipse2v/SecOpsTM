@@ -68,7 +68,7 @@ def test_export_files_logic_markdown(mock_create, mock_validator, export_service
     with patch('os.makedirs'):
         with patch('builtins.open', MagicMock()):
             path, filename = export_service.export_files_logic("md", "markdown")
-            assert filename == "threat_model.md"
+            assert filename == "system_model.md"
 
 @patch('threat_analysis.server.export_service.ModelValidator')
 @patch('threat_analysis.server.export_service.create_threat_model')

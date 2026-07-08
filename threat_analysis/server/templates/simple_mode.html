@@ -833,10 +833,10 @@
         <h1>Threat Model Editor <span style="font-size: 0.6em;">- Main Model</span></h1>
         <div class="menu-bar">
             <div class="dropdown">
-                <button class="dropbtn">📁 Threat Model</button>
+                <button class="dropbtn">📁 System Model</button>
                 <div class="dropdown-content">
-                    <button id="new-btn">✨ New TM</button>
-                    <button id="ai-generate-btn" {% if not ai_online %}disabled{% endif %} title="{% if not ai_online %}AI server is offline{% endif %}">🤖 Create/update TM with AI</button>
+                    <button id="new-btn">✨ New System Model</button>
+                    <button id="ai-generate-btn" {% if not ai_online %}disabled{% endif %} title="{% if not ai_online %}AI server is offline{% endif %}">🤖 Create/update system model with AI</button>
                     <button onclick="TabManager.addSubmodel()">➕ Add Sub-model</button>
                     <hr style="margin: 4px 10px; border: 0; border-top: 1px solid #eee;">
                     <button onclick="document.getElementById('loadFileInput').click()">📥 Load Model (.md)</button>
@@ -940,7 +940,7 @@
    <div id="ai-prompt-modal" class="modal">
        <div class="modal-content">
            <div class="modal-header">
-               <h2>Generate Threat Model with AI</h2>
+               <h2>Generate System Model with AI</h2>
                <span class="close-button">&times;</span>
            </div>
            <p>Enter a description of your system, and the AI will generate a threat model for you.</p>
@@ -2214,7 +2214,7 @@
                     aiButtons.forEach(btn => {
                         if (data.ai_online) {
                             btn.disabled = false;
-                            if (btn.id === 'ai-generate-btn') btn.title = 'Create/update TM with AI';
+                            if (btn.id === 'ai-generate-btn') btn.title = 'Create/update system model with AI';
                         } else {
                             btn.disabled = true;
                             if (btn.id === 'ai-generate-btn') {

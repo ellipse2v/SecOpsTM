@@ -33,7 +33,10 @@ ai_providers:
     max_tokens: 4096
     timeout: 30
     ssl_verify: true   # false | "/path/to/ca-bundle.crt" for self-signed certs
-    # enable_thinking: false  # Anthropic extended thinking — set true only with a large max_tokens budget
+    # enable_thinking: false  # vLLM/Qwen3-style hybrid thinking toggle — only set this on providers
+    # that actually accept an `enable_thinking` request field. The Anthropic API does NOT (it uses a
+    # nested `thinking: {type: ...}` object instead) — setting this under the anthropic: block causes
+    # every request to fail with "enable_thinking: Extra inputs are not permitted".
 
   gemini:
     enabled: false
@@ -52,10 +55,29 @@ ai_providers:
     api_base: ""
     ssl_verify: true
 
+  # Anthropic API — https://console.anthropic.com (separate from a Claude Pro/Code
+  # subscription; needs its own pay-as-you-go API key)
+  # export ANTHROPIC_API_KEY=sk-ant-...
+  anthropic:
+    enabled: true
+    model: "claude-haiku-4-5"   # fast/cheap for iteration; "claude-sonnet-5" for higher quality
+    api_key_env: "ANTHROPIC_API_KEY"
+    temperature: 0.2
+    # 1024 truncated batch calls: the STRIDE schema asks for 3-5 threats per component
+    # with ~12 fields each (attack_scenario, business_impact object, capec/cwe/d3fend
+    # lists, ...), and this value also floors the batch ceiling (max_tokens x4 in
+    # generate_threats_batch) — 1024 capped a 5-component batch at 4096 tokens total
+    # and cut the JSON off mid-response. 8192 still truncated some 5-component batches
+    # on Haiku's verbose output — raised further. Haiku 4.5 supports up to 64K output,
+    # so this only raises the ceiling, not actual usage/cost.
+    max_tokens: 16000
+    timeout: 30
+    ssl_verify: true
+
   # NVIDIA Integrate API (OpenAI-compatible) — https://build.nvidia.com/models
   # export NVIDIA_NIM_API_KEY=nvapi-...
   nvidia_nim:
-    enabled: true
+    enabled: false
     model: "meta/llama-3.3-70b-instruct"      # any model from build.nvidia.com
     api_key_env: "NVIDIA_NIM_API_KEY"
     api_base: "https://integrate.api.nvidia.com/v1"
@@ -168,7 +190,7 @@ gdaf:
 # Red/Blue adversarial debate over the top-N GDAF attack scenarios (opt-in).
 # See docs/gdaf.md. Runs after GDAF and before the HTML report is written.
 debate:
-  enabled: false
+  enabled: true
   top_n: 5
   min_viability_threshold: 0.5
   max_rounds: 3

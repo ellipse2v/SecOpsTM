@@ -182,8 +182,12 @@ def test_litellm_client_file_not_found():
 
 # --- enable_thinking config tests ---
 
-def test_enable_thinking_defaults_to_false():
-    """enable_thinking must be False when not set in provider config."""
+def test_enable_thinking_omitted_when_not_configured():
+    """enable_thinking must be absent from the request when not set in provider config.
+
+    Some providers (e.g. Anthropic) reject unknown parameters outright, so the key
+    must only be sent when a provider block explicitly opts in.
+    """
     async def _run():
         client = LiteLLMClient()
         client.ai_online = True
@@ -201,7 +205,7 @@ def test_enable_thinking_defaults_to_false():
             pass
 
         call_kwargs = client._litellm_module.acompletion.call_args[1]
-        assert call_kwargs["enable_thinking"] is False
+        assert "enable_thinking" not in call_kwargs
     asyncio.run(_run())
 
 

@@ -224,8 +224,9 @@ class LiteLLMClient:
             "timeout": effective_timeout,
             "num_retries": int(self.ai_config.get("threat_generation", {}).get("num_retries", 3)),
             "api_base": self.api_base,
-            "enable_thinking": bool(self.provider_config.get("enable_thinking", False)),
         }
+        if "enable_thinking" in self.provider_config:
+            completion_params["enable_thinking"] = bool(self.provider_config["enable_thinking"])
         if "top_p" in self.provider_config:
             completion_params["top_p"] = self.provider_config["top_p"]
 
@@ -255,15 +256,26 @@ class LiteLLMClient:
             logging.debug(f"[LLM Response Time: {llm_call_end_time - llm_call_start_time:.4f}s] Model: {self.model_name}")
             
             full_response_content = ""
+            finish_reason = None
             if use_stream:
                 async for chunk in response:
                     if chunk.choices and chunk.choices[0].delta.content:
                         content_chunk = chunk.choices[0].delta.content
                         full_response_content += content_chunk
                         yield content_chunk
+                    if chunk.choices and getattr(chunk.choices[0], "finish_reason", None):
+                        finish_reason = chunk.choices[0].finish_reason
             else:
                 full_response_content = response.choices[0].message.content
-            
+                finish_reason = getattr(response.choices[0], "finish_reason", None)
+
+            if finish_reason in ("length", "max_tokens"):
+                logging.warning(
+                    "LLM response truncated by max_tokens (finish_reason=%s) — model=%s max_tokens=%s. "
+                    "Raise max_tokens or batch_tokens_per_component in config.",
+                    finish_reason, self.model_name, completion_params.get("max_tokens"),
+                )
+
             if output_format == "json":
                 cleaned_content = extract_json_from_llm_response(full_response_content)
                 if cleaned_content:
@@ -273,7 +285,10 @@ class LiteLLMClient:
                         logging.error(f"Failed to decode JSON from AI response: {e}")
                         yield f"Error: Failed to decode JSON from AI response. Raw output: {full_response_content}"
                 else:
-                    yield f"Error: No valid JSON found in AI response. Raw output: {full_response_content}"
+                    yield (
+                        f"Error: No valid JSON found in AI response "
+                        f"(finish_reason={finish_reason}). Raw output: {full_response_content}"
+                    )
             else:
                 yield full_response_content
 
