@@ -211,6 +211,14 @@ class LiteLLMProvider(BaseLLMProvider):
                 if isinstance(chunk, dict):
                     # Some providers may wrap the array in a dict
                     return chunk.get("results", chunk.get("threats", []))
+                if isinstance(chunk, str) and chunk.startswith("Error:"):
+                    # JSON extraction/parsing failed (e.g. truncated response) —
+                    # previously fell through to `return []` silently, with no log at
+                    # all, making SOC enrichment failures indistinguishable from "no
+                    # threats to analyze" or "provider offline".
+                    logging.warning("generate_soc_analysis: LLM returned error string: %s", chunk[:200])
+                    return []
+            logging.warning("generate_soc_analysis: no parseable chunk received — returning []")
             return []
         except Exception as exc:
             logging.error("SOC analysis generation failed: %s", exc)

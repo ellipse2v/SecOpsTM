@@ -261,6 +261,7 @@ def test_run_debate_runs_engine_when_enabled_and_online():
 import re
 import jinja2
 from pathlib import Path
+from unittest.mock import mock_open, patch
 
 _TEMPLATE_PATH = Path(__file__).resolve().parents[1] / "threat_analysis" / "templates" / "report_template.html"
 
@@ -308,3 +309,105 @@ def test_debate_section_shows_persuasion_order():
     idx_failed = html.index("Red's failed alternative attempts")
     idx_footnote = html.index("round(s)")
     assert idx_blocked < idx_gaps < idx_failed < idx_footnote
+
+
+def _debate_ready_report_generator():
+    """A ReportGenerator wired to actually run the debate (1 round, deterministic turns)."""
+    rg = ReportGenerator(MagicMock(), MagicMock())
+    rg.severity_calculator.get_severity_info.return_value = {"level": "High", "score": 8.0}
+    rg.mitre_mapping.map_threat_to_mitre.return_value = {"techniques": [], "capecs": []}
+
+    mock_client = MagicMock()
+    mock_client.ai_online = True
+    rg.ai_provider = MagicMock()
+    rg.ai_provider._get_client = AsyncMock(return_value=mock_client)
+    rg.ai_provider.generate_debate_turn = AsyncMock(side_effect=[RED_TURN_HIGH, BLUE_TURN_BLOCK_ALL])
+    rg._debate_config = {"enabled": True, "max_rounds": 1, "viability_delta_threshold": 0.5}
+    return rg
+
+
+def _make_gdaf_threat_model(gdaf_scenarios):
+    threat_model = MagicMock()
+    threat_model.mitre_analysis_results = {
+        "total_threats": 0, "mitre_techniques_count": 0, "stride_distribution": {}
+    }
+    threat_model.tm.name = "Test Architecture"
+    threat_model.gdaf_scenarios = gdaf_scenarios
+    threat_model.context_config = {}
+    threat_model._model_file_path = None
+    return threat_model
+
+
+def test_afb_files_rewritten_after_debate_changes_scores():
+    """generate_html_report() must re-write the .afb Attack Flow files after the debate
+    runs, so they reflect debate-adjusted scores instead of the pre-debate ones written
+    earlier by run_gdaf_engine() (called before generate_html_report in every caller).
+    """
+    rg = _debate_ready_report_generator()
+    scenario = make_scenario()
+    threat_model = _make_gdaf_threat_model([scenario])
+
+    with patch.object(rg.env, "get_template") as mock_get_template, \
+         patch("threat_analysis.generation.report_generator.get_framework_mitigation_suggestions", return_value=[]), \
+         patch("threat_analysis.generation.attack_flow_builder.AttackFlowBuilder") as mock_builder_cls:
+        mock_get_template.return_value = MagicMock()
+        with patch("builtins.open", mock_open()):
+            rg.generate_html_report(threat_model, {}, "output/run1/test_report.html")
+
+    mock_builder_cls.assert_called_once_with(threat_model.gdaf_scenarios, model_name="Test Architecture")
+    mock_builder_cls.return_value.generate_and_save.assert_called_once_with("output/run1")
+
+
+def test_afb_files_not_rewritten_when_debate_disabled():
+    """No debate results (disabled, offline, or no scenarios) → no redundant .afb rewrite."""
+    rg = ReportGenerator(MagicMock(), MagicMock())
+    rg.severity_calculator.get_severity_info.return_value = {"level": "High", "score": 8.0}
+    rg.mitre_mapping.map_threat_to_mitre.return_value = {"techniques": [], "capecs": []}
+    rg.ai_provider = None
+    rg._debate_config = {"enabled": False}
+
+    threat_model = _make_gdaf_threat_model([make_scenario()])
+
+    with patch.object(rg.env, "get_template") as mock_get_template, \
+         patch("threat_analysis.generation.report_generator.get_framework_mitigation_suggestions", return_value=[]), \
+         patch("threat_analysis.generation.attack_flow_builder.AttackFlowBuilder") as mock_builder_cls:
+        mock_get_template.return_value = MagicMock()
+        with patch("builtins.open", mock_open()):
+            rg.generate_html_report(threat_model, {}, "output/run1/test_report.html")
+
+    mock_builder_cls.assert_not_called()
+
+
+def test_threat_graph_gdaf_paths_reflect_debate_outcome():
+    """The threat graph passed to the template must include a gdaf_paths entry for the
+    debated scenario, built AFTER the debate ran (so residual_path_viable reflects it —
+    not the pre-debate default).
+    """
+    from types import SimpleNamespace
+
+    rg = _debate_ready_report_generator()
+    scenario = make_scenario()
+    threat_model = _make_gdaf_threat_model([scenario])
+    # Needed so _build_threat_graph_data() produces non-empty nodes (matching the
+    # scenario's entry_point/hop asset names) instead of short-circuiting to {}.
+    threat_model.actors = [{"name": "ExternalUser", "object": SimpleNamespace(name="ExternalUser")}]
+    threat_model.servers = [{"name": "WebServer", "object": SimpleNamespace(name="WebServer")}]
+
+    with patch.object(rg.env, "get_template") as mock_get_template, \
+         patch("threat_analysis.generation.report_generator.get_framework_mitigation_suggestions", return_value=[]), \
+         patch("threat_analysis.generation.attack_flow_builder.AttackFlowBuilder"):
+        mock_template = MagicMock()
+        mock_get_template.return_value = mock_template
+        with patch("builtins.open", mock_open()):
+            rg.generate_html_report(threat_model, {}, "output/run1/test_report.html")
+
+    render_kwargs = mock_template.render.call_args.kwargs
+    threat_graph = render_kwargs["threat_graph"]
+    assert len(threat_graph["gdaf_paths"]) == 1
+    path = threat_graph["gdaf_paths"][0]
+    assert path["scenario_id"] == "GDAF-TEST01"
+    assert path["nodes"] == ["ExternalUser", "WebServer"]
+    assert path["debated"] is True
+    # Must reflect the actual DebateResult computed by _run_debate(), not a pre-debate default.
+    debate_result = threat_model.debate_results[0]
+    assert path["residual_path_viable"] == debate_result.residual_path_viable

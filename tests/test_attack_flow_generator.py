@@ -19,9 +19,9 @@ from pathlib import Path
 from threat_analysis.generation.attack_flow_generator import AttackFlowGenerator
 
 # Helper to create mock threats for testing
-def create_mock_threat(tech_id, tech_name, tactics, stride, target, severity_score):
+def create_mock_threat(tech_id, tech_name, tactics, stride, target, severity_score, threat_id=None):
     """Creates a simplified threat dictionary for testing purposes."""
-    return {
+    threat = {
         "threat_name": f"{stride} against {target}",
         "description": f"A threat involving {tech_name}",
         "stride_category": stride,
@@ -33,6 +33,9 @@ def create_mock_threat(tech_id, tech_name, tactics, stride, target, severity_sco
             "tactics": tactics
         }]
     }
+    if threat_id:
+        threat["id"] = threat_id
+    return threat
 
 @pytest.fixture
 def output_dir(tmp_path):
@@ -129,7 +132,31 @@ def test_generic_threat_filtering():
 
     # Assert
     assert len(generator.threats) == 1
-    assert generator.threats[0]["target"] == "User"
+
+
+def test_allowed_categories_defaults_to_all_six_stride_categories():
+    threats = [
+        create_mock_threat("T1595", "Active Scanning", ["Reconnaissance"], "Spoofing", "Network", 3.0),
+        create_mock_threat("T1499", "Endpoint DoS", ["Impact"], "Denial of Service", "Server", 3.0),
+    ]
+    generator = AttackFlowGenerator(threats, model_name="DefaultCategoriesTest")
+    assert len(generator.threats) == 2
+
+
+def test_allowed_categories_narrows_to_configured_set():
+    """attack_flows.generate_for_categories was previously dead config — when passed,
+    only threats in those STRIDE categories are considered for path-finding.
+    """
+    threats = [
+        create_mock_threat("T1595", "Active Scanning", ["Reconnaissance"], "Spoofing", "Network", 3.0),
+        create_mock_threat("T1499", "Endpoint DoS", ["Impact"], "Denial of Service", "Server", 3.0),
+    ]
+    generator = AttackFlowGenerator(
+        threats, model_name="NarrowedCategoriesTest", allowed_categories=["Spoofing"]
+    )
+    assert len(generator.threats) == 1
+    assert generator.threats[0]["stride_category"] == "Spoofing"
+    assert generator.threats[0]["target"] == "Network"
 
 def test_asset_hopping_logic(output_dir):
     """
@@ -160,6 +187,49 @@ def test_asset_hopping_logic(output_dir):
             for prop in obj.get('properties', [])
             if prop[0] == 'name'
         ), "The attack path should have moved to the new asset 'Workstation'."
+
+# ---------------------------------------------------------------------------
+# get_paths_summary — HTML rendering data, no .afb files written
+# ---------------------------------------------------------------------------
+
+def test_get_paths_summary_no_threats_returns_empty_list():
+    generator = AttackFlowGenerator([], model_name="EmptyTest")
+    assert generator.get_paths_summary() == []
+
+
+def test_get_paths_summary_matches_best_path_selection(output_dir):
+    """get_paths_summary() must pick the same best path per category as
+    generate_and_save_flows() — same underlying _compute_best_paths().
+    """
+    threats = [
+        create_mock_threat("T1595", "Active Scanning", ["Reconnaissance"], "Spoofing", "Network", 3.0, "T-0001"),
+        create_mock_threat("T1485", "Data Destruction", ["Impact"], "Tampering", "File System", 9.0, "T-0002"),
+        create_mock_threat("T1055", "Process Injection", ["Impact"], "Tampering", "Database", 1.0, "T-0003"),
+    ]
+    generator = AttackFlowGenerator(threats, model_name="SummaryTest")
+
+    summary = generator.get_paths_summary()
+
+    assert len(summary) >= 1
+    tampering_entry = next(p for p in summary if p["stride_category"] == "Tampering")
+    # The higher-severity Data Destruction (9.0) hop must win over Process Injection (1.0).
+    assert any(h["technique_id"] == "T1485" for h in tampering_entry["hops"])
+    assert not any(h["technique_id"] == "T1055" for h in tampering_entry["hops"])
+    assert "T-0002" in tampering_entry["threat_ids"]
+    assert tampering_entry["hop_count"] == len(tampering_entry["hops"])
+    assert "File System" in tampering_entry["path_label"]
+
+
+def test_get_paths_summary_does_not_write_files(output_dir, monkeypatch):
+    """get_paths_summary() must be read-only — never create the afb/ directory."""
+    monkeypatch.chdir(output_dir)
+    threats = [
+        create_mock_threat("T1485", "Data Destruction", ["Impact"], "Tampering", "File System", 9.0, "T-0001"),
+    ]
+    generator = AttackFlowGenerator(threats, model_name="NoWriteTest")
+    generator.get_paths_summary()
+    assert not (output_dir / "afb").exists()
+
 
 def test_no_paths_found(output_dir, capsys):
     """

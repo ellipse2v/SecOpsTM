@@ -15,7 +15,22 @@
 """
 Utility functions for threat analysis generation modules
 """
-from typing import Any, Union
+from typing import Any, List, Union
+
+
+def get_enriched_threats(threat_model: Any) -> List[dict]:
+    """Returns the fullest available threat list for a model.
+
+    Prefers ``threat_model._report_all_detailed_threats`` — the AI-enriched, debate-aware
+    list cached by ``ReportGenerator.generate_html_report()`` — over
+    ``threat_model.get_all_threats_details()``, which only knows about pytm/custom
+    threats. Callers that run after ``generate_html_report()`` (JSON/STIX/Navigator/
+    Attack Flow exports) get AI/LLM-sourced threats this way instead of silently
+    dropping them; callers that run standalone (no HTML report generated) fall back to
+    the pytm-only list, unchanged from prior behaviour.
+    """
+    cached = getattr(threat_model, "_report_all_detailed_threats", None)
+    return cached if cached else threat_model.get_all_threats_details()
 
 
 def extract_name_from_object(obj: Any) -> str:

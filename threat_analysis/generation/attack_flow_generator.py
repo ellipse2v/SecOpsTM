@@ -28,7 +28,22 @@ class AttackFlowGenerator:
     Each path shows the sequence of actions and the assets they target.
     """
 
-    def __init__(self, threats, model_name="Attack Flow"):
+    _DEFAULT_ALLOWED_CATEGORIES = {
+        "Spoofing",
+        "Tampering",
+        "Repudiation",
+        "Information Disclosure",
+        "Denial of Service",
+        "Elevation of Privilege",
+    }
+
+    def __init__(self, threats, model_name="Attack Flow", allowed_categories=None):
+        """Args:
+            allowed_categories: STRIDE categories to build paths for — defaults to all
+                six. Callers may pass config/ai_config.yaml's
+                attack_flows.generate_for_categories to narrow this (e.g. to skip
+                Spoofing/Denial of Service/Repudiation paths as noise).
+        """
         self.model_name = model_name
 
         # Filter out generic/class-based threats as requested
@@ -41,14 +56,7 @@ class AttackFlowGenerator:
                 continue
             filtered_threats.append(threat)
 
-        allowed_categories = {
-            "Spoofing",
-            "Tampering",
-            "Repudiation",
-            "Information Disclosure",
-            "Denial of Service",
-            "Elevation of Privilege"
-        }
+        allowed_categories = set(allowed_categories) if allowed_categories else self._DEFAULT_ALLOWED_CATEGORIES
         self.threats = [
             threat for threat in filtered_threats
             if threat.get("stride_category") in allowed_categories
@@ -131,28 +139,30 @@ class AttackFlowGenerator:
         find_paths_recursive([], 0)
         return all_paths
 
-    def generate_and_save_flows(self, output_dir):
-        afb_output_dir = os.path.join(output_dir, "afb")
-        os.makedirs(afb_output_dir, exist_ok=True)
-        
+    def _compute_best_paths(self):
+        """Finds the highest-severity attack path per STRIDE category.
+
+        Shared by generate_and_save_flows() (writes .afb files) and
+        get_paths_summary() (compact data for HTML rendering) — same selection,
+        two different output formats.
+        """
         attack_paths = self._find_attack_paths()
         if not attack_paths:
-            print("INFO: No logical attack paths found based on tactic progression.")
-            return
+            return {}
 
         paths_by_objective = defaultdict(list)
         final_objectives = {"Spoofing", "Tampering", "Repudiation", "Information Disclosure", "Denial of Service", "Elevation of Privilege"}
-        
+
         for path in attack_paths:
             if not path:
                 continue
-            
+
             path_objectives = set()
             for _, threat in path:
                 objective = threat.get('stride_category')
                 if objective in final_objectives:
                     path_objectives.add(objective)
-            
+
             for objective in path_objectives:
                 paths_by_objective[objective].append(path)
 
@@ -160,26 +170,67 @@ class AttackFlowGenerator:
         for objective, path_list in paths_by_objective.items():
             best_path_for_objective = None
             max_score = -1
-            
+
             for path in path_list:
-                current_score = sum(threat.get('severity', {}).get('score', 0) for _, threat in path)
-                
+                current_score = sum(threat.get('severity', {}).get('score') or 0 for _, threat in path)
+
                 if current_score > max_score:
                     max_score = current_score
                     best_path_for_objective = path
-            
+
             if best_path_for_objective:
                 best_paths_data[objective] = {"path": best_path_for_objective, "objectives": [objective]}
 
+        return best_paths_data
+
+    def get_paths_summary(self):
+        """Returns a compact, JSON-serialisable summary of the best attack path per
+        STRIDE category — for HTML rendering, without writing any .afb file.
+        """
+        best_paths_data = self._compute_best_paths()
+        summary = []
+        for category, path_data in sorted(best_paths_data.items()):
+            path = path_data["path"]
+            hops, threat_ids, total_score = [], [], 0.0
+            for tech_id, threat in path:
+                tech_data = self.techniques[tech_id]
+                target = self._get_target_name(threat.get('target'))
+                hops.append({
+                    "technique_id": tech_id,
+                    "technique_name": tech_data['name'],
+                    "tactic": tech_data['tactics'][0] if tech_data['tactics'] else "",
+                    "target": target,
+                })
+                tid = threat.get('id')
+                if tid:
+                    threat_ids.append(tid)
+                total_score += threat.get('severity', {}).get('score') or 0
+            if not hops:
+                continue
+            summary.append({
+                "stride_category": category,
+                "path_score": round(total_score, 2),
+                "hop_count": len(hops),
+                "hops": hops,
+                "threat_ids": threat_ids,
+                "path_label": " → ".join(h["target"] for h in hops),
+            })
+        return summary
+
+    def generate_and_save_flows(self, output_dir):
+        afb_output_dir = os.path.join(output_dir, "afb")
+        os.makedirs(afb_output_dir, exist_ok=True)
+
+        best_paths_data = self._compute_best_paths()
         if not best_paths_data:
-            print("INFO: No valid attack paths found after optimization.")
+            print("INFO: No logical attack paths found based on tactic progression.")
             return
 
         print(f"INFO: Found {len(best_paths_data)} unique attack paths after optimization.")
         i = 0
         for objective, path_data in best_paths_data.items():
             path = path_data["path"]
-            
+
             flow_data = self._generate_single_path_flow(path, i + 1)
             if flow_data:
                 file_path = os.path.join(afb_output_dir, f"optimized_path_{objective}.afb")

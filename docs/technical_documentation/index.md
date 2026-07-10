@@ -113,7 +113,7 @@ The `ThreatModel` class is the heart of the framework, serving as the in-memory 
 -   **The Analysis Engine: `process_threats()`**: This is the most important method in the class. It serves as the orchestrator for the entire threat analysis pipeline, executing the following steps in order:
     1.  **Validation**: It first calls the `ModelValidator` to ensure the model is consistent and complete (e.g., no dataflows pointing to non-existent elements).
     2.  **PyTM Threat Generation**: It calls `self.tm.process()` to trigger the standard PyTM threat generation.
-    3.  **Target Expansion**: It calls `_expand_class_targets()`, a crucial helper method that takes generic threats targeted at a *class* of objects (e.g., a threat against all `Server` objects) and creates a specific threat instance for every `Server` defined in the model. This ensures that all components are evaluated correctly.
+    3.  **Threat Collection**: It reads `tm.findings`, PyTM's condition-matched findings, which are already resolved per-instance rather than per-class.
     4.  **Custom Threat Generation**: It integrates custom threats defined in the rule-based engine (`custom_threats.py`).
     5.  **Grouping**: It groups all generated threats (both from PyTM and custom rules) by their STRIDE category.
     6.  **MITRE Analysis**: Finally, it triggers the MITRE ATT&CK mapping and enrichment process.
@@ -153,7 +153,7 @@ To "add" or "remove" threats generated directly by `pytm`, you primarily need to
 *   **Structuring Boundaries:** How elements are placed within trust boundaries can also influence `pytm`'s threat identification.
 
 **Filtering PyTM Threats:**
-While `pytm` generates a broad set of threats, the framework allows for post-processing and filtering. The `_expand_class_targets` method in `models_module.py` and the overall threat processing pipeline can be extended to filter or modify `pytm`-generated threats before they are presented in reports.
+While `pytm` generates a broad set of threats, the framework allows for post-processing and filtering. The `process_threats()` pipeline in `models_module.py` can be extended to filter or modify `pytm`-generated threats before they are presented in reports.
 
 ### 4.4.2. Customizing PyTM's Threat Database
 

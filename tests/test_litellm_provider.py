@@ -303,3 +303,37 @@ def test_litellm_provider_generate_debate_turn():
             result = await provider.generate_debate_turn("prompt", "system")
             assert result == {"viability_score": 0.6, "techniques_attempted": ["T1190"]}
     asyncio.run(_run())
+
+def test_litellm_provider_generate_soc_analysis_success():
+    async def _run():
+        with patch("threat_analysis.ai_engine.providers.litellm_client.LiteLLMClient.create", new_callable=AsyncMock) as mock_create:
+            mock_client = MagicMock()
+            async def mock_gen(**kwargs):
+                yield [{"threat_id": "t-0", "detectability": "medium"}]
+            mock_client.generate_content = mock_gen
+            mock_create.return_value = mock_client
+
+            provider = LiteLLMProvider({})
+            result = await provider.generate_soc_analysis("prompt", "system")
+            assert result == [{"threat_id": "t-0", "detectability": "medium"}]
+    asyncio.run(_run())
+
+def test_litellm_provider_generate_soc_analysis_logs_error_string(caplog):
+    """A JSON-parsing failure (truncated response, etc.) must be logged, not silently
+    swallowed into an empty list indistinguishable from 'nothing to analyze'.
+    """
+    async def _run():
+        with patch("threat_analysis.ai_engine.providers.litellm_client.LiteLLMClient.create", new_callable=AsyncMock) as mock_create:
+            mock_client = MagicMock()
+            async def mock_gen(**kwargs):
+                yield "Error: No valid JSON found in AI response (finish_reason=length)."
+            mock_client.generate_content = mock_gen
+            mock_create.return_value = mock_client
+
+            provider = LiteLLMProvider({})
+            with caplog.at_level("WARNING"):
+                result = await provider.generate_soc_analysis("prompt", "system")
+            assert result == []
+            assert "generate_soc_analysis" in caplog.text
+            assert "No valid JSON found" in caplog.text
+    asyncio.run(_run())

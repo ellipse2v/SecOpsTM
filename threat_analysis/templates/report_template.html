@@ -1164,6 +1164,7 @@
                 <li style="margin-bottom:.75rem;">
                     <strong>{{ finding.title }}</strong>
                     {% if finding.threat_ids %}<span style="font-size:.75rem;color:var(--text-secondary);margin-left:.4rem;">{{ finding.threat_ids | join(", ") }}</span>{% endif %}
+                    {% if finding.scenario_ids %}<span style="font-size:.75rem;color:var(--text-secondary);margin-left:.4rem;">⚡ {{ finding.scenario_ids | join(", ") }}</span>{% endif %}
                     <br><span style="color:var(--text-secondary);font-size:.875rem;">{{ finding.detail }}</span>
                 </li>
                 {% endfor %}
@@ -1241,6 +1242,17 @@
                 Interactive attack-surface map. <strong>Click</strong> a node to list its threats.
                 Node colour = highest severity. Edge style: solid = encrypted, dashed = plain.
             </p>
+            {% if threat_graph.gdaf_paths %}
+            <div style="margin:0 0 .75rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
+                <label for="tg-gdaf-select" style="font-size:.8rem;color:var(--text-secondary);">⚡ Highlight GDAF attack path:</label>
+                <select id="tg-gdaf-select" style="font-size:.8rem;padding:.2rem .4rem;border-radius:4px;">
+                    <option value="">— none —</option>
+                    {% for p in threat_graph.gdaf_paths %}
+                    <option value="{{ loop.index0 }}">{{ p.scenario_id }} — {{ p.objective_name }} ({{ p.risk_level }}{% if p.debated %}{{ ", still viable" if p.residual_path_viable else ", blocked by Blue" }}{% endif %})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
             <div style="display:flex;gap:1rem;flex-wrap:wrap;">
                 <div id="tg-canvas-wrap" style="flex:1;min-width:280px;position:relative;">
                     <canvas id="tg-canvas" style="width:100%;height:420px;border-radius:6px;background:var(--bg-secondary);display:block;cursor:grab;"></canvas>
@@ -1265,6 +1277,27 @@
             const SEV_COLOR = {CRITICAL:"#b91c1c",HIGH:"#ea580c",MEDIUM:"#d97706",LOW:"#16a34a","":"#64748b"};
             const canvas = document.getElementById("tg-canvas");
             if (!canvas || !_GRAPH.nodes || !_GRAPH.nodes.length) return;
+
+            // ---- GDAF attack path highlight ----
+            let highlightNodes = null, highlightEdges = null, highlightColor = "#64748b";
+            const gdafSelect = document.getElementById("tg-gdaf-select");
+            function applyGdafSelection(idx){
+                if(idx===""||idx===null||typeof idx==="undefined"){
+                    highlightNodes = null; highlightEdges = null; return;
+                }
+                const p = (_GRAPH.gdaf_paths||[])[+idx];
+                if(!p){ highlightNodes = null; highlightEdges = null; return; }
+                highlightNodes = new Set(p.nodes);
+                highlightEdges = new Set();
+                for(let i=0;i<p.nodes.length-1;i++){
+                    highlightEdges.add(p.nodes[i]+"→"+p.nodes[i+1]);
+                    highlightEdges.add(p.nodes[i+1]+"→"+p.nodes[i]);
+                }
+                highlightColor = p.debated ? (p.residual_path_viable ? "#dc2626" : "#16a34a") : "#f59e0b";
+            }
+            if(gdafSelect){
+                gdafSelect.addEventListener("change", e => applyGdafSelection(e.target.value));
+            }
 
             const ctx = canvas.getContext("2d");
             const wrap = document.getElementById("tg-canvas-wrap");
@@ -1346,9 +1379,15 @@
                 _GRAPH.edges.forEach(e=>{
                     const a=nodeById[e.source], b=nodeById[e.target];
                     if(!a||!b) return;
+                    const isPathEdge = highlightEdges && highlightEdges.has(e.source+"→"+e.target);
                     ctx.save();
-                    ctx.strokeStyle = isDark ? "rgba(148,163,184,.45)" : "rgba(100,116,139,.35)";
-                    ctx.lineWidth = 1.5;
+                    if(isPathEdge){
+                        ctx.strokeStyle = highlightColor;
+                        ctx.lineWidth = 3.5;
+                    } else {
+                        ctx.strokeStyle = isDark ? "rgba(148,163,184,.45)" : "rgba(100,116,139,.35)";
+                        ctx.lineWidth = 1.5;
+                    }
                     if(!e.encrypted) ctx.setLineDash([5,4]);
                     ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
                     ctx.restore();
@@ -1365,7 +1404,8 @@
 
                 // nodes
                 _GRAPH.nodes.forEach(n=>{
-                    const r = n.type==="Actor" ? 14 : 16;
+                    const isOnPath = highlightNodes && highlightNodes.has(n.id);
+                    const r = (n.type==="Actor" ? 14 : 16) + (isOnPath ? 3 : 0);
                     const color = SEV_COLOR[n.severity] || "#64748b";
                     const isSelected = selected && selected.id===n.id;
                     ctx.save();
@@ -1385,7 +1425,8 @@
                     }
                     ctx.fillStyle = color;
                     ctx.fill();
-                    if(isSelected){ ctx.strokeStyle="#f8fafc"; ctx.lineWidth=2.5; ctx.stroke(); }
+                    if(isOnPath){ ctx.strokeStyle=highlightColor; ctx.lineWidth=3; ctx.stroke(); }
+                    else if(isSelected){ ctx.strokeStyle="#f8fafc"; ctx.lineWidth=2.5; ctx.stroke(); }
                     ctx.restore();
                     // label
                     ctx.save();
@@ -1619,6 +1660,57 @@
                     </div>
                     {% endfor %}
                   </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            </div>
+          </div>
+        </details>
+        {% endif %}
+
+        {% if discovered_attack_paths %}
+        <details class="gdaf-section technical-section">
+          <summary>
+            <span class="gdaf-summary-arrow"></span>
+            🔍 Automatically Discovered Attack Paths
+            <span class="gdaf-badge-count">{{ discovered_attack_paths | length }}</span>
+            <span class="gdaf-hint">Found from the threat data itself, no GDAF context needed — click to expand</span>
+          </summary>
+          <div class="gdaf-content">
+            <p class="gdaf-description">
+              Unlike GDAF (analyst-defined objectives and actors), these paths are found automatically
+              by following each threat's MITRE ATT&amp;CK tactic progression through the architecture.
+              Best (highest-severity) path shown per STRIDE category.
+            </p>
+            <div style="max-height:480px; overflow-y:auto; overflow-x:auto;">
+            <table class="gdaf-table">
+              <thead>
+                <tr>
+                  <th style="width:22px;">#</th>
+                  <th>STRIDE Category</th>
+                  <th>Attack Path</th>
+                  <th>Score</th>
+                  <th>Hops</th>
+                  <th>Threats</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for p in discovered_attack_paths %}
+                <tr class="gdaf-row">
+                  <td>{{ loop.index }}</td>
+                  <td>{{ p.stride_category }}</td>
+                  <td class="gdaf-path">{{ p.path_label }}</td>
+                  <td>{{ "%.1f"|format(p.path_score) }}</td>
+                  <td>
+                    {% for h in p.hops %}
+                    <div class="gdaf-hop">
+                      {{ h.target }}
+                      <div class="gdaf-hop-tech">{{ h.technique_id }} — {{ h.technique_name }}{% if h.tactic %} ({{ h.tactic }}){% endif %}</div>
+                    </div>
+                    {% endfor %}
+                  </td>
+                  <td>{{ p.threat_ids | join(", ") }}</td>
                 </tr>
                 {% endfor %}
               </tbody>

@@ -93,7 +93,19 @@ class RiskContext:
 class SeverityCalculator:
     """Class for calculating threat severity"""
     
-    def __init__(self, markdown_file_path: str = "threatModel_Template/threat_model.md"):
+    def __init__(self, markdown_file_path: str = "threatModel_Template/threat_model.md",
+                 markdown_content: Optional[str] = None):
+        """Args:
+            markdown_file_path: path to read '## Severity Multipliers' from when
+                ``markdown_content`` is not given. Defaults to the bundled example
+                template — callers that have a real model loaded MUST pass either the
+                model's own file path or its markdown content directly, or multipliers
+                silently come from the wrong (example) model.
+            markdown_content: the model's markdown, already in memory (e.g. from the
+                CLI/server request). Takes precedence over ``markdown_file_path`` —
+                avoids a redundant disk read and works even for unsaved models with no
+                file path at all.
+        """
         cfg = _load_scoring_config()
         stride_cfg = cfg.get("stride", {})
 
@@ -106,7 +118,7 @@ class SeverityCalculator:
             "Repudiation": 5.0,
         })
 
-        self.target_multipliers = self._load_severity_multipliers_from_markdown(markdown_file_path)
+        self.target_multipliers = self._load_severity_multipliers_from_markdown(markdown_file_path, markdown_content)
 
         self.protocol_adjustments = stride_cfg.get("protocol_adjustments", {
             "SSH": 0.5,
@@ -144,34 +156,44 @@ class SeverityCalculator:
             "d3fend_mitigations": -0.5,
         })
 
-    def _load_severity_multipliers_from_markdown(self, markdown_file_path: str) -> Dict[str, float]:
+    def _load_severity_multipliers_from_markdown(self, markdown_file_path: str,
+                                                  markdown_content: Optional[str] = None) -> Dict[str, float]:
         """
-        Loads severity multipliers from the '## Severity Multipliers' section of a Markdown file.
+        Loads severity multipliers from the '## Severity Multipliers' section of a Markdown
+        file, or directly from ``markdown_content`` when given (skips the disk read entirely).
         Expected format:
         ## Severity Multipliers
         - **Server Name 1**: 1.5
         - **Server Name 2**: 2.0
         """
-        multipliers = {}
+        if markdown_content is not None:
+            return self._parse_severity_multipliers(markdown_content)
+
         try:
             with open(markdown_file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
-            
-            multipliers_section_match = re.search(r'## Severity Multipliers\n(.*?)(\n## |$)', content, re.DOTALL)
-            if multipliers_section_match:
-                multipliers_content = multipliers_section_match.group(1).strip()
-                
-                for line in multipliers_content.split('\n'):
-                    line = line.strip()
-                    match = re.match(r'- \*\*(.*?)\*\*: (\d+\.\d+)', line)
-                    if match:
-                        name = match.group(1).strip()
-                        value = float(match.group(2))
-                        multipliers[name] = value
         except FileNotFoundError:
             logging.warning(f"Warning: Severity multipliers file not found at {markdown_file_path}")
+            return {}
         except Exception as e:
             logging.error(f"Error loading severity multipliers from markdown: {e}")
+            return {}
+        return self._parse_severity_multipliers(content)
+
+    @staticmethod
+    def _parse_severity_multipliers(content: str) -> Dict[str, float]:
+        multipliers = {}
+        multipliers_section_match = re.search(r'## Severity Multipliers\n(.*?)(\n## |$)', content, re.DOTALL)
+        if multipliers_section_match:
+            multipliers_content = multipliers_section_match.group(1).strip()
+
+            for line in multipliers_content.split('\n'):
+                line = line.strip()
+                match = re.match(r'- \*\*(.*?)\*\*: (\d+\.\d+)', line)
+                if match:
+                    name = match.group(1).strip()
+                    value = float(match.group(2))
+                    multipliers[name] = value
         return multipliers
     
     def calculate_score(
@@ -257,8 +279,13 @@ class SeverityCalculator:
         }
     
     def update_target_multipliers(self, new_multipliers: Dict[str, float]):
-        """Updates target multipliers"""
-        self.target_multipliers.update(new_multipliers)
+        """Replaces target multipliers with ``new_multipliers`` (e.g. ThreatModel.severity_multipliers,
+        parsed from the actual model's '## Severity Multipliers' DSL section — the authoritative
+        source). A full replace, not a merge: this calculator may be a long-lived singleton reused
+        across different models (server mode), so stale entries from a previous model must not
+        silently persist and apply to a later, unrelated model.
+        """
+        self.target_multipliers = dict(new_multipliers)
 
     def get_calculation_explanation(self) -> str:
         """Returns a detailed explanation of how severity scores are calculated."""

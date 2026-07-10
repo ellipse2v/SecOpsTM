@@ -184,6 +184,43 @@ def test_rag_threat_generator_initialization(mock_chat_litellm):
         # LLM model was configured (uses litellm.completion directly)
         assert rag_generator._llm_model is not None
         assert "ollama" in rag_generator._llm_model
+        # No max_tokens in the test config -> must not be injected (backward compat).
+        assert "max_tokens" not in rag_generator._llm_params
+
+
+def test_rag_threat_generator_passes_max_tokens_when_configured(mock_chat_litellm):
+    """RAG calls litellm.completion() directly, bypassing LiteLLMClient entirely — it
+    must still honour the provider's max_tokens (already carefully tuned to avoid JSON
+    truncation for component-level generation, see ai_config.yaml comments) instead of
+    silently falling back to litellm's own per-model default.
+    """
+    max_tokens_config_path = TEST_DIR / "ai_config_max_tokens.yaml"
+    max_tokens_config_path.write_text(
+        "ai_providers:\n"
+        "  ollama:\n"
+        "    enabled: true\n"
+        "    model: \"test-llama3\"\n"
+        "    host: \"http://localhost:11434\"\n"
+        "    temperature: 0.5\n"
+        "    max_tokens: 16000\n"
+        "embedding:\n"
+        "  provider: huggingface\n"
+        "  model: \"test-embedding-model\"\n"
+        "  device: cpu\n"
+        "rag:\n"
+        "  enabled: true\n",
+        encoding="utf-8",
+    )
+    try:
+        with patch('os.path.exists', side_effect=lambda x: x == str(TEST_VECTOR_STORE_DIR) or x == str(max_tokens_config_path) or x == str(TEST_USER_CONTEXT_PATH)):
+            rag_generator = RAGThreatGenerator(
+                vector_store_dir=str(TEST_VECTOR_STORE_DIR),
+                user_context_path=str(TEST_USER_CONTEXT_PATH),
+                ai_config_path=str(max_tokens_config_path)
+            )
+            assert rag_generator._llm_params.get("max_tokens") == 16000
+    finally:
+        max_tokens_config_path.unlink(missing_ok=True)
 
 
 def test_rag_threat_generator_generates_threats(mock_chat_litellm):
@@ -230,6 +267,45 @@ def test_rag_threat_generator_generates_threats(mock_chat_litellm):
             assert len(threats) == 2
             mock_collection.query.assert_called_once()
             mock_litellm.completion.assert_called_once()
+
+
+def test_rag_threat_generator_malformed_template_returns_empty_list(mock_chat_litellm):
+    """A human_template with an unescaped {{ / }} JSON example (like the real
+    prompts.yaml bug this regression-tests) must make generate_threats() return []
+    instead of raising KeyError out of str.format() — that KeyError previously
+    propagated all the way up and aborted the entire AI enrichment pipeline (RAG is
+    only step 1 of 5), not just the RAG threats.
+    """
+    with patch('os.path.exists', side_effect=lambda x: x == str(TEST_VECTOR_STORE_DIR) or x == str(TEST_AI_CONFIG_PATH) or x == str(TEST_USER_CONTEXT_PATH)):
+        with patch.object(RAGThreatGenerator, '_initialize_components'):
+            rag_generator = RAGThreatGenerator(
+                vector_store_dir=str(TEST_VECTOR_STORE_DIR),
+                user_context_path=str(TEST_USER_CONTEXT_PATH),
+                ai_config_path=str(TEST_AI_CONFIG_PATH)
+            )
+            mock_collection = MagicMock()
+            mock_collection.query.return_value = {"documents": [["context chunk 1"]]}
+            rag_generator.collection = mock_collection
+            mock_embeddings = MagicMock()
+            mock_embeddings.embed_query.return_value = [0.1, 0.2, 0.3]
+            rag_generator.embeddings = mock_embeddings
+            rag_generator._llm_model = "ollama/test-model"
+            rag_generator._llm_params = {"temperature": 0.5}
+            rag_generator._rag_system_prompt = "You are a security expert."
+            # Unescaped literal JSON example — the exact bug pattern from prompts.yaml.
+            rag_generator._rag_human_template = (
+                "{optional_context}\n"
+                "Model: {threat_model_markdown}\n"
+                "Context: {context}\n"
+                "Format:\n[\n  {\n    \"name\": \"...\"\n  }\n]"
+            )
+
+            call_count_before = mock_litellm.completion.call_count
+            threats = rag_generator.generate_threats("This is a test threat model.")
+
+            assert threats == []
+            # Must fail before the LLM call — no point calling it with a broken prompt.
+            assert mock_litellm.completion.call_count == call_count_before
 
 
 def test_aiservice_integrates_rag_threats(mock_provider, mock_chat_litellm):

@@ -296,3 +296,106 @@ class TestThreatsByNode:
         result = rg._build_threat_graph_data(m, [threat])
         stored = result["threats_by_node"]["WebApp"][0]["name"]
         assert len(stored) <= 80
+
+
+# ---------------------------------------------------------------------------
+# gdaf_paths — GDAF attack-path overlay (nodes= entry actor -> hop assets)
+# ---------------------------------------------------------------------------
+
+def _make_hop(asset_name: str) -> SimpleNamespace:
+    return SimpleNamespace(asset_name=asset_name)
+
+
+def _make_gdaf_scenario(scenario_id="GDAF-1", entry_point="Attacker", hop_names=("WebApp",),
+                         objective_name="Exfiltrate data", actor_name="Attacker",
+                         risk_level="CRITICAL", path_score=4.2) -> SimpleNamespace:
+    return SimpleNamespace(
+        scenario_id=scenario_id,
+        entry_point=entry_point,
+        hops=[_make_hop(h) for h in hop_names],
+        objective_name=objective_name,
+        actor_name=actor_name,
+        risk_level=risk_level,
+        path_score=path_score,
+    )
+
+
+def _make_debate_result(scenario_id="GDAF-1", residual_path_viable=True) -> SimpleNamespace:
+    return SimpleNamespace(scenario_id=scenario_id, residual_path_viable=residual_path_viable)
+
+
+class TestGdafPaths:
+    def test_no_scenarios_returns_empty_list(self):
+        rg = _make_rg()
+        m = _make_model(servers=[_make_server("WebApp")])
+        result = rg._build_threat_graph_data(m, [])
+        assert result["gdaf_paths"] == []
+
+    def test_scenario_produces_node_sequence(self):
+        rg = _make_rg()
+        m = _make_model(servers=[_make_server("WebApp")])
+        scenario = _make_gdaf_scenario(entry_point="Attacker", hop_names=("WebApp", "DB"))
+        result = rg._build_threat_graph_data(m, [], gdaf_scenarios=[scenario])
+        assert len(result["gdaf_paths"]) == 1
+        path = result["gdaf_paths"][0]
+        assert path["nodes"] == ["Attacker", "WebApp", "DB"]
+        assert path["scenario_id"] == "GDAF-1"
+        assert path["debated"] is False
+        assert path["residual_path_viable"] is None
+
+    def test_consecutive_duplicate_nodes_deduplicated(self):
+        """entry_point sometimes equals the first hop's asset_name — must not repeat."""
+        rg = _make_rg()
+        m = _make_model(servers=[_make_server("WebApp")])
+        scenario = _make_gdaf_scenario(entry_point="WebApp", hop_names=("WebApp", "DB"))
+        result = rg._build_threat_graph_data(m, [], gdaf_scenarios=[scenario])
+        assert result["gdaf_paths"][0]["nodes"] == ["WebApp", "DB"]
+
+    def test_scenario_with_single_node_excluded(self):
+        rg = _make_rg()
+        m = _make_model(servers=[_make_server("WebApp")])
+        scenario = _make_gdaf_scenario(entry_point="WebApp", hop_names=())
+        result = rg._build_threat_graph_data(m, [], gdaf_scenarios=[scenario])
+        assert result["gdaf_paths"] == []
+
+    def test_debated_scenario_marks_viable(self):
+        rg = _make_rg()
+        m = _make_model(servers=[_make_server("WebApp")])
+        scenario = _make_gdaf_scenario(scenario_id="GDAF-1", hop_names=("WebApp",))
+        debate_result = _make_debate_result(scenario_id="GDAF-1", residual_path_viable=True)
+        result = rg._build_threat_graph_data(
+            m, [], gdaf_scenarios=[scenario], debate_results=[debate_result]
+        )
+        path = result["gdaf_paths"][0]
+        assert path["debated"] is True
+        assert path["residual_path_viable"] is True
+
+    def test_debated_scenario_marks_blocked(self):
+        rg = _make_rg()
+        m = _make_model(servers=[_make_server("WebApp")])
+        scenario = _make_gdaf_scenario(scenario_id="GDAF-1", hop_names=("WebApp",))
+        debate_result = _make_debate_result(scenario_id="GDAF-1", residual_path_viable=False)
+        result = rg._build_threat_graph_data(
+            m, [], gdaf_scenarios=[scenario], debate_results=[debate_result]
+        )
+        assert result["gdaf_paths"][0]["residual_path_viable"] is False
+
+    def test_debate_result_for_different_scenario_not_matched(self):
+        rg = _make_rg()
+        m = _make_model(servers=[_make_server("WebApp")])
+        scenario = _make_gdaf_scenario(scenario_id="GDAF-1", hop_names=("WebApp",))
+        debate_result = _make_debate_result(scenario_id="GDAF-OTHER", residual_path_viable=True)
+        result = rg._build_threat_graph_data(
+            m, [], gdaf_scenarios=[scenario], debate_results=[debate_result]
+        )
+        assert result["gdaf_paths"][0]["debated"] is False
+
+    def test_scenarios_capped_at_10(self):
+        rg = _make_rg()
+        m = _make_model(servers=[_make_server("WebApp")])
+        scenarios = [
+            _make_gdaf_scenario(scenario_id=f"GDAF-{i}", hop_names=("WebApp",))
+            for i in range(15)
+        ]
+        result = rg._build_threat_graph_data(m, [], gdaf_scenarios=scenarios)
+        assert len(result["gdaf_paths"]) == 10

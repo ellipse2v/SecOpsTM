@@ -107,6 +107,8 @@ ai_providers:
 threat_generation:
   mode: "hybrid"             # "traditional" | "ai" | "hybrid"
   fallback_to_traditional: true
+  # Per-component cap on AI-generated threats kept (0 = no limit). When more than this
+  # many are returned, the highest-confidence ones are kept.
   max_threats_per_component: 10
 
   # Rate limiting — set to 1.5 for Gemini free tier (15 RPM), 0.0 for paid/Ollama
@@ -128,8 +130,9 @@ threat_generation:
     confidence: 0.3
     risk_signals: 0.3
 
+  # AI-generated threats below this confidence (0.0-1.0) are dropped before being
+  # attached to the model.
   confidence_threshold: 0.75
-  include_attack_flows: true
 
   # LiteLLM retry policy — applies to all providers
   num_retries: 3         # automatic retries on rate-limit / transient errors
@@ -170,12 +173,14 @@ embedding:
   api_base: ""
   ssl_verify: true
 
-# Attack Flow generation
+# "Automatically Discovered Attack Paths" — the STRIDE-technique-based attack path
+# finder (AttackFlowGenerator), independent of GDAF. Scope: only the HTML report
+# section built by generate_html_report(); the standalone .afb export flows (CLI
+# --attack-flow, server's dedicated "Export Attack Flow" button) always use every
+# STRIDE category regardless of generate_for_categories, since they're meant to be a
+# complete, unfiltered dump of what pytm/AI found.
 attack_flows:
   enabled: true
-  format: "stix_2.1"
-  max_depth: 7
-  include_detection_points: true
   generate_for_categories: ["Tampering", "Information Disclosure", "Elevation of Privilege"]
 
 # GDAF engine defaults — override per model via gdaf_min_technique_score in ## Context
