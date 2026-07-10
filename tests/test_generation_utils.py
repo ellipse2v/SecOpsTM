@@ -15,7 +15,8 @@
 """Tests for threat_analysis/generation/utils.py"""
 
 import pytest
-from threat_analysis.generation.utils import extract_name_from_object, get_target_name
+from types import SimpleNamespace
+from threat_analysis.generation.utils import extract_name_from_object, get_target_name, get_enriched_threats
 
 
 # ---------------------------------------------------------------------------
@@ -138,3 +139,38 @@ class TestGetTargetName:
         # () is not None, not string, has no .name → "Unspecified"
         result = get_target_name(())
         assert result == "Unspecified"
+
+
+# ---------------------------------------------------------------------------
+# get_enriched_threats
+# ---------------------------------------------------------------------------
+
+class TestGetEnrichedThreats:
+    def test_prefers_cached_list_when_present(self):
+        cached = [{"id": "T-0001", "source": "AI"}]
+        threat_model = SimpleNamespace(
+            _report_all_detailed_threats=cached,
+            get_all_threats_details=lambda: (_ for _ in ()).throw(AssertionError("should not be called")),
+        )
+        assert get_enriched_threats(threat_model) is cached
+
+    def test_falls_back_when_cache_missing(self):
+        pytm_only = [{"id": "T-0001", "source": "pytm"}]
+        threat_model = SimpleNamespace(get_all_threats_details=lambda: pytm_only)
+        assert get_enriched_threats(threat_model) is pytm_only
+
+    def test_falls_back_when_cache_is_none(self):
+        pytm_only = [{"id": "T-0001", "source": "pytm"}]
+        threat_model = SimpleNamespace(
+            _report_all_detailed_threats=None,
+            get_all_threats_details=lambda: pytm_only,
+        )
+        assert get_enriched_threats(threat_model) is pytm_only
+
+    def test_falls_back_when_cache_is_empty_list(self):
+        pytm_only = [{"id": "T-0001", "source": "pytm"}]
+        threat_model = SimpleNamespace(
+            _report_all_detailed_threats=[],
+            get_all_threats_details=lambda: pytm_only,
+        )
+        assert get_enriched_threats(threat_model) is pytm_only

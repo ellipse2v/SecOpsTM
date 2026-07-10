@@ -63,18 +63,30 @@ class AIService:
     _sync_loop: Optional[asyncio.AbstractEventLoop] = None
     _sync_loop_lock = threading.Lock()
 
-    def __init__(self, config_path: str, ai_status_event_queue: Optional[queue.Queue] = None):
+    def __init__(self, config_path: str, ai_status_event_queue: Optional[queue.Queue] = None,
+                 force_disable_rag: bool = False):
         self.provider: Optional[BaseLLMProvider] = None
         self.rag_generator = None
         self.ai_online = False
         self.ai_config = self._load_ai_config(config_path)
         self.ai_status_event_queue = ai_status_event_queue
+        # CLI --no-rag override — skips the RAG pre-warm (chromadb+embeddings, can take
+        # minutes cold) regardless of rag.enabled in ai_config.yaml. Component-level AI
+        # enrichment is unaffected — only system-level RAG threats are skipped.
+        self._force_disable_rag = force_disable_rag
         self.rate_limit_sleep: float = self.ai_config.get(
             "threat_generation", {}
         ).get("rate_limit_sleep", 0.0)
         self.max_concurrent: int = self.ai_config.get(
             "threat_generation", {}
         ).get("max_concurrent_ai_requests", 1)
+        # 0 = no limit
+        self.max_threats_per_component: int = int(self.ai_config.get(
+            "threat_generation", {}
+        ).get("max_threats_per_component", 0))
+        self.confidence_threshold: float = float(self.ai_config.get(
+            "threat_generation", {}
+        ).get("confidence_threshold", 0.0))
         _st = self.ai_config.get("threat_generation", {}).get("sync_timeouts", {})
         self._rag_prewarm_timeout: float = float(_st.get("rag_prewarm", 300))
         self._rag_sync_timeout: float = float(_st.get("rag_sync", 120))
@@ -279,7 +291,9 @@ class AIService:
         # of litellm being available (~64s cold import).  By the time check_connection() returns,
         # RAG components will already be loaded — net savings ≈ 26s on first startup.
         # run_in_executor returns an asyncio.Future that can be awaited without blocking the loop.
-        rag_enabled = self.ai_config.get("rag", {}).get("enabled", False)
+        rag_enabled = (not self._force_disable_rag) and self.ai_config.get("rag", {}).get("enabled", False)
+        if self._force_disable_rag:
+            logging.info("RAG disabled by --no-rag.")
         rag_task: Optional[asyncio.Future] = None
         if rag_enabled:
             logging.info("RAG pre-warm started (parallel to AI connection check).")
@@ -451,7 +465,8 @@ class AIService:
             except Exception as exc:
                 logging.warning("Could not append sub-model to RAG context: %s", exc)
 
-        rag_generated_threats_json = self.rag_generator.generate_threats(tm_markdown_content)
+        _top_k = int(self.ai_config.get("rag", {}).get("top_k_examples", 5))
+        rag_generated_threats_json = self.rag_generator.generate_threats(tm_markdown_content, k=_top_k)
         
         pytm_rag_threats = []
         severity_map = {"critical": 5, "high": 4, "medium": 3, "low": 2, "info": 1}
@@ -498,9 +513,15 @@ class AIService:
              — falls back to individual calls when provider lacks generate_threats_batch
           5. SOC analysis pass
         """
-        # 1. System-level RAG threats
+        # 1. System-level RAG threats — isolated in its own try/except so a RAG-side bug
+        # (e.g. a malformed prompt template) degrades to "no RAG threats" instead of
+        # aborting the per-component enrichment below, which is the main value driver.
         if self.ai_online and self.rag_generator:
-            system_rag_threats = await self._generate_rag_threats(threat_model)
+            try:
+                system_rag_threats = await self._generate_rag_threats(threat_model)
+            except Exception as exc:
+                logging.warning("System-level RAG threat generation failed (non-fatal): %s", exc)
+                system_rag_threats = []
             if not hasattr(threat_model.tm, 'global_threats_llm'):
                 threat_model.tm.global_threats_llm = []
             threat_model.tm.global_threats_llm.extend(system_rag_threats)
@@ -726,10 +747,25 @@ class AIService:
             """Convert a list of threat dicts to ExtendedThreat objects on element."""
             severity_map = {"critical": 5, "high": 4, "medium": 3, "low": 2, "info": 1}
             likelihood_map = {"high": 5, "medium": 3, "low": 1}
-            for threat_json in (ai_threats_json or []):
-                if not isinstance(threat_json, dict):
-                    continue
-                threat_desc = f"(AI) {threat_json.get('title', 'N/A')}: {threat_json.get('description', '')}"
+
+            candidates = [t for t in (ai_threats_json or []) if isinstance(t, dict)]
+            if self.confidence_threshold > 0:
+                candidates = [
+                    t for t in candidates
+                    if float(t.get("confidence", 1.0) or 1.0) >= self.confidence_threshold
+                ]
+            if self.max_threats_per_component > 0:
+                candidates = sorted(
+                    candidates, key=lambda t: float(t.get("confidence", 0.0) or 0.0), reverse=True
+                )[: self.max_threats_per_component]
+
+            for threat_json in candidates:
+                # Computed once so the ExtendedThreat and the log line below always agree —
+                # the LLM occasionally drops 'title' under batch token pressure, and
+                # logging the raw (missing) field previously printed "Added AI threat
+                # 'None' to ..." even though the threat itself got a sensible default.
+                title = threat_json.get('title') or 'Unknown AI Threat'
+                threat_desc = f"(AI) {title}: {threat_json.get('description', '')}"
                 business_impact = threat_json.get('business_impact', {})
                 sev_raw = business_impact.get('severity', 'medium') if isinstance(business_impact, dict) else 'medium'
                 severity = severity_map.get(str(sev_raw).lower(), 3)
@@ -737,7 +773,7 @@ class AIService:
                     str(threat_json.get('likelihood', 'medium')).lower(), 3
                 )
                 new_threat = ExtendedThreat(
-                    SID=threat_json.get('title', 'Unknown AI Threat'),
+                    SID=title,
                     description=threat_desc,
                     category=threat_json.get('category', 'Unknown'),
                     likelihood=likelihood,
@@ -750,7 +786,7 @@ class AIService:
                 ]
                 new_threat.ai_details = threat_json
                 element.threats.append(new_threat)
-                logging.info("Added AI threat '%s' to %s", threat_json.get('title'), element.name)
+                logging.info("Added AI threat '%s' to %s", title, element.name)
 
         async def _update_progress(name: str) -> None:
             nonlocal processed_elements

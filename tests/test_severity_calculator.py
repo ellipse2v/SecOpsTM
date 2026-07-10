@@ -220,3 +220,54 @@ class TestCalculationExplanation:
         explanation = calc.get_calculation_explanation()
         # Custom cve_match delta is 1.0
         assert "1.0" in explanation
+
+
+# ---------------------------------------------------------------------------
+# update_target_multipliers — must REPLACE, not merge
+# ---------------------------------------------------------------------------
+
+class TestUpdateTargetMultipliers:
+    def test_replaces_previous_multipliers(self):
+        """A long-lived SeverityCalculator (server singleton) reused across different
+        models must not leak a previous model's multipliers into a later one — a merge
+        (.update()) would; a replace won't.
+        """
+        calc = SeverityCalculator()
+        calc.target_multipliers = {"OldServer": 2.0}
+        calc.update_target_multipliers({"NewServer": 1.5})
+        assert calc.target_multipliers == {"NewServer": 1.5}
+        assert "OldServer" not in calc.target_multipliers
+
+    def test_empty_dict_clears_previous_multipliers(self):
+        """A model with no '## Severity Multipliers' section of its own must clear
+        whatever a previous model (or the constructor default) left behind.
+        """
+        calc = SeverityCalculator()
+        calc.target_multipliers = {"StaleServer": 3.0}
+        calc.update_target_multipliers({})
+        assert calc.target_multipliers == {}
+
+
+# ---------------------------------------------------------------------------
+# SeverityCalculator(markdown_content=...) — in-memory content takes precedence
+# ---------------------------------------------------------------------------
+
+class TestSeverityCalculatorMarkdownContent:
+    def test_markdown_content_used_over_file(self, tmp_path):
+        content = "## Severity Multipliers\n- **RealServer**: 2.5\n"
+        # Point markdown_file_path at a file that would give DIFFERENT multipliers,
+        # to prove markdown_content wins.
+        bogus_file = tmp_path / "bogus.md"
+        bogus_file.write_text("## Severity Multipliers\n- **WrongServer**: 9.0\n")
+        calc = SeverityCalculator(markdown_file_path=str(bogus_file), markdown_content=content)
+        assert calc.target_multipliers == {"RealServer": 2.5}
+
+    def test_markdown_content_none_falls_back_to_file(self, tmp_path):
+        f = tmp_path / "model.md"
+        f.write_text("## Severity Multipliers\n- **FileServer**: 1.8\n")
+        calc = SeverityCalculator(markdown_file_path=str(f))
+        assert calc.target_multipliers == {"FileServer": 1.8}
+
+    def test_markdown_content_with_no_multipliers_section_is_empty(self):
+        calc = SeverityCalculator(markdown_content="# System Model: X\n\n## Boundaries\n")
+        assert calc.target_multipliers == {}

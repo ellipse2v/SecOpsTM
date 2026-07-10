@@ -161,6 +161,13 @@ class RAGThreatGenerator:
                 prefix = "ollama" if name == "ollama" else name
                 llm_model = f"{prefix}/{config.get('model')}"
                 llm_params['temperature'] = config.get('temperature', 0.5)
+                # Without this, litellm falls back to its own (often much lower)
+                # per-model default and RAG responses risk the same JSON truncation
+                # that the provider's own max_tokens tuning (ai_config.yaml) already
+                # fixed for component-level generation — RAG calls litellm.completion()
+                # directly, bypassing LiteLLMClient entirely, so it never saw that value.
+                if config.get('max_tokens'):
+                    llm_params['max_tokens'] = config['max_tokens']
                 if name == "ollama":
                     llm_params['api_base'] = config.get('host', 'http://localhost:11434')
                 elif config.get('api_base'):
@@ -276,11 +283,20 @@ class RAGThreatGenerator:
         if user_threat_intelligence:
             ctx_sections.append(f"## User Threat Intelligence\n{_esc(user_threat_intelligence)}")
 
-        human_message = self._rag_human_template.format(
-            optional_context="\n\n".join(ctx_sections),
-            threat_model_markdown=_esc(threat_model_markdown),
-            context=_esc(context_text),
-        )
+        try:
+            human_message = self._rag_human_template.format(
+                optional_context="\n\n".join(ctx_sections),
+                threat_model_markdown=_esc(threat_model_markdown),
+                context=_esc(context_text),
+            )
+        except (KeyError, IndexError, ValueError) as e:
+            # A stray unescaped { or } in the template (e.g. an unescaped JSON example)
+            # makes str.format() raise instead of substituting — this must degrade like
+            # every other AI failure (return no RAG threats), not abort the whole
+            # enrichment pipeline that called this.
+            logger.error("RAG human_template formatting failed (bad template — check for "
+                         "unescaped {{ / }} in prompts.yaml rag.human_template): %s", e)
+            return []
         messages = [
             {"role": "system", "content": self._rag_system_prompt},
             {"role": "user", "content": human_message},

@@ -173,6 +173,93 @@ class TestRunCisoTriagePrompt:
         lines = [l for l in captured.get("prompt", "").splitlines() if l.startswith("- [")]
         assert len(lines) <= 20
 
+    def test_prompt_has_no_scenarios_message_when_gdaf_empty(self):
+        """No GDAF scenarios provided -> the prompt says so explicitly rather than
+        silently omitting the section (the LLM must not assume scenarios exist)."""
+        captured = {}
+
+        async def _capture_triage(prompt, system_prompt):
+            captured["prompt"] = prompt
+            return VALID_TRIAGE
+
+        provider = MagicMock(spec=BaseLLMProvider)
+        provider.check_connection = AsyncMock(return_value=True)
+        provider.generate_ciso_triage = _capture_triage
+
+        with patch("threat_analysis.ai_engine.prompt_loader.get", return_value="<<gdaf_summary>>"):
+            rg = _make_report_generator(provider=provider)
+            asyncio.run(rg._run_ciso_triage([_make_threat()], gdaf_scenarios=None, debate_results=None))
+
+        assert "No GDAF attack scenarios were generated" in captured["prompt"]
+
+    def test_prompt_contains_gdaf_scenario_summary(self):
+        """GDAF scenarios provided -> the prompt lists them (id, objective, actor, risk, score)."""
+        scenario = MagicMock()
+        scenario.scenario_id = "GDAF-ABC1"
+        scenario.objective_name = "Exfiltrate customer data"
+        scenario.actor_name = "External Attacker"
+        scenario.risk_level = "CRITICAL"
+        scenario.path_score = 4.2
+        scenario.path_score_pre_debate = None
+        captured = {}
+
+        async def _capture_triage(prompt, system_prompt):
+            captured["prompt"] = prompt
+            return VALID_TRIAGE
+
+        provider = MagicMock(spec=BaseLLMProvider)
+        provider.check_connection = AsyncMock(return_value=True)
+        provider.generate_ciso_triage = _capture_triage
+
+        with patch("threat_analysis.ai_engine.prompt_loader.get", return_value="<<gdaf_summary>>"):
+            rg = _make_report_generator(provider=provider)
+            asyncio.run(rg._run_ciso_triage([_make_threat()], gdaf_scenarios=[scenario], debate_results=[]))
+
+        prompt = captured["prompt"]
+        assert "GDAF-ABC1" in prompt
+        assert "Exfiltrate customer data" in prompt
+        assert "CRITICAL" in prompt
+        assert "4.20" in prompt
+
+    def test_prompt_includes_debate_outcome_for_debated_scenario(self):
+        """A scenario with a matching debate result must show the pre-debate score and
+        whether the residual path stayed viable — the whole point of enriching CISO
+        triage with debate context.
+        """
+        scenario = MagicMock()
+        scenario.scenario_id = "GDAF-ABC1"
+        scenario.objective_name = "Exfiltrate customer data"
+        scenario.actor_name = "External Attacker"
+        scenario.risk_level = "MEDIUM"
+        scenario.path_score = 2.1
+        scenario.path_score_pre_debate = 4.2
+
+        debate_result = MagicMock()
+        debate_result.scenario_id = "GDAF-ABC1"
+        debate_result.residual_path_viable = False
+        debate_result.round_count = 2
+
+        captured = {}
+
+        async def _capture_triage(prompt, system_prompt):
+            captured["prompt"] = prompt
+            return VALID_TRIAGE
+
+        provider = MagicMock(spec=BaseLLMProvider)
+        provider.check_connection = AsyncMock(return_value=True)
+        provider.generate_ciso_triage = _capture_triage
+
+        with patch("threat_analysis.ai_engine.prompt_loader.get", return_value="<<gdaf_summary>>"):
+            rg = _make_report_generator(provider=provider)
+            asyncio.run(rg._run_ciso_triage(
+                [_make_threat()], gdaf_scenarios=[scenario], debate_results=[debate_result]
+            ))
+
+        prompt = captured["prompt"]
+        assert "was 4.20 pre-debate" in prompt
+        assert "largely blocked by Blue" in prompt
+        assert "2 round(s)" in prompt
+
 
 # ---------------------------------------------------------------------------
 # _run_ciso_triage — result handling

@@ -22,6 +22,7 @@ Complete orchestration of security analysis - Modified version
 import os
 import sys
 import argparse
+import asyncio
 import logging
 from typing import Dict, List, Any, Optional, Tuple
 from pathlib import Path
@@ -31,6 +32,7 @@ import traceback
 
 from threat_analysis import config # Re-add config import
 from threat_analysis.utils import resolve_path, _validate_path_within_project, compare_threat_reports
+from threat_analysis.generation.utils import get_enriched_threats
 
 # Import library modules
 # Lazy imports will be handled within methods
@@ -207,6 +209,7 @@ class SecOpsTMFramework:
         ai_config_path: Optional[Path] = None,
         context_path: Optional[Path] = None,
         cve_definitions_path: Optional[Path] = None, # New parameter
+        disable_rag: bool = False,
     ):
         """Initializes the analysis framework"""
         self.markdown_content = markdown_content
@@ -245,6 +248,7 @@ class SecOpsTMFramework:
         self._ai_config_path = ai_config_path
         self._context_path = context_path
         self._cve_definitions_path = cve_definitions_path
+        self._disable_rag = disable_rag
         self._initialize_components()
 
         logging.info(f"🚀 Analysis framework initialized: {self.model_name}")
@@ -298,9 +302,7 @@ class SecOpsTMFramework:
         self.mitre_mapper = MitreMapping(threat_model_path=self.model_file_path)
         self.threat_model = self._load_and_validate_model(self.markdown_content)
 
-        self.severity_calculator = SeverityCalculator(
-            markdown_file_path=str(Path("threatModel_Template/threat_model.md"))
-        )
+        self.severity_calculator = SeverityCalculator(markdown_content=self.markdown_content)
         self.report_generator = ReportGenerator(
             self.severity_calculator, self.mitre_mapper,
             implemented_mitigations_path=Path(self._implemented_mitigations_path) if self._implemented_mitigations_path else None,
@@ -308,6 +310,7 @@ class SecOpsTMFramework:
             ai_config_path=self._ai_config_path,
             context_path=self._context_path,
             threat_model_ref=self.threat_model,
+            disable_rag=self._disable_rag,
         )
         self.diagram_generator = DiagramGenerator()
 
@@ -457,10 +460,7 @@ class SecOpsTMFramework:
             AttackNavigatorGenerator = attack_navigator_module.AttackNavigatorGenerator
 
             # We need all detailed threats, not just grouped ones.
-            if self.threat_model:
-                all_threats = self.threat_model.get_all_threats_details()
-            else:
-                all_threats = []
+            all_threats = get_enriched_threats(self.threat_model) if self.threat_model else []
             
             navigator_generator = AttackNavigatorGenerator(
                 threat_model_name=self.model_name,
@@ -501,8 +501,10 @@ def generate_and_save_attack_flow(threat_model: 'ThreatModel', output_dir: Path,
         attack_flow_module = importlib.import_module("threat_analysis.generation.attack_flow_generator")
         AttackFlowGenerator = attack_flow_module.AttackFlowGenerator
 
-        # The generator now expects the raw threat data to perform its own filtering.
-        raw_threats = threat_model.mitre_analysis_results.get("processed_threats", [])
+        # Prefers the AI-enriched list cached by generate_html_report() (already run by
+        # this point via framework.generate_reports()) — falls back to the raw pytm-only
+        # list otherwise, so this still works if HTML generation was skipped.
+        raw_threats = get_enriched_threats(threat_model)
         if not raw_threats:
             logging.warning("No raw threats found, skipping Attack Flow generation.")
             return
@@ -517,6 +519,25 @@ def generate_and_save_attack_flow(threat_model: 'ThreatModel', output_dir: Path,
     except Exception as e:
         logging.error(f"❌ Failed to generate Attack Flow files for {model_name}: {e}")
         traceback.print_exc()
+
+
+def _build_project_ai_service(ai_config_path: Path, force_disable_rag: bool = False):
+    """Builds and initializes an AIService for `secopstm --project` mode.
+
+    Needed for cross-model RAG threat generation (Decision A2) — see the call site in
+    main(). Returns None (never raises) if AI init fails, matching every other AI
+    degrade-silently path in this codebase — cross-model RAG is additive, not required.
+    """
+    try:
+        ai_service_module = importlib.import_module("threat_analysis.server.ai_service")
+        AIService = ai_service_module.AIService
+        ai_service = AIService(config_path=str(ai_config_path), force_disable_rag=force_disable_rag)
+        asyncio.run(ai_service.init_ai())
+        return ai_service
+    except Exception as e:
+        logging.warning(f"AIService init failed for project mode (cross-model RAG skipped, non-fatal): {e}")
+        return None
+
 
 def load_iac_plugins() -> Dict[str, 'IaCPlugin']:
     """Dynamically loads IaC plugins from the iac_plugins directory.
@@ -583,6 +604,14 @@ class CustomArgumentParser:
             "--force",
             action="store_true",
             help="Force re-download even if the vector store already exists (use with --init-rag).",
+        )
+        common.add_argument(
+            "--no-rag",
+            action="store_true",
+            dest="no_rag",
+            help="Disable RAG (skip vector store load / chromadb+embeddings pre-warm) for this run, "
+                 "even if rag.enabled: true in ai_config.yaml. Useful to test with/without RAG, or to "
+                 "speed up iteration (RAG cold-start can take minutes).",
         )
         common.add_argument(
             "--server",
@@ -983,6 +1012,7 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
         cve_service=cve_service,
         ai_config_path=ai_config_path,
         cve_definitions_path=cve_definitions_path,
+        disable_rag=getattr(args, "no_rag", False),
     )
 
     threats = framework.run_analysis()
@@ -1214,6 +1244,7 @@ def main():
         # Lazy import ReportGenerator
         report_generator_module = importlib.import_module("threat_analysis.generation.report_generator")
         ReportGenerator = report_generator_module.ReportGenerator
+        _disable_rag = getattr(args, "no_rag", False)
         report_generator = ReportGenerator(
             severity_calculator,
             mitre_mapping,
@@ -1221,9 +1252,17 @@ def main():
             cve_service=cve_service,
             ai_config_path=ai_config_path,
             threat_model_ref=None,  # Project reports are generated per model, ref is set internally
+            disable_rag=_disable_rag,
         )
 
-        project_threat_model = report_generator.generate_project_reports(project_path, output_dir)
+        # AIService (distinct from ReportGenerator's own per-submodel ai_provider) is needed
+        # for cross-model RAG threat generation (Decision A2) — generate_project_reports()
+        # only runs it when given one. Without this, `secopstm --project` silently skips
+        # cross-boundary RAG threats even with RAG enabled and AI online; only the web UI
+        # (export_service.py) passed ai_service until now.
+        ai_service = _build_project_ai_service(ai_config_path, force_disable_rag=_disable_rag)
+
+        project_threat_model = report_generator.generate_project_reports(project_path, output_dir, ai_service=ai_service)
 
         if args.navigator and project_threat_model:
             logging.info("🗺️ Generating ATT&CK Navigator layer for project...")
@@ -1232,7 +1271,7 @@ def main():
                 attack_navigator_module = importlib.import_module("threat_analysis.generation.attack_navigator_generator")
                 AttackNavigatorGenerator = attack_navigator_module.AttackNavigatorGenerator
                 
-                all_threats = project_threat_model.get_all_threats_details()
+                all_threats = get_enriched_threats(project_threat_model)
                 navigator_generator = AttackNavigatorGenerator(
                     threat_model_name=str(project_threat_model.tm.name),
                     all_detailed_threats=all_threats

@@ -13,7 +13,8 @@ threatModelBypyTm/
 │   ├── threat_rules.py           Additional threat rule definitions
 │   ├── mitigation_suggestions.py MitigationStixMapper, framework mitigations
 │   ├── severity_calculator_module.py  SeverityCalculator + RiskContext VOC scoring
-│   ├── update_config.py          CLI helper to update ai_config.yaml
+│   ├── update_config.py          Dev script: regenerates static/js/config.js from
+│   │                             config_generator.py — run manually before commits
 │   ├── utils.py                  _validate_path_within_project, extract_json_from_llm_response
 │   ├── data_loader.py            Lazy loaders for external data files
 │   │
@@ -149,7 +150,7 @@ Markdown file
         .boundaries{}  .actors[]  .servers[]  .dataflows[]
     → ThreatModel.process_threats()
         → pytm.TM.process()            (PyTM built-in rules)
-        → _expand_class_targets()      (class → instances)
+        → reads tm.findings (condition-matched, already per-instance)
         → _apply_custom_threats()      (custom_threats.py rules)
         → _group_threats()             (by STRIDE category)
         → _perform_mitre_analysis()    (MitreMapping.analyze_pytm_threats_list())

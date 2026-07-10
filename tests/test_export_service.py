@@ -88,6 +88,70 @@ def test_generate_full_project_export_single(mock_create, mock_validator, export
                 assert "reports" in res
                 assert res["reports"]["html"] == "stride_mitre_report.html"
 
+@patch('threat_analysis.server.export_service.ModelValidator')
+@patch('threat_analysis.server.export_service.create_threat_model')
+def test_generate_full_project_export_html_runs_before_json_and_exports(mock_create, mock_validator, export_service):
+    """generate_html_report() must run before generate_json_export()/Navigator/STIX/
+    Attack Flow — it's what populates threat_model._report_all_detailed_threats with the
+    AI-enriched, debate-aware threat list those exports should reuse (get_enriched_threats).
+    Previously JSON/Navigator/STIX/Attack Flow ran BEFORE the HTML report in this single-
+    file path, so the cache never existed yet and they silently fell back to pytm-only.
+    """
+    tm = MagicMock()
+    tm.tm.name = "TestModel"
+    tm._report_all_detailed_threats = [{"id": "T-0001", "source": "AI"}]
+    mock_create.return_value = tm
+    mock_validator.return_value.validate.return_value = []
+
+    with patch('pathlib.Path.write_text'):
+        with patch('threat_analysis.server.export_service.AttackNavigatorGenerator') as mock_nav:
+            mock_nav.return_value.save_layer_to_file.return_value = None
+            with patch('threat_analysis.server.export_service.StixGenerator') as mock_stix:
+                mock_stix.return_value.generate_stix_bundle.return_value = {"type": "bundle"}
+                with patch('threat_analysis.server.export_service.AttackFlowGenerator') as mock_afg:
+                    export_service.generate_full_project_export("md", Path("/tmp"))
+
+    call_order = [c[0] for c in export_service.report_generator.method_calls]
+    assert call_order.index("generate_html_report") < call_order.index("generate_json_export")
+
+    # Navigator/STIX/AttackFlowGenerator must receive the cached AI-enriched list.
+    mock_nav.assert_called_once_with(threat_model_name="TestModel", all_detailed_threats=tm._report_all_detailed_threats)
+    mock_stix.assert_called_once_with(threat_model=tm, all_detailed_threats=tm._report_all_detailed_threats)
+    mock_afg.assert_called_once_with(threats=tm._report_all_detailed_threats, model_name="TestModel")
+
+
+@patch('threat_analysis.server.export_service.ModelValidator')
+@patch('threat_analysis.server.export_service.create_threat_model')
+def test_generate_full_project_export_diagram_html_built_after_html_report(mock_create, mock_validator, export_service):
+    """The diagram's severity heat map (tm_diagram.html, via _generate_html_with_legend)
+    must be built AFTER generate_html_report() — that's what attaches AI-enriched
+    threats to element.threats, which _compute_severity_map() reads. Building the
+    diagram HTML earlier would permanently miss AI-derived severities.
+    """
+    tm = MagicMock()
+    tm.tm.name = "TestModel"
+    tm._report_all_detailed_threats = [{"id": "T-0001", "source": "AI"}]
+    mock_create.return_value = tm
+    mock_validator.return_value.validate.return_value = []
+
+    call_order = []
+    export_service.report_generator.generate_html_report.side_effect = (
+        lambda *a, **kw: call_order.append("generate_html_report")
+    )
+    export_service.diagram_generator._generate_html_with_legend.side_effect = (
+        lambda *a, **kw: call_order.append("_generate_html_with_legend")
+    )
+
+    with patch('pathlib.Path.write_text'):
+        with patch('threat_analysis.server.export_service.AttackNavigatorGenerator'):
+            with patch('threat_analysis.server.export_service.StixGenerator') as mock_stix:
+                mock_stix.return_value.generate_stix_bundle.return_value = {"type": "bundle"}
+                with patch('threat_analysis.server.export_service.AttackFlowGenerator'):
+                    export_service.generate_full_project_export("md", Path("/tmp"))
+
+    assert call_order == ["generate_html_report", "_generate_html_with_legend"]
+
+
 def test_export_all_files_logic(export_service):
     with patch.object(export_service, 'generate_full_project_export'):
         with patch('threat_analysis.server.export_service.create_threat_model') as mock_create:

@@ -442,6 +442,19 @@ def test_add_severity_multiplier(threat_model_instance):
     tm.add_severity_multiplier("WebServer", 1.5)
     assert tm.severity_multipliers["WebServer"] == 1.5
 
+
+def test_add_severity_multiplier_syncs_severity_calculator(threat_model_instance):
+    """add_severity_multiplier() must keep tm.severity_calculator.target_multipliers in
+    sync — this calculator is used for custom-rule threat scoring (_apply_custom_threats)
+    and starts empty (constructed before parsing populates severity_multipliers), so
+    without this sync it would never see the model's own multipliers.
+    """
+    tm = threat_model_instance[0]
+    tm.add_severity_multiplier("WebServer", 1.5)
+    # severity_calculator is mocked by the fixture (patches models_module.SeverityCalculator),
+    # so target_multipliers is itself a MagicMock — assert the item-assignment happened.
+    tm.severity_calculator.target_multipliers.__setitem__.assert_called_once_with("WebServer", 1.5)
+
 # --- ThreatModel add_custom_mitre_mapping Tests ---
 
 def test_add_custom_mitre_mapping(threat_model_instance):

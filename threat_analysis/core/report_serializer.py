@@ -100,8 +100,13 @@ class ReportSerializer:
     @staticmethod
     def _serialize_threat(t: Dict, index: int) -> Dict:
         severity = t.get("severity") or {}
+        # Reuse a stable id pre-assigned upstream (e.g. by generate_html_report(), so the
+        # CISO triage prompt can cite ids that actually match the final report) — otherwise
+        # fall back to positional numbering as before.
+        existing_id = t.get("id")
+        stable_id = existing_id if isinstance(existing_id, str) and existing_id.startswith("T-") else f"T-{index + 1:04d}"
         return {
-            "id": f"T-{index + 1:04d}",
+            "id": stable_id,
             "description": str(t.get("description", "")),
             "source": t.get("source", "pytm"),
             "stride_category": t.get("stride_category", ""),

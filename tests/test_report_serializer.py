@@ -127,6 +127,35 @@ def test_threat_id_single_threat():
     assert report["threats"][0]["id"] == "T-0001"
 
 
+def test_serialize_reuses_pre_assigned_id():
+    """A threat dict carrying a pre-assigned T-NNNN id (set upstream by
+    generate_html_report() so CISO triage can cite ids matching the final report)
+    must keep that id rather than being renumbered by position.
+    """
+    threat_model = _make_threat_model()
+    t0, t1 = _make_threat(), _make_threat(description="Other threat")
+    t0["id"] = "T-0007"  # pre-assigned upstream, out of positional order
+    t1["id"] = "T-0003"
+
+    report = ReportSerializer.serialize(threat_model, [t0, t1])
+
+    ids = [t["id"] for t in report["threats"]]
+    assert ids == ["T-0007", "T-0003"]
+
+
+def test_serialize_falls_back_to_positional_id_when_missing_or_invalid():
+    """Threats with no id, or a non-'T-' id, still get numbered by position."""
+    threat_model = _make_threat_model()
+    t0 = _make_threat()  # no id at all
+    t1 = _make_threat(description="Other threat")
+    t1["id"] = "not-a-valid-id"
+
+    report = ReportSerializer.serialize(threat_model, [t0, t1])
+
+    ids = [t["id"] for t in report["threats"]]
+    assert ids == ["T-0001", "T-0002"]
+
+
 # ---------------------------------------------------------------------------
 # Tests — schema_version
 # ---------------------------------------------------------------------------

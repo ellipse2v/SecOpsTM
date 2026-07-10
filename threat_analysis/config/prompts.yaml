@@ -409,6 +409,19 @@ rag:
     Prioritize threats that are SPECIFIC to the architecture described, grounded in the
     retrieved CVE/CAPEC patterns and your system-level understanding.
 
+    STRICT GROUNDING RULE — the retrieved CVE/CAPEC patterns below come from a large,
+    generic security knowledge base and frequently describe technology (Kubernetes,
+    cloud storage, specific databases, etc.) that is NOT part of this architecture.
+    - affected_components MUST only name components that literally appear in the
+      "## System Model (Architecture)" section below — never invent a component.
+    - Use retrieved patterns only for the ATTACK TECHNIQUE or PATTERN they illustrate
+      (e.g. "credential exfiltration via misconfigured access control"), not for the
+      specific technology named in them, unless that exact technology is also present
+      in the architecture below.
+    - If nothing in the retrieved context applies to components actually present in
+      this architecture, rely on your own system-level understanding instead — do not
+      force-fit an irrelevant retrieved pattern.
+
   human_template: |
     {optional_context}
 
@@ -439,7 +452,7 @@ rag:
 
     Format your response as a JSON array:
     [
-      {
+      {{
         "name": "Threat name referencing specific components",
         "description": "Multi-hop attack description…",
         "affected_components": ["ComponentA", "ComponentB"],
@@ -449,7 +462,7 @@ rag:
         "impact": "high",
         "source": "LLM",
         "confidence": 0.75
-      }
+      }}
     ]
 
 # ---------------------------------------------------------------------------
@@ -538,21 +551,29 @@ ciso_triage:
     - Translating technical vulnerabilities into actionable risk posture statements
     - Identifying quick wins that reduce exposure with minimal engineering effort
 
-    Your task is to synthesise a ranked list of STRIDE threats identified in a security
-    assessment and produce a concise, actionable CISO-level risk briefing.
+    Your task is to synthesise a ranked list of STRIDE threats — and, when available, the
+    goal-driven attack scenarios (GDAF) and Red/Blue debate outcomes below them — into a
+    concise, actionable CISO-level risk briefing.
 
     Rules:
     - posture_score is a float 0–10 (10 = critical risk, 0 = no material risk).
       Weight it toward the severity and volume of unmitigated CRITICAL/HIGH threats.
+      A GDAF scenario the debate found "still viable after Blue's defences" should push
+      posture_score up; one "largely blocked by Blue" should not.
     - posture_label must be one of: "CRITICAL", "HIGH", "ELEVATED", "MODERATE", "LOW".
     - top_findings are the 5 most impactful risk areas (not individual threats — themes).
-      Each finding must include a "title", "detail" (2–3 sentences), and "threat_ids"
-      (list of threat IDs from the input that support it).
+      Each finding must include a "title", "detail" (2–3 sentences), "threat_ids"
+      (list of STRIDE threat IDs from the input that support it, e.g. "T-0001"), and
+      "scenario_ids" (list of GDAF scenario IDs that support it, e.g. "GDAF-..." — empty
+      list if the finding is not grounded in a GDAF scenario). When a finding is driven by
+      a GDAF scenario, mention in "detail" whether the Red/Blue debate confirmed it is
+      still exploitable or found it largely blocked.
     - quick_wins are 3–5 remediations with high impact-to-effort ratio.
       "impact" and "effort" must each be "HIGH", "MEDIUM", or "LOW".
-    - narrative is a 3–5 sentence executive summary suitable for a board slide.
-    - Be specific and factual — base findings on the provided threat data only.
-    - Do NOT invent threats not present in the input.
+    - narrative is a 3–5 sentence executive summary suitable for a board slide. If a GDAF
+      scenario remained viable after the debate, the narrative should say so explicitly.
+    - Be specific and factual — base findings on the provided threat and scenario data only.
+    - Do NOT invent threats or scenarios not present in the input.
 
   template: |
     ## Threat Summary for CISO Briefing
@@ -565,6 +586,10 @@ ciso_triage:
 
     <<threats_summary>>
 
+    ## Goal-Driven Attack Scenarios (GDAF) and Red/Blue Debate Outcomes
+
+    <<gdaf_summary>>
+
     ---
     Produce a CISO briefing as a single JSON object — no markdown fence, no preamble:
 
@@ -576,7 +601,8 @@ ciso_triage:
           "rank": 1,
           "title": "{concise risk theme title}",
           "detail": "{2-3 sentence explanation of the risk and its business impact}",
-          "threat_ids": ["{T-NNNN}", ...]
+          "threat_ids": ["{T-NNNN}", ...],
+          "scenario_ids": ["{GDAF-...}", ...]
         }
       ],
       "quick_wins": [

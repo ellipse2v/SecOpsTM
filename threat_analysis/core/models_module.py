@@ -372,28 +372,6 @@ class ThreatModel:
         
         return generated_custom_threats
 
-    def _expand_class_targets(self, threats: List[Any]) -> List[Tuple[Any, Any]]:
-        """
-        Expands threats that target a class (e.g., Server, Actor) into separate threats
-        for each instance of that class in the model.
-        This method is now generic and uses the _component_collections registry.
-        """
-        expanded_threats = []
-        for threat in threats:
-            target = getattr(threat, 'target', None)
-
-            if isinstance(target, type) and target in self._component_collections:
-                collection = self._component_collections[target]
-                for item_info in collection:
-                    instance = item_info['object']
-                    new_threat = threat.__class__(**threat.__dict__)
-                    new_threat.target = instance
-                    expanded_threats.append((new_threat, instance))
-            else:
-                expanded_threats.append((threat, target))
-        
-        return expanded_threats
-
     # Valid STRIDE categories — threats outside this set are excluded from grouping.
     _VALID_STRIDE_CATEGORIES: frozenset = _STRIDE_CATEGORIES_CONST
 
@@ -475,6 +453,10 @@ class ThreatModel:
     def add_severity_multiplier(self, element_name: str, multiplier: float):
         """Adds a severity multiplier for a given element."""
         self.severity_multipliers[element_name] = multiplier
+        # Keep this model's own SeverityCalculator (used for custom-rule threat scoring,
+        # see _apply_custom_threats) in sync — it starts empty since it has no file/content
+        # to load from at construction time (ThreatModel.__init__ runs before parsing).
+        self.severity_calculator.target_multipliers[element_name] = multiplier
         
 
 

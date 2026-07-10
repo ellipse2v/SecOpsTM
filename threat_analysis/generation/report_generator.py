@@ -21,6 +21,7 @@ import re
 import json
 import logging
 import sys
+import importlib
 from typing import Dict, List, Any, Optional, Set
 from datetime import datetime
 import webbrowser
@@ -33,7 +34,7 @@ from threat_analysis.mitigation_suggestions import get_framework_mitigation_sugg
 from threat_analysis.core.cve_service import CVEService
 from threat_analysis.core.threat_ranker import rank_and_trim
 from threat_analysis.core.accepted_risks import AcceptedRiskLoader, compute_threat_key
-from .utils import extract_name_from_object, get_target_name
+from .utils import extract_name_from_object, get_target_name, get_enriched_threats
 import yaml
 import asyncio
 
@@ -271,7 +272,8 @@ class ReportGenerator:
                  cve_service: Optional[CVEService] = None,
                  ai_config_path: Optional[Path] = None,
                  context_path: Optional[Path] = None,  # kept for backwards compat, unused
-                 threat_model_ref: Optional[ThreatModel] = None):
+                 threat_model_ref: Optional[ThreatModel] = None,
+                 disable_rag: bool = False):
         self.severity_calculator = severity_calculator
         self.mitre_mapping = mitre_mapping
         self.env = Environment(loader=FileSystemLoader(Path(__file__).parent.parent / 'templates'), extensions=['jinja2.ext.do'])
@@ -284,6 +286,9 @@ class ReportGenerator:
         self.cve_service = cve_service if cve_service else CVEService(project_root, project_root / "cve_definitions.yml")
         self.ai_provider = None
         self.ai_context = None
+        self._ai_config_path = ai_config_path
+        self._ai_service = None  # lazily built by _get_ai_service()
+        self._disable_rag = disable_rag
         self.threat_model_ref = threat_model_ref # Store the reference
         # Threat ranking / volume control — defaults (overridden from ai_config below)
         self._ranking_max_total: int = 0
@@ -292,6 +297,7 @@ class ReportGenerator:
         self._enrich_batch_size: int = 5
         self._enrich_max_concurrent: int = 3
         self._debate_config: Dict = {}
+        self._attack_flows_config: Dict = {}
 
         if ai_config_path and ai_config_path.exists():
             with open(ai_config_path, "r", encoding="utf-8") as f:
@@ -327,12 +333,22 @@ class ReportGenerator:
             self._enrich_batch_size: int = int(tg.get("batch_size", 5))
             self._enrich_max_concurrent: int = int(tg.get("max_concurrent_ai_requests", 3))
             self._debate_config = ai_config.get("debate", {}) or {}
+            self._attack_flows_config = ai_config.get("attack_flows", {}) or {}
 
-    async def _run_ciso_triage(self, all_threats: List[Dict]) -> Dict:
+    async def _run_ciso_triage(
+        self,
+        all_threats: List[Dict],
+        gdaf_scenarios: Optional[List[Any]] = None,
+        debate_results: Optional[List[Any]] = None,
+    ) -> Dict:
         """Generates a CISO-level risk briefing via the AI provider.
 
-        Returns an empty dict when AI is unavailable or the provider does not
-        implement ``generate_ciso_triage``.  Never raises.
+        ``gdaf_scenarios``/``debate_results`` are optional — when provided (post-debate,
+        since the caller runs the debate before this), the briefing can reference
+        goal-driven attack paths and how the Red/Blue debate changed their risk level,
+        not just the flat STRIDE threat list. Returns an empty dict when AI is
+        unavailable or the provider does not implement ``generate_ciso_triage``.
+        Never raises.
         """
         if not self.ai_provider:
             return {}
@@ -385,6 +401,28 @@ class ReportGenerator:
             name = t.get("name") or t.get("description", "?")
             threats_summary_lines.append(f"- [{sev}] {tid} | {stride} | {target} | {name[:80]}")
 
+        # Build a compact GDAF attack-scenario summary, noting debate outcomes when a
+        # scenario's score was adjusted by the Red/Blue debate.
+        debate_by_scenario = {getattr(r, "scenario_id", None): r for r in (debate_results or [])}
+        gdaf_lines: List[str] = []
+        for scenario in (gdaf_scenarios or [])[:10]:
+            sid = getattr(scenario, "scenario_id", "?")
+            obj = getattr(scenario, "objective_name", "?")
+            actor = getattr(scenario, "actor_name", "?")
+            risk = getattr(scenario, "risk_level", "?")
+            score = getattr(scenario, "path_score", 0.0) or 0.0
+            pre_score = getattr(scenario, "path_score_pre_debate", None)
+            line = f"- {sid} | Objective: {obj} | Actor: {actor} | Risk: {risk} | Score: {score:.2f}"
+            debate_result = debate_by_scenario.get(sid)
+            if debate_result is not None and pre_score is not None:
+                outcome = "path still viable after Blue's defences" if getattr(debate_result, "residual_path_viable", False) else "largely blocked by Blue"
+                line += (
+                    f" (was {pre_score:.2f} pre-debate — Red/Blue debate over "
+                    f"{getattr(debate_result, 'round_count', 0)} round(s): {outcome})"
+                )
+            gdaf_lines.append(line)
+        gdaf_summary = "\n".join(gdaf_lines) if gdaf_lines else "No GDAF attack scenarios were generated for this model."
+
         stride_breakdown = ", ".join(f"{cat}={cnt}" for cat, cnt in sorted(stride_counts.items()))
         prompt = (
             template
@@ -395,6 +433,7 @@ class ReportGenerator:
             .replace("<<n_low>>", str(counts.get("LOW", 0)))
             .replace("<<stride_breakdown>>", stride_breakdown)
             .replace("<<threats_summary>>", "\n".join(threats_summary_lines))
+            .replace("<<gdaf_summary>>", gdaf_summary)
         )
 
         try:
@@ -460,194 +499,52 @@ class ReportGenerator:
         logging.info("Red/Blue debate: produced %d results", len(results))
         return results
 
-    @staticmethod
-    def _build_ai_context_from_model(threat_model: "ThreatModel") -> Dict[str, Any]:
-        """Build AI context dict from DSL ## Context keys on the threat model.
+    async def _get_ai_service(self):
+        """Lazily constructs and initializes an AIService for the full AI-enrichment
+        pipeline (per-component AIThreatCache, boundary-trust-aware prompts, SOC
+        analysis pass, system-level RAG threats) — see server/ai_service.py.
 
-        Priority: DSL context_config keys > context/*.yaml (loaded by AIService).
-        The report_generator path only uses DSL keys (context/*.yaml is handled
-        by AIService in server mode).
+        Cached on self for the ReportGenerator's lifetime so repeated calls (e.g. the
+        per-submodel loop in project mode) don't re-run the connection check / RAG
+        pre-warm every time. Returns None (never raises) if AIService can't be built —
+        mirrors every other AI degrade-silently path in this codebase.
         """
-        ctx_cfg = getattr(threat_model, "context_config", {})
-        _AI_KEYS = {
-            "system_description", "sector", "deployment_environment",
-            "data_sensitivity", "internet_facing", "user_base",
-            "compliance_requirements", "integrations",
-        }
-        ctx: Dict[str, Any] = {k: v for k, v in ctx_cfg.items() if k in _AI_KEYS}
-        ctx.setdefault("system_description", getattr(getattr(threat_model, "tm", None), "description", "") or "")
-        ctx.setdefault("data_sensitivity", "High")
-        return ctx
+        if self._ai_service is not None:
+            return self._ai_service
+        if not self._ai_config_path:
+            return None
+        try:
+            ai_service_module = importlib.import_module("threat_analysis.server.ai_service")
+            AIService = ai_service_module.AIService
+            service = AIService(config_path=str(self._ai_config_path), force_disable_rag=self._disable_rag)
+            await service.init_ai()
+            self._ai_service = service
+            return service
+        except Exception as exc:
+            logging.warning("AIService init failed for report enrichment (non-fatal): %s", exc)
+            return None
 
-    async def _enrich_threats_with_ai(self, threat_model: ThreatModel, all_threats: List[Dict], progress_callback = None) -> List[Dict]:
+    async def _run_ai_enrichment(self, threat_model: ThreatModel, progress_callback=None) -> None:
+        """Runs the full AI enrichment pipeline via AIService, mutating threat_model in
+        place (appends to each element's `.threats` and to `tm.global_threats_llm`).
+
+        Must be called BEFORE _get_all_threats_with_mitre_info() — that method's
+        existing collectors read exactly these two mutation points to build the
+        AI/LLM-sourced entries in the final threat list; this replaces the previous,
+        weaker duplicate enrichment (no cache, no SOC analysis) that used to run after.
+        """
         if not self.ai_provider:
             logging.warning("AI enrichment skipped: No AI provider initialized.")
-            return all_threats
-
-        # Build context from DSL ## Context keys (replaces config/context.yaml)
-        self.ai_context = self._build_ai_context_from_model(threat_model)
-        if not self.ai_context.get("system_description") and not self.ai_context.get("sector"):
-            logging.info("AI enrichment: no AI context keys in ## Context — threats will be generic.")
-
-
-        logging.info(f"Enriching threats with AI using provider: {type(self.ai_provider).__name__}")
-
-        # Use the cached ai_online flag from the underlying client — avoids a second
-        # network round-trip (the client already ran check_connection() during create()).
-        try:
-            _client = await self.ai_provider._get_client()
-            if not _client.ai_online:
-                logging.warning(
-                    "AI enrichment skipped: Provider %s is offline (cached state).",
-                    type(self.ai_provider).__name__,
-                )
-                return all_threats
-        except Exception:
-            pass  # If we can't introspect the client, proceed and let generate_threats() fail naturally
-
-        # Combine all components to enrich: servers, actors, and boundaries
-        components_to_enrich = []
-        for server in threat_model.servers:
-            components_to_enrich.append({"name": server.get("name"), "type": "Server", "description": server.get("description", ""), "business_value": server.get("business_value")})
-        for actor in threat_model.actors:
-            components_to_enrich.append({"name": actor.get("name"), "type": "Actor", "description": actor.get("description", ""), "business_value": actor.get("business_value")})
-        for b_name, b_info in threat_model.boundaries.items():
-            components_to_enrich.append({"name": b_name, "type": "Boundary", "description": b_info.get("description", ""), "business_value": b_info.get("business_value")})
-
-        total_components = len(components_to_enrich)
-        if total_components == 0:
-            return all_threats
-
+            return
+        service = await self._get_ai_service()
+        if service is None:
+            return
         if progress_callback:
-            progress_callback(f"Starting AI enrichment for {total_components} components...")
-
-        ai_threats: List[Dict] = []
-        processed_count = [0]
-        semaphore = asyncio.Semaphore(self._enrich_max_concurrent)
-
-        def _build_threat_dict(threat: Dict, component: Dict) -> Dict:
-            """Convert a raw LLM threat dict into a normalized threat record."""
-            stride_category = threat.get("category", "InformationDisclosure")
-            target_name = component.get("name")
-            severity_info = self.severity_calculator.get_severity_info(
-                stride_category,
-                target_name,
-                impact=threat.get("business_impact", {}).get("impact_score") if isinstance(threat.get("business_impact"), dict) else None,
-                likelihood=threat.get("business_impact", {}).get("likelihood_score") if isinstance(threat.get("business_impact"), dict) else None,
-            )
-            raw_capecs = [
-                c for c in threat.get("capec_ids", [])
-                if isinstance(c, str) and c.upper().startswith("CAPEC-")
-            ]
-            mapping = self.mitre_mapping.map_threat_to_mitre({
-                "stride_category": stride_category,
-                "capec_ids": raw_capecs,
-                "description": threat.get("description", ""),
-            })
-            return {
-                "type": stride_category,
-                "description": threat.get("description"),
-                "target": target_name,
-                "severity": severity_info,
-                "mitre_techniques": mapping.get("techniques", []),
-                "stride_category": stride_category,
-                "capecs": mapping.get("capecs", []),
-                "cve": [],  # CVEs come exclusively from CVEService, never from LLM output
-                "business_value": component.get("business_value"),
-                "confidence": threat.get("confidence", 0.8),
-                "source": "AI",
-            }
-
-        def _flush_batch_results(results: Dict[str, List[Dict]], batch: List[Dict]) -> None:
-            """Distribute batch results into ai_threats and update progress."""
-            comp_by_name = {c["name"]: c for c in batch}
-            for comp_name, threats_json in results.items():
-                component = comp_by_name.get(comp_name)
-                if component is None:
-                    continue
-                for threat in threats_json or []:
-                    if not isinstance(threat, dict):
-                        continue
-                    try:
-                        ai_threats.append(_build_threat_dict(threat, component))
-                    except Exception as exc:
-                        logging.warning("Skipping malformed batch threat for %s: %s", comp_name, exc)
-            # Update progress for all components in this batch
-            processed_count[0] += len(batch)
-            if progress_callback:
-                names = ", ".join(c["name"] for c in batch)
-                progress_callback(
-                    f"AI Enrichment: {processed_count[0]}/{total_components} components processed ({names})"
-                )
-
-        async def process_batch(batch: List[Dict]) -> None:
-            async with semaphore:
-                try:
-                    results = await self.ai_provider.generate_threats_batch(batch, self.ai_context)
-                    _flush_batch_results(results, batch)
-                except Exception as e:
-                    logging.error("Batch AI enrichment failed (%s): %s — falling back to individual calls", [c["name"] for c in batch], e)
-                    # Fall back: call generate_threats per component sequentially
-                    for component in batch:
-                        try:
-                            threats_json = await self.ai_provider.generate_threats(component, self.ai_context)
-                            _flush_batch_results({component["name"]: threats_json}, [component])
-                        except Exception as exc:
-                            logging.error("Error enriching component %s: %s", component.get("name"), exc)
-                            processed_count[0] += 1
-
-        async def process_component_individual(component: Dict) -> None:
-            async with semaphore:
-                try:
-                    generated_threats = await self.ai_provider.generate_threats(component, self.ai_context)
-                    processed_count[0] += 1
-                    if progress_callback:
-                        progress_callback(f"AI Enrichment: {processed_count[0]}/{total_components} components processed ({component.get('name')})")
-                    for threat in generated_threats:
-                        if not isinstance(threat, dict):
-                            continue
-                        try:
-                            ai_threats.append(_build_threat_dict(threat, component))
-                        except Exception as exc:
-                            logging.warning("Skipping malformed threat for %s: %s", component.get("name"), exc)
-                except Exception as e:
-                    logging.error("Error enriching component %s: %s", component.get("name"), e)
-                    processed_count[0] += 1
-
-        use_batch = (
-            self._enrich_batch_size > 1
-            and hasattr(self.ai_provider, "generate_threats_batch")
-        )
-        if use_batch:
-            batch_size = self._enrich_batch_size
-            batches = [
-                components_to_enrich[i: i + batch_size]
-                for i in range(0, len(components_to_enrich), batch_size)
-            ]
-            logging.info(
-                "AI report enrichment (batch): %d components → %d batch(es) of up to %d",
-                total_components, len(batches), batch_size,
-            )
-            await asyncio.gather(*[process_batch(b) for b in batches])
-        else:
-            logging.info("AI report enrichment (individual): %d components", total_components)
-            tasks = [process_component_individual(c) for c in components_to_enrich]
-            await asyncio.gather(*tasks)
-
-        # Simple deduplication: identify unique AI threats based on category and description
-        existing_threats_signatures = set()
-        for threat in all_threats:
-            signature = (threat.get("stride_category"), threat.get("description"))
-            existing_threats_signatures.add(signature)
-
-        unique_ai_threats = []
-        for ai_threat in ai_threats:
-            signature = (ai_threat.get("stride_category"), ai_threat.get("description"))
-            if signature not in existing_threats_signatures:
-                unique_ai_threats.append(ai_threat)
-                existing_threats_signatures.add(signature)
-        
-        return all_threats + unique_ai_threats
+            progress_callback("Starting AI enrichment...")
+        try:
+            await service._enrich_with_ai_threats(threat_model)
+        except Exception as exc:
+            logging.warning("AI enrichment failed (non-fatal): %s", exc)
 
     def generate_html_report(self, threat_model, grouped_threats: Dict[str, List], 
                              output_file: Path = Path("stride_mitre_report.html"), 
@@ -663,14 +560,17 @@ class ReportGenerator:
             total_threats_analyzed = threat_model.mitre_analysis_results.get('total_threats', 0)
             total_mitre_techniques_mapped = threat_model.mitre_analysis_results.get('mitre_techniques_count', 0)
 
+            # AI enrichment must run BEFORE _get_all_threats_with_mitre_info(): it mutates
+            # threat_model in place (element.threats, tm.global_threats_llm), and that
+            # method's own collectors are what turn those mutations into AI/LLM entries
+            # in all_detailed_threats below.
+            if self.ai_provider:
+                asyncio.run(self._run_ai_enrichment(threat_model, progress_callback=progress_callback))
+
             if all_detailed_threats is None:
                 all_detailed_threats = self._get_all_threats_with_mitre_info(grouped_threats, threat_model)
-
-            if self.ai_provider:
-                 original_count = len(all_detailed_threats)
-                 all_detailed_threats = asyncio.run(self._enrich_threats_with_ai(threat_model, all_detailed_threats, progress_callback=progress_callback))
-                 ai_added = len(all_detailed_threats) - original_count
-                 logging.info(f"AI enrichment complete. Added {ai_added} new threats.")
+                _ai_count = sum(1 for t in all_detailed_threats if t.get('source') in ('AI', 'LLM'))
+                logging.info(f"AI enrichment complete. {_ai_count} AI/LLM threat(s) included.")
 
             # Recompute STRIDE distribution from the full threat list (pytm + AI + LLM)
             stride_distribution: Dict[str, int] = {}
@@ -678,6 +578,13 @@ class ReportGenerator:
                 cat = t.get('stride_category', '')
                 if cat in self._VALID_STRIDE:
                     stride_distribution[cat] = stride_distribution.get(cat, 0) + 1
+
+            # Assign stable T-0001-style ids now (same scheme as ReportSerializer) so
+            # downstream consumers built from this same list — CISO triage, threat graph —
+            # cite ids that actually match the final JSON/HTML report, instead of CISO
+            # triage inventing its own reference format because no id existed yet.
+            for _i, _t in enumerate(all_detailed_threats):
+                _t.setdefault("id", f"T-{_i + 1:04d}")
 
             self.all_detailed_threats = all_detailed_threats
             # Cache the final enriched threat list on the model so generate_global_project_report
@@ -699,22 +606,14 @@ class ReportGenerator:
             )
 
             completeness = _score_model_completeness(threat_model)
-            threat_graph = self._build_threat_graph_data(threat_model, all_detailed_threats)
             attack_id_validation = AttackIdValidator().validate_all(all_detailed_threats)
 
-            # CISO triage pass — runs after full ranked threat list is available
-            ciso_triage = {}
-            if self.ai_provider and all_detailed_threats:
-                try:
-                    ciso_triage = asyncio.run(self._run_ciso_triage(all_detailed_threats))
-                except Exception as exc:
-                    logging.warning("CISO triage failed: %s", exc)
-            # Cache on the model so generate_json_export can include it without re-running.
-            threat_model._ciso_triage = ciso_triage if ciso_triage else None
             threat_model._completeness = completeness
             threat_model._attack_id_validation = attack_id_validation
 
             # Red/Blue adversarial debate — mutates gdaf_scenarios in place (score/risk_level only).
+            # Runs BEFORE CISO triage and the threat graph so both can cite debate-adjusted
+            # GDAF outcomes instead of pre-debate scores.
             debate_results = []
             if self._debate_config.get("enabled") and self.ai_provider and getattr(threat_model, "gdaf_scenarios", None):
                 try:
@@ -722,6 +621,42 @@ class ReportGenerator:
                 except Exception as exc:
                     logging.warning("Red/Blue debate failed (non-fatal): %s", exc)
             threat_model.debate_results = debate_results
+
+            # Re-write the .afb Attack Flow files if the debate changed any scenario score.
+            # run_gdaf_engine() (called earlier in the pipeline, before this method) already
+            # wrote them once from the pre-debate scenarios — without this, the .afb files
+            # would permanently disagree with the debate-adjusted scores/risk_levels shown
+            # in this same HTML report.
+            if debate_results:
+                try:
+                    from threat_analysis.generation.attack_flow_builder import AttackFlowBuilder  # noqa: PLC0415
+                    AttackFlowBuilder(
+                        threat_model.gdaf_scenarios, model_name=str(threat_model.tm.name)
+                    ).generate_and_save(str(Path(output_file).parent))
+                except Exception as exc:
+                    logging.warning("Failed to re-write .afb files after debate (non-fatal): %s", exc)
+
+            # Built after the debate so GDAF path overlays reflect debate-adjusted scores.
+            threat_graph = self._build_threat_graph_data(
+                threat_model, all_detailed_threats,
+                gdaf_scenarios=getattr(threat_model, "gdaf_scenarios", None),
+                debate_results=debate_results,
+            )
+
+            # CISO triage pass — runs after the full ranked threat list AND the debate are
+            # available, so the briefing can reference GDAF attack scenarios and debate outcomes.
+            ciso_triage = {}
+            if self.ai_provider and all_detailed_threats:
+                try:
+                    ciso_triage = asyncio.run(self._run_ciso_triage(
+                        all_detailed_threats,
+                        gdaf_scenarios=getattr(threat_model, "gdaf_scenarios", None),
+                        debate_results=debate_results,
+                    ))
+                except Exception as exc:
+                    logging.warning("CISO triage failed: %s", exc)
+            # Cache on the model so generate_json_export can include it without re-running.
+            threat_model._ciso_triage = ciso_triage if ciso_triage else None
 
             # Build a serialised summary of GDAF scenarios for the HTML template.
             # Uses getattr for safety — works even if gdaf_scenarios was never populated.
@@ -824,6 +759,21 @@ class ReportGenerator:
                     "rounds": rounds_data,
                 })
 
+            # Automatically-discovered attack paths — best path per STRIDE category through
+            # the threats' own MITRE techniques, found independently of GDAF (no analyst-
+            # defined objectives/actors needed). Complements GDAF's analyst-driven scenarios
+            # with paths the threat data itself suggests.
+            discovered_attack_paths = []
+            if self._attack_flows_config.get("enabled", True):
+                try:
+                    discovered_attack_paths = AttackFlowGenerator(
+                        all_detailed_threats, model_name=str(threat_model.tm.name),
+                        allowed_categories=self._attack_flows_config.get("generate_for_categories"),
+                    ).get_paths_summary()
+                except Exception as exc:
+                    logging.warning("Discovered attack path summary failed (non-fatal): %s", exc)
+                    discovered_attack_paths = []
+
             template = self.env.get_template('report_template.html')
             html = template.render(
                 title="STRIDE & MITRE ATT&CK Report",
@@ -841,6 +791,7 @@ class ReportGenerator:
                 attack_chains=attack_chains,
                 gdaf_scenarios=gdaf_data,
                 debate_results=debate_data,
+                discovered_attack_paths=discovered_attack_paths,
                 ciso_triage=ciso_triage,
                 completeness=completeness,
                 attack_id_validation=attack_id_validation,
@@ -862,7 +813,14 @@ class ReportGenerator:
         self.threat_model_ref = threat_model
 
         try:
-            all_detailed_threats = self._get_all_threats_with_mitre_info(grouped_threats, threat_model)
+            # Reuse the AI-enriched list cached by generate_html_report() if available —
+            # otherwise this recomputes pytm-only threats and silently drops AI/LLM threats
+            # (generate_html_report must run first in the same process for the cache to exist).
+            cached_threats = getattr(threat_model, "_report_all_detailed_threats", None)
+            if cached_threats:
+                all_detailed_threats = cached_threats
+            else:
+                all_detailed_threats = self._get_all_threats_with_mitre_info(grouped_threats, threat_model)
             export_data = ReportSerializer.serialize(threat_model, all_detailed_threats)
 
             # Include cached CISO triage if available (set by generate_html_report)
@@ -1000,7 +958,13 @@ class ReportGenerator:
         """Generates a STIX export of the analysis data"""
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        all_detailed_threats = self._get_all_threats_with_mitre_info(grouped_threats, threat_model)
+        # Reuse the AI-enriched list cached by generate_html_report() if available — see
+        # generate_json_export() for why this matters.
+        cached_threats = getattr(threat_model, "_report_all_detailed_threats", None)
+        if cached_threats:
+            all_detailed_threats = cached_threats
+        else:
+            all_detailed_threats = self._get_all_threats_with_mitre_info(grouped_threats, threat_model)
 
         stix_generator = StixGenerator(threat_model, all_detailed_threats)
         stix_bundle = stix_generator.generate_stix_bundle()
@@ -1026,6 +990,17 @@ class ReportGenerator:
 
     def _get_all_threats_with_mitre_info(self, grouped_threats: Dict[str, List], threat_model: ThreatModel) -> List[Dict[str, Any]]:
         """Gathers detailed information for all threats, including MITRE ATT&CK mapping and severity."""
+        # Sync severity multipliers from the actual model's '## Severity Multipliers' DSL
+        # section (already parsed onto threat_model.severity_multipliers by ModelParser).
+        # self.severity_calculator is injected at construction time and may be a long-lived
+        # singleton (server mode) reused across different models — without this, it would
+        # score every model using whichever multipliers happened to be loaded first (or
+        # none at all). Always sync (even with an empty dict) so a model with no
+        # multipliers of its own correctly clears any left over from a previous one.
+        self.severity_calculator.update_target_multipliers(
+            getattr(threat_model, "severity_multipliers", {}) or {}
+        )
+
         pytm_threat_dicts = []
 
         # Load VEX and BOM once — VEX takes priority for CVE scoring, BOM is fallback
@@ -1174,6 +1149,14 @@ class ReportGenerator:
         # Dataflows are stored as pytm objects directly (not dicts)
         for df in threat_model.dataflows:
             enriched_elements.append((df, getattr(df, 'name', ''), None))
+        # Boundaries are also an AI-enrichment target (A3, see decisions.md) — omitting
+        # them here silently dropped every AI threat attached to a boundary from the
+        # final report, even though AIService._enrich_with_ai_threats() and the SOC
+        # analysis pass both process boundary elements.
+        for b_name, b_info in threat_model.boundaries.items():
+            boundary_obj = b_info.get('boundary')
+            if boundary_obj is not None:
+                enriched_elements.append((boundary_obj, b_name, b_info.get('business_value')))
 
         for element_obj, element_name, business_value in enriched_elements:
             if element_obj is None:
@@ -1253,7 +1236,13 @@ class ReportGenerator:
         # Process global RAG threats
         if hasattr(threat_model.tm, 'global_threats_llm'): # Access via threat_model
             for threat in threat_model.tm.global_threats_llm:
-                target_name = "Threat Model (Global)" # RAG threats are system-level
+                # RAG threats are system-level (cross-component) by design, but the LLM
+                # is explicitly asked for affected_components — use it for a target more
+                # specific than a generic label when available (also lets severity
+                # multipliers on those components apply, same as any other threat).
+                ai_details = getattr(threat, 'ai_details', None) or {}
+                affected = [c for c in (ai_details.get('affected_components') or []) if c]
+                target_name = " → ".join(affected) if affected else "Threat Model (Global)"
                 threat_description = getattr(threat, 'description', 'RAG-generated global threat')
                 stride_category = getattr(threat, 'category', 'Generic RAG Threat')
                 threat_source = getattr(threat, 'source', 'LLM')
@@ -1460,6 +1449,8 @@ class ReportGenerator:
         self,
         threat_model: "ThreatModel",
         all_threats: List[Dict],
+        gdaf_scenarios: Optional[List[Any]] = None,
+        debate_results: Optional[List[Any]] = None,
     ) -> Dict:
         """Build a JSON-serialisable graph for the interactive threat visualization.
 
@@ -1468,7 +1459,12 @@ class ReportGenerator:
         The ``threats_by_node`` dict maps node ids to a compact threat list
         so the template JS can render a click panel without extra requests.
 
-        Returns a dict with keys ``nodes``, ``edges``, ``threats_by_node``.
+        ``gdaf_scenarios``/``debate_results`` are optional — when provided (post-debate),
+        a ``gdaf_paths`` list is included so the template JS can let the user highlight a
+        GDAF attack path (entry actor → hop assets → target) over the graph, showing
+        whether the Red/Blue debate found that path still viable.
+
+        Returns a dict with keys ``nodes``, ``edges``, ``threats_by_node``, ``gdaf_paths``.
         An empty dict is returned when the model has no components.
         """
         # --- build per-component threat index ---------------------------------
@@ -1566,10 +1562,34 @@ class ReportGenerator:
             for k, v in threats_by_node.items()
         }
 
+        # --- GDAF attack paths (post-debate, if available) --------------------
+        debate_by_scenario = {getattr(r, "scenario_id", None): r for r in (debate_results or [])}
+        gdaf_paths: List[Dict] = []
+        for scenario in (gdaf_scenarios or [])[:10]:
+            entry = getattr(scenario, "entry_point", "") or ""
+            hop_names = [getattr(h, "asset_name", "") for h in getattr(scenario, "hops", [])]
+            node_sequence = [n for n in ([entry] + hop_names) if n]
+            # dedupe consecutive repeats (entry_point sometimes equals the first hop)
+            node_sequence = [n for i, n in enumerate(node_sequence) if i == 0 or n != node_sequence[i - 1]]
+            if len(node_sequence) < 2:
+                continue
+            debate_result = debate_by_scenario.get(getattr(scenario, "scenario_id", None))
+            gdaf_paths.append({
+                "scenario_id": getattr(scenario, "scenario_id", ""),
+                "objective_name": getattr(scenario, "objective_name", ""),
+                "actor_name": getattr(scenario, "actor_name", ""),
+                "risk_level": getattr(scenario, "risk_level", "LOW"),
+                "path_score": round(float(getattr(scenario, "path_score", 0) or 0), 2),
+                "debated": debate_result is not None,
+                "residual_path_viable": bool(getattr(debate_result, "residual_path_viable", True)) if debate_result is not None else None,
+                "nodes": node_sequence,
+            })
+
         return {
             "nodes": nodes,
             "edges": edges,
             "threats_by_node": compact_threats,
+            "gdaf_paths": gdaf_paths,
         }
 
     def _get_all_business_values(self, threat_model: ThreatModel) -> List[str]:
@@ -1937,7 +1957,7 @@ class ReportGenerator:
             if progress_callback: progress_callback(f"Generating STIX report: {model_name}...")
             try:
                 stix_output_file = output_dir / f"{model_name}_stix_report.json"
-                all_detailed_threats = threat_model.get_all_threats_details()
+                all_detailed_threats = get_enriched_threats(threat_model)
                 stix_generator_instance = StixGenerator(
                     threat_model=threat_model,
                     all_detailed_threats=all_detailed_threats
@@ -1952,7 +1972,7 @@ class ReportGenerator:
             if progress_callback: progress_callback(f"Generating ATT&CK Navigator: {model_name}...")
             try:
                 navigator_output_file = output_dir / f"{model_name}_attack_navigator_layer.json"
-                all_detailed_threats = threat_model.get_all_threats_details()
+                all_detailed_threats = get_enriched_threats(threat_model)
                 navigator_generator = AttackNavigatorGenerator(
                     threat_model_name=threat_model.tm.name,
                     all_detailed_threats=all_detailed_threats
@@ -1963,7 +1983,7 @@ class ReportGenerator:
                 logging.error(f"❌ Failed to generate ATT&CK Navigator layer for {model_name}: {e}")
 
             try:
-                all_detailed_threats = threat_model.get_all_threats_details()
+                all_detailed_threats = get_enriched_threats(threat_model)
                 attack_flow_gen = AttackFlowGenerator(
                     threats=all_detailed_threats,
                     model_name=threat_model.tm.name,

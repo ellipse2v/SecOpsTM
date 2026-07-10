@@ -168,6 +168,36 @@ class MitreMapping:
                 break
         return d3fend_mitigations
 
+    _CAPEC_RELEVANCE_MAX = 10  # cap on STRIDE-category-derived CAPECs per threat (see _rank_capecs_by_relevance)
+
+    @staticmethod
+    def _rank_capecs_by_relevance(threat_description: str, capec_list: List[Dict[str, Any]],
+                                   max_results: int = _CAPEC_RELEVANCE_MAX) -> List[Dict[str, Any]]:
+        """Narrows a STRIDE-category CAPEC bucket (up to ~150 entries) to the patterns whose
+        own description shares vocabulary with the threat's description.
+
+        Without this, every threat lacking explicit ``capec_ids`` (i.e. every plain pytm
+        threat — only SecOpsTM's custom_threats.py rules set capec_ids) gets the *entire*
+        STRIDE-category bucket verbatim, most of it unrelated to the actual threat (e.g. a
+        network tampering threat tagged with "Buffer Overflow via Environment Variables").
+        Offline word-overlap ranking, same approach as ThreatConsolidator's dedup — no new
+        dependency, deterministic.
+        """
+        if not capec_list:
+            return capec_list
+        if not threat_description or len(capec_list) <= max_results:
+            return capec_list
+        desc_words = set(re.findall(r"[a-z]{4,}", threat_description.lower()))
+        if not desc_words:
+            return capec_list[:max_results]
+        scored = [
+            (len(desc_words & set(re.findall(r"[a-z]{4,}", c.get('description', '').lower()))), c)
+            for c in capec_list
+        ]
+        scored.sort(key=lambda pair: pair[0], reverse=True)
+        top = [c for score, c in scored[:max_results] if score > 0]
+        return top if top else capec_list[:max_results]
+
     def map_threat_to_mitre(self, threat: Dict[str, Any]) -> Dict[str, List[Dict[str, Any]]]:
         """
         Maps a threat to MITRE ATT&CK techniques and CAPEC patterns.
@@ -179,8 +209,11 @@ class MitreMapping:
 
         explicit_capec_ids = threat.get("capec_ids", [])
         if not explicit_capec_ids:
-            # No CAPEC IDs provided — derive from STRIDE category
-            capec_list = self.stride_to_capec.get(stride_category, [])
+            # No CAPEC IDs provided — derive from STRIDE category, narrowed to the patterns
+            # relevant to this specific threat (see _rank_capecs_by_relevance).
+            capec_list = self._rank_capecs_by_relevance(
+                threat.get("description", ""), self.stride_to_capec.get(stride_category, [])
+            )
             direct_capec_ids = [c['capec_id'] for c in capec_list]
             for capec_info in capec_list:
                 if capec_info['capec_id'] not in found_capecs:
@@ -227,7 +260,9 @@ class MitreMapping:
         # Fallback: if explicit CAPEC IDs were provided but none mapped to ATT&CK techniques,
         # fall back to the stride_category lookup so reports are never empty.
         if explicit_capec_ids and not found_techniques and stride_category:
-            capec_list = self.stride_to_capec.get(stride_category, [])
+            capec_list = self._rank_capecs_by_relevance(
+                threat.get("description", ""), self.stride_to_capec.get(stride_category, [])
+            )
             for capec_info in capec_list:
                 cid = capec_info['capec_id']
                 if cid not in found_capecs:

@@ -58,6 +58,40 @@ def test_map_threat_to_mitre_spoofing(mitre_mapping_instance):
     technique_ids = [t['id'] for t in techniques]
     assert "T1566" in technique_ids
 
+def test_map_threat_to_mitre_caps_capecs_without_explicit_ids(mitre_mapping_instance):
+    """A threat with no explicit capec_ids must not get the entire STRIDE-category CAPEC
+    bucket (Tampering alone has ~149 entries) — only the ones relevant to its description,
+    capped at _CAPEC_RELEVANCE_MAX.
+    """
+    full_bucket_size = len(mitre_mapping_instance.stride_to_capec.get("Tampering", []))
+    assert full_bucket_size > MitreMapping._CAPEC_RELEVANCE_MAX, "fixture data too small to exercise the cap"
+
+    threat = {
+        "description": "Untrusted actor may attempt to inject malicious data.",
+        "stride_category": "Tampering",
+    }
+    mapping_results = mitre_mapping_instance.map_threat_to_mitre(threat)
+    capecs = mapping_results["capecs"]
+
+    assert 0 < len(capecs) <= MitreMapping._CAPEC_RELEVANCE_MAX
+    assert len(capecs) < full_bucket_size
+
+
+def test_rank_capecs_by_relevance_prefers_keyword_overlap():
+    """Ranking must prefer CAPECs whose own description shares words with the threat
+    description, not just return the list truncated in its original order.
+    """
+    capec_list = [
+        {"capec_id": "CAPEC-1", "description": "Buffer Overflow via Environment Variables"},
+        {"capec_id": "CAPEC-2", "description": "Injection of malicious data into network traffic"},
+        {"capec_id": "CAPEC-3", "description": "Unrelated pattern about physical access"},
+    ]
+    ranked = MitreMapping._rank_capecs_by_relevance(
+        "An attacker may inject malicious data over the network.", capec_list, max_results=1
+    )
+    assert ranked == [capec_list[1]]
+
+
 def test_get_stride_categories(mitre_mapping_instance):
     """Test the get_stride_categories method."""
     categories = mitre_mapping_instance.get_stride_categories()

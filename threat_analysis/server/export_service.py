@@ -30,6 +30,7 @@ from threat_analysis.core.model_validator import ModelValidator
 from threat_analysis.generation.attack_navigator_generator import AttackNavigatorGenerator
 from threat_analysis.generation.stix_generator import StixGenerator
 from threat_analysis.generation.attack_flow_generator import AttackFlowGenerator
+from threat_analysis.generation.utils import get_enriched_threats
 from threat_analysis.utils import resolve_gdaf_context, resolve_bom_directory
 
 TIMESTAMP_FORMAT = "%Y-%m-%d_%H-%M-%S"
@@ -182,14 +183,36 @@ class ExportService:
             dot_code = self.diagram_generator._generate_manual_dot(threat_model)
             svg_filepath = export_path / "tm_diagram.svg"
             self.diagram_generator.generate_diagram_from_dot(dot_code, str(svg_filepath), format="svg")
+
+            # GDAF: Goal-Driven Attack Flow (objective-based, requires context with attack_objectives)
+            # Run BEFORE the HTML report so that gdaf_scenarios are available in the report.
+            try:
+                from threat_analysis.utils import run_gdaf_engine
+                _scenarios = run_gdaf_engine(threat_model, export_path=export_path)
+                if _scenarios:
+                    logging.info("GDAF: generated %d attack scenarios in %s/gdaf", len(_scenarios), export_path)
+            except Exception as e:
+                logging.warning("GDAF generation skipped (non-fatal): %s", e)
+
+            # HTML report generated before JSON/STIX/Navigator/Attack Flow below: it runs AI
+            # enrichment, the Red/Blue debate, and caches the resulting threat list on
+            # threat_model._report_all_detailed_threats — get_enriched_threats() picks that
+            # cache up so these exports include AI/LLM threats instead of only pytm's.
+            report_path = export_path / "stride_mitre_report.html"
+            self.report_generator.generate_html_report(threat_model, grouped_threats, report_path, progress_callback=single_file_progress_cb)
+
+            # Diagram severity heat map (B2) built after the HTML report so it reflects
+            # AI-enriched threats too, not just pytm's — same reasoning as the AI-threat
+            # reordering above. generate_html_report() attaches AI threats to
+            # element.threats, which _compute_severity_map() also reads.
             graph_metadata = self.diagram_service._extract_graph_metadata_for_frontend(threat_model)
             severity_map = self.report_generator._compute_severity_map(threat_model)
-
             html_diagram_path = export_path / "tm_diagram.html"
             self.diagram_generator._generate_html_with_legend(
                 svg_filepath, html_diagram_path, threat_model, graph_metadata, severity_map,
                 report_url="stride_mitre_report.html",
             )
+
             json_report_path = export_path / "mitre_analysis.json"
             self.report_generator.generate_json_export(threat_model, grouped_threats, json_report_path)
 
@@ -200,7 +223,7 @@ class ExportService:
             except Exception as e:
                 logging.warning(f"Could not generate remediation checklist: {e}")
 
-            all_detailed_threats = threat_model.get_all_threats_details()
+            all_detailed_threats = get_enriched_threats(threat_model)
             navigator_generator = AttackNavigatorGenerator(threat_model_name=str(threat_model.tm.name), all_detailed_threats=all_detailed_threats)
             navigator_filename = JSON_NAVIGATOR_FILENAME_TPL.format(timestamp=timestamp)
             navigator_generator.save_layer_to_file(str(export_path / navigator_filename))
@@ -219,20 +242,6 @@ class ExportService:
                 logging.info("Attack Flow files generated in %s/afb", export_path)
             except Exception as e:
                 logging.error("Failed to generate Attack Flow: %s", e)
-
-            # GDAF: Goal-Driven Attack Flow (objective-based, requires context with attack_objectives)
-            # Run BEFORE the HTML report so that gdaf_scenarios are available in the report.
-            try:
-                from threat_analysis.utils import run_gdaf_engine
-                _scenarios = run_gdaf_engine(threat_model, export_path=export_path)
-                if _scenarios:
-                    logging.info("GDAF: generated %d attack scenarios in %s/gdaf", len(_scenarios), export_path)
-            except Exception as e:
-                logging.warning("GDAF generation skipped (non-fatal): %s", e)
-
-            # HTML report generated last so it includes GDAF scenarios
-            report_path = export_path / "stride_mitre_report.html"
-            self.report_generator.generate_html_report(threat_model, grouped_threats, report_path, progress_callback=single_file_progress_cb)
 
             result["reports"] = {
                 "html": "stride_mitre_report.html",
@@ -315,7 +324,12 @@ class ExportService:
         if errors := validator.validate():
             raise ValueError("Validation failed: " + ", ".join(errors))
 
-        all_detailed_threats = threat_model.get_all_threats_details()
+        # Intentionally pytm-only, no AI enrichment: this is the fast dedicated
+        # Navigator+STIX export (no generate_html_report() call, no AI/GDAF/debate) —
+        # unlike "Export All", which runs the full enrichment pipeline and takes
+        # noticeably longer. get_enriched_threats() would fall back to
+        # get_all_threats_details() anyway since this threat_model is freshly built.
+        all_detailed_threats = get_enriched_threats(threat_model)
         navigator_generator = AttackNavigatorGenerator(threat_model_name=str(threat_model.tm.name), all_detailed_threats=all_detailed_threats)
         navigator_filepath = output_dir / JSON_NAVIGATOR_FILENAME_TPL.format(timestamp=timestamp)
         navigator_generator.save_layer_to_file(str(navigator_filepath))
@@ -350,7 +364,9 @@ class ExportService:
                 raise RuntimeError("Failed to create or validate threat model")
 
             threat_model.process_threats()
-            all_detailed_threats = threat_model.get_all_threats_details()
+            # Intentionally pytm-only, no AI enrichment — see export_navigator_stix_logic
+            # above for why (fast dedicated export, no generate_html_report() call).
+            all_detailed_threats = get_enriched_threats(threat_model)
 
             attack_flow_generator = AttackFlowGenerator(threats=all_detailed_threats, model_name=threat_model.tm.name)
             attack_flow_generator.generate_and_save_flows(temp_export_dir)

@@ -88,6 +88,129 @@ def test_generate_html_report(mock_get_framework_mitigations, report_generator):
     assert result == output_file
     mock_template.render.assert_called_once()
 
+
+@patch('threat_analysis.generation.report_generator.get_framework_mitigation_suggestions')
+def test_generate_html_report_assigns_stable_threat_ids(mock_get_framework_mitigations, report_generator):
+    """generate_html_report() must assign T-0001-style ids onto all_detailed_threats
+    before CISO triage / threat graph build, so those consumers (and the later JSON/STIX
+    export, which now reuses this same cached list) all reference the same ids.
+    """
+    threat_model = MagicMock()
+    threat_model.mitre_analysis_results = {
+        'total_threats': 2, 'mitre_techniques_count': 0, 'stride_distribution': {}
+    }
+    threat_model.tm.name = "Test Architecture"
+
+    def _mock_threat(desc):
+        m = MagicMock(description=desc, stride_category='S',
+                       target=MagicMock(data=MagicMock(classification=MagicMock(name='Public'))))
+        if hasattr(m, 'mitigations'):
+            del m.mitigations
+        return m
+
+    grouped_threats = {
+        'Spoofing': [
+            (_mock_threat("First threat"), MagicMock(name="Target A")),
+            (_mock_threat("Second threat"), MagicMock(name="Target B")),
+        ]
+    }
+
+    report_generator.severity_calculator.get_severity_info.return_value = {'level': 'High', 'score': 8.0}
+    report_generator.mitre_mapping.map_threat_to_mitre.return_value = {'techniques': [], 'capecs': []}
+    mock_get_framework_mitigations.return_value = []
+
+    with patch.object(report_generator.env, 'get_template') as mock_get_template:
+        mock_get_template.return_value = MagicMock()
+        with patch("builtins.open", mock_open()):
+            report_generator.generate_html_report(threat_model, grouped_threats, "test_report.html")
+
+    cached = threat_model._report_all_detailed_threats
+    assert [t["id"] for t in cached] == ["T-0001", "T-0002"]
+
+
+@patch('threat_analysis.generation.report_generator.get_framework_mitigation_suggestions')
+def test_generate_html_report_computes_discovered_attack_paths(mock_get_framework_mitigations, report_generator):
+    """generate_html_report() must compute discovered_attack_paths (AttackFlowGenerator's
+    best-path-per-STRIDE-category, independent of GDAF) and pass it to the template —
+    this is the new 'Automatically Discovered Attack Paths' HTML section.
+    """
+    threat_model = MagicMock()
+    threat_model.mitre_analysis_results = {
+        'total_threats': 1, 'mitre_techniques_count': 1, 'stride_distribution': {}
+    }
+    threat_model.tm.name = "Test Architecture"
+
+    threat_mock = MagicMock(description="Data destruction", stride_category='Tampering',
+                             target=MagicMock(data=MagicMock(classification=MagicMock(name='Public'))))
+    if hasattr(threat_mock, 'mitigations'):
+        del threat_mock.mitigations
+
+    grouped_threats = {
+        'Tampering': [
+            (threat_mock, MagicMock(name="FileServer")),
+        ]
+    }
+
+    report_generator.severity_calculator.get_severity_info.return_value = {'level': 'HIGH', 'score': 9.0}
+    report_generator.mitre_mapping.map_threat_to_mitre.return_value = {
+        'techniques': [{'id': 'T1485', 'name': 'Data Destruction', 'tactics': ['Impact'],
+                        'defend_mitigations': [], 'mitre_mitigations': [],
+                        'owasp_mitigations': [], 'nist_mitigations': [], 'cis_mitigations': []}],
+        'capecs': [],
+    }
+    mock_get_framework_mitigations.return_value = []
+
+    with patch.object(report_generator.env, 'get_template') as mock_get_template:
+        mock_template = MagicMock()
+        mock_get_template.return_value = mock_template
+        with patch("builtins.open", mock_open()):
+            report_generator.generate_html_report(threat_model, grouped_threats, "test_report.html")
+
+    render_kwargs = mock_template.render.call_args.kwargs
+    paths = render_kwargs["discovered_attack_paths"]
+    assert len(paths) == 1
+    assert paths[0]["stride_category"] == "Tampering"
+    assert paths[0]["hops"][0]["technique_id"] == "T1485"
+    assert "FileServer" in paths[0]["path_label"]
+
+
+@patch('threat_analysis.generation.report_generator.get_framework_mitigation_suggestions')
+def test_generate_html_report_skips_discovered_attack_paths_when_disabled(mock_get_framework_mitigations, report_generator):
+    """attack_flows.enabled: false was previously dead config — must actually skip
+    discovered-path computation.
+    """
+    threat_model = MagicMock()
+    threat_model.mitre_analysis_results = {
+        'total_threats': 1, 'mitre_techniques_count': 1, 'stride_distribution': {}
+    }
+    threat_model.tm.name = "Test Architecture"
+
+    threat_mock = MagicMock(description="Data destruction", stride_category='Tampering',
+                             target=MagicMock(data=MagicMock(classification=MagicMock(name='Public'))))
+    if hasattr(threat_mock, 'mitigations'):
+        del threat_mock.mitigations
+
+    grouped_threats = {'Tampering': [(threat_mock, MagicMock(name="FileServer"))]}
+
+    report_generator.severity_calculator.get_severity_info.return_value = {'level': 'HIGH', 'score': 9.0}
+    report_generator.mitre_mapping.map_threat_to_mitre.return_value = {
+        'techniques': [{'id': 'T1485', 'name': 'Data Destruction', 'tactics': ['Impact'],
+                        'defend_mitigations': [], 'mitre_mitigations': [],
+                        'owasp_mitigations': [], 'nist_mitigations': [], 'cis_mitigations': []}],
+        'capecs': [],
+    }
+    mock_get_framework_mitigations.return_value = []
+    report_generator._attack_flows_config = {"enabled": False}
+
+    with patch.object(report_generator.env, 'get_template') as mock_get_template:
+        mock_template = MagicMock()
+        mock_get_template.return_value = mock_template
+        with patch("builtins.open", mock_open()):
+            report_generator.generate_html_report(threat_model, grouped_threats, "test_report.html")
+
+    assert mock_template.render.call_args.kwargs["discovered_attack_paths"] == []
+
+
 def test_generate_json_export(report_generator):
     threat_model = MagicMock()
     threat_model.tm.name = "Test Architecture"
@@ -134,6 +257,38 @@ def test_generate_json_export(report_generator):
         mock_file.assert_called_once_with(output_file, "w", encoding="utf-8")
 
     assert result == output_file
+
+
+def test_generate_json_export_reuses_ai_enriched_cache(report_generator):
+    """generate_json_export must reuse threat_model._report_all_detailed_threats (set by
+    generate_html_report after AI enrichment) instead of recomputing pytm-only threats —
+    otherwise AI/LLM-sourced threats present in the HTML report silently vanish from the
+    JSON/STIX exports.
+    """
+    threat_model = MagicMock()
+    threat_model.tm.name = "Test Architecture"
+
+    cached_ai_threat = {
+        "id": "T-0001",
+        "description": "AI-enriched threat",
+        "stride_category": "Spoofing",
+        "target": "TestTarget",
+        "source": "AI",
+        "severity": {"level": "High", "score": 8.0},
+        "confidence": 0.9,
+        "capec_ids": [],
+        "mitigations": [],
+    }
+    threat_model._report_all_detailed_threats = [cached_ai_threat]
+
+    with patch.object(report_generator, "_get_all_threats_with_mitre_info") as mock_recompute, \
+         patch("threat_analysis.generation.report_generator.ReportSerializer") as mock_serializer, \
+         patch("builtins.open", mock_open()):
+        mock_serializer.serialize.return_value = {"threats": [cached_ai_threat]}
+        report_generator.generate_json_export(threat_model, {}, "test_export.json")
+
+        mock_recompute.assert_not_called()
+        mock_serializer.serialize.assert_called_once_with(threat_model, [cached_ai_threat])
 
 def test_get_all_threats_with_mitre_info_handles_missing_url_friendly_name_source(report_generator):
     threat_model = MagicMock()
