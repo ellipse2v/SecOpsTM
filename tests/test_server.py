@@ -15,7 +15,7 @@
 import pytest
 import json
 import os
-from unittest.mock import patch, MagicMock, mock_open, ANY
+from unittest.mock import patch, MagicMock, mock_open, ANY, AsyncMock
 from io import BytesIO
 import base64
 import sys
@@ -29,6 +29,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 # Now we can import the app
 import threat_analysis.server.server as _server_module
 from threat_analysis.server.server import app, run_server, DEFAULT_EMPTY_MARKDOWN, get_threat_model_service
+from flask import session
 
 @pytest.fixture
 def client():
@@ -159,6 +160,30 @@ def test_run_server_with_no_model_file(client):
             assert response.status_code == 200
             assert b'Threat Model Editor' in response.data
 
+def test_run_server_warns_when_bound_to_non_loopback_host(client, caplog, monkeypatch):
+    """No route has authentication (single-user tool, by design) — binding to
+    anything other than loopback (e.g. FLASK_HOST=0.0.0.0, what the Docker image
+    sets by default) must log a clear warning, since the README/DOCKER_HUB.md's
+    first onboarding command exposes exactly this configuration.
+    """
+    monkeypatch.setenv("FLASK_HOST", "0.0.0.0")
+    with patch('os.path.exists', return_value=False):
+        with patch('threat_analysis.server.server.app.run'):
+            with caplog.at_level("WARNING"):
+                run_server(model_filepath=None)
+
+    assert "NO authentication" in caplog.text
+    assert "0.0.0.0" in caplog.text
+
+def test_run_server_no_warning_when_bound_to_loopback(client, caplog, monkeypatch):
+    monkeypatch.setenv("FLASK_HOST", "127.0.0.1")
+    with patch('os.path.exists', return_value=False):
+        with patch('threat_analysis.server.server.app.run'):
+            with caplog.at_level("WARNING"):
+                run_server(model_filepath=None)
+
+    assert "NO authentication" not in caplog.text
+
 def test_run_server_with_non_existent_model_file(client):
     """Test that run_server starts with DEFAULT_EMPTY_MARKDOWN if a non-existent model file is provided."""
     with patch('os.path.exists', return_value=False): # Simulate file not found
@@ -195,6 +220,71 @@ def test_run_server_with_existing_model_file(client):
                 assert expected_encoded_json in response.data.decode('utf-8')
                 # Verify that our specific file was indeed opened
                 assert any(call.args[0] == model_path for call in mock_file.call_args_list)
+
+def test_initialize_ai_in_background_logs_when_event_queue_push_fails(caplog):
+    """A broken ai_status_event_queue must be logged, not silently swallowed —
+    previously `except Exception: pass` meant a broken queue silently stopped all
+    further AI status updates from reaching the client with zero trace in the logs.
+    """
+    mock_service = MagicMock()
+    mock_service.init_ai = AsyncMock()
+    mock_service.ai_online = True
+
+    with patch('threat_analysis.server.server.get_threat_model_service', return_value=mock_service), \
+         patch('threat_analysis.server.server.ai_status_broadcaster') as mock_broadcaster, \
+         patch('threat_analysis.server.events.ai_status_event_queue') as mock_queue:
+        mock_queue.put.side_effect = RuntimeError("queue is broken")
+        with caplog.at_level("WARNING"):
+            _server_module.initialize_ai_in_background()
+
+    mock_broadcaster.broadcast.assert_called_once_with("ai_status", {"ai_online": True})
+    assert "Could not push ai_status to event queue" in caplog.text
+    assert "queue is broken" in caplog.text
+
+def test_get_active_model_file_path_prefers_session_over_global():
+    """_get_active_model_file_path() (used everywhere set_project_path's effect is
+    read) must prefer the current session's override over the process-wide
+    startup global — this is the core of the fix: two browser sessions must not
+    share one active project via mutable global state (server runs threaded=True).
+    """
+    _server_module.initial_model_file_path = "/startup/default.md"
+    with app.test_request_context():
+        # No session override yet -> falls back to the startup value.
+        assert _server_module._get_active_model_file_path() == "/startup/default.md"
+
+        session['model_file_path'] = "/session/override.md"
+        assert _server_module._get_active_model_file_path() == "/session/override.md"
+
+def test_get_active_project_path_prefers_session_over_global():
+    _server_module.initial_project_path = "/startup/project"
+    with app.test_request_context():
+        assert _server_module._get_active_project_path() == "/startup/project"
+
+        session['project_path'] = "/session/project"
+        assert _server_module._get_active_project_path() == "/session/project"
+
+def test_set_project_path_isolated_between_sessions(tmp_path):
+    """Two independent browser sessions (different cookie jars) must each keep
+    their own session['project_path'] / session['model_file_path'] — simulated
+    directly via two request contexts since set_project_path itself is one of the
+    `await request.get_json()` routes this test suite documents as untestable via
+    the synchronous WSGI client (see note above).
+    """
+    project_a = tmp_path / "project_a"
+    project_a.mkdir()
+    project_b = tmp_path / "project_b"
+    project_b.mkdir()
+
+    with app.test_client() as client_a, app.test_client() as client_b:
+        with client_a.session_transaction() as sess_a:
+            sess_a['project_path'] = str(project_a)
+        with client_b.session_transaction() as sess_b:
+            sess_b['project_path'] = str(project_b)
+
+        with client_a.session_transaction() as sess_a:
+            assert sess_a['project_path'] == str(project_a)
+        with client_b.session_transaction() as sess_b:
+            assert sess_b['project_path'] == str(project_b)
 
 def test_export_all_api_success(client):
     """Test the /api/export_all endpoint for successful ZIP file generation."""

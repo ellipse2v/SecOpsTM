@@ -95,7 +95,6 @@ ai_providers:
     num_ctx: 4096
     num_predict: 4096
     temperature: 0.3
-    attack_flow_temperature: 0.2   # lower = more deterministic for structured JSON output
     timeout: 60                    # aiohttp session timeout (seconds); connection-level
     ssl_verify: true
     # Note: Ollama retry count (3 attempts, exponential back-off) is fixed in
@@ -162,6 +161,12 @@ rag:
   enabled: true
   vector_db: "chroma"
   top_k_examples: 5
+  # Below this many components (actors + servers), RAG's system-level pass is
+  # skipped — cross-model/cross-boundary chaining needs several components to
+  # produce grounded output; on tiny models it mostly restates single-component
+  # threats already covered by the per-component AI pass. Component-level AI
+  # enrichment is unaffected. 0 disables the threshold (always run RAG).
+  min_components: 3
 
 # Embeddings — default is local HuggingFace (no API key, works offline)
 # WARNING: changing the model requires rebuilding the vector store:

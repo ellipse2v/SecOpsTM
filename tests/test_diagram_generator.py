@@ -66,6 +66,22 @@ def test_get_element_name(diagram_generator):
     assert diagram_generator._get_element_name("String Name") == "String Name"
     assert diagram_generator._get_element_name(None) is None
 
+def test_get_element_name_unstringable_element_logs_warning(diagram_generator, caplog):
+    """The last-resort str(element) fallback must log why it failed, not silently
+    return None — a bare `except:` there previously masked real extraction bugs
+    (and could swallow KeyboardInterrupt/SystemExit).
+    """
+    class Unstringable:
+        def __str__(self):
+            raise RuntimeError("boom")
+
+    with caplog.at_level("WARNING"):
+        result = diagram_generator._get_element_name(Unstringable())
+
+    assert result is None
+    assert "Could not convert element to string" in caplog.text
+    assert "boom" in caplog.text
+
 def test_extract_data_info(diagram_generator):
     # Test with single Data object
     mock_data_single = MagicMock(spec=[])
@@ -407,6 +423,30 @@ def test_generate_diagram_from_dot_subprocess_error(diagram_generator):
         with patch.object(diagram_generator, 'check_graphviz_installation', return_value=True):
             result = diagram_generator.generate_diagram_from_dot("digraph G {}", "output", "svg")
             assert result is None
+
+def test_generate_diagram_from_dot_subprocess_error_uses_unique_tempfile(diagram_generator, tmp_path, caplog):
+    """The Graphviz stderr dump must go to a unique tempfile.mkstemp() path, not a
+    fixed /tmp/graphviz_error.log — a fixed world-writable path lets concurrent
+    requests clobber each other's dump and is vulnerable to a symlink attack on a
+    shared host.
+    """
+    import tempfile as tempfile_module
+    with patch('subprocess.run') as mock_run:
+        mock_run.side_effect = subprocess.CalledProcessError(1, 'dot', stderr="Graphviz error detail")
+        with patch.object(diagram_generator, 'check_graphviz_installation', return_value=True):
+            with patch.object(tempfile_module, 'mkstemp', wraps=tempfile_module.mkstemp) as mock_mkstemp:
+                with caplog.at_level("ERROR"):
+                    # "png" (not "svg") to hit the standard `dot` subprocess path
+                    # directly — "svg" first tries CustomSVGGenerator, which has its
+                    # own separate subprocess/error handling.
+                    result = diagram_generator.generate_diagram_from_dot("digraph G {}", str(tmp_path / "output"), "png")
+
+    assert result is None
+    mock_mkstemp.assert_called_once()
+    call_kwargs = mock_mkstemp.call_args.kwargs
+    assert call_kwargs.get("prefix") == "graphviz_error_"
+    assert "/tmp/graphviz_error.log" not in caplog.text
+    assert "Graphviz error detail" in caplog.text
 
 def test_generate_diagram_from_dot_output_file_not_created(diagram_generator):
     with patch('subprocess.run') as mock_run:

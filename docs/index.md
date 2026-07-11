@@ -33,6 +33,7 @@ cross-functional review.
 - [**Workflow: Conception to Run**](workflow.md) — End-to-end guide: conception, modeling, enrichment, CI/CD
 - [Usage](usage.md) — CLI flags, project mode, export formats
 - [Features](features.md) — Feature list: AI engines, diagrams, exports
+- [Goal-Driven Attack Flows (GDAF)](gdaf.md) — context YAML schema, scoring algorithm, asset type table
 - [Defining Your System Model](defining_threat_models.md) — Markdown DSL reference
 - [Enriching AI Threats](enriching_ai_threats.md) — DSL attributes, BOM, and context files that improve AI-generated threats
 - [Data Collection Guide](data_collection_guide.md) — What information to gather before threat modeling

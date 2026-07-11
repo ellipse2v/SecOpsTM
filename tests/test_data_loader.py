@@ -21,6 +21,7 @@ from unittest.mock import patch, mock_open, MagicMock
 from threat_analysis.core.data_loader import (
     load_attack_techniques,
     load_capec_to_mitre_mapping,
+    load_capec_catalog_ids,
     load_stride_to_capec_map,
     load_d3fend_mapping,
     load_nist_mappings,
@@ -62,6 +63,23 @@ def test_load_capec_to_mitre_mapping_invalid_entry():
     with patch("builtins.open", mock_open(read_data=json.dumps(data))):
         mapping = load_capec_to_mitre_mapping()
         assert mapping == {}
+
+def test_load_capec_catalog_ids_file_not_found():
+    with patch("builtins.open", side_effect=FileNotFoundError):
+        ids = load_capec_catalog_ids()
+        assert ids == frozenset()
+
+def test_load_capec_catalog_ids_parses_id_column():
+    csv_data = "'ID,Name,Abstraction\n1,Some Pattern,Standard\n66,SQL Injection,Standard\n"
+    with patch("builtins.open", mock_open(read_data=csv_data)):
+        ids = load_capec_catalog_ids()
+        assert ids == frozenset({"CAPEC-1", "CAPEC-66"})
+
+def test_load_capec_catalog_ids_skips_blank_id_rows():
+    csv_data = "'ID,Name,Abstraction\n1,Some Pattern,Standard\n,Empty ID Row,Standard\n"
+    with patch("builtins.open", mock_open(read_data=csv_data)):
+        ids = load_capec_catalog_ids()
+        assert ids == frozenset({"CAPEC-1"})
 
 def test_load_stride_to_capec_map_file_not_found():
     with patch("builtins.open", side_effect=FileNotFoundError):

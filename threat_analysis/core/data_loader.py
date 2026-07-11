@@ -93,6 +93,30 @@ def load_capec_to_mitre_mapping() -> Dict[str, List[Dict[str, Any]]]:
     return capec_to_mitre
 
 
+def load_capec_catalog_ids() -> "frozenset[str]":
+    """Loads the full set of known CAPEC IDs (e.g. "CAPEC-66") from the local
+    CAPEC catalog CSV — the ground truth used to validate LLM-cited CAPEC IDs
+    before they appear in a report or STIX export.
+    """
+    import csv
+    csv_path = Path(__file__).parent.parent / 'external_data' / 'CAPEC_VIEW_ATT&CK_Related_Patterns.csv'
+    ids = set()
+    try:
+        with open(csv_path, 'r', newline='', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            next(reader, None)  # header row — ID is always the first column
+            for row in reader:
+                if row and row[0].strip():
+                    ids.add(f"CAPEC-{row[0].strip()}")
+    except FileNotFoundError:
+        logging.error(
+            "CAPEC catalog CSV not found at %s. "
+            "Run: secopstm download-data", csv_path
+        )
+    except Exception as e:
+        logging.error(f"Error processing CAPEC catalog CSV: {e}")
+    return frozenset(ids)
+
 
 def load_stride_to_capec_map() -> Dict[str, List[Dict[str, str]]]:
     """Loads the STRIDE to CAPEC mapping from the JSON file."""

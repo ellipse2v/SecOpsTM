@@ -11,13 +11,17 @@ An [OWASP project](https://owasp.org/www-project-secopstm/) · Apache 2.0
 ## Quick start — offline, no API key
 
 ```bash
-docker run -p 5000:5000 \
+docker run -p 127.0.0.1:5000:5000 \
   -v $(pwd)/output:/app/output \
   ellipse2v/secopstm:latest
 ```
 
 Open **http://localhost:5000**, paste your system model and click **Generate**.
 Reports land in `$(pwd)/output/<timestamp>/`.
+
+> **Security note:** there is no authentication on any route (single-user
+> tool by design). `-p 127.0.0.1:5000:5000` binds to localhost only. Only
+> use `-p 5000:5000` (all interfaces) on a network you fully trust.
 
 ---
 
@@ -37,7 +41,7 @@ docker run --rm \
 **Step 2 — Run the server:**
 
 ```bash
-docker run -p 5000:5000 \
+docker run -p 127.0.0.1:5000:5000 \
   -e NVIDIA_API_KEY=your_key \
   -v secopstm-rag:/app/rag \
   -v $(pwd)/output:/app/output \
@@ -74,7 +78,7 @@ The named volume `secopstm-rag` persists across restarts and image upgrades.
 ### Full example with all mounts
 
 ```bash
-docker run -p 5000:5000 \
+docker run -p 127.0.0.1:5000:5000 \
   -e NVIDIA_API_KEY=your_key \
   -v $(pwd)/ai_config.yaml:/app/config/ai_config.yaml:ro \
   -v secopstm-rag:/app/rag \
@@ -88,7 +92,7 @@ docker run -p 5000:5000 \
 ## Changing the port
 
 ```bash
-docker run -p 8080:5000 ...   # accessible on http://localhost:8080
+docker run -p 127.0.0.1:8080:5000 ...   # accessible on http://localhost:8080
 ```
 
 ---

@@ -94,33 +94,3 @@ def test_ollama_provider_generate_threats(provider):
             assert threats == []
     asyncio.run(_run())
 
-def test_ollama_provider_generate_attack_flow(provider):
-    async def _run():
-        with patch("aiohttp.ClientSession.post") as mock_post:
-            # Success case
-            mock_response = AsyncMock()
-            mock_response.status = 200
-            mock_response.raise_for_status = MagicMock()
-            mock_response.text.return_value = json.dumps({
-                "response": json.dumps({
-                    "type": "attack-flow",
-                    "name": "Test Flow"
-                })
-            })
-            mock_post.return_value.__aenter__.return_value = mock_response
-
-            flow = await provider.generate_attack_flow({}, {}, {})
-            assert flow["name"] == "Test Flow"
-
-            # Error case - ClientError
-            from aiohttp import ClientError
-            mock_post.side_effect = ClientError("Post failed")
-            flow = await provider.generate_attack_flow({}, {}, {})
-            assert flow == {}
-
-            # Error case - JSONDecodeError
-            mock_post.side_effect = None
-            mock_response.text.return_value = "invalid json"
-            flow = await provider.generate_attack_flow({}, {}, {})
-            assert flow == {}
-    asyncio.run(_run())

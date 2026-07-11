@@ -19,7 +19,6 @@ import asyncio
 from typing import Dict, List
 from .base_provider import BaseLLMProvider
 from ..prompts.stride_prompts import build_component_prompt
-from ..prompts.attack_flow_prompts import build_attack_flow_prompt
 from threat_analysis.ai_engine.prompt_loader import get as _get_prompt
 
 class OllamaProvider(BaseLLMProvider):
@@ -29,7 +28,6 @@ class OllamaProvider(BaseLLMProvider):
         self.host = config.get("host", "http://localhost:11434")
         self.model = config.get("model", "mistral")
         self.temperature = config.get("temperature", 0.3)
-        self.attack_flow_temperature = config.get("attack_flow_temperature", 0.2)
         self.num_ctx = config.get("num_ctx", 4096)
         self.num_predict = config.get("num_predict", 4096)
         self.timeout = aiohttp.ClientTimeout(total=config.get("timeout", 120))
@@ -83,44 +81,3 @@ class OllamaProvider(BaseLLMProvider):
                     logging.error(f"Received text: {result_text}")
                     return []
         return []
-
-    async def generate_attack_flow(self, threat: Dict, component: Dict, context: Dict) -> Dict:
-        prompt = build_attack_flow_prompt(threat, component, context)
-        result_text = ""
-        
-        max_retries = 3
-        for attempt in range(max_retries):
-            async with aiohttp.ClientSession(timeout=self.timeout) as session:
-                try:
-                    async with session.post(
-                        f"{self.host}/api/generate",
-                        json={
-                            "model": self.model,
-                            "prompt": f"{_get_prompt('attack_flow', 'system')}\n\n{prompt}",
-                            "format": "json",
-                            "stream": False,
-                            "options": {
-                                "temperature": self.attack_flow_temperature,
-                                "num_ctx": self.num_ctx,
-                                "num_predict": self.num_predict
-                            }
-                        }
-                    ) as response:
-                        response.raise_for_status()
-                        result_text = await response.text()
-                        result = json.loads(result_text)
-                        # The actual response is a JSON string inside the 'response' key
-                        return json.loads(result.get('response', '{}'))
-                except aiohttp.ClientError as e:
-                    if attempt < max_retries - 1:
-                        wait_time = 2 ** attempt
-                        logging.warning(f"Error connecting to Ollama for attack flow generation (attempt {attempt + 1}/{max_retries}): {e}. Retrying in {wait_time}s...")
-                        await asyncio.sleep(wait_time)
-                        continue
-                    logging.error(f"Error connecting to Ollama for attack flow generation after {max_retries} attempts: {e}")
-                    return {}
-                except json.JSONDecodeError as e:
-                    logging.error(f"Error decoding JSON from Ollama for attack flow generation: {e}")
-                    logging.error(f"Received text: {result_text}")
-                    return {}
-        return {}

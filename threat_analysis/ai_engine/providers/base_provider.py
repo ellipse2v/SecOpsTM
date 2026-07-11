@@ -32,16 +32,6 @@ class BaseLLMProvider(ABC):
         pass
 
     @abstractmethod
-    async def generate_attack_flow(
-        self,
-        threat: Dict,
-        component: Dict,
-        context: Dict,
-    ) -> Dict:
-        """Generates an Attack Flow STIX 2.1 for a threat."""
-        pass
-
-    @abstractmethod
     async def generate_markdown(
         self,
         prompt: str,

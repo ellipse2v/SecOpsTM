@@ -17,6 +17,7 @@ import sys
 import base64
 import logging
 import re
+import secrets
 import datetime
 import json
 import glob
@@ -24,7 +25,7 @@ import threading
 import time
 from pathlib import Path
 from typing import Dict, List, Any, Optional
-from flask import Flask, render_template, request, jsonify, send_from_directory, send_file, make_response, Response, stream_with_context, g, abort
+from flask import Flask, render_template, request, jsonify, send_from_directory, send_file, make_response, Response, stream_with_context, g, abort, session
 from threat_analysis import config
 import asyncio
 from threat_analysis.server.events import ai_status_event_queue
@@ -86,6 +87,11 @@ app = Flask(__name__,
           template_folder=os.path.join(server_dir, "templates"),
           static_folder=os.path.join(server_dir, "static"),
           static_url_path="/static")
+# Regenerated on every process start — this session cookie is used only to isolate
+# per-browser-session state (active project/model file path, see
+# _get_active_model_file_path below), not for authentication. Sessions not
+# surviving a server restart is an acceptable trade-off for this local tool.
+app.secret_key = secrets.token_hex(32)
 
 @app.before_request
 def before_request():
@@ -151,8 +157,10 @@ def initialize_ai_in_background():
             try:
                 from threat_analysis.server.events import ai_status_event_queue
                 ai_status_event_queue.put(f"event: ai_status\ndata: {json.dumps(data)}\n\n")
-            except Exception:
-                pass
+            except Exception as exc:
+                # If this queue is broken, no further AI status updates reach the
+                # client via this path — worth a log line instead of a silent no-op.
+                logging.warning("Could not push ai_status to event queue: %s", exc)
 
         except Exception as e:
             logging.error(f"Error during background AI initialization: {e}", exc_info=True)
@@ -215,9 +223,28 @@ if attempt == max_attempts:
     print("Warning: Could not verify config.js generation")
 
 initial_markdown_content = ""
+# Startup-only defaults, set once in run_server() and never mutated afterward — safe
+# to read as plain globals. The per-session ACTIVE values (which /api/set_project_path
+# can override at runtime) live in the Flask session instead — see the two helpers
+# below. Without this split, two browser tabs/windows pointed at different projects
+# would clobber each other's active-project state (server ran threaded=True).
 initial_project_path = None
 initial_model_file_path: Optional[str] = None
 graphical_editor_enabled = False
+
+
+def _get_active_model_file_path() -> Optional[str]:
+    """The model file path for the CURRENT browser session — /api/set_project_path's
+    override if this session has called it, else the server's startup value (the file
+    given on the command line). Must be called from within a request context.
+    """
+    return session.get('model_file_path', initial_model_file_path)
+
+
+def _get_active_project_path() -> Optional[str]:
+    """The project directory for the CURRENT browser session — see
+    _get_active_model_file_path for the same session-first, startup-fallback logic."""
+    return session.get('project_path', initial_project_path)
 
 DEFAULT_EMPTY_MARKDOWN = """# System Model: New Model
 
@@ -330,6 +357,18 @@ def run_server(
     if _debug and not _host.startswith("127."):
         logging.warning("FLASK_DEBUG ignored — debug mode is only allowed on loopback addresses.")
         _debug = False
+    if not _host.startswith("127.") and _host != "localhost":
+        # No authentication on any route (single-user tool, see architecture.md).
+        # FLASK_HOST=0.0.0.0 is what the Docker image sets by default so `docker run
+        # -p 5000:5000` works at all — but it also means anyone who can reach this
+        # host and port has the exact same access as the person running it.
+        logging.warning(
+            "⚠️  Server is binding to %s — reachable from OTHER machines, not just this one. "
+            "There is NO authentication on any route. Do not expose this port to an "
+            "untrusted network. For local-only access, set FLASK_HOST=127.0.0.1 "
+            "(or run the Docker image with `-p 127.0.0.1:%d:5000`).",
+            _host, _port,
+        )
     app.run(debug=_debug, port=_port, host=_host, threaded=True)
 
 
@@ -360,8 +399,9 @@ def simple_mode():
     model_name = get_model_name(initial_markdown_content)
     
     # Prepare initial_models for the template
-    if initial_project_path:
-        initial_models_data = get_threat_model_service().load_project(initial_project_path)
+    active_project_path = _get_active_project_path()
+    if active_project_path:
+        initial_models_data = get_threat_model_service().load_project(active_project_path)
     else:
         initial_models_data = [{
             "path": "main.md",
@@ -528,7 +568,7 @@ def update_diagram():
 
     try:
         result = get_threat_model_service().update_diagram_logic(
-            markdown_content, submodels=submodels, model_file_path=initial_model_file_path
+            markdown_content, submodels=submodels, model_file_path=_get_active_model_file_path()
         )
         g.processing_time_ms = result.get("processing_time_ms", 0)
         g.generation_time_ms = result.get("generation_time_ms", 0)
@@ -657,7 +697,7 @@ def export_files():
     try:
         output_path, output_filename = get_threat_model_service().export_files_logic(
             markdown_content=markdown_content, export_format=export_format,
-            model_file_path=initial_model_file_path,
+            model_file_path=_get_active_model_file_path(),
         )
         absolute_output_directory = os.path.join(project_root, os.path.dirname(output_path))
         
@@ -696,7 +736,7 @@ def export_all_files():
         submodels = request.json.get("submodels", [])
         zip_buffer, timestamp = get_threat_model_service().export_all_files_logic(
             markdown_content=markdown_content, submodels=submodels,
-            model_file_path=initial_model_file_path,
+            model_file_path=_get_active_model_file_path(),
         )
         return send_file(
             zip_buffer,
@@ -739,7 +779,7 @@ def export_navigator_stix_files():
     try:
         submodels = request.json.get("submodels", [])
         zip_buffer, timestamp = get_threat_model_service().export_navigator_stix_logic(
-            markdown_content, submodels=submodels, model_file_path=initial_model_file_path,
+            markdown_content, submodels=submodels, model_file_path=_get_active_model_file_path(),
         )
         if not zip_buffer:
             return jsonify({"error": "Failed to generate navigator and STIX files."}), 500
@@ -802,7 +842,7 @@ def export_attack_flow():
         markdown_content = convert_json_to_markdown(json_data)
 
         zip_buffer, timestamp = get_threat_model_service().export_attack_flow_logic(
-            markdown_content, model_file_path=initial_model_file_path,
+            markdown_content, model_file_path=_get_active_model_file_path(),
         )
 
 
@@ -1038,12 +1078,14 @@ def generate_all():
         if not browser_managed_files:
             def _find_src_root() -> Optional[Path]:
                 candidates = []
-                if initial_model_file_path:
-                    p = Path(initial_model_file_path).parent
+                active_model_file_path = _get_active_model_file_path()
+                if active_model_file_path:
+                    p = Path(active_model_file_path).parent
                     if p.is_dir():
                         candidates.append(p)
-                if initial_project_path:
-                    candidates.append(Path(initial_project_path))
+                active_project_path = _get_active_project_path()
+                if active_project_path:
+                    candidates.append(Path(active_project_path))
                 for c in candidates:
                     if (c / "main.md").exists() or (c / "model.md").exists():
                         return c
@@ -1304,7 +1346,7 @@ async def export_json():
             model_description="JSON export from web interface",
             cve_service=get_threat_model_service().cve_service,
             validate=True,
-            model_file_path=initial_model_file_path,
+            model_file_path=_get_active_model_file_path(),
         )
         if not threat_model:
             return jsonify({"error": "Failed to create threat model"}), 400
@@ -1401,9 +1443,12 @@ async def validate_markdown():
 
 @app.route("/api/set_project_path", methods=["POST"])
 async def set_project_path():
-    """Set the project base path for BOM/context auto-discovery."""
-    global initial_model_file_path, initial_project_path
+    """Set the project base path for BOM/context auto-discovery.
 
+    Stored in this browser session only (not the process-wide globals) — otherwise
+    one tab/window setting a project would silently redirect every other concurrent
+    session's exports to it too (server runs threaded=True).
+    """
     data = await request.get_json()
     if not data:
         return jsonify({"success": False, "error": "Missing request body"}), 400
@@ -1424,18 +1469,18 @@ async def set_project_path():
         bom_available = (path_obj / "BOM").is_dir()
         context_available = (path_obj / "context").is_dir()
 
-        # Point initial_model_file_path at a plausible model file within the directory so
+        # Point model_file_path at a plausible model file within the directory so
         # that ExportService auto-discovery of BOM/ and context/ is activated.
         for candidate in ("main.md", "model.md"):
             candidate_path = path_obj / candidate
             if candidate_path.exists():
-                initial_model_file_path = str(candidate_path.resolve())
+                session['model_file_path'] = str(candidate_path.resolve())
                 break
         else:
             # No .md found — use a synthetic path so the parent dir is set correctly
-            initial_model_file_path = str(path_obj.resolve() / "main.md")
+            session['model_file_path'] = str(path_obj.resolve() / "main.md")
 
-        initial_project_path = resolved
+        session['project_path'] = resolved
         logging.info("Project path set to: %s (bom=%s, context=%s)", resolved, bom_available, context_available)
         return jsonify({
             "success": True,

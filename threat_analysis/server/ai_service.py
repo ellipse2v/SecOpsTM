@@ -87,6 +87,10 @@ class AIService:
         self.confidence_threshold: float = float(self.ai_config.get(
             "threat_generation", {}
         ).get("confidence_threshold", 0.0))
+        # 0 = no threshold (always run RAG when otherwise enabled).
+        self.rag_min_components: int = int(self.ai_config.get(
+            "rag", {}
+        ).get("min_components", 0))
         _st = self.ai_config.get("threat_generation", {}).get("sync_timeouts", {})
         self._rag_prewarm_timeout: float = float(_st.get("rag_prewarm", 300))
         self._rag_sync_timeout: float = float(_st.get("rag_sync", 120))
@@ -418,6 +422,15 @@ class AIService:
             return iter(["Error: AI generation failed or timed out."])
         return iter(chunks)
 
+    @staticmethod
+    def _count_components(threat_model) -> int:
+        """Counts actors + servers across the main model and any sub-models —
+        matches what _generate_rag_threats actually sends as RAG context."""
+        count = len(threat_model.actors) + len(threat_model.servers)
+        for sub in getattr(threat_model, "sub_models", []):
+            count += len(sub.actors) + len(sub.servers)
+        return count
+
     async def _generate_rag_threats(self, threat_model) -> List[ExtendedThreat]: # Return List[ExtendedThreat]
         """
         Generates system-level threats using the RAG service.
@@ -426,6 +439,14 @@ class AIService:
         and can identify cross-model / cross-boundary threats.
         """
         if not self.rag_generator:
+            return []
+
+        component_count = self._count_components(threat_model)
+        if self.rag_min_components > 0 and component_count < self.rag_min_components:
+            logging.info(
+                "Skipping system-level RAG (%d components < rag.min_components=%d).",
+                component_count, self.rag_min_components,
+            )
             return []
 
         logging.debug("Generating system-level threats using RAG...")

@@ -13,20 +13,28 @@
 # limitations under the License.
 
 """
-AttackIdValidator — validates ATT&CK technique IDs in generated threat reports.
+AttackIdValidator — validates ATT&CK/CAPEC/D3FEND IDs in generated threat reports.
 
-Checks every ``mitre_techniques[].id`` in the threat list against the local
-``external_data/enterprise-attack.json`` corpus.  Identifies three classes of
-problems:
+Checks every ``mitre_techniques[].id``, ``capecs[].capec_id``, and
+``mitre_techniques[].defend_mitigations[].id`` in the threat list against the
+local ``external_data/`` corpus. Identifies three classes of problems for
+ATT&CK techniques (CAPEC/D3FEND only support "invalid" — the local corpora
+have no revoked/deprecated concept):
 
 - **invalid**    — ID not present in the corpus at all (likely an AI hallucination).
 - **revoked**    — ID present but marked ``revoked: true`` (superseded by another
                    technique).
 - **deprecated** — ID present but marked ``x_mitre_deprecated: true``.
 
-The validator is fully offline: it reads the pre-committed STIX bundle and
-never makes network calls.  The JSON is parsed once per process and cached
-at class level.
+CWE IDs are intentionally NOT validated here: the pipeline never uses the raw
+``cwe_ids`` field an LLM may return (see prompts.yaml) — CWEs that actually
+reach a report always come from ``CVEService.get_cwes_for_cve()``, which reads
+the committed CVE JSONL corpus directly. There is nothing LLM-supplied to
+ground-truth for CWE.
+
+The validator is fully offline: it reads pre-committed data files and never
+makes network calls. Each corpus is parsed once per process and cached at
+class level.
 """
 
 import json
@@ -34,6 +42,8 @@ import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, FrozenSet, List, Optional, Set, Tuple
+
+from threat_analysis.core import data_loader
 
 logger = logging.getLogger(__name__)
 
@@ -69,8 +79,14 @@ class IdIssue:
 
     @property
     def attack_url(self) -> str:
-        """Best-effort ATT&CK URL for a valid/revoked/deprecated ID."""
+        """Best-effort reference URL for a valid/revoked/deprecated ID —
+        dispatches by ID namespace (ATT&CK technique, CAPEC, or D3FEND)."""
         tid = self.technique_id
+        if tid.upper().startswith("CAPEC-"):
+            num = tid.split("-", 1)[1] if "-" in tid else tid
+            return f"https://capec.mitre.org/data/definitions/{num}.html"
+        if tid.upper().startswith("D3-"):
+            return f"https://d3fend.mitre.org/technique/d3f:{tid}/"
         if "." in tid:
             parts = tid.split(".", 1)
             return f"https://attack.mitre.org/techniques/{parts[0]}/{parts[1]}/"
@@ -107,14 +123,30 @@ class ValidationReport:
 
 
 class AttackIdValidator:
-    """Validates ATT&CK technique IDs against the local STIX bundle.
+    """Validates ATT&CK technique, CAPEC, and D3FEND IDs against local corpora.
 
-    The index is built lazily and cached at class level so it is only
+    Each index is built lazily and cached at class level so it is only
     parsed once per process, even when multiple report generators run.
     """
 
     # Class-level cache: (valid_ids, revoked_ids, deprecated_ids)
     _index: Optional[Tuple[FrozenSet[str], FrozenSet[str], FrozenSet[str]]] = None
+    _capec_index: Optional[FrozenSet[str]] = None
+    _d3fend_index: Optional[FrozenSet[str]] = None
+
+    @classmethod
+    def _load_capec_index(cls) -> FrozenSet[str]:
+        """Build (or return cached) set of known CAPEC IDs."""
+        if cls._capec_index is None:
+            cls._capec_index = data_loader.load_capec_catalog_ids()
+        return cls._capec_index
+
+    @classmethod
+    def _load_d3fend_index(cls) -> FrozenSet[str]:
+        """Build (or return cached) set of known D3FEND IDs."""
+        if cls._d3fend_index is None:
+            cls._d3fend_index = frozenset(data_loader.load_d3fend_mapping().keys())
+        return cls._d3fend_index
 
     @classmethod
     def _load_index(cls, stix_path: Path = _ENTERPRISE_ATTACK_PATH) -> Tuple[
@@ -172,13 +204,16 @@ class AttackIdValidator:
     def _reset_cache(cls) -> None:
         """Reset class-level cache (for testing)."""
         cls._index = None
+        cls._capec_index = None
+        cls._d3fend_index = None
 
     def validate_all(
         self,
         all_threats: List[Dict],
         stix_path: Path = _ENTERPRISE_ATTACK_PATH,
     ) -> ValidationReport:
-        """Validate all ATT&CK technique IDs across the full threat list.
+        """Validate all ATT&CK technique, CAPEC, and D3FEND IDs across the full
+        threat list.
 
         Args:
             all_threats: List of threat dicts as returned by
@@ -189,17 +224,15 @@ class AttackIdValidator:
             A :class:`ValidationReport` with per-issue details.
         """
         valid_ids, revoked_ids, deprecated_ids = self._load_index(stix_path)
-
-        # Empty index = corpus not available; skip silently
-        if not valid_ids:
-            return ValidationReport(total_techniques_checked=0)
+        capec_ids = self._load_capec_index()
+        d3fend_ids = self._load_d3fend_index()
 
         total = 0
         invalid_issues: List[IdIssue] = []
         revoked_issues: List[IdIssue] = []
         deprecated_issues: List[IdIssue] = []
 
-        # Deduplicate per (threat_id, technique_id) to avoid double-counting
+        # Deduplicate per (threat_id, id) to avoid double-counting
         seen: Set[Tuple[str, str]] = set()
 
         for threat in all_threats:
@@ -207,33 +240,60 @@ class AttackIdValidator:
             threat_name   = threat.get("name") or threat.get("description", "?")
             threat_target = threat.get("target", "?")
 
-            for tech in threat.get("mitre_techniques", []):
-                raw_id = (tech.get("id") or "").strip()
+            def _make_issue(raw_id: str) -> Optional[IdIssue]:
+                nonlocal total
+                raw_id = raw_id.strip()
                 if not raw_id:
-                    continue
+                    return None
                 total += 1
                 key = (threat_id, raw_id)
                 if key in seen:
-                    continue
+                    return None
                 seen.add(key)
-
-                issue = IdIssue(
+                return IdIssue(
                     technique_id=raw_id,
-                    issue_type="",  # filled below
+                    issue_type="",  # filled by caller
                     threat_id=threat_id,
                     threat_name=str(threat_name)[:80],
                     threat_target=str(threat_target)[:60],
                 )
 
-                if raw_id not in valid_ids:
-                    issue.issue_type = INVALID
-                    invalid_issues.append(issue)
-                elif raw_id in revoked_ids:
-                    issue.issue_type = REVOKED
-                    revoked_issues.append(issue)
-                elif raw_id in deprecated_ids:
-                    issue.issue_type = DEPRECATED
-                    deprecated_issues.append(issue)
+            # ATT&CK techniques — valid_ids empty means the corpus isn't available.
+            if valid_ids:
+                for tech in threat.get("mitre_techniques", []):
+                    issue = _make_issue(tech.get("id") or "")
+                    if issue is None:
+                        continue
+                    if issue.technique_id not in valid_ids:
+                        issue.issue_type = INVALID
+                        invalid_issues.append(issue)
+                    elif issue.technique_id in revoked_ids:
+                        issue.issue_type = REVOKED
+                        revoked_issues.append(issue)
+                    elif issue.technique_id in deprecated_ids:
+                        issue.issue_type = DEPRECATED
+                        deprecated_issues.append(issue)
+
+            # CAPEC patterns — no revoked/deprecated concept in the local catalog.
+            if capec_ids:
+                for capec in threat.get("capecs", []):
+                    issue = _make_issue(capec.get("capec_id") or "")
+                    if issue is None:
+                        continue
+                    if issue.technique_id not in capec_ids:
+                        issue.issue_type = INVALID
+                        invalid_issues.append(issue)
+
+            # D3FEND mitigations attached to each mapped technique.
+            if d3fend_ids:
+                for tech in threat.get("mitre_techniques", []):
+                    for mitigation in tech.get("defend_mitigations", []):
+                        issue = _make_issue(mitigation.get("id") or "")
+                        if issue is None:
+                            continue
+                        if issue.technique_id not in d3fend_ids:
+                            issue.issue_type = INVALID
+                            invalid_issues.append(issue)
 
         report = ValidationReport(
             total_techniques_checked=total,

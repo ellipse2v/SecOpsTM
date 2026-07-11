@@ -94,6 +94,45 @@ Clicking a row expands an inline detail panel showing one entry per hop:
 
 ---
 
+## Red/Blue Adversarial Debate
+
+An opt-in pass (`config/ai_config.yaml → debate.enabled: true`, on by default) that runs after
+GDAF and before the HTML report is written. One configured LLM provider plays two personas —
+**Red** (attack) and **Blue** (defence) — that argue over whether the top-scoring GDAF scenarios
+actually hold up, using only facts already present in the model (dataflow auth/encryption, hop
+protocols, BOM `known_cves`). No new lookups, no invented evidence — everything either persona
+cites must come from that grounding block.
+
+**Scope:** only the top `debate.top_n` scenarios (default 5) with an initial viability
+≥ `debate.min_viability_threshold` (default 0.5) are debated — `initial_viability = (path_score /
+CRITICAL_threshold) × (1 − 0.5 × detection_coverage)`. Debating every scenario would be slow and
+wasteful; the point is to stress-test the ones already flagged as most dangerous.
+
+**Per scenario**, up to `debate.max_rounds` rounds (default 3) run:
+1. **Red** proposes techniques to advance the attack, citing grounding evidence; if Blue blocked
+   the previous approach, Red must try a genuinely different technique or record it under
+   `failed_alternatives`.
+2. **Blue** decides which of Red's techniques are blocked/detected, naming the control family
+   (SIEM / EDR / IDS), and lists `detection_gaps` for anything it cannot cover.
+3. Viability for the round is `red_viability − 0.15 × len(techniques_blocked)`. If the change
+   from the previous round is below `debate.viability_delta_threshold` (default 0.1), the debate
+   is considered converged and stops early.
+
+**Outcome:** the final viability is mapped to a `debate_factor` in
+`[debate.debate_factor_min, debate.debate_factor_max]` (default `[0.5, 1.5]`) and applied
+directly to the scenario: `scenario.path_score = round(path_score × debate_factor, 2)`, then
+`risk_level` is recomputed from the same CRITICAL/HIGH/MEDIUM/LOW thresholds GDAF itself uses.
+A scenario Blue fully shuts down score *lower* than GDAF's original estimate; one Red can push
+through despite Blue's controls scores *higher*. The debate never creates new threats or
+scenarios — it only adjusts the score/risk_level of the ones GDAF already produced, and the
+`.afb` Attack Flow files are re-written afterward so they stay consistent with the debated score.
+
+**Fully offline-compatible:** if no AI provider is configured or reachable, the debate pass is
+skipped entirely and GDAF's original scores stand unchanged — this is additive enrichment, never
+a requirement for GDAF to produce output.
+
+---
+
 ## Context YAML Schema
 
 ### Linking a context file to a model

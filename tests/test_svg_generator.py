@@ -143,6 +143,19 @@ def test_shapes_and_styles(generator):
     assert '<ellipse' in svg_content
     assert 'stroke-dasharray="5,2"' in svg_content
 
+def test_generate_node_svg_malformed_pos_logs_warning_and_defaults(generator, caplog):
+    """A malformed 'pos' field must default to (0, 0) AND log why — a bare `except:`
+    there previously swallowed this (and KeyboardInterrupt/SystemExit) silently,
+    masking real Graphviz JSON extraction bugs.
+    """
+    node = {"name": "BadPosNode", "pos": "not-a-number,also-not"}
+    with caplog.at_level("WARNING"):
+        elements = generator._generate_node_svg(node)
+
+    assert elements  # still produces output, just with default coordinates
+    assert "Could not parse node position" in caplog.text
+    assert "BadPosNode" in caplog.text
+
 def test_text_rendering(generator):
     """Test rendering of text labels."""
     mock_json = {

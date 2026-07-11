@@ -16,7 +16,7 @@ threatModelBypyTm/
 │   ├── update_config.py          Dev script: regenerates static/js/config.js from
 │   │                             config_generator.py — run manually before commits
 │   ├── utils.py                  _validate_path_within_project, extract_json_from_llm_response
-│   ├── data_loader.py            Lazy loaders for external data files
+│   ├── validate.py               `secopstm validate` subcommand — offline DSL/config lint
 │   │
 │   ├── core/                     Domain model
 │   │   ├── models_module.py      ThreatModel, ExtendedThreat, CustomThreat
@@ -25,29 +25,39 @@ threatModelBypyTm/
 │   │   ├── model_parser.py       ModelParser — Markdown DSL → ThreatModel (2-pass)
 │   │   ├── model_factory.py      create_threat_model() — wires parser + model
 │   │   ├── model_validator.py    ModelValidator — pre-process validation
+│   │   ├── model_completeness.py ModelCompletenessChecker — DSL quality score
+│   │   ├── dsl_constants.py      DSL_ENUMS — single source of truth for DSL field values
 │   │   ├── mitre_mapping_module.py  MitreMapping — STRIDE→CAPEC→ATT&CK→D3FEND
 │   │   ├── mitre_static_maps.py  Hard-coded ATTACK_D3FEND_MAPPING dict
+│   │   ├── attack_id_validator.py  AttackIdValidator — validates ATT&CK/CAPEC/D3FEND IDs
+│   │   │                         (incl. LLM-cited ones) against the committed corpora
+│   │   ├── asset_technique_mapper.py  AssetTechniqueMapper — asset type/attrs → ATT&CK techniques
 │   │   ├── cve_service.py        CVEService — single-pass JSONL (CAPEC+CWE) + YAML definitions
+│   │   ├── data_loader.py        Lazy loaders for external_data/ files (ATT&CK, CAPEC, D3FEND, NIST…)
 │   │   ├── vex_loader.py         VEXLoader — CycloneDX VEX document loader (standalone/dir/auto)
 │   │   ├── bom_loader.py         BOMLoader — BOM YAML per asset; active_cves/fixed_cves via VEX state
+│   │   ├── accepted_risks.py     AcceptedRiskLoader — analyst risk-acceptance decisions per threat
 │   │   ├── ai_cache.py           AIThreatCache — SHA-256-keyed cache (.secopstm_ai_cache.json)
-│   │   ├── attack_chain.py       AttackChainAnalyzer — graph traversal, chained threat paths
+│   │   ├── attack_chain.py       AttackChainAnalyzer — bottom-up: chains existing threats via dataflows
+│   │   ├── gdaf_engine.py        GDAFEngine — top-down: objectives + threat actors → attack scenarios
+│   │   ├── debate_engine.py      RedBlueDebateEngine — adversarial Red/Blue debate over GDAF scenarios
 │   │   ├── threat_consolidator.py  ThreatConsolidator — Jaccard dedup, AI wins over pytm
+│   │   ├── threat_ranker.py      ThreatRanker — weighted composite rank + trim of consolidated threats
+│   │   ├── stride_constants.py   STRIDE_CATEGORIES — single source of truth for the 6 STRIDE names
 │   │   └── report_serializer.py  ReportSerializer — stable versioned dict, IDs T-NNNN
 │   │
 │   ├── ai_engine/                AI inference layer
 │   │   ├── embedding_factory.py  get_embeddings() — provider-agnostic factory
+│   │   ├── prompt_loader.py      Loads config/prompts.yaml sections for each AI role
 │   │   ├── rag_service.py        RAGThreatGenerator — ChromaDB + LangChain RAG chain
 │   │   ├── providers/
-│   │   │   ├── base_provider.py  BaseLLMProvider (ABC): check_connection,
-│   │   │   │                     generate_threats, generate_attack_flow
+│   │   │   ├── base_provider.py  BaseLLMProvider (ABC): check_connection, generate_threats
 │   │   │   ├── litellm_client.py LiteLLMClient — low-level async LiteLLM wrapper
 │   │   │   │                     (static factory create(), generate_content generator)
 │   │   │   ├── litellm_provider.py  LiteLLMProvider(BaseLLMProvider) — orchestrates client
 │   │   │   └── ollama_provider.py   OllamaProvider(BaseLLMProvider) — Ollama-specific
 │   │   └── prompts/
-│   │       ├── stride_prompts.py    STRIDE_SYSTEM_PROMPT, build_component_prompt()
-│   │       └── attack_flow_prompts.py  ATTACK_FLOW_SYSTEM_PROMPT, build_attack_flow_prompt()
+│   │       └── stride_prompts.py    STRIDE_SYSTEM_PROMPT, build_component_prompt()
 │   │
 │   ├── generation/               Output artifact generators
 │   │   ├── diagram_generator.py  DiagramGenerator — DOT/SVG via Graphviz subprocess
@@ -55,7 +65,9 @@ threatModelBypyTm/
 │   │   ├── report_generator.py   ReportGenerator — HTML report via Jinja2
 │   │   ├── stix_generator.py     StixGenerator — STIX 2.1 bundle JSON
 │   │   ├── attack_navigator_generator.py  AttackNavigatorGenerator — Navigator layer JSON
-│   │   ├── attack_flow_generator.py       AttackFlowGenerator — Attack Flow STIX objects
+│   │   ├── attack_flow_generator.py       AttackFlowGenerator — STRIDE-technique attack paths
+│   │   │                                  (pure graph traversal, no LLM — see decisions.md)
+│   │   ├── attack_flow_builder.py         AttackFlowBuilder — writes GDAF scenarios to .afb files
 │   │   ├── graphviz_to_json_metadata.py   DOT → JSON with element metadata
 │   │   ├── graphviz_to_konva.py           DOT → Konva.js canvas JSON (GUI editor)
 │   │   ├── tactic_logic.py       Tactic ordering and filtering helpers
@@ -267,6 +279,48 @@ ReportGenerator._get_all_threats_with_mitre_info()
         → injected into HTML report as "⛓️ Attack Chain Analysis" section
 ```
 
+### 5b. GDAF Attack Path Generation + Red/Blue Debate
+
+```
+GDAFEngine.run(threat_model, context_yaml)      (top-down, complementary to AttackChainAnalyzer)
+    → reads attack_objectives + threat_actors from context YAML
+      (or _auto_context() — a minimal context synthesized from the model's servers if no YAML given)
+    → _build_graph()                             (nodes = components, edges = dataflows +
+                                                    sub-model bridging edges for submodel= servers)
+    → per (objective, threat_actor) pair: graph traversal from actor's entry point to objective
+        → hop_weight includes boundary.traversal_difficulty bonus (low=+0.3, medium=+0.1, high=+0.0)
+        → per-hop MITRE technique assignment (AssetTechniqueMapper)
+    → returns List[AttackScenario], stored as threat_model.gdaf_scenarios
+    → AttackFlowBuilder(gdaf_scenarios).generate_and_save()   (.afb export, MITRE Attack Flow v3.0)
+
+ReportGenerator.generate_html_report() — after attack_id_validation, before CISO triage:
+    → if debate.enabled and gdaf_scenarios:
+        RedBlueDebateEngine.run(gdaf_scenarios)    (one configured LLM provider, two personas)
+            → per top-N scenario, N rounds:
+                Red persona:  advances the attack using only facts in the grounding block
+                Blue persona: blocks/detects, cites SIEM/EDR/IDS, lists detection_gaps
+            → mutates scenario.score / risk_level in place (does NOT create new threats)
+        → re-run AttackFlowBuilder(...).generate_and_save()   (.afb files re-written so they
+                                                                 agree with debate-adjusted scores)
+```
+
+### 5c. SOC Analyst + CISO Triage
+
+```
+ReportGenerator.generate_html_report() — after the debate re-write, before the final template render:
+    → _build_threat_graph_data(threat_model, all_detailed_threats, gdaf_scenarios, debate_results)
+        → node/edge graph with GDAF path overlays, reflects debate-adjusted scores
+
+    → if ai_provider and all_detailed_threats:
+        AIService._enrich_with_soc_analysis()      (per-threat, soc_analyst prompt persona)
+            → Sigma / Splunk SPL / KQL rule suggestions + IOCs
+            → stored on threat.ai_details["soc_analysis"], rendered in the "SOC Analysis" section
+
+        ReportGenerator._run_ciso_triage(all_detailed_threats, gdaf_scenarios, debate_results)
+            → LiteLLMProvider.generate_ciso_triage()   (ciso_triage prompt persona)
+            → board-level risk summary, rendered in the "CISO Briefing" section
+```
+
 ### 6b. Diagram Generation + Trust Colors
 
 ```
@@ -320,26 +374,28 @@ tooling/build_vector_store.py
 1. ~~**Duplicated JSON extraction logic**~~ — **Fixed**: `extract_json_from_llm_response()` is
    now a single shared function in `threat_analysis/utils.py`.
 
-2. **pytm.Boundary monkey-patching** (`models_module.py:27-35`) — Adds `isTrusted`, `protocol`,
-   `port`, `data` attributes because pytm does not provide them. Labelled `# HACK` in code.
-   Breaks if pytm is updated.
+2. ~~**pytm.Boundary monkey-patching**~~ — **Fixed**: replaced by the `SecOpsBoundary(Boundary)`
+   subclass in `models_module.py`, which adds `isTrusted`, `protocol`, `port`, `data` without
+   patching the pytm class at runtime.
 
-3. **Sync wrapper over async generator** (`ai_service.py:generate_markdown_from_prompt_sync`) —
-   Uses `loop.run_until_complete(gen.__anext__())` per chunk inside a Flask thread. Fragile in
-   concurrent request scenarios.
+3. ~~**Sync wrapper over async generator**~~ — **Fixed**: `generate_markdown_from_prompt_sync`
+   now submits to a persistent background event loop via `asyncio.run_coroutine_threadsafe()`
+   (see the "RAG init parallel to AI connection check" and cross-model RAG decisions in
+   `decisions.md`), instead of calling `loop.run_until_complete()` per chunk.
 
 4. ~~**Hardcoded rate limit sleep**~~ — **Fixed**: `rate_limit_sleep` is now configurable via
    `ai_config.yaml → threat_generation.rate_limit_sleep`.
 
 5. ~~**`_get_output_dir` defined twice**~~ — **Fixed**: duplicate removed from `ExportService`.
 
-6. **`venv-py310/` in the repo tree** — virtualenv directory should be in `.gitignore`.
+6. ~~**`venv-py310/` in the repo tree**~~ — **Fixed**: already listed in `.gitignore`.
 
 7. **`requirements.txt` vs `pyproject.toml` diverge** — `pyproject.toml` lists minimal runtime
    deps; `requirements.txt` includes all AI/ML extras. Installing from `pyproject.toml` alone
    (`pip install -e .`) is insufficient for AI features; use `pip install -e ".[ai]"`.
 
-8. **`package-lock.json` at root** — Untracked orphaned file (no `package.json` exists).
+8. **`package-lock.json` at root** — Present on disk but already gitignored (no `package.json`
+   exists). Harmless local artifact, not tracked; safe to delete locally if it bothers you.
 
 9. **`ThreatModel` requires `CVEService`** injected at construction — tight coupling; if
    CVE data files are missing the entire model fails to instantiate.
@@ -361,3 +417,12 @@ tooling/build_vector_store.py
     from the server are injected with `innerHTML`. Component names in the DOT template are
     not HTML-escaped, which could allow stored XSS via crafted component names. Risk is limited to
     single-user local server but should be addressed before any multi-user deployment.
+
+14. ~~**`prompts.yaml`'s `attack_flow` persona was dead code**~~ — **Fixed**: removed. It was a
+    single-shot LLM attack-flow generator (`BaseLLMProvider.generate_attack_flow()` + the
+    `attack_flow_prompts.py` module + `prompts.yaml`'s `attack_flow:` section) that was only ever
+    called from unit tests, never from the application — see the "Attack Flow generation: graph
+    traversal, not a single-shot LLM persona" decision in `decisions.md` for why it stayed removed.
+    The real "Discovered Attack Paths" feature and `.afb` export (`generation/attack_flow_generator.py`,
+    `generation/attack_flow_builder.py`) are unaffected — pure STRIDE-technique graph traversal over
+    the fully consolidated pytm+AI+LLM threat list, no LLM call needed.
