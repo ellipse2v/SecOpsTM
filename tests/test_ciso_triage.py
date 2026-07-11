@@ -94,7 +94,6 @@ class TestBaseLLMProviderDefault:
         class _ConcreteProvider(BaseLLMProvider):
             async def check_connection(self): return True
             async def generate_threats(self, c, ctx): return []
-            async def generate_attack_flow(self, t, c, ctx): return {}
             async def generate_markdown(self, p, m=None):
                 yield ""
 

@@ -254,7 +254,9 @@ class CustomSVGGenerator:
         pos_str = node.get('pos', '0,0')
         try:
             node_x, node_y = map(float, pos_str.split(','))
-        except:
+        except (ValueError, TypeError) as exc:
+            logging.warning("Could not parse node position '%s' for node '%s' (%s) — defaulting to (0, 0).",
+                             pos_str, node.get('name', '?'), exc)
             node_x, node_y = 0, 0
         
         # Get node width (in inches, need to convert to points: 1 inch = 72 points)

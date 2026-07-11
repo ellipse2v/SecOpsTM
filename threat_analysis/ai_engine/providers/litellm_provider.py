@@ -17,7 +17,6 @@ from typing import AsyncGenerator, Dict, List, Optional
 from .base_provider import BaseLLMProvider
 from .litellm_client import LiteLLMClient
 from ..prompts.stride_prompts import build_component_prompt, build_batch_prompt
-from ..prompts.attack_flow_prompts import build_attack_flow_prompt
 from threat_analysis.ai_engine.prompt_loader import get as _get_prompt
 import json
 
@@ -153,23 +152,6 @@ class LiteLLMProvider(BaseLLMProvider):
             return {}
         except Exception as e:
             logging.error("Error in batch threat generation: %s", e)
-            return {}
-
-    async def generate_attack_flow(self, threat: Dict, component: Dict, context: Dict) -> Dict:
-        client = await self._get_client()
-        prompt = build_attack_flow_prompt(threat, component, context)
-
-        try:
-            async for chunk in client.generate_content(
-                prompt=prompt,
-                system_prompt=_get_prompt("attack_flow", "system"),
-                output_format="json"
-            ):
-                if isinstance(chunk, dict):
-                    return chunk
-            return {}
-        except Exception as e:
-            logging.error(f"Error generating attack flow via LiteLLM: {e}")
             return {}
 
     async def generate_ciso_triage(self, prompt: str, system_prompt: str) -> Dict:

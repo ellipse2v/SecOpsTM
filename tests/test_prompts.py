@@ -14,7 +14,6 @@
 
 import pytest
 from threat_analysis.ai_engine.prompts.stride_prompts import build_component_prompt, STRIDE_SYSTEM_PROMPT
-from threat_analysis.ai_engine.prompts.attack_flow_prompts import build_attack_flow_prompt, ATTACK_FLOW_SYSTEM_PROMPT
 
 def test_stride_prompts():
     component = {
@@ -65,46 +64,3 @@ def test_stride_prompts_defaults():
     assert "No" in prompt  # Internet facing default False
     assert "None specified" in prompt
     assert "None" in prompt # Integrations
-
-def test_attack_flow_prompts():
-    threat = {
-        'title': 'SQL Injection',
-        'category': 'Information Disclosure',
-        'description': 'Attacker injects SQL code',
-        'attack_scenario': """1. Find input field
-2. Inject code
-3. Dump DB""",
-        'mitre_techniques': ['T1190']
-    }
-    component = {
-        'type': 'Database',
-        'name': 'UserDB',
-        'description': 'Stores user data'
-    }
-    context = {
-        'system_description': 'Backend system'
-    }
-    
-    prompt = build_attack_flow_prompt(threat, component, context)
-    
-    assert "SQL Injection" in prompt
-    assert "Information Disclosure" in prompt
-    assert "Attacker injects SQL code" in prompt
-    assert "Find input field" in prompt
-    assert "T1190" in prompt
-    assert "Database" in prompt
-    assert "UserDB" in prompt
-    assert "Stores user data" in prompt
-    assert "Backend system" in prompt
-    assert ATTACK_FLOW_SYSTEM_PROMPT is not None
-
-def test_attack_flow_prompts_defaults():
-    threat = {}
-    component = {}
-    context = {}
-    
-    prompt = build_attack_flow_prompt(threat, component, context)
-    
-    assert "Unknown" in prompt
-    assert "No additional context" in prompt
-    assert "None" in prompt # mitre_techniques.join

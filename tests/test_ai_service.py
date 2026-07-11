@@ -369,6 +369,86 @@ def test_generate_rag_threats_uses_configured_top_k_examples(ai_service):
     asyncio.run(_run())
 
 
+def test_generate_rag_threats_skipped_below_min_components_threshold(ai_service):
+    """rag.min_components — tiny models mostly restate single-component threats
+    already covered by the per-component AI pass, so RAG's system-level pass is
+    skipped when actors+servers (main model + sub-models) is below the threshold.
+    """
+    async def _run():
+        ai_service.rag_min_components = 3
+        ai_service.rag_generator = MagicMock()
+        ai_service.rag_generator.generate_threats.return_value = [
+            {"name": "RAG Threat", "description": "rag desc", "category": "Tampering"}
+        ]
+
+        threat_model = MagicMock()
+        threat_model.tm.name = "Test TM"
+        threat_model.tm.description = "Test desc"
+        threat_model.actors = [MagicMock()]
+        threat_model.servers = [MagicMock()]
+        threat_model.dataflows = []
+        threat_model.sub_models = []
+
+        threats = await ai_service._generate_rag_threats(threat_model)
+
+        assert threats == []
+        ai_service.rag_generator.generate_threats.assert_not_called()
+    asyncio.run(_run())
+
+
+def test_generate_rag_threats_runs_at_or_above_min_components_threshold(ai_service):
+    async def _run():
+        ai_service.rag_min_components = 3
+        ai_service.rag_generator = MagicMock()
+        ai_service.rag_generator.generate_threats.return_value = [
+            {"name": "RAG Threat", "description": "rag desc", "category": "Tampering"}
+        ]
+
+        threat_model = MagicMock()
+        threat_model.tm.name = "Test TM"
+        threat_model.tm.description = "Test desc"
+        threat_model.actors = [MagicMock()]
+        threat_model.servers = [MagicMock(), MagicMock()]
+        threat_model.dataflows = []
+        threat_model.sub_models = []
+
+        threats = await ai_service._generate_rag_threats(threat_model)
+
+        assert len(threats) == 1
+        ai_service.rag_generator.generate_threats.assert_called_once()
+    asyncio.run(_run())
+
+
+def test_generate_rag_threats_counts_sub_model_components_toward_threshold(ai_service):
+    """Cross-model RAG (project mode) sends main + sub-model markdown, so the
+    threshold must count components across all of them, not just the main model.
+    """
+    async def _run():
+        ai_service.rag_min_components = 3
+        ai_service.rag_generator = MagicMock()
+        ai_service.rag_generator.generate_threats.return_value = []
+
+        sub_model = MagicMock()
+        sub_model.tm.name = "Sub"
+        sub_model.tm.description = "Sub desc"
+        sub_model.actors = [MagicMock()]
+        sub_model.servers = [MagicMock()]
+        sub_model.dataflows = []
+
+        threat_model = MagicMock()
+        threat_model.tm.name = "Test TM"
+        threat_model.tm.description = "Test desc"
+        threat_model.actors = [MagicMock()]
+        threat_model.servers = []
+        threat_model.dataflows = []
+        threat_model.sub_models = [sub_model]
+
+        await ai_service._generate_rag_threats(threat_model)
+
+        ai_service.rag_generator.generate_threats.assert_called_once()
+    asyncio.run(_run())
+
+
 def test_enrich_with_ai_threats_rag_enabled(ai_service):
     async def _run():
         ai_service.ai_online = True

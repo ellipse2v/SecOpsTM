@@ -27,6 +27,26 @@ This project is a Python-based, end-to-end STRIDE threat modeling and analysis f
 
 ---
 
+## 🤖 AI Roles
+
+When AI is enabled, SecOpsTM runs several distinct LLM passes, each with its own system
+prompt and purpose (all defined in `config/prompts.yaml`, editable without touching Python
+code). All roles share the one provider configured in `config/ai_config.yaml` — there's no
+per-role provider selection — and every pass degrades gracefully offline: if no provider is
+reachable, the tool falls back to the pytm rule engine silently.
+
+| Role | Purpose | Where it shows up |
+|---|---|---|
+| **DSL Generation** | Turns a natural-language system description into a valid SecOpsTM Markdown model | "Generate from prompt" in the web editor |
+| **STRIDE Component Analysis** | Generates STRIDE threats per actor/server/boundary, strictly scoped to the component's declared technology tags (no invented stacks) | Per-component AI enrichment, `(AI)`-sourced threats in the report |
+| **RAG System-Level Analysis** | Cross-component/cross-boundary threats retrieved from a local ChromaDB knowledge base (CVE, CAPEC, ATT&CK, D3FEND) | System-level pass, `(LLM)`-sourced threats — skipped on small models below `rag.min_components` |
+| **SOC Analyst** | Detection-engineering pass: Sigma/Splunk SPL/KQL rule suggestions and IOCs per threat | HTML report "SOC Analysis" section |
+| **CISO Triage** | Board-level risk briefing summarizing the highest-priority threats | HTML report "CISO Briefing" section |
+| **Red Team** | Attempts to advance a GDAF attack scenario, citing only facts from the grounding block (CVE, misconfig, exposed ports) | Red/Blue adversarial debate on top GDAF scenarios |
+| **Blue Team** | Challenges the Red team's attempt with SIEM/EDR/IDS controls and calls out detection gaps | Red/Blue adversarial debate |
+
+---
+
 ## ✨ New Interactive Features
 
 The web interface now supports the following.
@@ -60,12 +80,17 @@ For detailed information on features, usage, and advanced customization, please 
 ### Option A — Docker (no Python setup required)
 
 ```bash
-docker run -p 5000:5000 \
+docker run -p 127.0.0.1:5000:5000 \
   -v $(pwd)/output:/app/output \
   ellipse2v/secopstm:latest
 ```
 
 Open <http://localhost:5000>. Reports land in `$(pwd)/output/<timestamp>/`.
+
+> **Security note:** the server has no authentication on any route (it's a
+> single-user tool). `-p 127.0.0.1:5000:5000` keeps it reachable only from
+> this machine. Only bind it to all interfaces (`-p 5000:5000`) on a network
+> you fully trust.
 
 #### With AI enrichment (LLM + RAG)
 
@@ -76,7 +101,7 @@ Open <http://localhost:5000>. Reports land in `$(pwd)/output/<timestamp>/`.
 docker run --rm -v secopstm-rag:/app/rag ellipse2v/secopstm:latest --init-rag
 
 # Step 2 — Run
-docker run -p 5000:5000 \
+docker run -p 127.0.0.1:5000:5000 \
   -e NVIDIA_API_KEY=your_key \
   -v secopstm-rag:/app/rag \
   -v $(pwd)/output:/app/output \

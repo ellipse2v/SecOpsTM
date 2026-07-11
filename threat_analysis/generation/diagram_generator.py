@@ -22,6 +22,7 @@ import re
 import logging
 import json
 import datetime
+import tempfile
 import xml.etree.ElementTree as ET
 from urllib.parse import urlparse # Added line
 from typing import Callable, Dict, List, Optional
@@ -124,9 +125,16 @@ class DiagramGenerator:
                 return None
                 
         except subprocess.CalledProcessError as e:
-            with open("/tmp/graphviz_error.log", "w") as f:
-                f.write(e.stderr)
-            logging.error(f"❌ Graphviz error: {e.stderr}")
+            # tempfile.mkstemp() (not a fixed /tmp path): concurrent requests would
+            # otherwise overwrite each other's error dump, and a fixed world-writable
+            # path is vulnerable to a symlink attack on a shared host.
+            try:
+                fd, error_log_path = tempfile.mkstemp(prefix="graphviz_error_", suffix=".log")
+                with os.fdopen(fd, "w") as f:
+                    f.write(e.stderr)
+                logging.error(f"❌ Graphviz error (details in {error_log_path}): {e.stderr}")
+            except OSError as log_exc:
+                logging.error(f"❌ Graphviz error (could not write error log: {log_exc}): {e.stderr}")
             print(f"Graphviz error: {e.stderr}")
             logging.error(f"DOT code preview: {cleaned_dot[:200]}...")
             print(f"DOT code preview: {cleaned_dot[:200]}...")
@@ -481,7 +489,8 @@ class DiagramGenerator:
         # Try to convert to string as last resort
         try:
             return str(element)
-        except:
+        except Exception as exc:
+            logging.warning("Could not convert element to string for name extraction: %s", exc)
             return None
 
     def _extract_data_info(self, dataflow) -> Optional[str]:

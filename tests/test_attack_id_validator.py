@@ -293,6 +293,65 @@ class TestIdIssueProperties:
 # ValidationReport properties
 # ---------------------------------------------------------------------------
 
+class TestCapecValidation:
+    """CAPEC IDs are validated against the real, committed CAPEC catalog CSV —
+    there's no per-test override like the STIX bundle, so these use known-real
+    and known-fake IDs from that fixed corpus.
+    """
+
+    def test_real_capec_id_no_issue(self, tmp_path):
+        AttackIdValidator._reset_cache()
+        v = AttackIdValidator()
+        threat = {
+            "id": "T-0001", "name": "x", "target": "y",
+            "capecs": [{"capec_id": "CAPEC-1"}],  # real: "Accessing Functionality Not Properly Constrained by ACLs"
+        }
+        r = v.validate_all([threat], stix_path=tmp_path / "missing.json")
+        assert not any(i.technique_id == "CAPEC-1" for i in r.invalid)
+
+    def test_hallucinated_capec_id_flagged_invalid(self, tmp_path):
+        AttackIdValidator._reset_cache()
+        v = AttackIdValidator()
+        threat = {
+            "id": "T-0001", "name": "x", "target": "y",
+            "capecs": [{"capec_id": "CAPEC-999999"}],  # does not exist in the catalog
+        }
+        r = v.validate_all([threat], stix_path=tmp_path / "missing.json")
+        assert any(i.technique_id == "CAPEC-999999" and i.issue_type == INVALID for i in r.invalid)
+
+    def test_capec_url_points_to_capec_mitre_org(self):
+        issue = IdIssue("CAPEC-66", INVALID, "T-0001", "x", "y")
+        assert issue.attack_url == "https://capec.mitre.org/data/definitions/66.html"
+
+
+class TestD3fendValidation:
+    """D3FEND IDs are validated against the real, committed d3fend.csv."""
+
+    def test_real_d3fend_id_no_issue(self, tmp_path):
+        AttackIdValidator._reset_cache()
+        v = AttackIdValidator()
+        threat = {
+            "id": "T-0001", "name": "x", "target": "y",
+            "mitre_techniques": [{"id": "T1000", "defend_mitigations": [{"id": "D3-OAM"}]}],
+        }
+        r = v.validate_all([threat], stix_path=tmp_path / "missing.json")
+        assert not any(i.technique_id == "D3-OAM" for i in r.invalid)
+
+    def test_fake_d3fend_id_flagged_invalid(self, tmp_path):
+        AttackIdValidator._reset_cache()
+        v = AttackIdValidator()
+        threat = {
+            "id": "T-0001", "name": "x", "target": "y",
+            "mitre_techniques": [{"id": "T1000", "defend_mitigations": [{"id": "D3-NOTREAL"}]}],
+        }
+        r = v.validate_all([threat], stix_path=tmp_path / "missing.json")
+        assert any(i.technique_id == "D3-NOTREAL" and i.issue_type == INVALID for i in r.invalid)
+
+    def test_d3fend_url_points_to_d3fend_mitre_org(self):
+        issue = IdIssue("D3-OAM", INVALID, "T-0001", "x", "y")
+        assert issue.attack_url == "https://d3fend.mitre.org/technique/d3f:D3-OAM/"
+
+
 class TestValidationReport:
     def test_has_issues_false_when_empty(self):
         r = ValidationReport(total_techniques_checked=10)
