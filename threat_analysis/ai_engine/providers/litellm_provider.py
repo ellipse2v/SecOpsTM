@@ -222,6 +222,27 @@ class LiteLLMProvider(BaseLLMProvider):
             logging.error("Red/Blue debate turn generation failed: %s", exc)
             return {}
 
+    async def generate_attack_path_narrative(self, prompt: str, system_prompt: str) -> Dict:
+        """Calls the LLM with the attack-path-narrative persona and returns the parsed result.
+
+        Grounding/ID-leakage rejection is the caller's responsibility (report_generator.py) —
+        this method only handles the LLM call and JSON parsing, same as the other optional
+        provider methods.
+        """
+        client = await self._get_client()
+        try:
+            async for chunk in client.generate_content(
+                prompt=prompt,
+                system_prompt=system_prompt,
+                output_format="json",
+            ):
+                if isinstance(chunk, dict):
+                    return chunk
+            return {}
+        except Exception as exc:
+            logging.error("Attack path narrative generation failed: %s", exc)
+            return {}
+
     async def generate_markdown(
         self,
         prompt: str,

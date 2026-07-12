@@ -44,6 +44,7 @@ reachable, the tool falls back to the pytm rule engine silently.
 | **CISO Triage** | Board-level risk briefing summarizing the highest-priority threats | HTML report "CISO Briefing" section |
 | **Red Team** | Attempts to advance a GDAF attack scenario, citing only facts from the grounding block (CVE, misconfig, exposed ports) | Red/Blue adversarial debate on top GDAF scenarios |
 | **Blue Team** | Challenges the Red team's attempt with SIEM/EDR/IDS controls and calls out detection gaps | Red/Blue adversarial debate |
+| **Attack Path Narrator** | Short grounded narrative + business impact for each automatically discovered attack path (already-fixed hops/techniques — explains them, never adds new ones). Instructed to never emit an ID (T-number, CVE, CAPEC, D3-); any response that does is discarded, not trusted | "Automatically Discovered Attack Paths" section |
 
 ---
 

@@ -58,6 +58,21 @@ from threat_analysis.core.attack_id_validator import AttackIdValidator
 from threat_analysis.core.report_serializer import ReportSerializer
 from threat_analysis.severity_calculator_module import RiskContext
 
+# Attack-path narrative persona (config/prompts.yaml → attack_path_narrative) is
+# instructed to never emit an ID — the path's hops/techniques are already fixed by
+# AttackFlowGenerator before the LLM sees them, so any ID in free text is a grounding
+# violation, not a fact worth trusting. Matched independently of the persona's
+# cooperation — this is enforced in code, not just requested in the prompt.
+_ID_LEAKAGE_PATTERN = re.compile(
+    r"\bT\d{4}(?:\.\d{3})?\b|\bCVE-\d{4}-\d+\b|\bCAPEC-\d+\b|\bD3-[A-Z]+\b"
+)
+
+
+def _narrative_has_id_leakage(text: str) -> bool:
+    """True if free text contains anything shaped like an ATT&CK/CVE/CAPEC/D3FEND ID."""
+    return bool(text) and bool(_ID_LEAKAGE_PATTERN.search(text))
+
+
 def _resolve_active_cves(
     component_name: str,
     vex_loader: Optional[Any],
@@ -459,6 +474,91 @@ class ReportGenerator:
         )
         return result
 
+    async def _generate_path_narratives(self, discovered_attack_paths: List[Dict]) -> None:
+        """Adds a grounded narrative + business_impact to each discovered attack path,
+        in place. One LLM call per path — naturally capped at one path per STRIDE
+        category (at most 6), since that's all AttackFlowGenerator.get_paths_summary()
+        ever returns. Never raises; skips silently when AI is unavailable, disabled via
+        config, or the provider does not implement the persona.
+
+        Grounding: each path's hops/techniques/targets are already fixed by
+        AttackFlowGenerator before this call — the persona explains them, it does not
+        design them, and is instructed to never emit an ID. Any response that does
+        anyway (T-numbers, CVE, CAPEC, D3-) is discarded entirely, not partially
+        trusted — the code has no way to tell a correct ID from a hallucinated one in
+        ungrounded free text, so the only safe move is to drop the whole response.
+        """
+        if not discovered_attack_paths or not self.ai_provider:
+            return
+        if not self._attack_flows_config.get("include_narrative", True):
+            return
+        try:
+            _client = await self.ai_provider._get_client()
+            if not _client.ai_online:
+                return
+        except Exception:
+            try:
+                if not await self.ai_provider.check_connection():
+                    return
+            except Exception:
+                pass  # proceed; generate_attack_path_narrative() will fail safely if offline
+
+        from threat_analysis.ai_engine.prompt_loader import get as _get_prompt
+        try:
+            system_prompt = _get_prompt("attack_path_narrative", "system")
+            template = _get_prompt("attack_path_narrative", "template")
+        except KeyError as exc:
+            logging.warning("Attack path narrative: prompt key missing (%s) — skipping.", exc)
+            return
+
+        for path in discovered_attack_paths:
+            try:
+                hops_lines = []
+                for i, hop in enumerate(path.get("hops", []), start=1):
+                    line = f"{i}. {hop.get('target', '?')} — technique: {hop.get('technique_name', '?')}"
+                    if hop.get("tactic"):
+                        line += f" (tactic: {hop['tactic']})"
+                    threat_id = hop.get("threat_id")
+                    threat_desc = hop.get("threat_description")
+                    if threat_id or threat_desc:
+                        line += f"\n   Related threat: {threat_id or '?'} — {threat_desc or ''}"
+                    hops_lines.append(line)
+                hops_detail = "\n".join(hops_lines) if hops_lines else "No hop data available."
+
+                prompt = (
+                    template
+                    .replace("<<stride_category>>", str(path.get("stride_category", "?")))
+                    .replace("<<path_score>>", str(path.get("path_score", 0)))
+                    .replace("<<hop_count>>", str(path.get("hop_count", 0)))
+                    .replace("<<path_label>>", str(path.get("path_label", "?")))
+                    .replace("<<hops_detail>>", hops_detail)
+                )
+
+                result = await self.ai_provider.generate_attack_path_narrative(prompt, system_prompt)
+                if not isinstance(result, dict):
+                    continue
+
+                narrative = result.get("narrative")
+                business_impact = result.get("business_impact")
+                if not narrative and not business_impact:
+                    continue
+
+                if _narrative_has_id_leakage(narrative or "") or _narrative_has_id_leakage(business_impact or ""):
+                    logging.warning(
+                        "Attack path narrative for '%s' discarded — response contained an "
+                        "ID pattern, which the persona is grounded never to emit.",
+                        path.get("stride_category", "?"),
+                    )
+                    continue
+
+                path["narrative"] = narrative
+                path["business_impact"] = business_impact
+            except Exception as exc:
+                logging.warning(
+                    "Attack path narrative generation failed for '%s' (non-fatal): %s",
+                    path.get("stride_category", "?"), exc,
+                )
+
     async def _run_debate(self, threat_model: Any) -> List[Any]:
         """Runs the Red/Blue adversarial debate over GDAF attack scenarios.
 
@@ -773,6 +873,11 @@ class ReportGenerator:
                 except Exception as exc:
                     logging.warning("Discovered attack path summary failed (non-fatal): %s", exc)
                     discovered_attack_paths = []
+                if discovered_attack_paths:
+                    try:
+                        asyncio.run(self._generate_path_narratives(discovered_attack_paths))
+                    except Exception as exc:
+                        logging.warning("Attack path narrative pass failed (non-fatal): %s", exc)
 
             template = self.env.get_template('report_template.html')
             html = template.render(

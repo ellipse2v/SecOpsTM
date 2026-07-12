@@ -110,3 +110,28 @@ class BaseLLMProvider(ABC):
             not overridden.
         """
         return {}
+
+    async def generate_attack_path_narrative(
+        self,
+        prompt: str,
+        system_prompt: str,
+    ) -> Dict:
+        """Generates a short grounded narrative for an already-computed discovered
+        attack path (AttackFlowGenerator.get_paths_summary — hops/techniques/targets
+        are fixed before this call, the model explains them, it does not design them).
+
+        Optional — providers that do not override this return an empty dict, which
+        causes the narrative to be omitted for that path.
+
+        Args:
+            prompt:        Path-specific user prompt (grounding facts for one path).
+            system_prompt: Narrative persona system instruction from prompts.yaml.
+
+        Returns:
+            A dict with keys ``narrative`` and ``business_impact``. Returns ``{}``
+            on failure or when not overridden. Callers must reject any response
+            containing an ID pattern (T####, CVE-, CAPEC-, D3-) — the persona is
+            instructed never to emit one, so any that appear are a grounding
+            violation, not a fact to trust.
+        """
+        return {}
