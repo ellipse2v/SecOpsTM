@@ -1197,16 +1197,23 @@
         {% endif %}
 
         {% if attack_id_validation is defined and attack_id_validation and attack_id_validation.has_issues %}
-        <h2 class="technical-section">⚠️ ATT&CK / CAPEC / D3FEND ID Validation</h2>
-        <div class="card technical-section" style="padding:1.5rem;border-left:4px solid #b45309;">
-            <p style="color:var(--text-secondary);margin:0 0 1rem;font-size:.875rem;">
+        <details class="gdaf-section technical-section">
+          <summary>
+            <span class="gdaf-summary-arrow"></span>
+            ⚠️ ATT&CK / CAPEC / D3FEND ID Validation
+            <span class="gdaf-badge-count">{{ attack_id_validation.all_issues | length }}</span>
+            <span class="gdaf-hint">IDs checked against the local corpora — click to expand</span>
+          </summary>
+          <div class="gdaf-content">
+            <p class="gdaf-description">
                 {{ attack_id_validation.total_techniques_checked }} IDs checked against the local ATT&amp;CK / CAPEC / D3FEND corpora.
                 {% if attack_id_validation.n_invalid %}<strong style="color:#b91c1c;">{{ attack_id_validation.n_invalid }} invalid</strong>{% endif %}
                 {% if attack_id_validation.n_revoked %} · <strong style="color:#c2410c;">{{ attack_id_validation.n_revoked }} revoked</strong>{% endif %}
                 {% if attack_id_validation.n_deprecated %} · <strong style="color:#b45309;">{{ attack_id_validation.n_deprecated }} deprecated</strong>{% endif %}
             </p>
-            <table style="border-collapse:collapse;width:100%;font-size:.875rem;">
-                <thead><tr style="background:var(--bg-tertiary);text-align:left;">
+            <div style="max-height:480px; overflow-y:auto; overflow-x:auto;">
+            <table class="gdaf-table">
+                <thead><tr>
                     <th style="padding:.4rem .75rem;">ID</th>
                     <th style="padding:.4rem .75rem;">Issue</th>
                     <th style="padding:.4rem .75rem;">Threat</th>
@@ -1232,7 +1239,9 @@
                 {% endfor %}
                 </tbody>
             </table>
-        </div>
+            </div>
+          </div>
+        </details>
         {% endif %}
 
         {% if threat_graph is defined and threat_graph and threat_graph.nodes %}
