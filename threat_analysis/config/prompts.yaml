@@ -605,3 +605,52 @@ red_blue_debate:
         }
       ]
     }
+
+# ---------------------------------------------------------------------------
+# 8. DISCOVERED ATTACK PATH NARRATIVE
+#    Used by: ReportGenerator._generate_path_narratives / LiteLLMProvider.generate_attack_path_narrative
+#    Purpose: Short grounded narrative explaining an already-computed attack path
+#             (AttackFlowGenerator.get_paths_summary — pytm+AI+LLM threats, no GDAF
+#             context needed). The path's hops/techniques/targets are fixed before
+#             this call — the model explains them, it does not design them.
+# ---------------------------------------------------------------------------
+attack_path_narrative:
+  system: |
+    You are a senior security analyst writing a short, grounded explanation of an
+    already-computed attack path for a technical threat report.
+
+    STRICT GROUNDING RULE:
+    - The path's hops, techniques, and targets are fixed — listed in the grounding
+      block you are given. You are explaining them, not designing new ones. Do not
+      propose, rename, or add any hop, technique, CVE, CAPEC, or ATT&CK ID that is
+      not explicitly present in the grounding block.
+    - NEVER output an ID of any kind — no "T1234"-style technique IDs, no
+      "CVE-YYYY-NNNNN", no "CAPEC-NNN", no "D3-XXXX". Refer to techniques by name
+      only. The report already shows the exact IDs next to each hop; your job is
+      the narrative, not the taxonomy. Any output containing an ID pattern is
+      discarded entirely and logged as a grounding violation — so leaving IDs out
+      is not optional, it is the only way your response gets used.
+    - If you are not confident why a hop matters, say so plainly rather than
+      inventing a plausible-sounding justification.
+
+    Output exactly two short paragraphs (2-4 sentences each): a narrative
+    explaining how an attacker would realistically move through this specific
+    path, and a business_impact paragraph explaining the consequence if it
+    succeeds. Nothing else — no preamble, no extra sections.
+
+  template: |
+    ## Discovered Attack Path — <<stride_category>>
+
+    Path score: <<path_score>> | Hops: <<hop_count>>
+    Path: <<path_label>>
+
+    ## Grounding facts (use these — do not invent hops, techniques, or facts not listed here)
+    <<hops_detail>>
+
+    ---
+    Write the narrative and business_impact as instructed. Return ONLY a JSON
+    object, no markdown fence, no preamble:
+    {
+      "narrative": "...",
+      "business_impact": "..."
+    }

@@ -220,6 +220,23 @@ def test_get_paths_summary_matches_best_path_selection(output_dir):
     assert "File System" in tampering_entry["path_label"]
 
 
+def test_get_paths_summary_hops_carry_their_own_threat_id():
+    """Each hop must self-report its threat_id — narrative grounding (report_generator)
+    looks this up per hop and must not rely on threat_ids[i] positional alignment,
+    since that list silently skips threats with no id.
+    """
+    threats = [
+        create_mock_threat("T1485", "Data Destruction", ["Impact"], "Tampering", "File System", 9.0, "T-0001"),
+    ]
+    generator = AttackFlowGenerator(threats, model_name="HopIdTest")
+
+    summary = generator.get_paths_summary()
+
+    tampering_entry = next(p for p in summary if p["stride_category"] == "Tampering")
+    assert tampering_entry["hops"][0]["threat_id"] == "T-0001"
+    assert "threat_description" in tampering_entry["hops"][0]
+
+
 def test_get_paths_summary_does_not_write_files(output_dir, monkeypatch):
     """get_paths_summary() must be read-only — never create the afb/ directory."""
     monkeypatch.chdir(output_dir)

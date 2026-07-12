@@ -1,5 +1,5 @@
 // Threat Model Configuration - Web UI
-// Generated on: 2026-07-11 14:20:00
+// Generated on: 2026-07-12 20:24:38
 // This file contains configuration for the threat model web interface
 
 const ThreatModelConfig = {

@@ -195,13 +195,17 @@ class AttackFlowGenerator:
             for tech_id, threat in path:
                 tech_data = self.techniques[tech_id]
                 target = self._get_target_name(threat.get('target'))
+                tid = threat.get('id')
                 hops.append({
                     "technique_id": tech_id,
                     "technique_name": tech_data['name'],
                     "tactic": tech_data['tactics'][0] if tech_data['tactics'] else "",
                     "target": target,
+                    # Per-hop threat id — do not derive this from threat_ids[i] by
+                    # position, that list skips threats with no id and would misalign.
+                    "threat_id": tid,
+                    "threat_description": str(threat.get('description', ''))[:200],
                 })
-                tid = threat.get('id')
                 if tid:
                     threat_ids.append(tid)
                 total_score += threat.get('severity', {}).get('score') or 0

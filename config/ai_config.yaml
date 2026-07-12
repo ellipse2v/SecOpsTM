@@ -187,6 +187,12 @@ embedding:
 attack_flows:
   enabled: true
   generate_for_categories: ["Tampering", "Information Disclosure", "Elevation of Privilege"]
+  # Adds a short grounded narrative + business_impact to each discovered path in the
+  # HTML report (attack_path_narrative persona, config/prompts.yaml). One LLM call per
+  # path (naturally capped at one per STRIDE category, so ≤6). Requires AI enabled;
+  # skipped silently offline. The persona is instructed to never emit an ID (no
+  # T-numbers, CVE, CAPEC, D3-) — any response that does is discarded, not trusted.
+  include_narrative: true
 
 # GDAF engine defaults — override per model via gdaf_min_technique_score in ## Context
 # or via risk_criteria in the per-model GDAF context YAML

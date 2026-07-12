@@ -321,6 +321,30 @@ ReportGenerator.generate_html_report() — after the debate re-write, before the
             → board-level risk summary, rendered in the "CISO Briefing" section
 ```
 
+### 5d. Discovered Attack Paths + Narrative
+
+```
+ReportGenerator.generate_html_report() — after CISO triage, before the template render:
+    → if attack_flows.enabled:
+        AttackFlowGenerator(all_detailed_threats, allowed_categories=...).get_paths_summary()
+            → best (highest-severity) path per STRIDE category through the threats' own
+              MITRE techniques — pure graph traversal, no LLM call, no GDAF context needed
+            → each hop self-reports its own threat_id/threat_description (not positional
+              lookup into threat_ids[i] — that list silently skips threats with no id)
+
+        → if ai_provider and attack_flows.include_narrative:
+            ReportGenerator._generate_path_narratives(discovered_attack_paths)   (in place)
+                → per path (≤6 — one per STRIDE category): builds a grounding block from the
+                  path's own hops (target, technique NAME — not ID, tactic, related threat
+                  description) and calls LiteLLMProvider.generate_attack_path_narrative()
+                  (attack_path_narrative prompt persona)
+                → persona is instructed to never emit an ID (T-number, CVE, CAPEC, D3-) —
+                  _narrative_has_id_leakage() regex-checks the response regardless of
+                  cooperation; any match discards the entire narrative (fail closed, not a
+                  partial-trust patch), logged as a grounding violation
+                → on success, path["narrative"] / path["business_impact"] are set
+```
+
 ### 6b. Diagram Generation + Trust Colors
 
 ```

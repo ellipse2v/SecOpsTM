@@ -1712,6 +1712,15 @@
                   </td>
                   <td>{{ p.threat_ids | join(", ") }}</td>
                 </tr>
+                {% if p.narrative or p.business_impact %}
+                <tr class="gdaf-row">
+                  <td></td>
+                  <td colspan="5" style="font-size:.8rem;color:var(--text-secondary);padding-top:0;">
+                    {% if p.narrative %}<div><strong>Narrative:</strong> {{ p.narrative }}</div>{% endif %}
+                    {% if p.business_impact %}<div style="margin-top:.3rem;"><strong>Business impact:</strong> {{ p.business_impact }}</div>{% endif %}
+                  </td>
+                </tr>
+                {% endif %}
                 {% endfor %}
               </tbody>
             </table>
