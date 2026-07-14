@@ -59,7 +59,7 @@ ai_providers:
   # subscription; needs its own pay-as-you-go API key)
   # export ANTHROPIC_API_KEY=sk-ant-...
   anthropic:
-    enabled: true
+    enabled: false
     model: "claude-haiku-4-5"   # fast/cheap for iteration; "claude-sonnet-5" for higher quality
     api_key_env: "ANTHROPIC_API_KEY"
     temperature: 0.2
@@ -87,6 +87,30 @@ ai_providers:
     timeout: 60
     ssl_verify: true
 
+  # Groq (LPU inference — fast, generous free tier) — https://console.groq.com
+  # export GROQ_API_KEY=gsk_...
+  groq:
+    enabled: true
+    model: "llama-3.3-70b-versatile"    # or "llama-3.1-8b-instant" (faster/cheaper)
+    api_key_env: "GROQ_API_KEY"
+    api_base: ""                        # defaults to https://api.groq.com/openai/v1 when empty
+    temperature: 0.3
+    max_tokens: 4096
+    timeout: 30
+    ssl_verify: true
+
+  # xAI Grok — https://console.x.ai (pay-as-you-go API key)
+  # export XAI_API_KEY=xai-...
+  xai:
+    enabled: false
+    model: "grok-3-latest"     # or "grok-4-fast-reasoning", "grok-3-mini-fast-beta" (cheaper)
+    api_key_env: "XAI_API_KEY"
+    api_base: ""               # defaults to https://api.x.ai/v1 when empty
+    temperature: 0.3
+    max_tokens: 4096
+    timeout: 30
+    ssl_verify: true
+
   ollama:
     enabled: false
     model: "llama3:8b-instruct-q4_K_M"
@@ -108,12 +132,12 @@ threat_generation:
   fallback_to_traditional: true
   # Per-component cap on AI-generated threats kept (0 = no limit). When more than this
   # many are returned, the highest-confidence ones are kept.
-  max_threats_per_component: 10
+  max_threats_per_component: 7
 
   # Rate limiting — set to 1.5 for Gemini free tier (15 RPM), 0.0 for paid/Ollama
-  rate_limit_sleep: 1.5
+  rate_limit_sleep: 2
   # Concurrency — 1 = sequential (safe for free tiers); 3–5 for paid/Ollama
-  max_concurrent_ai_requests: 3
+  max_concurrent_ai_requests: 1
   # Batch enrichment — components grouped per LLM call (5 = 5× fewer API round trips)
   # Set to 1 to disable batching and fall back to one call per component
   batch_size: 5

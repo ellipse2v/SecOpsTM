@@ -294,9 +294,10 @@ class TestIdIssueProperties:
 # ---------------------------------------------------------------------------
 
 class TestCapecValidation:
-    """CAPEC IDs are validated against the real, committed CAPEC catalog CSV —
-    there's no per-test override like the STIX bundle, so these use known-real
-    and known-fake IDs from that fixed corpus.
+    """CAPEC IDs are validated against the union of every committed CAPEC source
+    (see data_loader.load_capec_catalog_ids) — there's no per-test override like
+    the STIX bundle, so these use known-real and known-fake IDs from that fixed
+    corpus.
     """
 
     def test_real_capec_id_no_issue(self, tmp_path):
@@ -308,6 +309,21 @@ class TestCapecValidation:
         }
         r = v.validate_all([threat], stix_path=tmp_path / "missing.json")
         assert not any(i.technique_id == "CAPEC-1" for i in r.invalid)
+
+    def test_capec_id_only_in_stride_to_capec_json_not_flagged(self, tmp_path):
+        """Regression test: CAPEC-166 is real (used by pytm-derived threats via
+        stride_to_capec.json) but absent from CAPEC_VIEW_ATT&CK_Related_Patterns.csv
+        (no ATT&CK mapping). Validating against the CSV alone previously flagged
+        it — and 41 other legitimate IDs — as hallucinated, which they were not.
+        """
+        AttackIdValidator._reset_cache()
+        v = AttackIdValidator()
+        threat = {
+            "id": "T-0001", "name": "x", "target": "y",
+            "capecs": [{"capec_id": "CAPEC-166"}],
+        }
+        r = v.validate_all([threat], stix_path=tmp_path / "missing.json")
+        assert not any(i.technique_id == "CAPEC-166" for i in r.invalid)
 
     def test_hallucinated_capec_id_flagged_invalid(self, tmp_path):
         AttackIdValidator._reset_cache()

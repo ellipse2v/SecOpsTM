@@ -42,7 +42,7 @@ docker run --rm \
 
 ```bash
 docker run -p 127.0.0.1:5000:5000 \
-  -e NVIDIA_API_KEY=your_key \
+  -e NVIDIA_NIM_API_KEY=your_key \
   -v secopstm-rag:/app/rag \
   -v $(pwd)/output:/app/output \
   ellipse2v/secopstm:latest
@@ -56,10 +56,12 @@ The named volume `secopstm-rag` persists across restarts and image upgrades.
 
 | Provider | Environment variable | Free tier |
 |---|---|---|
-| NVIDIA NIM *(default)* | `NVIDIA_API_KEY` | ✅ [build.nvidia.com](https://build.nvidia.com/meta/llama-3_3-70b-instruct) |
+| NVIDIA NIM *(default)* | `NVIDIA_NIM_API_KEY` | ✅ [build.nvidia.com](https://build.nvidia.com/meta/llama-3_3-70b-instruct) |
 | Google Gemini | `GEMINI_API_KEY` | ✅ |
 | OpenAI | `OPENAI_API_KEY` | ❌ |
 | Mistral | `MISTRAL_API_KEY` | ✅ |
+| Groq | `GROQ_API_KEY` | ✅ [console.groq.com](https://console.groq.com) |
+| xAI | `XAI_API_KEY` | ❌ [console.x.ai](https://console.x.ai) |
 | Ollama (local, fully offline) | — no key needed — | ✅ |
 
 ---
@@ -79,7 +81,7 @@ The named volume `secopstm-rag` persists across restarts and image upgrades.
 
 ```bash
 docker run -p 127.0.0.1:5000:5000 \
-  -e NVIDIA_API_KEY=your_key \
+  -e NVIDIA_NIM_API_KEY=your_key \
   -v $(pwd)/ai_config.yaml:/app/config/ai_config.yaml:ro \
   -v secopstm-rag:/app/rag \
   -v $(pwd)/models:/models \
