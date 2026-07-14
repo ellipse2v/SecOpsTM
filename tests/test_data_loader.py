@@ -81,6 +81,35 @@ def test_load_capec_catalog_ids_skips_blank_id_rows():
         ids = load_capec_catalog_ids()
         assert ids == frozenset({"CAPEC-1"})
 
+def test_load_capec_catalog_ids_unions_stride_and_mitre_mapping_sources():
+    """The CSV (CAPEC_VIEW_ATT&CK_Related_Patterns.csv) is only a narrow
+    ATT&CK-linked view of CAPEC, not the master catalog — stride_to_capec.json
+    and capec_to_mitre_structured_mapping.json must also contribute IDs, or a
+    real, legitimate CAPEC ID that pytm-derived threats reference (but which
+    happens to have no ATT&CK mapping) gets wrongly flagged as invalid.
+    """
+    csv_data = "'ID,Name,Abstraction\n1,Some Pattern,Standard\n"
+    stride_json = json.dumps({
+        "Tampering": [{"capec_id": "CAPEC-166", "name": "Force the System to Reset Values"}]
+    })
+    mitre_json = json.dumps([{
+        "capec_id": "CAPEC-519",
+        "techniques": [{"taxonomy": "ATT&CK", "id": "T1565"}],
+    }])
+
+    def _fake_open(path, *args, **kwargs):
+        path_str = str(path)
+        if "stride_to_capec" in path_str:
+            return mock_open(read_data=stride_json)()
+        if "capec_to_mitre_structured_mapping" in path_str:
+            return mock_open(read_data=mitre_json)()
+        return mock_open(read_data=csv_data)()
+
+    with patch("builtins.open", side_effect=_fake_open):
+        ids = load_capec_catalog_ids()
+
+    assert ids == frozenset({"CAPEC-1", "CAPEC-166", "CAPEC-519"})
+
 def test_load_stride_to_capec_map_file_not_found():
     with patch("builtins.open", side_effect=FileNotFoundError):
         mapping = load_stride_to_capec_map()

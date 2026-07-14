@@ -15,7 +15,7 @@ This project is a Python-based, end-to-end STRIDE threat modeling and analysis f
 -   **Generate optimized Attack Flow diagrams** for key objectives (Tampering, Spoofing, Information Disclosure, Repudiation).
 -   **Extend and customize** all mappings, calculations, and reporting logic.
 -   **Run as a web-based editor** for live, interactive threat modeling.
--   **AI-Enhanced Threat Analysis (Hybrid Mode)**: Threats from three independent engines — pytm rule engine, component-level LLM, and a cross-model RAG pipeline (ChromaDB + HuggingFace) — are automatically deduplicated and unified before reporting. Boundary objects are also analysed as AI targets. Supports Ollama (offline), Gemini, OpenAI, Mistral, and any LiteLLM-compatible provider. Configured in `config/ai_config.yaml`.
+-   **AI-Enhanced Threat Analysis (Hybrid Mode)**: Threats from three independent engines — pytm rule engine, component-level LLM, and a cross-model RAG pipeline (ChromaDB + HuggingFace) — are automatically deduplicated and unified before reporting. Boundary objects are also analysed as AI targets. Supports Ollama (offline), Gemini, OpenAI, Mistral, Groq, xAI, and any LiteLLM-compatible provider. Configured in `config/ai_config.yaml`.
 -   **Pure CLI & CI integration**: A `secopstm` command ships after `pip install -e .`. Use `--output-format json --stdout` to pipe structured output to dashboards or SIEM without starting a server.
 -   **Versioned JSON output**: Every JSON export is stamped `schema_version: "1.0"` and validated against `threat_analysis/schemas/v1/threat_model_report.schema.json`.
 
@@ -103,13 +103,13 @@ docker run --rm -v secopstm-rag:/app/rag ellipse2v/secopstm:latest --init-rag
 
 # Step 2 — Run
 docker run -p 127.0.0.1:5000:5000 \
-  -e NVIDIA_API_KEY=your_key \
+  -e NVIDIA_NIM_API_KEY=your_key \
   -v secopstm-rag:/app/rag \
   -v $(pwd)/output:/app/output \
   ellipse2v/secopstm:latest
 ```
 
-Other supported providers: `GEMINI_API_KEY`, `OPENAI_API_KEY`, `MISTRAL_API_KEY`. Ollama works fully offline (no key needed).
+Other supported providers: `GEMINI_API_KEY`, `OPENAI_API_KEY`, `MISTRAL_API_KEY`, `GROQ_API_KEY`, `XAI_API_KEY`. Ollama works fully offline (no key needed).
 
 ---
 

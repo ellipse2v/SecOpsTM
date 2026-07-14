@@ -30,7 +30,7 @@ docker run -p 5000:5000 -v $(pwd)/output:/app/output \
 # With LLM inference — default provider is NVIDIA NIM (free tier available)
 # See https://build.nvidia.com/meta/llama-3_3-70b-instruct for a free API key
 docker run -p 5000:5000 \
-  -e NVIDIA_API_KEY=your_key \
+  -e NVIDIA_NIM_API_KEY=your_key \
   -v $(pwd)/output:/app/output \
   ellipse2v/secopstm:latest
 
@@ -48,7 +48,7 @@ docker run --rm \
   --init-rag
 
 docker run -p 5000:5000 \
-  -e NVIDIA_API_KEY=your_key \
+  -e NVIDIA_NIM_API_KEY=your_key \
   -v secopstm-rag:/app/rag \
   -v $(pwd)/output:/app/output \
   ellipse2v/secopstm:latest

@@ -94,9 +94,20 @@ def load_capec_to_mitre_mapping() -> Dict[str, List[Dict[str, Any]]]:
 
 
 def load_capec_catalog_ids() -> "frozenset[str]":
-    """Loads the full set of known CAPEC IDs (e.g. "CAPEC-66") from the local
-    CAPEC catalog CSV — the ground truth used to validate LLM-cited CAPEC IDs
-    before they appear in a report or STIX export.
+    """Loads the broadest known set of CAPEC IDs (e.g. "CAPEC-66") from every
+    committed CAPEC source — the ground truth used to validate LLM-cited CAPEC
+    IDs before they appear in a report or STIX export.
+
+    Unions three sources because none alone is the full CAPEC catalog:
+    - CAPEC_VIEW_ATT&CK_Related_Patterns.csv — only patterns with a known ATT&CK
+      relationship (177 entries) — a narrow cross-reference view, NOT the master
+      catalog. Using this alone previously flagged legitimate pytm-derived CAPEC
+      IDs (sourced from stride_to_capec.json) as "invalid" — a false positive,
+      not a real hallucination or corpus drift.
+    - stride_to_capec.json — the STRIDE→CAPEC mapping pytm-derived threats
+      actually draw from (530 distinct IDs, the broadest single source here).
+    - capec_to_mitre_structured_mapping.json — CAPEC→ATT&CK technique mapping
+      (181 distinct IDs, mostly but not fully overlapping with the above).
     """
     import csv
     csv_path = Path(__file__).parent.parent / 'external_data' / 'CAPEC_VIEW_ATT&CK_Related_Patterns.csv'
@@ -115,6 +126,15 @@ def load_capec_catalog_ids() -> "frozenset[str]":
         )
     except Exception as e:
         logging.error(f"Error processing CAPEC catalog CSV: {e}")
+
+    for cat_entries in load_stride_to_capec_map().values():
+        for entry in cat_entries:
+            capec_id = entry.get('capec_id')
+            if capec_id:
+                ids.add(capec_id)
+
+    ids.update(load_capec_to_mitre_mapping().keys())
+
     return frozenset(ids)
 
 
