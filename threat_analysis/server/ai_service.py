@@ -505,10 +505,13 @@ class AIService:
                     SID=threat_json.get('name', 'Generic RAG Threat'),
                     description=description,
                     category=threat_json.get('category', 'Generic RAG Threat'),
-                    likelihood=likelihood,
                     impact=impact,
                     source="LLM",
                 )
+                # pytm's own `likelihood` field is a validated str (e.g. "High"); our
+                # 1-5 severity score is a distinct, SecOpsTM-only signal, so it's kept
+                # under its own attribute rather than colliding with pytm's field.
+                new_threat.likelihood_score = likelihood
                 new_threat.capec_ids = [
                     c for c in threat_json.get('capec_ids', [])
                     if isinstance(c, str) and c.upper().startswith('CAPEC-')
@@ -797,10 +800,12 @@ class AIService:
                     SID=title,
                     description=threat_desc,
                     category=threat_json.get('category', 'Unknown'),
-                    likelihood=likelihood,
                     impact=severity,
                     source="AI",
                 )
+                # See RAG threat construction above: pytm's `likelihood` field is a
+                # validated str, so our numeric score lives under its own attribute.
+                new_threat.likelihood_score = likelihood
                 new_threat.capec_ids = [
                     c for c in threat_json.get('capec_ids', [])
                     if isinstance(c, str) and c.upper().startswith('CAPEC-')
