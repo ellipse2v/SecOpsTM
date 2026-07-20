@@ -86,6 +86,14 @@ class ThreatModel:
     """Main class for managing the threat model with MITRE ATT&CK integration"""
 
     def __init__(self, name: str, description: str = "", cve_service: Optional[CVEService] = None):
+        # pytm >= 1.4.0 keeps TM's element/flow registries in a class-level
+        # ClassVar shared across every TM instance in the process; without
+        # resetting it here, elements from previously-built ThreatModels
+        # (e.g. sibling sub-models, earlier test runs) accumulate and corrupt
+        # pytm's own flow-matching logic. TM.reset() gives each ThreatModel
+        # a clean pytm registry, matching pytm 1.3.1's implicit per-instance state.
+        if hasattr(TM, "reset"):
+            TM.reset()
         self.tm = TM(name)
         self.tm.description = description
         self.boundaries = {}  # Stores Boundary objects and their properties (e.g., color)
@@ -295,7 +303,21 @@ class ThreatModel:
             # Stop processing if validation fails
             return {}
 
+        # pytm >= 1.4.0's tm.process() runs _apply_forward_defaults() on every
+        # non-response flow, which unconditionally overwrites Dataflow.protocol
+        # with the sink element's own `.protocol` (empty by default, since
+        # SecOpsTM's DSL sets protocol per-dataflow, not per-element) — silently
+        # wiping out the protocol every dataflow was parsed with. Snapshot and
+        # restore it so the ~15 downstream readers (diagram styling, GDAF,
+        # attack chains, AI prompts, JSON export...) keep seeing the DSL value.
+        original_protocols = {id(df): getattr(df, 'protocol', '') for df in self.dataflows}
+
         self.tm.process()
+
+        for df in self.dataflows:
+            original = original_protocols.get(id(df))
+            if original and getattr(df, 'protocol', '') != original:
+                df.protocol = original
 
         # Use tm.findings (condition-matched, per-element) rather than tm._threats
         # (raw definitions with unresolved class-tuple targets that produce nonsense entries).

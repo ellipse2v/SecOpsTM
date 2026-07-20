@@ -1311,7 +1311,7 @@ class ReportGenerator:
                 severity_info = self.severity_calculator.get_severity_info(
                     stride_category, target_name,
                     impact=getattr(et, 'impact', None),
-                    likelihood=getattr(et, 'likelihood', None),
+                    likelihood=getattr(et, 'likelihood_score', None),
                     risk_context=ai_risk_ctx,
                 )
                 ai_element_threat_dicts.append({
@@ -1356,7 +1356,7 @@ class ReportGenerator:
                     stride_category,
                     target_name,
                     impact=getattr(threat, 'impact', None),
-                    likelihood=getattr(threat, 'likelihood', None)
+                    likelihood=getattr(threat, 'likelihood_score', None)
                 )
 
                 threat_dict = {

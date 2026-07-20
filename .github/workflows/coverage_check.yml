@@ -15,8 +15,11 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        # Pinned to 3.12 for stability with current library versions
-        python-version: '3.x'
+        # Matches venv-314. pytm>=1.4.0 requires Python >=3.11, and floating
+        # pins ('3.x', '3.12') drift onto whatever's latest on the runner —
+        # that's what pulled in Python 3.14 and surfaced pytm incompatibilities
+        # never seen locally against the older venv-py310 (Python 3.10).
+        python-version: '3.11'
 
     - name: Install System Dependencies (Graphviz)
       run: |

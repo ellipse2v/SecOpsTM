@@ -21,10 +21,7 @@
 # - Includes jq and unstructured[all] (tooling / data pipeline only)
 # - Versions are pinned with >= lower-bounds (not exact) to stay compatible with
 #   fresh environments while avoiding known-bad releases.
-pytm==1.3.1  # pinned exact: newer releases turned pytm.Threat into a strict-typed
-             # pydantic model (likelihood/impact must be str), breaking ExtendedThreat
-             # construction in ai_service.py and causing a pydantic __eq__ RecursionError
-             # in pytm's _match_responses(). Revisit when upgrading — see decisions.md.
+pytm>=1.4.0
 Flask[async]>=3.1.1
 openpyxl>=3.1.0
 Jinja2>=3.1.6

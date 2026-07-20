@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends graphviz \
@@ -40,7 +40,7 @@ COPY --chown=appuser:appuser pyproject.toml README.md LICENSE ./
 
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --no-deps . && \
-    chown appuser:appuser /usr/local/lib/python3.10/site-packages/threat_analysis/server/static/js/config.js
+    chown appuser:appuser /usr/local/lib/python3.11/site-packages/threat_analysis/server/static/js/config.js
 
 # Fixed vector store path — mountable via Docker named volume.
 # secopstm --init-rag and the RAG service both respect this env var.
