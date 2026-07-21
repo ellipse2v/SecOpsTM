@@ -59,8 +59,8 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Delete untagged GHCR versions
-        uses: actions/delete-package-versions@v5
+        uses: dataaxiom/ghcr-cleanup-action@d52806a0dc70b430571a37da1fde39733ffd640f  # v1
         with:
-          package-name: secopstm
-          package-type: container
-          delete-only-untagged-versions: true
+          package: secopstm
+          delete-untagged: true
+          delete-ghost-images: true
