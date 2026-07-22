@@ -31,6 +31,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from threat_analysis.core.models_module import ThreatModel
 from threat_analysis.config_generator import CONFIG_DATA
+from threat_analysis.utils import minimal_subprocess_env
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -54,7 +55,8 @@ class DiagramGenerator:
         self.dot_executable = "dot"
         self.supported_formats = ["svg", "png", "pdf", "ps"]
         self.template_env = Environment(loader=FileSystemLoader(Path(__file__).parent.parent / "templates"))
-    
+
+
     def generate_dot_file_from_model(self, threat_model, output_file: str, project_protocol_styles: Optional[Dict] = None, external_connections: Optional[List[Dict]] = None) -> Optional[str]:
         """
         Generates DOT code from the threat model, saves it to a file,
@@ -115,7 +117,8 @@ class DiagramGenerator:
                 text=True,
                 encoding='utf-8',
                 capture_output=True,
-                check=True
+                check=True,
+                env=minimal_subprocess_env(),
             )
             
             if Path(output_path).exists():
@@ -382,7 +385,8 @@ class DiagramGenerator:
                 text=True,
                 encoding="utf-8",
                 capture_output=True,
-                check=True
+                check=True,
+                env=minimal_subprocess_env(),
             )
             graphviz_json = json.loads(result.stdout)
 
@@ -1147,8 +1151,9 @@ class DiagramGenerator:
     def check_graphviz_installation(self) -> bool:
         """Checks if Graphviz is installed"""
         try:
-            result = subprocess.run([self.dot_executable, "-V"], 
-                                  capture_output=True, text=True, check=True)
+            result = subprocess.run([self.dot_executable, "-V"],
+                                  capture_output=True, text=True, check=True,
+                                  env=minimal_subprocess_env())
             return result.returncode == 0
         except FileNotFoundError:
             return False

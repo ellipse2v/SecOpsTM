@@ -131,3 +131,25 @@ jobs:
           gate: 'CRITICAL'
           comment-on-pr: 'true'
           upload-artifacts: 'true'
+
+  # ── Example 5: SARIF export to Security > Code scanning ──────────────────
+  threat-model-sarif:
+    name: Analyze threat model (SARIF)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      security-events: write  # required to upload SARIF
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run SecOpsTM with SARIF export
+        uses: ellipse2v/SecOpsTM@v1
+        with:
+          model-file: 'threat_model.md'
+          sarif: 'true'
+          gate: 'CRITICAL'
+          comment-on-pr: 'true'
+          upload-artifacts: 'true'

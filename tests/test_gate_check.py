@@ -43,7 +43,10 @@ def _threat(
     t = {
         "id": tid,
         "name": name,
-        "severity": severity,
+        # ReportSerializer/the v1 schema nest severity as {score, level,
+        # formatted_score} — a plain string here would mask run_gate_check
+        # bugs that only show up against a real generated report.
+        "severity": {"score": None, "level": severity, "formatted_score": None},
         "stride_category": stride,
         "target": target,
         "threat_key": threat_key,
@@ -264,7 +267,7 @@ class TestGateBaseline:
         assert run_gate_check(str(rp), baseline_path=str(bp)) == 1
 
     def test_baseline_match_by_id_when_no_threat_key(self, tmp_path):
-        t = {"id": "T-0001", "severity": "CRITICAL", "stride_category": "Spoofing",
+        t = {"id": "T-0001", "severity": {"level": "CRITICAL"}, "stride_category": "Spoofing",
              "target": "X", "name": "Test", "description": "Test"}
         rp = _write_json(tmp_path, "r.json", _report([t]))
         bp = _write_json(tmp_path, "b.json", _report([t]))

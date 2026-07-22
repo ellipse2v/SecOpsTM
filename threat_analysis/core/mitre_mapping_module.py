@@ -234,7 +234,10 @@ class MitreMapping:
             # Check if any technique for this CAPEC is manually mapped
             is_manual_capec = any(tech.get('fromMitre') == 'no' for tech in techniques_from_capec)
             if is_manual_capec and capec_id in found_capecs:
-                found_capecs[capec_id]['source'] = 'manual'
+                # Copy rather than mutate in place: found_capecs[capec_id] may be a
+                # reference into data_loader's cached stride_to_capec structure,
+                # now shared across all MitreMapping instances (see data_loader.py).
+                found_capecs[capec_id] = {**found_capecs[capec_id], 'source': 'manual'}
 
             for tech_info in techniques_from_capec:
                 tech_id = tech_info.get('id')

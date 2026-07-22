@@ -16,7 +16,8 @@ name: 'SecOpsTM Threat Analysis'
 description: >
   Run STRIDE threat analysis with MITRE ATT&CK, CAPEC, D3FEND and CVE mapping
   on your architecture model or IaC configuration. Generates HTML reports,
-  STIX 2.1 bundles, ATT&CK Navigator layers and enforces severity gates in CI.
+  STIX 2.1 bundles, ATT&CK Navigator layers, SARIF (Security tab) and
+  enforces severity gates in CI.
 author: 'ellipse2v'
 
 branding:
@@ -58,6 +59,14 @@ inputs:
 
   attack-flow:
     description: 'Generate Attack Flow .afb files from GDAF scenarios.'
+    required: false
+    default: 'false'
+
+  sarif:
+    description: >
+      Generate a SARIF 2.1.0 file and upload it to the repo's Security > Code
+      scanning tab. Requires the calling workflow to grant
+      `permissions: security-events: write`.
     required: false
     default: 'false'
 
@@ -118,6 +127,9 @@ outputs:
   report-html:
     description: 'Path to the primary generated HTML threat report.'
     value: ${{ steps.analyse.outputs.report-html }}
+  report-sarif:
+    description: 'Path to the generated SARIF file (empty unless sarif: "true").'
+    value: ${{ steps.analyse.outputs.report-sarif }}
   total-threats:
     description: 'Total number of threats found.'
     value: ${{ steps.analyse.outputs.total-threats }}
@@ -195,6 +207,10 @@ runs:
           SECOPSTM_ARGS+=(--attack-flow)
         fi
 
+        if [ "${{ inputs.sarif }}" = "true" ]; then
+          SECOPSTM_ARGS+=(--sarif)
+        fi
+
         if [ -n "${{ inputs.ai-config-file }}" ]; then
           SECOPSTM_ARGS+=(--ai-config-file "${{ inputs.ai-config-file }}")
         fi
@@ -211,6 +227,14 @@ runs:
         TOTAL=0; CRIT=0; HIGH=0; MED=0; LOW=0
         REPORT_JSON=""
         REPORT_HTML=""
+        REPORT_SARIF=""
+
+        if [ "${{ inputs.sarif }}" = "true" ]; then
+          REPORT_SARIF=$(find . -name "*.sarif.json" \
+            -not -path "*/.git/*" \
+            -newer "${{ github.action_path }}/action.yml" \
+            2>/dev/null | head -1 || true)
+        fi
 
         # Find the latest JSON report (sidecar or output dir)
         REPORT_JSON=$(find . "${RUNNER_TEMP}" -name "*.json" \
@@ -221,11 +245,15 @@ runs:
           2>/dev/null | sort -t/ -k3 | tail -1 || true)
 
         if [ -f "$REPORT_JSON" ]; then
-          TOTAL=$(jq -r '.statistics.total_threats // 0'       "$REPORT_JSON")
-          CRIT=$(jq  -r '.statistics.by_severity.CRITICAL // 0' "$REPORT_JSON")
-          HIGH=$(jq  -r '.statistics.by_severity.HIGH // 0'     "$REPORT_JSON")
-          MED=$(jq   -r '.statistics.by_severity.MEDIUM // 0'   "$REPORT_JSON")
-          LOW=$(jq   -r '.statistics.by_severity.LOW // 0'      "$REPORT_JSON")
+          # NOTE: matches ReportSerializer's actual v1 schema keys — "total" and
+          # "by_severity_level", not "total_threats"/"by_severity". Those wrong
+          # keys silently returned 0 via the `// 0` fallback, so the gate below
+          # (and every PR comment / step summary) never reflected real counts.
+          TOTAL=$(jq -r '.statistics.total // 0'                     "$REPORT_JSON")
+          CRIT=$(jq  -r '.statistics.by_severity_level.CRITICAL // 0' "$REPORT_JSON")
+          HIGH=$(jq  -r '.statistics.by_severity_level.HIGH // 0'     "$REPORT_JSON")
+          MED=$(jq   -r '.statistics.by_severity_level.MEDIUM // 0'   "$REPORT_JSON")
+          LOW=$(jq   -r '.statistics.by_severity_level.LOW // 0'      "$REPORT_JSON")
           REPORT_HTML=$(find . -name "*.html" \
             -not -path "*/.git/*" \
             -newer "${{ github.action_path }}/action.yml" \
@@ -234,6 +262,7 @@ runs:
 
         echo "report-json=$REPORT_JSON"   >> "$GITHUB_OUTPUT"
         echo "report-html=$REPORT_HTML"   >> "$GITHUB_OUTPUT"
+        echo "report-sarif=$REPORT_SARIF" >> "$GITHUB_OUTPUT"
         echo "total-threats=$TOTAL"       >> "$GITHUB_OUTPUT"
         echo "critical-threats=$CRIT"     >> "$GITHUB_OUTPUT"
         echo "high-threats=$HIGH"         >> "$GITHUB_OUTPUT"
@@ -253,7 +282,30 @@ runs:
           echo "| **Total**   | **$TOTAL** |"
         } >> "$GITHUB_STEP_SUMMARY"
 
-    # ── 5. PR comment ─────────────────────────────────────────────────────────
+    # ── 5. Diff against baseline (new/resolved/changed-severity threats) ──
+    - name: Diff against baseline
+      id: diff
+      if: inputs.baseline != ''
+      shell: bash
+      run: |
+        REPORT_JSON="${{ steps.analyse.outputs.report-json }}"
+        DIFF_FILE="${RUNNER_TEMP}/secopstm_diff.txt"
+
+        if [ -f "${{ inputs.baseline }}" ] && [ -f "$REPORT_JSON" ]; then
+          secopstm --diff "${{ inputs.baseline }}" "$REPORT_JSON" > "$DIFF_FILE" 2>&1 || true
+        else
+          echo "Baseline or current report not found — skipping diff." > "$DIFF_FILE"
+        fi
+
+        echo "diff-file=$DIFF_FILE" >> "$GITHUB_OUTPUT"
+        {
+          echo "## 🔀 Threat diff vs. baseline"
+          echo '```'
+          cat "$DIFF_FILE"
+          echo '```'
+        } >> "$GITHUB_STEP_SUMMARY"
+
+    # ── 6. PR comment ───────────────────────────────────────────────────────
     - name: Post PR comment
       if: >
         inputs.comment-on-pr == 'true' &&
@@ -268,6 +320,7 @@ runs:
         HIGH="${{ steps.analyse.outputs.high-threats }}"
         MED="${{ steps.analyse.outputs.medium-threats }}"
         LOW="${{ steps.analyse.outputs.low-threats }}"
+        DIFF_FILE="${{ steps.diff.outputs.diff-file }}"
 
         # Severity badge
         if [ "$CRIT" -gt 0 ]; then
@@ -278,12 +331,13 @@ runs:
           BADGE="✅ No CRITICAL or HIGH threats found."
         fi
 
-        # Top 5 threats table
+        # Top 5 threats table (severity is {score, level, ...}; "name" doesn't
+        # exist in the v1 schema, only "description" — see report_serializer.py)
         TOP_THREATS=""
         if [ -f "$REPORT_JSON" ]; then
           TOP_THREATS=$(jq -r '
             .threats[:5][] |
-            "| **\(.severity)** | \(.name) | `\(.target)` |"
+            "| **\(.severity.level // "?")** | \(.description // .name // "") | `\(.target)` |"
           ' "$REPORT_JSON" 2>/dev/null || true)
         fi
 
@@ -311,6 +365,15 @@ runs:
           } >> "$BODY_FILE"
         fi
 
+        if [ -n "$DIFF_FILE" ] && [ -f "$DIFF_FILE" ]; then
+          {
+            printf '\n<details><summary>Diff vs. baseline (new/resolved/changed-severity)</summary>\n\n'
+            printf '```\n'
+            cat "$DIFF_FILE"
+            printf '\n```\n</details>\n'
+          } >> "$BODY_FILE"
+        fi
+
         printf '\n_Generated by [SecOpsTM](https://github.com/ellipse2v/SecOpsTM)_\n' \
           >> "$BODY_FILE"
 
@@ -318,7 +381,7 @@ runs:
           --repo "${{ github.repository }}" \
           --body-file "$BODY_FILE"
 
-    # ── 6. Upload artifacts ───────────────────────────────────────────────────
+    # ── 7. Upload artifacts ───────────────────────────────────────────────────
     - name: Upload threat reports
       if: inputs.upload-artifacts == 'true'
       uses: actions/upload-artifact@v4
@@ -334,30 +397,28 @@ runs:
         if-no-files-found: warn
         retention-days: 30
 
-    # ── 7. Security gate (last — so artifacts and comments always publish) ────
+    # ── 8. Upload SARIF (Security > Code scanning) ────────────────────────────
+    - name: Upload SARIF
+      if: inputs.sarif == 'true' && steps.analyse.outputs.report-sarif != ''
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ steps.analyse.outputs.report-sarif }}
+
+    # ── 9. Security gate (last — so artifacts and comments always publish) ────
+    # Delegates to `secopstm --gate` (threat_analysis/__main__.py:run_gate_check)
+    # instead of re-deriving pass/fail from the raw severity counts — that
+    # bypassed the baseline/accepted-risks inputs below entirely (declared but
+    # never read), so an analyst-accepted risk or a merged baseline threat would
+    # fail the gate forever instead of only genuinely new/unaccepted threats.
     - name: Apply security gate
       if: inputs.gate != 'none' && inputs.gate != ''
       shell: bash
       run: |
-        GATE="${{ inputs.gate }}"
-        CRIT="${{ steps.analyse.outputs.critical-threats }}"
-        HIGH="${{ steps.analyse.outputs.high-threats }}"
-        MED="${{ steps.analyse.outputs.medium-threats }}"
-        LOW="${{ steps.analyse.outputs.low-threats }}"
-
-        declare -A SEV_ORDER=([LOW]=1 [MEDIUM]=2 [HIGH]=3 [CRITICAL]=4)
-        GATE_LEVEL="${SEV_ORDER[$GATE]:-4}"
-
-        FAIL=0
-        [ "${SEV_ORDER[CRITICAL]:-0}" -ge "$GATE_LEVEL" ] && [ "$CRIT" -gt 0 ] && FAIL=1
-        [ "${SEV_ORDER[HIGH]:-0}"     -ge "$GATE_LEVEL" ] && [ "$HIGH" -gt 0 ] && FAIL=1
-        [ "${SEV_ORDER[MEDIUM]:-0}"   -ge "$GATE_LEVEL" ] && [ "$MED"  -gt 0 ] && FAIL=1
-        [ "${SEV_ORDER[LOW]:-0}"      -ge "$GATE_LEVEL" ] && [ "$LOW"  -gt 0 ] && FAIL=1
-
-        if [ "$FAIL" -eq 1 ]; then
-          echo "::error::🚨 Security gate FAILED — threats at or above $GATE severity detected."
-          echo "::error::   CRITICAL=$CRIT  HIGH=$HIGH  MEDIUM=$MED  LOW=$LOW"
-          exit 1
-        else
-          echo "✅ Security gate passed — no threats at or above $GATE severity."
+        GATE_ARGS=(--gate "${{ steps.analyse.outputs.report-json }}" --fail-on "${{ inputs.gate }}")
+        if [ -n "${{ inputs.baseline }}" ]; then
+          GATE_ARGS+=(--baseline "${{ inputs.baseline }}")
         fi
+        if [ -n "${{ inputs.accepted-risks }}" ]; then
+          GATE_ARGS+=(--accepted-risks "${{ inputs.accepted-risks }}")
+        fi
+        secopstm "${GATE_ARGS[@]}"

@@ -23,9 +23,11 @@ import json
 import glob
 import threading
 import time
+from urllib.parse import urlsplit
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from flask import Flask, render_template, request, jsonify, send_from_directory, send_file, make_response, Response, stream_with_context, g, abort, session
+from waitress import serve
 from threat_analysis import config
 import asyncio
 from threat_analysis.server.events import ai_status_event_queue
@@ -93,10 +95,101 @@ app = Flask(__name__,
 # surviving a server restart is an acceptable trade-off for this local tool.
 app.secret_key = secrets.token_hex(32)
 
+def _is_allowed_request_host(hostname: str) -> bool:
+    """Hostnames this server should ever see in Host/Origin headers on a mutating
+    request. There is no auth layer (single-user tool, see architecture.md), so this
+    is the only thing standing between a malicious web page and every POST route:
+    - "127.0.0.1"/"localhost"/"::1" always allowed — the loopback default.
+    - FLASK_HOST's configured value also allowed — supports the documented (opt-in,
+      warned-about) LAN-access deployment via FLASK_HOST=<lan-ip> or 0.0.0.0.
+    Rejecting anything else defeats both classic cross-origin drive-by requests and
+    DNS-rebinding attacks (an attacker-controlled domain whose DNS record is briefly
+    repointed at 127.0.0.1 — the Host header still says the attacker's domain, which
+    this allowlist does not contain).
+    """
+    if not hostname:
+        return False
+    hostname = hostname.lower()
+    if hostname in ("127.0.0.1", "localhost", "::1"):
+        return True
+    configured_host = os.environ.get("FLASK_HOST", "127.0.0.1").lower()
+    return hostname == configured_host
+
+
+def _request_hostname(host_header: str) -> str:
+    """Extracts the hostname from a "host:port" or "[ipv6]:port" string."""
+    return urlsplit(f"//{host_header}").hostname or ""
+
+
+@app.before_request
+def _reject_cross_origin_mutations():
+    """Rejects mutating (POST/PUT/PATCH/DELETE) requests whose Host or Origin header
+    is not one this server is meant to be reached by (see _is_allowed_request_host).
+    No CSRF token exists to check instead — by default this app has no auth and no
+    per-session state worth a token, so Origin/Host validation is the whole
+    mitigation (see _enforce_bearer_auth below for the opt-in auth layer).
+    """
+    if request.method not in ("POST", "PUT", "PATCH", "DELETE"):
+        return None
+    if not _is_allowed_request_host(_request_hostname(request.host)):
+        abort(403)
+    origin = request.headers.get("Origin")
+    if origin and not _is_allowed_request_host(urlsplit(origin).hostname or ""):
+        abort(403)
+    return None
+
+
+def _bearer_auth_required() -> bool:
+    return os.environ.get("SECOPSTM_REQUIRE_AUTH", "false").lower() == "true"
+
+
+@app.before_request
+def _enforce_bearer_auth():
+    """Opt-in auth layer for deployments reachable beyond loopback (FLASK_HOST=<lan-ip>
+    or 0.0.0.0, e.g. `docker run -p 5000:5000` instead of the documented, default-safe
+    `-p 127.0.0.1:5000:5000`). Disabled unless SECOPSTM_REQUIRE_AUTH=true — the
+    documented default onboarding flow never sets it, so it stays frictionless; users
+    who deliberately expose the server beyond this machine turn it on themselves.
+
+    Token can be presented as `Authorization: Bearer <token>` (API/automation use) or
+    `?token=<token>` (bookmarkable URL for opening the UI in a browser, which cannot
+    attach custom headers to a plain navigation). Either one, once validated, sets a
+    signed session cookie so the rest of the browser session doesn't need to keep
+    resending it.
+    """
+    if not _bearer_auth_required():
+        return None
+    if session.get("_secopstm_authed") is True:
+        return None
+
+    expected_token = os.environ.get("SECOPSTM_API_TOKEN", "")
+    auth_header = request.headers.get("Authorization", "")
+    presented = ""
+    if auth_header.startswith("Bearer "):
+        presented = auth_header[len("Bearer "):]
+    elif request.args.get("token"):
+        presented = request.args["token"]
+
+    if not presented or not secrets.compare_digest(presented, expected_token):
+        abort(401)
+    session["_secopstm_authed"] = True
+    return None
+
+
 @app.before_request
 def before_request():
     g.start_time = time.time()
     g.request_received_time = time.time()
+    # Per-request CSP nonce for the page's single inline <script> block (see
+    # after_request's Content-Security-Policy header and the csp_nonce context
+    # processor below) — lets script-src drop 'unsafe-inline'/'unsafe-eval'.
+    g.csp_nonce = secrets.token_urlsafe(16)
+
+
+@app.context_processor
+def _inject_csp_nonce():
+    return {"csp_nonce": g.get("csp_nonce", "")}
+
 
 @app.after_request
 def after_request(response):
@@ -127,11 +220,16 @@ def after_request(response):
         )
     # Security headers — applied to every response regardless of route.
     # CSP allows inline styles (needed by diagram legend) but blocks external scripts.
+    # script-src uses a per-request nonce (see before_request/g.csp_nonce) instead of
+    # 'unsafe-inline'/'unsafe-eval' — audited: every page's scripts are same-origin
+    # vendored files (CodeMirror, Konva, svg-pan-zoom, split.js) or the one inline
+    # <script> block now carrying the nonce; none of them call eval()/new Function().
     response.headers.setdefault('X-Content-Type-Options', 'nosniff')
     response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
     response.headers.setdefault(
         'Content-Security-Policy',
-        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; worker-src 'self' blob:;"
+        f"default-src 'self'; script-src 'self' 'nonce-{g.get('csp_nonce', '')}'; "
+        "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; worker-src 'self' blob:;"
     )
     response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
     return response
@@ -357,19 +455,43 @@ def run_server(
     if _debug and not _host.startswith("127."):
         logging.warning("FLASK_DEBUG ignored — debug mode is only allowed on loopback addresses.")
         _debug = False
+    if _bearer_auth_required() and not os.environ.get("SECOPSTM_API_TOKEN"):
+        logging.error(
+            "SECOPSTM_REQUIRE_AUTH=true but SECOPSTM_API_TOKEN is not set. "
+            "Refusing to start without a token — set SECOPSTM_API_TOKEN to a random "
+            "secret (e.g. `python -c \"import secrets; print(secrets.token_urlsafe(32))\"`)."
+        )
+        sys.exit(1)
     if not _host.startswith("127.") and _host != "localhost":
-        # No authentication on any route (single-user tool, see architecture.md).
+        # Single-user tool, see architecture.md — no auth on any route BY DEFAULT.
         # FLASK_HOST=0.0.0.0 is what the Docker image sets by default so `docker run
         # -p 5000:5000` works at all — but it also means anyone who can reach this
-        # host and port has the exact same access as the person running it.
-        logging.warning(
-            "⚠️  Server is binding to %s — reachable from OTHER machines, not just this one. "
-            "There is NO authentication on any route. Do not expose this port to an "
-            "untrusted network. For local-only access, set FLASK_HOST=127.0.0.1 "
-            "(or run the Docker image with `-p 127.0.0.1:%d:5000`).",
-            _host, _port,
-        )
-    app.run(debug=_debug, port=_port, host=_host, threaded=True)
+        # host and port has the exact same access as the person running it, unless
+        # SECOPSTM_REQUIRE_AUTH=true is also set (see _enforce_bearer_auth above).
+        if _bearer_auth_required():
+            logging.info(
+                "Server binding to %s — reachable from other machines, but "
+                "SECOPSTM_REQUIRE_AUTH=true so a bearer token is required.",
+                _host,
+            )
+        else:
+            logging.warning(
+                "⚠️  Server is binding to %s — reachable from OTHER machines, not just this one. "
+                "There is NO authentication on any route (set SECOPSTM_REQUIRE_AUTH=true and "
+                "SECOPSTM_API_TOKEN=<secret> to require one). Do not expose this port to an "
+                "untrusted network otherwise. For local-only access, set FLASK_HOST=127.0.0.1 "
+                "(or run the Docker image with `-p 127.0.0.1:%d:5000`).",
+                _host, _port,
+            )
+    if _debug:
+        # Werkzeug's reloader/debugger is dev-only tooling — only meaningful
+        # with FLASK_DEBUG=true, already restricted to loopback above.
+        app.run(debug=True, port=_port, host=_host, threaded=True)
+    else:
+        # waitress: production-grade WSGI server. Unlike Werkzeug's single-process
+        # dev server, it handles concurrent requests (SSE streams + simultaneous
+        # exports) across a real thread pool without serializing them.
+        serve(app, host=_host, port=_port, threads=8)
 
 
 @app.route("/static/<path:filename>")

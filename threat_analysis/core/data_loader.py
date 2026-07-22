@@ -19,39 +19,87 @@ This module is responsible for loading and parsing external threat data files.
 
 import json
 import logging
+from functools import cache
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, TypedDict, NotRequired
 from collections import defaultdict
 
 
-def load_attack_techniques() -> Dict[str, Dict[str, Any]]:
-    """Loads all ATT&CK techniques from the enterprise-attack.json file."""
+class Technique(TypedDict):
+    """One MITRE ATT&CK technique, as returned by load_attack_techniques()."""
+    id: str
+    name: Optional[str]
+    description: Optional[str]
+    url: Optional[str]
+    tactics: List[str]
+
+
+class CapecMitreTechnique(TypedDict):
+    """One ATT&CK technique reference inside a CAPEC entry, as returned by
+    load_capec_to_mitre_mapping()."""
+    taxonomy: str
+    id: str
+    name: NotRequired[str]
+    fromMitre: NotRequired[str]
+    tactics: NotRequired[List[str]]
+
+
+class CapecEntry(TypedDict):
+    """One CAPEC entry inside a STRIDE category bucket, as returned by
+    load_stride_to_capec_map()."""
+    capec_id: str
+    description: NotRequired[str]
+    source: NotRequired[str]
+
+
+class D3fendEntry(TypedDict):
+    """One D3FEND technique's details, as returned by load_d3fend_mapping()."""
+    name: str
+    description: str
+    url_name: str
+
+
+class NistControlRef(TypedDict):
+    """One NIST 800-53 control reference, as returned by load_nist_mappings()."""
+    id: str
+    name: str
+    url: str
+    framework: str
+
+
+class CisEntry(TypedDict):
+    """One CIS Control's ATT&CK mapping, as returned by load_cis_to_mitre_mapping()."""
+    name: str
+    url: str
+    techniques: List[str]
+
+
+@cache
+def load_attack_techniques() -> Dict[str, Technique]:
+    """Loads all ATT&CK techniques from the pre-derived attack_techniques.json file
+    (~800 flat records, ~1 MB — built from the full enterprise-attack.json STIX bundle
+    by tooling/build_attack_techniques_cache.py, same pattern as the other precomputed
+    mappings in this module)."""
     techniques = {}
-    stix_path = Path(__file__).parent.parent / 'external_data' / 'enterprise-attack.json'
+    json_path = Path(__file__).parent.parent / 'external_data' / 'attack_techniques.json'
     try:
-        with open(stix_path, 'r', encoding='utf-8') as f:
-            stix_data = json.load(f)
-        
-        for obj in stix_data.get("objects", []):
-            if obj.get("type") == "attack-pattern":
-                external_id = next((ref['external_id'] for ref in obj.get('external_references', []) if ref.get('source_name') == 'mitre-attack'), None)
-                if external_id:
-                    techniques[external_id] = {
-                        "id": external_id,
-                        "name": obj.get("name"),
-                        "description": obj.get("description"),
-                        "url": next((ref['url'] for ref in obj.get('external_references', []) if ref.get('source_name') == 'mitre-attack'), None),
-                        "tactics": [phase['phase_name'].replace('-', ' ').title() for phase in obj.get('kill_chain_phases', []) if phase.get('kill_chain_name') == 'mitre-attack']
-                    }
+        with open(json_path, 'r', encoding='utf-8') as f:
+            techniques = json.load(f)
     except FileNotFoundError:
-        logging.error(f"Error: STIX data file not found at {stix_path}.")
+        logging.error(
+            "attack_techniques.json not found at %s. "
+            "Run: python tooling/build_attack_techniques_cache.py", json_path
+        )
+    except json.JSONDecodeError:
+        logging.error(f"Error decoding JSON from {json_path}. The file might be corrupt.")
     except Exception as e:
-        logging.error(f"Error processing STIX data file: {e}")
+        logging.error(f"Error processing attack_techniques.json: {e}")
     logging.info(f"Successfully loaded {len(techniques)} ATT&CK techniques into the dictionary.")
     return techniques
 
 
-def load_capec_to_mitre_mapping() -> Dict[str, List[Dict[str, Any]]]:
+@cache
+def load_capec_to_mitre_mapping() -> Dict[str, List[CapecMitreTechnique]]:
     """Initializes CAPEC to MITRE ATT&CK mapping from the structured JSON file."""
     capec_to_mitre = {}
     json_path = Path(__file__).parent.parent / 'external_data' / 'capec_to_mitre_structured_mapping.json'
@@ -93,6 +141,7 @@ def load_capec_to_mitre_mapping() -> Dict[str, List[Dict[str, Any]]]:
     return capec_to_mitre
 
 
+@cache
 def load_capec_catalog_ids() -> "frozenset[str]":
     """Loads the broadest known set of CAPEC IDs (e.g. "CAPEC-66") from every
     committed CAPEC source — the ground truth used to validate LLM-cited CAPEC
@@ -138,7 +187,8 @@ def load_capec_catalog_ids() -> "frozenset[str]":
     return frozenset(ids)
 
 
-def load_stride_to_capec_map() -> Dict[str, List[Dict[str, str]]]:
+@cache
+def load_stride_to_capec_map() -> Dict[str, List[CapecEntry]]:
     """Loads the STRIDE to CAPEC mapping from the JSON file."""
     capec_mapping_path = Path(__file__).parent.parent / 'external_data' / 'stride_to_capec.json'
     try:
@@ -154,7 +204,8 @@ def load_stride_to_capec_map() -> Dict[str, List[Dict[str, str]]]:
         logging.error(f"Error decoding JSON from {capec_mapping_path}.")
         return {}
 
-def load_d3fend_mapping() -> Dict[str, Dict[str, str]]:
+@cache
+def load_d3fend_mapping() -> Dict[str, D3fendEntry]:
     """
     Initializes D3FEND mitigations by loading from d3fend.csv.
     
@@ -277,7 +328,8 @@ def _clean_string(value: Optional[str]) -> str:
     return cleaned if cleaned and cleaned.lower() not in ['nan', 'null', 'none'] else ""
 
 
-def load_nist_mappings() -> Dict[str, List[Dict[str, str]]]:
+@cache
+def load_nist_mappings() -> Dict[str, List[NistControlRef]]:
     """
     Loads NIST 800-53 R5 mappings from the local Excel file.
     Maps ATT&CK Technique IDs to NIST control details.
@@ -288,7 +340,7 @@ def load_nist_mappings() -> Dict[str, List[Dict[str, str]]]:
 
     if not excel_path.exists() or excel_path.stat().st_size == 0:
         logging.error(f"NIST mapping file not found at {excel_path}. Please run 'tooling/download_nist_data.py' to download it.")
-        return defaultdict(list)
+        return {}
 
     try:
         # Load the Excel file
@@ -301,10 +353,10 @@ def load_nist_mappings() -> Dict[str, List[Dict[str, str]]]:
         attack_id_col = 'Technique ID'
         nist_id_col = 'Control ID'
         nist_name_col = 'Control Name'
-        
+
         if not all(col in df.columns for col in [attack_id_col, nist_id_col, nist_name_col]):
             logging.error(f"Missing expected columns in NIST Excel file. Found: {df.columns.tolist()}")
-            return defaultdict(list)
+            return {}
 
         for index, row in df.iterrows():
             attack_id = str(row[attack_id_col]).strip()
@@ -328,10 +380,11 @@ def load_nist_mappings() -> Dict[str, List[Dict[str, str]]]:
         logging.error(f"NIST Excel file is empty or corrupted: {excel_path}")
     except Exception as e:
         logging.error(f"Error processing NIST Excel file: {e}")
-        
-    return nist_mappings
 
-def load_cis_to_mitre_mapping() -> Dict[str, Dict[str, List[str]]]:
+    return dict(nist_mappings)
+
+@cache
+def load_cis_to_mitre_mapping() -> Dict[str, CisEntry]:
     """
     Loads the CIS Controls to MITRE ATT&CK mapping from the generated JSON file.
     The JSON maps CIS IDs to a list of MITRE techniques.
@@ -351,6 +404,7 @@ def load_cis_to_mitre_mapping() -> Dict[str, Dict[str, List[str]]]:
         return {}
 
 
+@cache
 def load_sparta_techniques() -> Dict[str, Dict[str, Any]]:
     """Load SPARTA techniques indexed by technique ID (e.g. 'IA-0006')."""
     path = Path(__file__).parent.parent / 'external_data' / 'sparta-attack.json'
@@ -371,6 +425,7 @@ def load_sparta_techniques() -> Dict[str, Dict[str, Any]]:
         return {}
 
 
+@cache
 def load_stride_to_sparta() -> Dict[str, List[str]]:
     """Load STRIDE → SPARTA technique ID mapping."""
     path = Path(__file__).parent.parent / 'external_data' / 'stride_to_sparta.json'
