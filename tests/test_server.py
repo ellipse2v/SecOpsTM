@@ -152,7 +152,8 @@ def test_export_api_missing_data(client):
 def test_run_server_with_no_model_file(client):
     """Test that run_server starts with DEFAULT_EMPTY_MARKDOWN if no model file is provided."""
     with patch('os.path.exists', return_value=False): # Simulate file not found
-        with patch('threat_analysis.server.server.app.run'): # Prevent Flask from actually running
+        with patch('threat_analysis.server.server.app.run'), \
+             patch('threat_analysis.server.server.serve'): # Prevent Flask/waitress from actually running
             run_server(model_filepath=None)
             # After run_server, the global initial_markdown_content should be set
             # We then make a request to the simple route to get the rendered HTML
@@ -168,7 +169,8 @@ def test_run_server_warns_when_bound_to_non_loopback_host(client, caplog, monkey
     """
     monkeypatch.setenv("FLASK_HOST", "0.0.0.0")
     with patch('os.path.exists', return_value=False):
-        with patch('threat_analysis.server.server.app.run'):
+        with patch('threat_analysis.server.server.app.run'), \
+             patch('threat_analysis.server.server.serve'):
             with caplog.at_level("WARNING"):
                 run_server(model_filepath=None)
 
@@ -178,7 +180,8 @@ def test_run_server_warns_when_bound_to_non_loopback_host(client, caplog, monkey
 def test_run_server_no_warning_when_bound_to_loopback(client, caplog, monkeypatch):
     monkeypatch.setenv("FLASK_HOST", "127.0.0.1")
     with patch('os.path.exists', return_value=False):
-        with patch('threat_analysis.server.server.app.run'):
+        with patch('threat_analysis.server.server.app.run'), \
+             patch('threat_analysis.server.server.serve'):
             with caplog.at_level("WARNING"):
                 run_server(model_filepath=None)
 
@@ -187,7 +190,8 @@ def test_run_server_no_warning_when_bound_to_loopback(client, caplog, monkeypatc
 def test_run_server_with_non_existent_model_file(client):
     """Test that run_server starts with DEFAULT_EMPTY_MARKDOWN if a non-existent model file is provided."""
     with patch('os.path.exists', return_value=False): # Simulate file not found
-        with patch('threat_analysis.server.server.app.run'): # Prevent Flask from actually running
+        with patch('threat_analysis.server.server.app.run'), \
+             patch('threat_analysis.server.server.serve'): # Prevent Flask/waitress from actually running
             run_server(model_filepath='/non/existent/path/to/model.md')
             response = client.get('/simple')
             assert response.status_code == 200
@@ -213,6 +217,7 @@ def test_run_server_with_existing_model_file(client):
     with patch('os.path.exists', return_value=True):
         with patch('builtins.open', side_effect=mocked_open) as mock_file:
             with patch('threat_analysis.server.server.app.run'), \
+                 patch('threat_analysis.server.server.serve'), \
                  patch('threat_analysis.server.server.initialize_ai_in_background'):
                 run_server(model_filepath=model_path)
                 response = client.get('/simple')
@@ -816,7 +821,8 @@ def test_run_server_with_file_read_error(client):
     """Test run_server when reading an existing file fails."""
     with patch('os.path.exists', return_value=True), \
          patch('builtins.open', side_effect=IOError("read error")):
-        with patch('threat_analysis.server.server.app.run'):
+        with patch('threat_analysis.server.server.app.run'), \
+             patch('threat_analysis.server.server.serve'):
             run_server(model_filepath='/path/to/existing/model.md')
             response = client.get('/simple')
             assert response.status_code == 200

@@ -477,6 +477,40 @@ class SecOpsTMFramework:
             logging.error(f"❌ Failed to generate ATT&CK Navigator layer: {e}")
             return None
 
+    def generate_sarif_report(self) -> Optional[str]:
+        """Generates and saves a SARIF 2.1.0 file for GitHub Security > Code scanning."""
+        if not self.analysis_completed:
+            logging.warning("⚠️ Analysis not run, cannot generate SARIF report.")
+            return None
+
+        logging.info("🔎 Generating SARIF report...")
+        try:
+            sarif_module = importlib.import_module("threat_analysis.generation.sarif_generator")
+            SarifGenerator = sarif_module.SarifGenerator
+
+            all_threats = get_enriched_threats(self.threat_model) if self.threat_model else []
+
+            sarif_generator = SarifGenerator(
+                threat_model_name=self.model_name,
+                all_detailed_threats=all_threats,
+                # original_model_path is the actual source file relative to the
+                # repo root; model_file_path is a copy under output/ that would
+                # not resolve on GitHub's Security tab. Falls back to
+                # model_file_path only for IaC-plugin-generated models, which
+                # have no single source file.
+                model_file_path=self.original_model_path or self.model_file_path,
+            )
+
+            output_filename = f"secopstm_{config.TIMESTAMP}.sarif.json"
+            output_path = os.path.join(self.output_base_dir, output_filename)
+
+            sarif_generator.save_sarif_to_file(output_path)
+            logging.info(f"✅ SARIF report saved to: {output_path}")
+            return output_path
+        except Exception as e:
+            logging.error(f"❌ Failed to generate SARIF report: {e}")
+            return None
+
     def open_report_in_browser(self, report_path: str):
         """Opens the HTML report in the default browser."""
         try:
@@ -704,6 +738,11 @@ class CustomArgumentParser:
             help="Also generate a MITRE ATT&CK Navigator layer JSON.",
         )
         adv.add_argument(
+            "--sarif",
+            action="store_true",
+            help="Also generate a SARIF 2.1.0 file for GitHub Security > Code scanning.",
+        )
+        adv.add_argument(
             "--log-level",
             type=str,
             default=None,
@@ -779,15 +818,20 @@ def diff_threat_reports(old_path: str, new_path: str) -> int:
         print("No threat differences between the two reports.")
         return 0
 
+    def _sev_level(t: dict) -> str:
+        # severity is {score, level, formatted_score} per ReportSerializer/the
+        # v1 schema, not a plain string.
+        return (t.get("severity") or {}).get("level", "?")
+
     if added:
         print(f"\n[+] {len(added)} NEW threat(s):")
         for t in added:
-            print(f"    [{t.get('severity','?')}] {t.get('name','')} → {t.get('target','')} ({t.get('stride_category','')})")
+            print(f"    [{_sev_level(t)}] {t.get('name','')} → {t.get('target','')} ({t.get('stride_category','')})")
 
     if resolved:
         print(f"\n[-] {len(resolved)} RESOLVED threat(s):")
         for t in resolved:
-            print(f"    [{t.get('severity','?')}] {t.get('name','')} → {t.get('target','')} ({t.get('stride_category','')})")
+            print(f"    [{_sev_level(t)}] {t.get('name','')} → {t.get('target','')} ({t.get('stride_category','')})")
 
     if changed_pairs:
         print(f"\n[~] {len(changed_pairs)} SEVERITY CHANGE(s):")
@@ -795,7 +839,7 @@ def diff_threat_reports(old_path: str, new_path: str) -> int:
             old_t = entry["old"]
             new_t = entry["new"]
             print(f"    {old_t.get('name','')} → {old_t.get('target','')}: "
-                  f"{old_t.get('severity','?')} → {new_t.get('severity','?')}")
+                  f"{_sev_level(old_t)} → {_sev_level(new_t)}")
 
     return 1
 
@@ -866,8 +910,10 @@ def run_gate_check(
     failing: List[Dict] = []
 
     for threat in threats:
-        # Severity filter
-        sev = (threat.get("severity") or "").upper()
+        # Severity filter — severity is {"score", "level", "formatted_score"}
+        # per ReportSerializer/the v1 schema, not a plain string.
+        sev = (threat.get("severity") or {}).get("level", "") or ""
+        sev = sev.upper()
         if _SEVERITY_ORDER.get(sev, 0) < min_rank:
             continue
 
@@ -899,8 +945,9 @@ def run_gate_check(
     for t in failing:
         tk = t.get("threat_key", "")
         tid = t.get("id", "?")
+        sev_level = (t.get("severity") or {}).get("level", "?")
         print(
-            f"  [{t.get('severity','?')}] {t.get('name', t.get('description', '?'))}"
+            f"  [{sev_level}] {t.get('name', t.get('description', '?'))}"
             f" → {t.get('target', '?')} ({t.get('stride_category', '?')})"
             + (f"  {tk}" if tk else f"  {tid}")
         )
@@ -918,7 +965,12 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
 
     # Check for IaC plugin arguments
     for plugin_name, plugin_instance in loaded_iac_plugins.items():
-        arg_name = f"{plugin_name}_path"
+        # argparse always converts '-' to '_' in a flag's dest (the CLI flag
+        # itself, built the same way below in CustomArgumentParser, stays
+        # hyphenated) — a hyphenated plugin name (e.g. "docker-compose") would
+        # otherwise silently never match, since args.docker_compose_path is the
+        # real attribute, not args.__getattr__("docker-compose_path").
+        arg_name = f"{plugin_name.replace('-', '_')}_path"
         if hasattr(args, arg_name) and getattr(args, arg_name):
             logging.info(f"Processing IaC configuration with {plugin_name} plugin...")
             # IaC paths are user-supplied external directories — only existence check required.
@@ -1049,6 +1101,9 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
 
     if args.navigator:
         framework.generate_navigator_layer()
+
+    if args.sarif:
+        framework.generate_sarif_report()
 
     if args.attack_flow:
         generate_and_save_attack_flow(

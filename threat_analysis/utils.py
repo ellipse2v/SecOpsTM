@@ -21,6 +21,23 @@ from typing import Dict, List, Optional, Tuple
 # Define project root
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
+# Env vars a native subprocess like Graphviz's `dot` can legitimately need
+# (PATH/font lookup/locale) — everything else, notably the LLM API keys
+# LiteLLMClient writes into os.environ, is deliberately NOT inherited.
+_SUBPROCESS_ENV_ALLOWLIST = (
+    "PATH", "HOME", "LANG", "LC_ALL", "SYSTEMROOT",
+    "GDFONTPATH", "DOTFONTPATH",
+)
+
+
+def minimal_subprocess_env() -> Dict[str, str]:
+    """Minimal environment for spawning trusted native binaries (e.g. `dot`) —
+    see _SUBPROCESS_ENV_ALLOWLIST. Use as the `env=` argument to subprocess.run()
+    so secrets held in this process's os.environ (LLM API keys, etc.) are not
+    inherited by the child process."""
+    return {k: v for k, v in os.environ.items() if k in _SUBPROCESS_ENV_ALLOWLIST}
+
+
 def extract_json_from_llm_response(text: str) -> Optional[str]:
     """Extracts a JSON object or array from an LLM response that may be wrapped
     in markdown code fences or contain surrounding prose.
@@ -92,10 +109,14 @@ def compare_threat_reports(old: dict, new: dict) -> dict:
     """
 
     def _key(t: dict) -> tuple:
+        # "name" is a legacy field the current ReportSerializer/v1 schema never
+        # populates (only "description" is) — keying on it alone collapsed every
+        # threat sharing the same (target, stride_category) onto a single entry,
+        # silently dropping real threats from the diff. Prefer "description".
         return (
             t.get("target", ""),
             t.get("stride_category", ""),
-            t.get("name", ""),
+            t.get("name") or t.get("description", ""),
         )
 
     old_threats: Dict[tuple, dict] = {_key(t): t for t in old.get("threats", [])}

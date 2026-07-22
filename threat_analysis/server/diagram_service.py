@@ -25,6 +25,7 @@ from pathlib import Path
 from threat_analysis.core.model_factory import create_threat_model
 from threat_analysis.core.model_validator import ModelValidator
 from threat_analysis.generation.graphviz_to_json_metadata import GraphvizToJsonMetadataConverter
+from threat_analysis.utils import minimal_subprocess_env
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -49,7 +50,8 @@ class DiagramService:
                 text=True,
                 encoding="utf-8",
                 capture_output=True,
-                check=True
+                check=True,
+                env=minimal_subprocess_env(),
             )
             graphviz_json = json.loads(result.stdout)
             converter = GraphvizToJsonMetadataConverter()

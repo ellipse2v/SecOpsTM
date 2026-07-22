@@ -43,7 +43,7 @@ def project_test_env(project_tmp_path):
 
     return project_path, output_path, _run_generator
 
-@patch('threat_analysis.generation.report_generator._validate_path_within_project')
+@patch('threat_analysis.generation.report_project._validate_path_within_project')
 def test_single_level_project(mock_validate, project_test_env):
     # Arrange
     project_path, output_path, _run_generator = project_test_env
@@ -98,7 +98,7 @@ def test_single_level_project(mock_validate, project_test_env):
 
 @patch('threat_analysis.generation.diagram_generator.DiagramGenerator.add_links_to_svg')
 @patch('threat_analysis.generation.diagram_generator.DiagramGenerator.generate_diagram_from_dot')
-@patch('threat_analysis.generation.report_generator._validate_path_within_project')
+@patch('threat_analysis.generation.report_project._validate_path_within_project')
 def test_nested_project_and_dataflows(mock_validate, mock_generate_diagram, mock_add_links, project_test_env):
     # Arrange
     project_path, output_path, _run_generator = project_test_env

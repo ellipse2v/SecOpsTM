@@ -29,6 +29,32 @@ from threat_analysis.core.data_loader import (
     _clean_string
 )
 
+_CACHED_LOADERS = (
+    load_attack_techniques,
+    load_capec_to_mitre_mapping,
+    load_capec_catalog_ids,
+    load_stride_to_capec_map,
+    load_d3fend_mapping,
+    load_nist_mappings,
+    load_cis_to_mitre_mapping,
+)
+
+
+@pytest.fixture(autouse=True)
+def _clear_data_loader_caches():
+    """These loaders are @functools.cache'd for real-world performance (they're
+    called from multiple MitreMapping instances / requests). Without clearing
+    the cache around each test, the mocked builtins.open/pathlib.Path scenarios
+    below would leak into each other within this file, and — since the cache is
+    process-global — into any other test module that relies on the real data.
+    """
+    for loader in _CACHED_LOADERS:
+        loader.cache_clear()
+    yield
+    for loader in _CACHED_LOADERS:
+        loader.cache_clear()
+
+
 @pytest.fixture
 def mock_external_data_dir(tmp_path):
     external_data = tmp_path / "threat_analysis" / "external_data"

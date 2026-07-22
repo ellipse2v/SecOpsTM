@@ -241,6 +241,24 @@ Here's how to use the Ansible plugin with a sample playbook:
     ```
 3.  **View the results** in the generated `output/` folder, which will now include elements from your Ansible configuration.
 
+### 3b. Infrastructure as Code (IaC) Integration (Docker Compose Example)
+
+The Docker Compose plugin maps `services:` to Servers (type inferred from the image — e.g.
+`postgres` → `database`, `redis` → `cache`, `nginx` → `web-server`), `networks:` to Boundaries,
+and both `depends_on:` and services sharing a custom network to Dataflows. A published `ports:`
+entry sets `internet_facing=true`; credential-looking `environment:` keys or any use of
+`secrets:`/`configs:` set `credentials_stored=true`.
+
+1.  **Point it at your compose file** (a direct path, or a directory containing
+    `docker-compose.yml`/`docker-compose.yaml`/`compose.yml`/`compose.yaml`):
+    ```bash
+    python -m threat_analysis --docker-compose-path path/to/docker-compose.yml
+    ```
+2.  **BOM files are generated automatically** — one per service under `output/<run>/BOM/`,
+    using the image name:tag as `software_version`. Populate `known_cves`/`patch_level` from
+    your vulnerability scanner to feed CVE-based scoring (see section 4).
+3.  **View the results** in the generated `output/` folder, same as the Ansible/Terraform flows.
+
 ### 4. CVE-Based Threat Generation (Optional)
 
 This framework can generate threats based on a list of Common Vulnerabilities and Exposures (CVEs) that you provide for specific components in your system model.

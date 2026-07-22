@@ -36,6 +36,8 @@ from typing import Dict, List, Optional
 from pathlib import Path
 import subprocess
 
+from threat_analysis.utils import minimal_subprocess_env
+
 class CustomSVGGenerator:
     """Generates SVG diagrams from Graphviz JSON format data"""
     
@@ -81,7 +83,8 @@ class CustomSVGGenerator:
                     input=dot_code,
                     text=True,
                     encoding="utf-8",
-                    capture_output=True
+                    capture_output=True,
+                    env=minimal_subprocess_env(),
                 )
 
                 if result.returncode != 0:
@@ -105,7 +108,8 @@ class CustomSVGGenerator:
                     input=dot_code,
                     text=True,
                     encoding="utf-8",
-                    check=True
+                    check=True,
+                    env=minimal_subprocess_env(),
                 )
 
                 logging.info(f"🧪 Native Graphviz SVG dumped to {native_svg_path}")
@@ -127,7 +131,8 @@ class CustomSVGGenerator:
             result = subprocess.run(
                 ['dot', '-Tjson'],
                 input=dot_code, text=True, encoding='utf-8',
-                capture_output=True, check=True
+                capture_output=True, check=True,
+                env=minimal_subprocess_env(),
             )
             return json.loads(result.stdout)
         except (subprocess.CalledProcessError, json.JSONDecodeError, Exception) as e:

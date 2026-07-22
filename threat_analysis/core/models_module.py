@@ -49,6 +49,8 @@ from threat_analysis.custom_threats import get_custom_threats
 from threat_analysis.core.stride_constants import STRIDE_CATEGORIES as _STRIDE_CATEGORIES_CONST
 from .cve_service import CVEService
 
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
 class CustomThreat:
     """A simple class to represent a custom threat."""
     def __init__(self, name, description, stride_category, impact, likelihood, target, capec_ids=None):
@@ -120,9 +122,12 @@ class ThreatModel:
         self.threat_mitre_mapping = {}
         self.severity_calculator = SeverityCalculator() # Instantiate SeverityCalculator
 
-        # CVE Service
+        # CVE Service — lazy default (same fallback as ReportGenerator.__init__) so a
+        # ThreatModel is constructible without one, e.g. for domain-only unit tests.
+        # CVEService itself already degrades gracefully when cve_definitions.yml is
+        # missing (logs a warning, yields no CVE-based threats) — it never raises.
         if not cve_service:
-            raise ValueError("A CVEService instance must be provided to ThreatModel.")
+            cve_service = CVEService(_PROJECT_ROOT, _PROJECT_ROOT / "cve_definitions.yml")
         self.cve_service = cve_service
         self.sub_models = []
         # Populated by ModelParser when a ## Context section is present
