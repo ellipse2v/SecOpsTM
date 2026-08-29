@@ -50,7 +50,7 @@ threatModelBypyTm/
 │   │
 │   ├── ai_engine/                AI inference layer
 │   │   ├── embedding_factory.py  get_embeddings() — provider-agnostic factory
-│   │   ├── prompt_loader.py      Loads config/prompts.yaml sections for each AI role
+│   │   ├── prompt_loader.py      Loads threat_analysis/config/prompts.yaml sections for each AI role
 │   │   ├── rag_service.py        RAGThreatGenerator — ChromaDB + LangChain RAG chain
 │   │   ├── providers/
 │   │   │   ├── base_provider.py  BaseLLMProvider (ABC): check_connection, generate_threats
@@ -93,9 +93,9 @@ threatModelBypyTm/
 │   │   │   └── dsl_schema.js     DSL single source of truth (sections, entities, field types,
 │   │   │                         autocomplete metadata) — drives Component Panel + autocomplete
 │   │   └── templates/
-│   │       ├── index.html        Menu page (mode selection); single inline <script nonce="…">
-│   │       │                     per page — CSP script-src uses a per-request nonce, not
-│   │       │                     'unsafe-inline'/'unsafe-eval' (see decisions.md)
+│   │       ├── index.html        Menu page (mode selection). CSP script-src is 'self'
+│   │       │                     'unsafe-inline' (templates use inline on*= handlers a nonce
+│   │       │                     can't cover); 'unsafe-eval' stays out (see decisions.md)
 │   │       ├── simple_mode.html  Simple editor: CodeMirror + DSL autocomplete, Component Panel
 │   │       │                     helper, localStorage autosave, _diagramInFlight concurrency guard
 │   │       └── graphical_editor.html  Full graphical editor: Konva.js canvas (KonvaManager.js)
@@ -267,15 +267,40 @@ _enforce_bearer_auth()      before_request hook, opt-in via SECOPSTM_REQUIRE_AUT
                              Off by default — the documented Docker onboarding
                              (`-p 127.0.0.1:5000:5000`) stays frictionless.
 
-CSP script-src              per-request nonce (g.csp_nonce, before_request + context processor)
-                             instead of 'unsafe-inline'/'unsafe-eval' — audited: every page's
-                             scripts are same-origin vendored files (CodeMirror, Konva,
-                             svg-pan-zoom, split.js) or the one inline <script> per page, now
-                             carrying the nonce. No eval()/new Function() anywhere in scope.
+CSP script-src              'self' 'unsafe-inline' — external scripts blocked (no CDN; every
+                             script is a same-origin vendored file: CodeMirror, Konva,
+                             svg-pan-zoom, split.js), 'unsafe-eval' kept out (no eval()/
+                             new Function() in scope). 'unsafe-inline' is required: the
+                             templates rely on inline on*= event handlers, which a nonce cannot
+                             cover. A nonce-based script-src was tried (commit f1c2bcd) and
+                             reverted — it silently broke every toolbar button (see decisions.md).
 
 minimal_subprocess_env()    env allowlist (PATH/HOME/LANG/...) passed to every `dot` subprocess
                              call (diagram_generator.py, svg_generator.py, diagram_service.py) —
                              LiteLLMClient's os.environ[api_key_env] writes are never inherited.
+```
+
+### 3c. Lightweight Multi-User Workspaces
+
+```
+pytm_build_lock()            threading.RLock()-based context manager (core/model_factory.py) —
+                              serializes every create_threat_model()+process_threats() pair
+                              across concurrent server requests. Required because pytm >=1.4.0
+                              keeps TM's element/flow registry at the CLASS level, shared by the
+                              whole process — TM.reset() (called in ThreatModel.__init__) from one
+                              request can wipe another's in-flight state. Every acquisition wraps
+                              only a single model's create+process pair, released before any
+                              report/AI/RAG/GDAF generation runs — no call site currently nests.
+                              RLock (not Lock) is kept anyway as a defensive default against a
+                              future call site nesting on the same thread, at zero extra cost.
+
+GET /api/workspaces          Scans SECOPSTM_WORKSPACES_DIR (unset by default — the whole feature
+                              is invisible when it is) for subdirectories containing main.md or
+                              model.md. Feeds a dropdown in simple_mode.html's toolbar that calls
+                              the pre-existing POST /api/set_project_path (session-scoped, not a
+                              process-wide global — see _get_active_project_path()).
+
+Design doc: docs/superpowers/specs/2026-07-23-lightweight-multi-user-workspaces-design.md
 ```
 
 ### 4. MITRE Mapping Chain

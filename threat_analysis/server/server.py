@@ -180,9 +180,9 @@ def _enforce_bearer_auth():
 def before_request():
     g.start_time = time.time()
     g.request_received_time = time.time()
-    # Per-request CSP nonce for the page's single inline <script> block (see
-    # after_request's Content-Security-Policy header and the csp_nonce context
-    # processor below) — lets script-src drop 'unsafe-inline'/'unsafe-eval'.
+    # Still generated so the `nonce="{{ csp_nonce }}"` attributes in the templates
+    # render to a value, but no longer referenced by the CSP header — see the
+    # Content-Security-Policy note in after_request().
     g.csp_nonce = secrets.token_urlsafe(16)
 
 
@@ -219,16 +219,18 @@ def after_request(response):
             f"Temps de transmission de réponse: {response_transmission_ms:.2f}ms"
         )
     # Security headers — applied to every response regardless of route.
-    # CSP allows inline styles (needed by diagram legend) but blocks external scripts.
-    # script-src uses a per-request nonce (see before_request/g.csp_nonce) instead of
-    # 'unsafe-inline'/'unsafe-eval' — audited: every page's scripts are same-origin
-    # vendored files (CodeMirror, Konva, svg-pan-zoom, split.js) or the one inline
-    # <script> block now carrying the nonce; none of them call eval()/new Function().
+    # CSP blocks external scripts (no CDN — every script is a same-origin vendored
+    # file: CodeMirror, Konva, svg-pan-zoom, split.js) and keeps 'unsafe-eval' out
+    # (no eval()/new Function() anywhere in scope). 'unsafe-inline' is required on
+    # script-src because the templates rely on inline on*= event handlers, which a
+    # nonce cannot cover (nonces don't apply to inline event handlers). Do not add a
+    # nonce source here: a nonce/hash in the policy makes browsers ignore
+    # 'unsafe-inline', which would re-break every toolbar button.
     response.headers.setdefault('X-Content-Type-Options', 'nosniff')
     response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
     response.headers.setdefault(
         'Content-Security-Policy',
-        f"default-src 'self'; script-src 'self' 'nonce-{g.get('csp_nonce', '')}'; "
+        "default-src 'self'; script-src 'self' 'unsafe-inline'; "
         "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; worker-src 'self' blob:;"
     )
     response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
@@ -343,6 +345,26 @@ def _get_active_project_path() -> Optional[str]:
     """The project directory for the CURRENT browser session — see
     _get_active_model_file_path for the same session-first, startup-fallback logic."""
     return session.get('project_path', initial_project_path)
+
+
+def _list_workspaces() -> list[dict]:
+    """Scans SECOPSTM_WORKSPACES_DIR for valid project subdirectories (containing
+    main.md or model.md). Returns [] when the env var is unset or the directory
+    doesn't exist — this is the single switch that keeps the whole workspace
+    picker feature invisible for the zero-config single-user default."""
+    root = os.environ.get("SECOPSTM_WORKSPACES_DIR")
+    if not root or not Path(root).is_dir():
+        return []
+    out = []
+    for sub in sorted(Path(root).iterdir()):
+        if sub.is_dir() and ((sub / "main.md").exists() or (sub / "model.md").exists()):
+            out.append({
+                "name": sub.name,
+                "path": str(sub.resolve()),
+                "bom": (sub / "BOM").is_dir(),
+                "context": (sub / "context").is_dir(),
+            })
+    return out
 
 DEFAULT_EMPTY_MARKDOWN = """# System Model: New Model
 
@@ -1450,7 +1472,7 @@ def export_metadata():
 @app.route("/api/export_json", methods=["POST"])
 async def export_json():
     """Export threat model as validated JSON report (schema v1.0)."""
-    data = await request.get_json()
+    data = request.get_json()
     if not data:
         return jsonify({"error": "Missing request body"}), 400
 
@@ -1459,21 +1481,22 @@ async def export_json():
         return jsonify({"error": "Missing markdown_content"}), 400
 
     try:
-        from threat_analysis.core.model_factory import create_threat_model
+        from threat_analysis.core.model_factory import create_threat_model, pytm_build_lock
         import tempfile
 
-        threat_model = create_threat_model(
-            markdown_content=markdown_content,
-            model_name=get_model_name(markdown_content),
-            model_description="JSON export from web interface",
-            cve_service=get_threat_model_service().cve_service,
-            validate=True,
-            model_file_path=_get_active_model_file_path(),
-        )
-        if not threat_model:
-            return jsonify({"error": "Failed to create threat model"}), 400
+        with pytm_build_lock():
+            threat_model = create_threat_model(
+                markdown_content=markdown_content,
+                model_name=get_model_name(markdown_content),
+                model_description="JSON export from web interface",
+                cve_service=get_threat_model_service().cve_service,
+                validate=True,
+                model_file_path=_get_active_model_file_path(),
+            )
+            if not threat_model:
+                return jsonify({"error": "Failed to create threat model"}), 400
 
-        grouped_threats = threat_model.process_threats()
+            grouped_threats = threat_model.process_threats()
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             json_path = Path(tmp_dir) / "threat_model.json"
@@ -1500,7 +1523,7 @@ async def export_json():
 async def validate_markdown():
     """Fast structural validation of DSL markdown (no threat processing)."""
     try:
-        data = await request.get_json()
+        data = request.get_json()
     except Exception:
         data = None
     if not data:
@@ -1512,17 +1535,18 @@ async def validate_markdown():
                         "component_count": {"actors": 0, "servers": 0, "dataflows": 0, "boundaries": 0}}), 200
 
     try:
-        from threat_analysis.core.model_factory import create_threat_model
+        from threat_analysis.core.model_factory import create_threat_model, pytm_build_lock
         from threat_analysis.core.model_validator import ModelValidator
 
-        threat_model = create_threat_model(
-            markdown_content=markdown_content,
-            model_name="ValidationCheck",
-            model_description="",
-            cve_service=get_threat_model_service().cve_service,
-            validate=False,  # Skip heavy validation; we run ModelValidator manually below
-            model_file_path=None,
-        )
+        with pytm_build_lock():
+            threat_model = create_threat_model(
+                markdown_content=markdown_content,
+                model_name="ValidationCheck",
+                model_description="",
+                cve_service=get_threat_model_service().cve_service,
+                validate=False,  # Skip heavy validation; we run ModelValidator manually below
+                model_file_path=None,
+            )
         if not threat_model:
             return jsonify({
                 "valid": False,
@@ -1563,6 +1587,12 @@ async def validate_markdown():
         return jsonify({"skipped": True}), 200
 
 
+@app.route("/api/workspaces")
+def list_workspaces():
+    """Lists available workspaces for the picker — see _list_workspaces()."""
+    return jsonify(_list_workspaces())
+
+
 @app.route("/api/set_project_path", methods=["POST"])
 async def set_project_path():
     """Set the project base path for BOM/context auto-discovery.
@@ -1571,7 +1601,7 @@ async def set_project_path():
     one tab/window setting a project would silently redirect every other concurrent
     session's exports to it too (server runs threaded=True).
     """
-    data = await request.get_json()
+    data = request.get_json()
     if not data:
         return jsonify({"success": False, "error": "Missing request body"}), 400
 
@@ -1585,8 +1615,15 @@ async def set_project_path():
             return jsonify({"success": False, "error": "Path does not exist or is not a directory"}), 400
 
         # Accept paths anywhere on disk (not restricted to PROJECT_ROOT) because users
-        # may have their models outside the installation directory.
-        resolved = str(path_obj.resolve())
+        # may have their models outside the installation directory — UNLESS
+        # SECOPSTM_WORKSPACES_DIR is set, in which case this is the multi-user workspace
+        # picker and a session must not be able to point at another user's directory.
+        resolved_path_obj = path_obj.resolve()
+        workspaces_root = os.environ.get("SECOPSTM_WORKSPACES_DIR")
+        if workspaces_root and Path(workspaces_root).is_dir():
+            if not resolved_path_obj.is_relative_to(Path(workspaces_root).resolve()):
+                return jsonify({"success": False, "error": "Path is outside the configured workspaces directory"}), 403
+        resolved = str(resolved_path_obj)
 
         bom_available = (path_obj / "BOM").is_dir()
         context_available = (path_obj / "context").is_dir()
@@ -1625,7 +1662,7 @@ def diff_page():
 @app.route("/api/diff_reports", methods=["POST"])
 async def diff_reports():
     """Compare two JSON threat reports and return added/resolved/changed threats."""
-    data = await request.get_json()
+    data = request.get_json()
     if not data:
         return jsonify({"error": "Missing request body"}), 400
 

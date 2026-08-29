@@ -197,3 +197,38 @@ def test_project_with_protocol_styles(mock_generate_diagram, mock_add_links, pro
     assert "HTTP" in main_content
     assert "red" in main_content
 
+
+def test_generate_project_reports_lock_is_reentrant(project_test_env):
+    """generate_project_reports() recurses into _recursively_generate_reports for
+    each sub-model, and every create_threat_model()/process_threats() call site in
+    report_project.py is individually wrapped in its own short-lived
+    pytm_build_lock(). No call site currently holds the lock across a nested
+    acquisition, so a plain threading.Lock() would not actually deadlock here today
+    — pytm_build_lock() uses RLock defensively, for forward-compatibility with
+    future call paths that do nest. This test remains a valuable regression guard:
+    it verifies the recursive project-with-submodel path completes without
+    deadlocking."""
+    project_path, output_path, _run_generator = project_test_env
+    (project_path / "main.md").write_text(
+        "# System Model: Root\n\n## Servers\n- **Root Server**: submodel=./sub/child.md\n",
+        encoding="utf-8",
+    )
+    (project_path / "sub").mkdir()
+    (project_path / "sub" / "child.md").write_text(
+        "# System Model: Child\n\n## Servers\n- **Child Server**\n",
+        encoding="utf-8",
+    )
+
+    import threading
+    completed = threading.Event()
+
+    def run():
+        _run_generator()
+        completed.set()
+
+    t = threading.Thread(target=run)
+    t.start()
+    t.join(timeout=30)
+
+    assert completed.is_set(), "generate_project_reports() deadlocked (lock is not reentrant)"
+

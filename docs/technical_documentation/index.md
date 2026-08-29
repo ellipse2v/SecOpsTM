@@ -336,7 +336,7 @@ SecOpsTM runs three independent threat engines whose outputs are deduplicated an
 -   **Boundary AI threats**: `SecOpsBoundary` objects are added to `all_elements` in `_enrich_with_ai_threats()`, receiving LLM analysis for zone-level threats (privilege escalation, lateral movement).
 -   **Deduplication**: `ThreatConsolidator` uses offline Jaccard word-overlap (≥0.3) or substring containment — AI version wins over pytm duplicate.
 -   **Providers**: Ollama (offline), Gemini, OpenAI, Mistral, any LiteLLM-compatible endpoint. Configured in `config/ai_config.yaml`.
--   **All prompts** centralized in `config/prompts.yaml`, loaded lazily by `prompt_loader.py`.
+-   **All prompts** centralized in `threat_analysis/config/prompts.yaml`, loaded lazily by `prompt_loader.py`.
 
 ### 4.6c. Attack Chain Analysis (`core/attack_chain.py`)
 

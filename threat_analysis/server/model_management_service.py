@@ -18,7 +18,7 @@ import json
 import datetime
 from typing import Dict, Optional
 
-from threat_analysis.core.model_factory import create_threat_model
+from threat_analysis.core.model_factory import create_threat_model, pytm_build_lock
 
 class ModelManagementService:
     def __init__(self, cve_service, diagram_service):
@@ -61,13 +61,14 @@ class ModelManagementService:
         if positions_data:
             element_positions = positions_data
         else:
-            threat_model = create_threat_model(
-                markdown_content=final_markdown_content,
-                model_name="SavedThreatModel",
-                model_description="Model saved with metadata",
-                cve_service=self.cve_service,
-                validate=True
-            )
+            with pytm_build_lock():
+                threat_model = create_threat_model(
+                    markdown_content=final_markdown_content,
+                    model_name="SavedThreatModel",
+                    model_description="Model saved with metadata",
+                    cve_service=self.cve_service,
+                    validate=True
+                )
             if threat_model:
                 element_positions = self.diagram_service._generate_positions_from_graphviz(threat_model)
         

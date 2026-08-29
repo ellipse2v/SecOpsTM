@@ -13,9 +13,9 @@
 # limitations under the License.
 
 """
-Prompt loader — reads all LLM prompts from config/prompts.yaml.
+Prompt loader — reads all LLM prompts from threat_analysis/config/prompts.yaml.
 
-All prompts are defined in one place (config/prompts.yaml) so they can be
+All prompts are defined in one place (threat_analysis/config/prompts.yaml) so they can be
 tuned by administrators without modifying Python code.
 
 Variable substitution in templates uses <<varname>> syntax, which does not

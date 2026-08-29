@@ -135,9 +135,36 @@ def test_update_diagram_logic_success(mock_create, diagram_service):
     diagram_service.diagram_generator.generate_diagram_from_dot.return_value = "path/to/svg"
     diagram_service.diagram_generator._generate_legend_html.return_value = "legend"
     diagram_service.diagram_generator._create_complete_html.return_value = "html"
-    
+
     with patch("builtins.open", MagicMock()):
         with patch("os.path.exists", return_value=True):
             with patch.object(diagram_service, '_generate_positions_from_graphviz', return_value={}):
                 result = diagram_service.update_diagram_logic("markdown")
                 assert result["diagram_html"] == "html"
+
+def test_update_diagram_logic_uses_pytm_build_lock(monkeypatch):
+    """Regression guard: update_diagram_logic must serialize model building
+    through pytm_build_lock(), not call create_threat_model() unprotected."""
+    from threat_analysis.core import model_factory
+    from threat_analysis.server.diagram_service import DiagramService
+    from unittest.mock import MagicMock
+
+    lock_calls = []
+    original_lock = model_factory.pytm_build_lock
+
+    def spy_lock():
+        lock_calls.append(1)
+        return original_lock()
+
+    monkeypatch.setattr("threat_analysis.server.diagram_service.pytm_build_lock", spy_lock)
+
+    service = DiagramService(cve_service=MagicMock(), diagram_generator=MagicMock())
+    service.diagram_generator._generate_manual_dot.return_value = "digraph {}"
+    service.diagram_generator.generate_diagram_from_dot.return_value = None
+
+    try:
+        service.update_diagram_logic("## Actors\n- User")
+    except RuntimeError:
+        pass  # generate_diagram_from_dot returning None raises past the lock — fine, we only care it was entered
+
+    assert lock_calls, "pytm_build_lock() was never entered"

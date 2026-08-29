@@ -1,9 +1,14 @@
 # User Context — Threat Intelligence Injection
 
 `config/user_context.example.json` is an **optional** file that lets you inject
-organization-specific threat intelligence into the AI enrichment pipeline.
-Copy and rename it to `config/user_context.json` (or any path you pass via
-`--ai-context-file`) to activate it.
+organization-specific threat intelligence into the RAG pass of the AI enrichment pipeline.
+
+⚠️ The filename is currently read **literally** — `RAGThreatGenerator` is always constructed
+with no path override (`ai_service.py`), so renaming this file (e.g. to `user_context.json`)
+or passing a different path has **no effect**; the app keeps reading
+`config/user_context.example.json` regardless. There is also no `--ai-context-file` CLI flag
+(removed along with the deprecated `config/context.yaml`, see `architecture.md` tech debt #11).
+**Edit `config/user_context.example.json` in place** to activate this feature.
 
 ## Schema
 
@@ -34,12 +39,14 @@ Copy and rename it to `config/user_context.json` (or any path you pass via
 
 ## How it is used
 
-1. `AIService._enrich_with_ai_threats()` reads this file (if present) and prepends
-   its content to the component-level STRIDE prompt.
-2. `RAGThreatGenerator` includes `system_description` in the RAG query so retrieved
+1. `RAGThreatGenerator._load_user_context()` reads this file (if present) and includes
+   `system_description` + `threat_intelligence` in the RAG retrieval query, so retrieved
    CAPEC/CVE knowledge is ranked by relevance to your specific deployment.
-3. The file is **never required** — if absent, the AI enrichment runs with the
-   architecture model alone.
+2. This only affects the **RAG cross-model pass** (`rag.enabled: true` in
+   `config/ai_config.yaml`) — it is **not** injected into the per-component STRIDE prompts
+   (`AIService._enrich_with_ai_threats()` does not read this file at all).
+3. The file is **never required** — if absent or empty, RAG runs with the architecture
+   model alone.
 
 ## Alternative: per-model DSL `## Context` section
 
@@ -52,15 +59,16 @@ project_description = Cloud-native e-commerce platform on AWS
 compliance_requirements = PCI-DSS, SOC 2
 ```
 
-`user_context.json` remains useful for sharing threat intelligence that applies
-across multiple models (e.g., a SOC feed that you want every model to consume)
-without duplicating it in every DSL file.
+`user_context.example.json` remains useful for sharing threat intelligence that applies
+across every model's RAG pass (e.g., a SOC feed) without duplicating it in every DSL file —
+but note it is a single global file, not per-model like `## Context`.
 
 ## Security note
 
-This file may contain sensitive threat intelligence. Do **not** commit it to
-public repositories. Add it to `.gitignore` if your repo is public:
+This file may contain sensitive threat intelligence. Do **not** commit real content to
+public repositories — either keep the repo private, or add it to `.gitignore` and document
+locally that operators must populate it:
 
 ```
-config/user_context.json
+config/user_context.example.json
 ```

@@ -25,7 +25,7 @@ from typing import Optional
 import asyncio
 import queue
 
-from threat_analysis.core.model_factory import create_threat_model
+from threat_analysis.core.model_factory import create_threat_model, pytm_build_lock
 from threat_analysis.core.model_validator import ModelValidator
 from threat_analysis.generation.attack_navigator_generator import AttackNavigatorGenerator
 from threat_analysis.generation.stix_generator import StixGenerator
@@ -58,18 +58,21 @@ class ExportService:
         if not markdown_content or not export_format:
             raise ValueError("Missing markdown content or export format")
 
-        threat_model = create_threat_model(
-            markdown_content=markdown_content, model_name="ExportedThreatModel",
-            model_description="Exported from web interface", cve_service=self.cve_service, validate=True,
-            model_file_path=model_file_path,
-        )
-        if not threat_model:
-            raise RuntimeError("Failed to create or validate threat model")
+        with pytm_build_lock():
+            threat_model = create_threat_model(
+                markdown_content=markdown_content, model_name="ExportedThreatModel",
+                model_description="Exported from web interface", cve_service=self.cve_service, validate=True,
+                model_file_path=model_file_path,
+            )
+            if not threat_model:
+                raise RuntimeError("Failed to create or validate threat model")
 
-        validator = ModelValidator(threat_model)
-        errors = validator.validate()
-        if errors:
-            raise ValueError("Validation failed: " + ", ".join(errors))
+            validator = ModelValidator(threat_model)
+            errors = validator.validate()
+            if errors:
+                raise ValueError("Validation failed: " + ", ".join(errors))
+
+            grouped_threats = threat_model.process_threats() if export_format == "report" else None
 
         output_dir = self._get_output_dir()
         os.makedirs(output_dir, exist_ok=True)
@@ -93,7 +96,6 @@ class ExportService:
             self.diagram_generator._generate_html_with_legend(svg_path_temp, output_path, threat_model, graph_metadata, severity_map)
             return str(output_path), output_filename
         elif export_format == "report":
-            grouped_threats = threat_model.process_threats()
             output_filename = "threat_report.html"
             output_path = output_dir / output_filename
             self.report_generator.generate_html_report(threat_model, grouped_threats, output_path)
@@ -160,16 +162,18 @@ class ExportService:
                 }
         else:
             logging.info("--- Starting Single-File Generation (Server Mode) ---")
-            threat_model = create_threat_model(
-                markdown_content=markdown_content, model_name="ExportedThreatModel",
-                model_description="Exported from web interface", cve_service=self.cve_service, validate=True,
-                model_file_path=model_file_path,
-            )
-            if not threat_model:
-                raise RuntimeError("Failed to create or validate threat model")
-            validator = ModelValidator(threat_model)
-            if errors := validator.validate():
-                raise ValueError("Validation failed: " + ", ".join(errors))
+            with pytm_build_lock():
+                threat_model = create_threat_model(
+                    markdown_content=markdown_content, model_name="ExportedThreatModel",
+                    model_description="Exported from web interface", cve_service=self.cve_service, validate=True,
+                    model_file_path=model_file_path,
+                )
+                if not threat_model:
+                    raise RuntimeError("Failed to create or validate threat model")
+                validator = ModelValidator(threat_model)
+                if errors := validator.validate():
+                    raise ValueError("Validation failed: " + ", ".join(errors))
+                grouped_threats = threat_model.process_threats()
 
             (export_path / "system_model.md").write_text(markdown_content, encoding="utf-8")
 
@@ -177,8 +181,6 @@ class ExportService:
             def single_file_progress_cb(message, is_new_model=False):
                 if progress_callback:
                     progress_callback(50, message)
-
-            grouped_threats = threat_model.process_threats()
 
             dot_code = self.diagram_generator._generate_manual_dot(threat_model)
             svg_filepath = export_path / "tm_diagram.svg"
@@ -254,7 +256,7 @@ class ExportService:
                 "html": "tm_diagram.html",
                 "svg": "tm_diagram.svg"
             }
-            
+
         return result
 
     def export_all_files_logic(self, markdown_content: str, submodels: list | None = None,
@@ -276,7 +278,8 @@ class ExportService:
             self.generate_full_project_export(markdown_content, export_path,
                                               model_file_path=model_file_path)
         
-        threat_model_temp = create_threat_model(markdown_content=markdown_content, model_name="temp", model_description="temp", cve_service=self.cve_service)
+        with pytm_build_lock():
+            threat_model_temp = create_threat_model(markdown_content=markdown_content, model_name="temp", model_description="temp", cve_service=self.cve_service)
         element_positions = self.diagram_service._generate_positions_from_graphviz(threat_model_temp) if threat_model_temp else {}
         
         version_id = f"1.0-{timestamp.replace('-', '').replace(':', '').replace('_', '')}"
@@ -305,30 +308,34 @@ class ExportService:
         output_dir = self._get_output_dir()
         os.makedirs(output_dir, exist_ok=True)
 
-        threat_model = create_threat_model(
-            markdown_content=markdown_content, model_name="ExportedThreatModel",
-            model_description="Exported for STIX/Navigator", cve_service=self.cve_service, validate=True,
-            model_file_path=model_file_path,
-        )
-        if not threat_model:
-            raise RuntimeError("Failed to create threat model")
-        if submodels and len(submodels) > 0:
-            for sub_data in submodels:
-                sub_model = create_threat_model(
-                    markdown_content=sub_data['content'], model_name=os.path.basename(sub_data['path']),
-                    cve_service=self.cve_service, validate=False
-                )
-                if sub_model: threat_model.sub_models.append(sub_model)
-        
-        validator = ModelValidator(threat_model)
-        if errors := validator.validate():
-            raise ValueError("Validation failed: " + ", ".join(errors))
+        with pytm_build_lock():
+            threat_model = create_threat_model(
+                markdown_content=markdown_content, model_name="ExportedThreatModel",
+                model_description="Exported for STIX/Navigator", cve_service=self.cve_service, validate=True,
+                model_file_path=model_file_path,
+            )
+            if not threat_model:
+                raise RuntimeError("Failed to create threat model")
+            if submodels and len(submodels) > 0:
+                for sub_data in submodels:
+                    sub_model = create_threat_model(
+                        markdown_content=sub_data['content'], model_name=os.path.basename(sub_data['path']),
+                        cve_service=self.cve_service, validate=False
+                    )
+                    if sub_model: threat_model.sub_models.append(sub_model)
+
+            validator = ModelValidator(threat_model)
+            if errors := validator.validate():
+                raise ValueError("Validation failed: " + ", ".join(errors))
+
+            threat_model.process_threats()
 
         # Intentionally pytm-only, no AI enrichment: this is the fast dedicated
         # Navigator+STIX export (no generate_html_report() call, no AI/GDAF/debate) —
         # unlike "Export All", which runs the full enrichment pipeline and takes
-        # noticeably longer. get_enriched_threats() would fall back to
-        # get_all_threats_details() anyway since this threat_model is freshly built.
+        # noticeably longer. process_threats() already ran above, inside the lock,
+        # so get_enriched_threats() below is a cache hit on threat_model's own
+        # mitre_analysis_results, not a fresh lazy call outside the lock.
         all_detailed_threats = get_enriched_threats(threat_model)
         navigator_generator = AttackNavigatorGenerator(threat_model_name=str(threat_model.tm.name), all_detailed_threats=all_detailed_threats)
         navigator_filepath = output_dir / JSON_NAVIGATOR_FILENAME_TPL.format(timestamp=timestamp)
@@ -355,15 +362,16 @@ class ExportService:
 
         timestamp = datetime.datetime.now().strftime(TIMESTAMP_FORMAT)
         with tempfile.TemporaryDirectory() as temp_export_dir:
-            threat_model = create_threat_model(
-                markdown_content=markdown_content, model_name="ExportedThreatModel",
-                model_description="Exported from web interface", cve_service=self.cve_service, validate=True,
-                model_file_path=model_file_path,
-            )
-            if not threat_model:
-                raise RuntimeError("Failed to create or validate threat model")
+            with pytm_build_lock():
+                threat_model = create_threat_model(
+                    markdown_content=markdown_content, model_name="ExportedThreatModel",
+                    model_description="Exported from web interface", cve_service=self.cve_service, validate=True,
+                    model_file_path=model_file_path,
+                )
+                if not threat_model:
+                    raise RuntimeError("Failed to create or validate threat model")
 
-            threat_model.process_threats()
+                threat_model.process_threats()
             # Intentionally pytm-only, no AI enrichment — see export_navigator_stix_logic
             # above for why (fast dedicated export, no generate_html_report() call).
             all_detailed_threats = get_enriched_threats(threat_model)

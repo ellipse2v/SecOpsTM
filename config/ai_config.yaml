@@ -91,9 +91,9 @@ ai_providers:
   # export GROQ_API_KEY=gsk_...
   groq:
     enabled: true
-    model: "llama-3.3-70b-versatile"    # or "llama-3.1-8b-instant" (faster/cheaper)
+    model: "openai/gpt-oss-120b"    # or "openai/gpt-oss-20b" (faster), "qwen/qwen3.8-27b"
     api_key_env: "GROQ_API_KEY"
-    api_base: ""                        # defaults to https://api.groq.com/openai/v1 when empty
+    api_base: "https://api.groq.com/openai/v1"                        # defaults to https://api.groq.com/openai/v1 when empty
     temperature: 0.3
     max_tokens: 4096
     timeout: 30
@@ -212,7 +212,7 @@ attack_flows:
   enabled: true
   generate_for_categories: ["Tampering", "Information Disclosure", "Elevation of Privilege"]
   # Adds a short grounded narrative + business_impact to each discovered path in the
-  # HTML report (attack_path_narrative persona, config/prompts.yaml). One LLM call per
+  # HTML report (attack_path_narrative persona, threat_analysis/config/prompts.yaml). One LLM call per
   # path (naturally capped at one per STRIDE category, so ≤6). Requires AI enabled;
   # skipped silently offline. The persona is instructed to never emit an ID (no
   # T-numbers, CVE, CAPEC, D3-) — any response that does is discarded, not trusted.
