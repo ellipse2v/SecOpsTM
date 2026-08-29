@@ -323,3 +323,83 @@ def test_litellm_provider_generate_soc_analysis_logs_error_string(caplog):
             assert "generate_soc_analysis" in caplog.text
             assert "No valid JSON found" in caplog.text
     asyncio.run(_run())
+
+
+def test_force_provider_selects_disabled_provider():
+    """SECOPSTM_FORCE_PROVIDER can select a provider with enabled: false."""
+    mock_config_yaml = """
+ai_providers:
+  openai:
+    enabled: true
+    model: "gpt-4"
+    api_key_env: "OPENAI_API_KEY"
+  xai:
+    enabled: false
+    model: "grok-3-latest"
+    api_key_env: "XAI_API_KEY"
+    api_base: "https://api.x.ai/v1"
+"""
+    async def _run():
+        with patch("builtins.open", mock_open(read_data=mock_config_yaml)), \
+             patch("threat_analysis.ai_engine.providers.litellm_client.PROJECT_ROOT", Path("/tmp")), \
+             patch("importlib.import_module"), \
+             patch.object(LiteLLMClient, "check_connection", return_value=True), \
+             patch.dict(os.environ, {"SECOPSTM_FORCE_PROVIDER": "xai"}), \
+             patch("os.getenv", return_value="xai-test"):
+            client = LiteLLMClient()
+            await client._load_ai_config()
+            assert client.model_name == "xai/grok-3-latest"
+            assert client.api_base == "https://api.x.ai/v1"
+
+    asyncio.run(_run())
+
+
+def test_force_provider_unset_keeps_first_enabled():
+    """When SECOPSTM_FORCE_PROVIDER is unset, first enabled: true wins."""
+    mock_config_yaml = """
+ai_providers:
+  openai:
+    enabled: true
+    model: "gpt-4"
+    api_key_env: "OPENAI_API_KEY"
+  xai:
+    enabled: false
+    model: "grok-3-latest"
+    api_key_env: "XAI_API_KEY"
+"""
+    async def _run():
+        env_without = {k: v for k, v in os.environ.items() if k != "SECOPSTM_FORCE_PROVIDER"}
+        with patch("builtins.open", mock_open(read_data=mock_config_yaml)), \
+             patch("threat_analysis.ai_engine.providers.litellm_client.PROJECT_ROOT", Path("/tmp")), \
+             patch("importlib.import_module"), \
+             patch.object(LiteLLMClient, "check_connection", return_value=True), \
+             patch.dict(os.environ, env_without, clear=True), \
+             patch("os.getenv", return_value="sk-test"):
+            client = LiteLLMClient()
+            await client._load_ai_config()
+            assert client.model_name == "openai/gpt-4"
+
+    asyncio.run(_run())
+
+
+def test_force_provider_unknown_name_falls_back_to_enabled_scan():
+    """When SECOPSTM_FORCE_PROVIDER names a non-existent provider, fall back to enabled scan."""
+    mock_config_yaml = """
+ai_providers:
+  openai:
+    enabled: true
+    model: "gpt-4"
+    api_key_env: "OPENAI_API_KEY"
+"""
+    async def _run():
+        with patch("builtins.open", mock_open(read_data=mock_config_yaml)), \
+             patch("threat_analysis.ai_engine.providers.litellm_client.PROJECT_ROOT", Path("/tmp")), \
+             patch("importlib.import_module"), \
+             patch.object(LiteLLMClient, "check_connection", return_value=True), \
+             patch.dict(os.environ, {"SECOPSTM_FORCE_PROVIDER": "nonexistent"}), \
+             patch("os.getenv", return_value="sk-test"):
+            client = LiteLLMClient()
+            await client._load_ai_config()
+            assert client.model_name == "openai/gpt-4"
+
+    asyncio.run(_run())

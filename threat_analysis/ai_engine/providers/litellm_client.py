@@ -52,12 +52,27 @@ class LiteLLMClient:
                 self.ai_config = yaml.safe_load(f)
             logging.info(f"[{time.time() - start_time:.4f}s] AI configuration loaded.")
             
+            # Provider selection: first `enabled: true` wins, unless
+            # SECOPSTM_FORCE_PROVIDER names a provider present in the config
+            # (used for A/B provider comparison and the evaluation harness —
+            # see docs/evaluation.md). A forced provider need not be enabled.
             provider_name = None
-            for name, provider_config in self.ai_config.get("ai_providers", {}).items():
-                if provider_config.get('enabled', False):
-                    self.provider_config = provider_config
-                    provider_name = name
-                    break
+            _providers = self.ai_config.get("ai_providers", {})
+            _forced = os.environ.get("SECOPSTM_FORCE_PROVIDER")
+            if _forced and _forced in _providers:
+                self.provider_config = _providers[_forced]
+                provider_name = _forced
+                logging.info("Provider selection forced to '%s' via SECOPSTM_FORCE_PROVIDER", _forced)
+            else:
+                if _forced:
+                    logging.warning(
+                        "SECOPSTM_FORCE_PROVIDER='%s' not found in ai_providers — ignoring", _forced
+                    )
+                for name, provider_config in _providers.items():
+                    if provider_config.get('enabled', False):
+                        self.provider_config = provider_config
+                        provider_name = name
+                        break
             
             if self.provider_config:
                 # Prevent LiteLLM from fetching the model cost map from the internet.
