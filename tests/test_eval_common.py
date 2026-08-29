@@ -1,0 +1,100 @@
+# Copyright 2025 ellipse2v
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import json
+
+import pytest
+
+from threat_analysis.core.asset_technique_mapper import ScoredTechnique
+from threat_analysis.core.gdaf_engine import AttackHop, AttackScenario
+from tooling.eval._common import freeze, thaw, scenario_order, risk_levels
+
+
+def _scenario(sid: str, score: float, level: str = "HIGH") -> AttackScenario:
+    hop = AttackHop(
+        asset_name="web-01",
+        asset_type="Server",
+        techniques=[ScoredTechnique(id="T1190", name="Exploit Public-Facing App",
+                                    tactics=["initial-access"], score=0.9, rationale="r", url="u")],
+        dataflow_name="user->web",
+        protocol="HTTPS",
+        is_encrypted=True,
+        is_authenticated=False,
+        hop_score=0.9,
+        hop_position="entry",
+    )
+    return AttackScenario(
+        scenario_id=sid,
+        objective_id="obj1",
+        objective_name="Exfiltrate data",
+        objective_description="d",
+        objective_business_impact="b",
+        objective_mitre_final_tactic="exfiltration",
+        actor_id="act1",
+        actor_name="Ransomware crew",
+        actor_sophistication="high",
+        entry_point="internet",
+        target_asset="db-01",
+        hops=[hop],
+        path_score=score,
+        risk_level=level,
+        detection_coverage=0.2,
+        unacceptable_risk=True,
+    )
+
+
+def test_freeze_produces_json_serialisable_records():
+    records = freeze([_scenario("S1", 3.4)])
+    json.dumps(records)  # must not raise
+
+
+def test_thaw_round_trips_read_fields():
+    original = [_scenario("S1", 3.4, "HIGH"), _scenario("S2", 1.1, "LOW")]
+    restored = thaw(freeze(original))
+    assert [s.scenario_id for s in restored] == ["S1", "S2"]
+    assert restored[0].path_score == pytest.approx(3.4)
+    assert restored[0].risk_level == "HIGH"
+    assert restored[0].detection_coverage == pytest.approx(0.2)
+    assert restored[0].hops[0].asset_name == "web-01"
+    assert restored[0].hops[0].hop_position == "entry"
+    assert restored[0].hops[0].protocol == "HTTPS"
+    assert restored[0].hops[0].is_authenticated is False
+    assert restored[0].hops[0].is_encrypted is True
+    assert restored[0].hops[0].techniques[0].id == "T1190"
+
+
+def test_thawed_scenario_is_accepted_by_debate_engine_grounding():
+    # RedBlueDebateEngine._build_grounding reads hop.techniques[i].id, hop.protocol,
+    # hop.is_authenticated, hop.is_encrypted, hop.asset_name, hop.hop_position
+    from threat_analysis.core.debate_engine import RedBlueDebateEngine
+    restored = thaw(freeze([_scenario("S1", 3.4)]))
+    engine = RedBlueDebateEngine(provider=None, config={})
+    grounding = engine._build_grounding(restored[0])
+    assert "web-01" in grounding
+    assert "T1190" in grounding
+
+
+def test_scenario_order_sorts_by_path_score_desc():
+    scenarios = [_scenario("S1", 1.0), _scenario("S2", 5.0), _scenario("S3", 3.0)]
+    assert scenario_order(scenarios) == ["S2", "S3", "S1"]
+
+
+def test_scenario_order_breaks_ties_by_id():
+    scenarios = [_scenario("Sb", 2.0), _scenario("Sa", 2.0)]
+    assert scenario_order(scenarios) == ["Sa", "Sb"]
+
+
+def test_risk_levels_maps_id_to_level():
+    scenarios = [_scenario("S1", 3.0, "HIGH"), _scenario("S2", 1.0, "LOW")]
+    assert risk_levels(scenarios) == {"S1": "HIGH", "S2": "LOW"}
