@@ -139,6 +139,9 @@ threatModelBypyTm/
 │   └── user_context.example.json User threat intelligence JSON schema
 │
 ├── action.yml                    Official SecOpsTM GitHub Action (threat-model-analysis)
+├── examples/
+│   └── threat-model.yml          Template CI workflow — copy into a consumer repo's
+│                                 .github/workflows/ (not run in this repo)
 │
 ├── tooling/                      Offline data pipeline scripts (run once)
 │   ├── build_vector_store.py     Loads external_data/ → ChromaDB vector store
@@ -159,7 +162,7 @@ threatModelBypyTm/
 │   ├── Serverless_AWS_Lambda/    21 servers, 8 boundaries, 23 dataflows, 106 pytm threats
 │   └── …                         Six_Tier, Microservices, CI_CD, Mobile, Cloud_Native, etc.
 ├── docs/                         User and technical documentation
-└── .github/workflows/            CI: coverage_check.yml, sync-wiki.yml, threat-model.yml
+└── .github/workflows/            CI: coverage_check.yml, sync-wiki.yml, docker-publish.yml, …
 ```
 
 ## Key Components and Interactions

@@ -437,7 +437,7 @@ Available inputs: `model-file`, `output-format` (`all`/`html`/`json`/`stix`), `o
 
 The Action installs SecOpsTM, runs the analysis, uploads artifacts, and can block merges when the threat severity threshold is exceeded. No server required.
 
-See `.github/workflows/threat-model.yml` and `action.yml` in the repository root for the full example workflow.
+See `examples/threat-model.yml` and `action.yml` in the repository root for the full example workflow.
 
 ---
 

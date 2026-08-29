@@ -1,5 +1,5 @@
 // Threat Model Configuration - Web UI
-// Generated on: 2026-07-23 21:44:40
+// Generated on: 2026-08-29 17:47:23
 // This file contains configuration for the threat model web interface
 
 const ThreatModelConfig = {
@@ -9,39 +9,7 @@ const ThreatModelConfig = {
         "router": "/static/resources/icons/routers.svg",
         "switch": "/static/resources/icons/switch.svg",
         "server": "/static/resources/icons/server.svg",
-        "dmz": "/static/resources/icons/dmz.svg",
-        "firewall": "/static/resources/icons/firewall.svg",
-        "database": "/static/resources/icons/database.svg",
-        "web_server": "/static/resources/icons/web-server.svg",
-        "webserver": "/static/resources/icons/web-server.svg",
-        "api_gateway": "/static/resources/icons/api-gateway.svg",
-        "apigateway": "/static/resources/icons/api-gateway.svg",
-        "load_balancer": "/static/resources/icons/load_balancer.svg",
-        "loadbalancer": "/static/resources/icons/load_balancer.svg",
-        "ip_camera": "/static/resources/icons/ip-camera.svg",
-        "ipcamera": "/static/resources/icons/ip-camera.svg",
-        "ptz_camera": "/static/resources/icons/ptz-camera.svg",
-        "ptzcamera": "/static/resources/icons/ptz-camera.svg",
-        "thermal_camera": "/static/resources/icons/thermal-camera.svg",
-        "thermalcamera": "/static/resources/icons/thermal-camera.svg",
-        "nvr": "/static/resources/icons/nvr.svg",
-        "vms": "/static/resources/icons/vms.svg",
-        "rtsp_server": "/static/resources/icons/rtsp-server.svg",
-        "rtspserver": "/static/resources/icons/rtsp-server.svg",
-        "iot_gateway": "/static/resources/icons/iot-gateway.svg",
-        "iotgateway": "/static/resources/icons/iot-gateway.svg",
-        "smart_lock": "/static/resources/icons/smart-lock.svg",
-        "smartlock": "/static/resources/icons/smart-lock.svg",
-        "smart_meter": "/static/resources/icons/smart-meter.svg",
-        "smartmeter": "/static/resources/icons/smart-meter.svg",
-        "leo_satellite": "/static/resources/icons/leo-satellite.svg",
-        "leosatellite": "/static/resources/icons/leo-satellite.svg",
-        "ground_station": "/static/resources/icons/ground-station.svg",
-        "groundstation": "/static/resources/icons/ground-station.svg",
-        "ttc_link": "/static/resources/icons/ttc-link.svg",
-        "ttclink": "/static/resources/icons/ttc-link.svg",
-        "onboard_computer": "/static/resources/icons/onboard-computer.svg",
-        "onboardcomputer": "/static/resources/icons/onboard-computer.svg"
+        "dmz": "/static/resources/icons/dmz.svg"
     },
     "DEFAULT_PROPERTIES": {
         "BOUNDARY": {

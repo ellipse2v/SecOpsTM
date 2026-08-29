@@ -94,7 +94,7 @@ SecOpsTM ships as an **official GitHub Action** (`action.yml`) for threat-modeli
 
 The Action installs SecOpsTM, runs analysis, and optionally fails the workflow if threats at or above the specified severity level are found. Compatible with the CI/CD gate mode (`--gate`, `--baseline`, `--fail-on`, `--accepted-risks`).
 
-See `.github/workflows/threat-model.yml` for the example workflow.
+See `examples/threat-model.yml` for the example workflow to copy into your repo.
 
 ## CLI & CI Integration
 
