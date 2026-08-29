@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from threat_analysis.utils import _validate_path_within_project
-from threat_analysis.core.model_factory import create_threat_model
+from threat_analysis.core.model_factory import create_threat_model, pytm_build_lock
 from threat_analysis.core.models_module import ThreatModel
 from threat_analysis.generation.diagram_generator import DiagramGenerator
 from threat_analysis.generation.stix_generator import StixGenerator
@@ -63,7 +63,11 @@ class ProjectReportMixin:
         summary_stats = self.generate_summary_stats(all_threats_details)
         total_mitre_techniques_mapped = len(set(tech['id'] for threat in all_threats_details for tech in threat.get('mitre_techniques', [])))
 
-        dummy_model = ThreatModel("Global Project", cve_service=self.cve_service)
+        # ThreatModel.__init__ always calls TM.reset() (pytm's shared class-level
+        # registry) — must be lock-protected like every other ThreatModel()/
+        # create_threat_model() construction in this file.
+        with pytm_build_lock():
+            dummy_model = ThreatModel("Global Project", cve_service=self.cve_service)
         if all_models:
             dummy_model.context_config = all_models[0].context_config.copy()
         dummy_model.mitre_analysis_results = {
@@ -130,17 +134,26 @@ class ProjectReportMixin:
                 main_model_path = fallback
                 logging.info("generate_project_reports: using model.md (single-model directory)")
         main_threat_model = None
+        main_grouped_threats = None
         try:
             with open(main_model_path, "r", encoding="utf-8") as f:
                 markdown_content = f.read()
-            main_threat_model = create_threat_model(
-                markdown_content=markdown_content,
-                model_name=main_model_path.stem,
-                model_description=f"Threat model for {main_model_path.stem}",
-                cve_service=self.cve_service,
-                validate=True,
-                model_file_path=str(main_model_path),
-            )
+            # create + process happen inside ONE lock hold: pytm's shared class-level
+            # registry populated during create() must still reflect this model when
+            # process() reads it — splitting them into separate lock acquisitions
+            # would reopen the window for a concurrent request's TM.reset() to
+            # corrupt this model's in-flight state before it's processed.
+            with pytm_build_lock():
+                main_threat_model = create_threat_model(
+                    markdown_content=markdown_content,
+                    model_name=main_model_path.stem,
+                    model_description=f"Threat model for {main_model_path.stem}",
+                    cve_service=self.cve_service,
+                    validate=True,
+                    model_file_path=str(main_model_path),
+                )
+                if main_threat_model:
+                    main_grouped_threats = main_threat_model.process_threats()
         except Exception as e:
             logging.error(f"Failed to create main threat model for project: {e}")
 
@@ -175,6 +188,7 @@ class ProjectReportMixin:
             project_protocol_styles=project_protocol_styles,
             all_project_models=all_processed_models,
             threat_model=main_threat_model,
+            grouped_threats=main_grouped_threats,
             progress_callback=tracked_progress_callback
         )
 
@@ -241,13 +255,14 @@ class ProjectReportMixin:
             try:
                 with open(md_path, "r", encoding="utf-8") as f:
                     markdown_content = f.read()
-                threat_model = create_threat_model(
-                    markdown_content=markdown_content,
-                    model_name=md_path.stem,
-                    model_description=f"Threat model for {md_path.stem}",
-                    cve_service=self.cve_service,
-                    validate=False,
-                )
+                with pytm_build_lock():
+                    threat_model = create_threat_model(
+                        markdown_content=markdown_content,
+                        model_name=md_path.stem,
+                        model_description=f"Threat model for {md_path.stem}",
+                        cve_service=self.cve_service,
+                        validate=False,
+                    )
                 if threat_model:
                     all_models.append(threat_model)
                 # Follow submodel= links declared on servers
@@ -342,7 +357,7 @@ class ProjectReportMixin:
                     })
         return result
 
-    def _recursively_generate_reports(self, model_path: Path, project_path: Path, output_dir: Path, breadcrumb: List[tuple[str, str]], project_protocols: set, project_protocol_styles: dict, all_project_models: List[ThreatModel], threat_model: Optional[ThreatModel] = None, progress_callback = None, parent_connections: Optional[List[Dict]] = None):
+    def _recursively_generate_reports(self, model_path: Path, project_path: Path, output_dir: Path, breadcrumb: List[tuple[str, str]], project_protocols: set, project_protocol_styles: dict, all_project_models: List[ThreatModel], threat_model: Optional[ThreatModel] = None, grouped_threats: Optional[Dict] = None, progress_callback = None, parent_connections: Optional[List[Dict]] = None):
         """
         Recursively generates reports for each model in the project.
         """
@@ -353,21 +368,28 @@ class ProjectReportMixin:
             with open(model_path, "r", encoding="utf-8") as f:
                 markdown_content = f.read()
 
-            if threat_model is None:
-                threat_model = create_threat_model(
-                    markdown_content=markdown_content,
-                    model_name=model_name,
-                    model_description=f"Threat model for {model_name}",
-                    cve_service=self.cve_service,
-                    validate=True
-                )
+            # create + process happen inside ONE lock hold (same reasoning as
+            # generate_project_reports()'s main-model handling above) — callers
+            # normally pre-build and pre-process before recursing here, passing
+            # both threat_model and grouped_threats in, so this block is a
+            # defensive fallback, not the common path.
+            if threat_model is None or grouped_threats is None:
+                with pytm_build_lock():
+                    if threat_model is None:
+                        threat_model = create_threat_model(
+                            markdown_content=markdown_content,
+                            model_name=model_name,
+                            model_description=f"Threat model for {model_name}",
+                            cve_service=self.cve_service,
+                            validate=True
+                        )
+                    if not threat_model:
+                        logging.error(f"Failed to create or use threat model for {model_path}")
+                        return
+                    if grouped_threats is None:
+                        if progress_callback: progress_callback(f"Running STRIDE analysis: {model_name}...")
+                        grouped_threats = threat_model.process_threats()
 
-            if not threat_model:
-                logging.error(f"Failed to create or use threat model for {model_path}")
-                return
-
-            if progress_callback: progress_callback(f"Running STRIDE analysis: {model_name}...")
-            grouped_threats = threat_model.process_threats()
             all_project_models.append(threat_model)
 
             if progress_callback: progress_callback(f"Generating HTML report: {model_name}...")
@@ -453,13 +475,17 @@ class ProjectReportMixin:
                             # 2. Collect parent connections for the child's diagram
                             with open(submodel_path, "r", encoding="utf-8") as f:
                                 sub_md = f.read()
-                            sub_tm = create_threat_model(
-                                markdown_content=sub_md,
-                                model_name=submodel_path.stem,
-                                model_description=f"Sub-model of {server_props['name']}",
-                                cve_service=self.cve_service,
-                                validate=True,
-                            )
+                            sub_grouped_threats = None
+                            with pytm_build_lock():
+                                sub_tm = create_threat_model(
+                                    markdown_content=sub_md,
+                                    model_name=submodel_path.stem,
+                                    model_description=f"Sub-model of {server_props['name']}",
+                                    cve_service=self.cve_service,
+                                    validate=True,
+                                )
+                                if sub_tm:
+                                    sub_grouped_threats = sub_tm.process_threats()
                             if sub_tm:
                                 # Store reference for GDAF attack-path bridging
                                 server_props['_submodel_tm'] = sub_tm
@@ -470,6 +496,7 @@ class ProjectReportMixin:
                                 self._recursively_generate_reports(
                                     model_path=submodel_path,
                                     threat_model=sub_tm,
+                                    grouped_threats=sub_grouped_threats,
                                     project_path=project_path,
                                     output_dir=sub_output_dir,
                                     breadcrumb=new_breadcrumb,

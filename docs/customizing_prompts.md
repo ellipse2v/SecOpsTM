@@ -1,6 +1,7 @@
 # Customizing LLM Prompts
 
-All LLM prompts used by SecOpsTM are defined in a single file: **`config/prompts.yaml`**.
+All LLM prompts used by SecOpsTM are defined in a single file: **`threat_analysis/config/prompts.yaml`**
+(inside a Docker container: `/app/threat_analysis/config/prompts.yaml`).
 
 You can tune them for your specific domain, sector, or compliance context **without touching Python code**.
 Changes take effect on the next analysis run — no restart or rebuild needed.
@@ -10,14 +11,13 @@ Changes take effect on the next analysis run — no restart or rebuild needed.
 ## How It Works
 
 ```
-config/prompts.yaml
+threat_analysis/config/prompts.yaml
        │
        ▼
 threat_analysis/ai_engine/prompt_loader.py   (lazy-loaded, cached)
        │
        ├── stride_prompts.py        → LiteLLMProvider.generate_threats()
-       ├── attack_flow_prompts.py   → LiteLLMProvider.generate_attack_flow()
-       └── rag_service.py           → RAGThreatGenerator (LangChain chain)
+       └── rag_service.py           → RAGThreatGenerator (direct litellm.completion())
 ```
 
 **Variable syntax in templates:**

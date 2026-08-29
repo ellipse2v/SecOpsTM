@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Optional
 from threat_analysis.core.models_module import ThreatModel
 from threat_analysis.utils import resolve_bom_directory
 
-# Attack-path narrative persona (config/prompts.yaml → attack_path_narrative) is
+# Attack-path narrative persona (threat_analysis/config/prompts.yaml → attack_path_narrative) is
 # instructed to never emit an ID — the path's hops/techniques are already fixed by
 # AttackFlowGenerator before the LLM sees them, so any ID in free text is a grounding
 # violation, not a fact worth trusting. Matched independently of the persona's

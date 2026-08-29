@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """
-STRIDE prompt helpers — all prompt text lives in config/prompts.yaml.
+STRIDE prompt helpers — all prompt text lives in threat_analysis/config/prompts.yaml.
 
 This module exposes module-level constants (for backward compatibility) and
 the ``build_component_prompt()`` factory used by LiteLLMProvider.
@@ -56,7 +56,7 @@ def __getattr__(name: str) -> str:
 def build_component_prompt(component: Dict, context: Dict) -> str:
     """Builds a context-rich STRIDE analysis prompt for a single component.
 
-    Reads the template from ``config/prompts.yaml`` (``stride_analysis.component_template``)
+    Reads the template from ``threat_analysis/config/prompts.yaml`` (``stride_analysis.component_template``)
     and injects component + system context via ``<<varname>>`` substitution.
     """
     compliance = context.get("compliance_requirements", [])

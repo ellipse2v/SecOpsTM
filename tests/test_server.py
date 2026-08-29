@@ -271,9 +271,7 @@ def test_get_active_project_path_prefers_session_over_global():
 def test_set_project_path_isolated_between_sessions(tmp_path):
     """Two independent browser sessions (different cookie jars) must each keep
     their own session['project_path'] / session['model_file_path'] — simulated
-    directly via two request contexts since set_project_path itself is one of the
-    `await request.get_json()` routes this test suite documents as untestable via
-    the synchronous WSGI client (see note above).
+    directly via two request contexts.
     """
     project_a = tmp_path / "project_a"
     project_a.mkdir()
@@ -290,6 +288,152 @@ def test_set_project_path_isolated_between_sessions(tmp_path):
             assert sess_a['project_path'] == str(project_a)
         with client_b.session_transaction() as sess_b:
             assert sess_b['project_path'] == str(project_b)
+
+def test_set_project_path_api_success(client, tmp_path):
+    """Regression guard: this route must not `await` a plain dict.
+
+    set_project_path() is `async def` but Flask's `request.get_json()` returns a
+    plain dict, not a coroutine — `await`ing it used to raise
+    `TypeError: 'dict' object can't be awaited`, turning every real call into an
+    unconditional 500. Only a real client.post() through the actual WSGI stack
+    exercises that path; mocking the view or calling it directly in a
+    test_request_context does not.
+    """
+    project_dir = tmp_path / "my_project"
+    project_dir.mkdir()
+    response = client.post(
+        '/api/set_project_path',
+        data=json.dumps({'path': str(project_dir)}),
+        content_type='application/json',
+    )
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data['success'] is True
+    assert data['path'] == str(project_dir.resolve())
+
+def test_set_project_path_rejects_path_outside_workspaces_dir(client, tmp_path, monkeypatch):
+    """When SECOPSTM_WORKSPACES_DIR is set (multi-user mode), a session must not be
+    able to point at a directory outside it — a session could otherwise read another
+    user's project via BOM/context auto-discovery and /export_all."""
+    workspaces_root = tmp_path / "workspaces"
+    workspaces_root.mkdir()
+    allowed_project = workspaces_root / "alice"
+    allowed_project.mkdir()
+    outside_project = tmp_path / "outside"
+    outside_project.mkdir()
+    monkeypatch.setenv("SECOPSTM_WORKSPACES_DIR", str(workspaces_root))
+
+    response = client.post(
+        '/api/set_project_path',
+        data=json.dumps({'path': str(outside_project)}),
+        content_type='application/json',
+    )
+    assert response.status_code == 403
+    assert response.get_json()['success'] is False
+
+    response = client.post(
+        '/api/set_project_path',
+        data=json.dumps({'path': str(allowed_project)}),
+        content_type='application/json',
+    )
+    assert response.status_code == 200
+    assert response.get_json()['success'] is True
+
+def test_export_json_api_success(client):
+    """Regression guard for the same `await request.get_json()` bug in export_json()."""
+    original_argv = sys.argv
+    sys.argv = [original_argv[0]]
+    try:
+        markdown_payload = {'markdown_content': """## Actors
+- User"""}
+        response = client.post(
+            '/api/export_json',
+            data=json.dumps(markdown_payload),
+            content_type='application/json',
+        )
+        assert response.status_code == 200
+        data = json.loads(response.data)
+        assert data['schema_version'] == '1.0'
+    finally:
+        sys.argv = original_argv
+
+def test_validate_markdown_api_success(client):
+    """Regression guard for the same `await request.get_json()` bug in validate_markdown()."""
+    markdown_payload = {'markdown_content': """## Actors
+- User"""}
+    response = client.post(
+        '/api/validate_markdown',
+        data=json.dumps(markdown_payload),
+        content_type='application/json',
+    )
+    assert response.status_code == 200
+    data = response.get_json()
+    assert 'valid' in data
+
+def test_export_json_uses_pytm_build_lock(client, monkeypatch):
+    """Regression guard: export_json() must serialize model building through
+    pytm_build_lock(), not call create_threat_model()/process_threats() unprotected."""
+    from threat_analysis.core import model_factory
+
+    lock_calls = []
+    original_lock = model_factory.pytm_build_lock
+
+    def spy_lock():
+        lock_calls.append(1)
+        return original_lock()
+
+    monkeypatch.setattr(model_factory, "pytm_build_lock", spy_lock)
+
+    original_argv = sys.argv
+    sys.argv = [original_argv[0]]
+    try:
+        markdown_payload = {'markdown_content': """## Actors
+- User"""}
+        response = client.post(
+            '/api/export_json',
+            data=json.dumps(markdown_payload),
+            content_type='application/json',
+        )
+        assert response.status_code == 200
+    finally:
+        sys.argv = original_argv
+
+    assert lock_calls, "pytm_build_lock() was never entered"
+
+def test_validate_markdown_uses_pytm_build_lock(client, monkeypatch):
+    """Regression guard: validate_markdown() must serialize model building
+    through pytm_build_lock(), not call create_threat_model() unprotected."""
+    from threat_analysis.core import model_factory
+
+    lock_calls = []
+    original_lock = model_factory.pytm_build_lock
+
+    def spy_lock():
+        lock_calls.append(1)
+        return original_lock()
+
+    monkeypatch.setattr(model_factory, "pytm_build_lock", spy_lock)
+
+    markdown_payload = {'markdown_content': """## Actors
+- User"""}
+    response = client.post(
+        '/api/validate_markdown',
+        data=json.dumps(markdown_payload),
+        content_type='application/json',
+    )
+    assert response.status_code == 200
+    assert lock_calls, "pytm_build_lock() was never entered"
+
+def test_diff_reports_api_success(client):
+    """Regression guard for the same `await request.get_json()` bug in diff_reports()."""
+    old_report = {"threats": []}
+    new_report = {"threats": []}
+    response = client.post(
+        '/api/diff_reports',
+        data=json.dumps({'old_report': old_report, 'new_report': new_report}),
+        content_type='application/json',
+    )
+    assert response.status_code == 200
 
 def test_export_all_api_success(client):
     """Test the /api/export_all endpoint for successful ZIP file generation."""
@@ -1357,3 +1501,72 @@ def test_after_request_with_invalid_request_start_header(client):
     """Invalid X-Request-Start value should not raise."""
     resp = client.get('/', headers={'X-Request-Start': 'not-a-number'})
     assert resp.status_code == 200
+
+
+def test_list_workspaces_returns_empty_when_env_var_unset(monkeypatch):
+    monkeypatch.delenv("SECOPSTM_WORKSPACES_DIR", raising=False)
+    from threat_analysis.server.server import _list_workspaces
+    assert _list_workspaces() == []
+
+
+def test_list_workspaces_returns_empty_when_dir_does_not_exist(monkeypatch, tmp_path):
+    monkeypatch.setenv("SECOPSTM_WORKSPACES_DIR", str(tmp_path / "does-not-exist"))
+    from threat_analysis.server.server import _list_workspaces
+    assert _list_workspaces() == []
+
+
+def test_list_workspaces_finds_valid_project_subdirs(monkeypatch, tmp_path):
+    (tmp_path / "alpha").mkdir()
+    (tmp_path / "alpha" / "main.md").write_text("# System Model: Alpha", encoding="utf-8")
+    (tmp_path / "alpha" / "BOM").mkdir()
+
+    (tmp_path / "beta").mkdir()
+    (tmp_path / "beta" / "model.md").write_text("# System Model: Beta", encoding="utf-8")
+
+    (tmp_path / "not-a-workspace").mkdir()  # no main.md/model.md — must be excluded
+    (tmp_path / "stray-file.txt").write_text("x", encoding="utf-8")  # not a dir — must be excluded
+
+    monkeypatch.setenv("SECOPSTM_WORKSPACES_DIR", str(tmp_path))
+    from threat_analysis.server.server import _list_workspaces
+    result = _list_workspaces()
+
+    names = {w["name"] for w in result}
+    assert names == {"alpha", "beta"}
+
+    alpha = next(w for w in result if w["name"] == "alpha")
+    assert alpha["bom"] is True
+    assert alpha["context"] is False
+    assert alpha["path"] == str((tmp_path / "alpha").resolve())
+
+    beta = next(w for w in result if w["name"] == "beta")
+    assert beta["bom"] is False
+
+
+def test_list_workspaces_sorted_by_name(monkeypatch, tmp_path):
+    for name in ("zebra", "alpha", "mike"):
+        d = tmp_path / name
+        d.mkdir()
+        (d / "main.md").write_text("# System Model: X", encoding="utf-8")
+
+    monkeypatch.setenv("SECOPSTM_WORKSPACES_DIR", str(tmp_path))
+    from threat_analysis.server.server import _list_workspaces
+    assert [w["name"] for w in _list_workspaces()] == ["alpha", "mike", "zebra"]
+
+
+def test_api_workspaces_route_returns_list_workspaces_json(client, monkeypatch, tmp_path):
+    (tmp_path / "solo").mkdir()
+    (tmp_path / "solo" / "main.md").write_text("# System Model: Solo", encoding="utf-8")
+    monkeypatch.setenv("SECOPSTM_WORKSPACES_DIR", str(tmp_path))
+
+    response = client.get("/api/workspaces")
+    assert response.status_code == 200
+    data = response.get_json()
+    assert len(data) == 1
+    assert data[0]["name"] == "solo"
+
+
+def test_api_workspaces_route_empty_by_default(client, monkeypatch):
+    monkeypatch.delenv("SECOPSTM_WORKSPACES_DIR", raising=False)
+    response = client.get("/api/workspaces")
+    assert response.status_code == 200
+    assert response.get_json() == []

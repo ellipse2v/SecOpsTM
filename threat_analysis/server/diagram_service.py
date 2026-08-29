@@ -22,7 +22,7 @@ import re
 from typing import Dict, Optional
 from pathlib import Path
 
-from threat_analysis.core.model_factory import create_threat_model
+from threat_analysis.core.model_factory import create_threat_model, pytm_build_lock
 from threat_analysis.core.model_validator import ModelValidator
 from threat_analysis.generation.graphviz_to_json_metadata import GraphvizToJsonMetadataConverter
 from threat_analysis.utils import minimal_subprocess_env
@@ -70,13 +70,14 @@ class DiagramService:
         """
         if not markdown_content:
             raise ValueError("Markdown content is empty")
-        threat_model = create_threat_model(
-            markdown_content=markdown_content,
-            model_name="TempModelForConversion",
-            model_description="Temporary model for GUI conversion",
-            cve_service=self.cve_service,
-            validate=False,
-        )
+        with pytm_build_lock():
+            threat_model = create_threat_model(
+                markdown_content=markdown_content,
+                model_name="TempModelForConversion",
+                model_description="Temporary model for GUI conversion",
+                cve_service=self.cve_service,
+                validate=False,
+            )
         if not threat_model:
             raise RuntimeError("Failed to create threat model from markdown")
         model_json = {"boundaries": [], "actors": [], "servers": [], "data": [], "dataflows": []}
@@ -225,25 +226,26 @@ class DiagramService:
             with open(tmp_md_path, "w", encoding="utf-8") as f:
                 f.write(markdown_content)
             logging.info(f"Saved live markdown to {tmp_md_path}")
-            threat_model = create_threat_model(
-                markdown_content=markdown_content, model_name="WebThreatModel",
-                model_description="Live-updated threat model", cve_service=self.cve_service, validate=False,
-            )
-            if not threat_model:
-                raise RuntimeError("Failed to create threat model")
-            # Propagate model_file_path so BOM/VEX auto-discovery works in server mode
-            if model_file_path:
-                threat_model._model_file_path = model_file_path
-            if submodels and len(submodels) > 0:
-                for submodel_data in submodels:
-                    sub_path = submodel_data['path']
-                    sub_content = submodel_data['content']
-                    sub_model = create_threat_model(
-                        markdown_content=sub_content, model_name=os.path.basename(sub_path),
-                        model_description=f"Submodel for {sub_path}", cve_service=self.cve_service, validate=False
-                    )
-                    if sub_model:
-                        threat_model.sub_models.append(sub_model)
+            with pytm_build_lock():
+                threat_model = create_threat_model(
+                    markdown_content=markdown_content, model_name="WebThreatModel",
+                    model_description="Live-updated threat model", cve_service=self.cve_service, validate=False,
+                )
+                if not threat_model:
+                    raise RuntimeError("Failed to create threat model")
+                # Propagate model_file_path so BOM/VEX auto-discovery works in server mode
+                if model_file_path:
+                    threat_model._model_file_path = model_file_path
+                if submodels and len(submodels) > 0:
+                    for submodel_data in submodels:
+                        sub_path = submodel_data['path']
+                        sub_content = submodel_data['content']
+                        sub_model = create_threat_model(
+                            markdown_content=sub_content, model_name=os.path.basename(sub_path),
+                            model_description=f"Submodel for {sub_path}", cve_service=self.cve_service, validate=False
+                        )
+                        if sub_model:
+                            threat_model.sub_models.append(sub_model)
             validator = ModelValidator(threat_model)
             errors = validator.validate()
             if errors:

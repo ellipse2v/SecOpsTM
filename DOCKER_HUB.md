@@ -66,6 +66,16 @@ The named volume `secopstm-rag` persists across restarts and image upgrades.
 
 ---
 
+## Server configuration
+
+| Environment variable | Notes |
+|---|---|
+| `SECOPSTM_REQUIRE_AUTH` | Optional. When set to `true`, requires bearer token authentication (via `SECOPSTM_API_TOKEN`) for all routes. Off by default — the documented Docker flow (`-p 127.0.0.1:5000:5000`) remains frictionless. |
+| `SECOPSTM_API_TOKEN` | Required if `SECOPSTM_REQUIRE_AUTH=true`. Bearer token for authentication (env var or `?token=` query param). Example: `docker run -e SECOPSTM_REQUIRE_AUTH=true -e SECOPSTM_API_TOKEN=my_secret ...` |
+| `SECOPSTM_WORKSPACES_DIR` | Optional. Directory containing one subdirectory per project. When set, a workspace picker appears in the `/simple` editor. See docs/usage.md § Multi-User Workspaces. |
+
+---
+
 ## Volumes and mounts
 
 | What | Docker flag | Notes |
@@ -73,7 +83,7 @@ The named volume `secopstm-rag` persists across restarts and image upgrades.
 | Output reports | `-v $(pwd)/output:/app/output` | Files land in `output/<timestamp>/` on the host |
 | System model files | `-v $(pwd)/models:/models` | Then pass `--model-file /models/model.md` |
 | AI config | `-v $(pwd)/ai_config.yaml:/app/config/ai_config.yaml:ro` | Change provider or model without rebuilding |
-| LLM prompts | `-v $(pwd)/prompts.yaml:/app/config/prompts.yaml:ro` | Override system prompts |
+| LLM prompts | `-v $(pwd)/prompts.yaml:/app/threat_analysis/config/prompts.yaml:ro` | Override system prompts |
 | CVE definitions | `-v $(pwd)/cve_definitions.yml:/app/cve_definitions.yml:ro` | Per-asset CVE list |
 | RAG vector store | `-v secopstm-rag:/app/rag` | Named volume, required for RAG |
 

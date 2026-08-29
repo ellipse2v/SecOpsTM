@@ -167,6 +167,9 @@ def test_export_all_files_logic(export_service):
                             assert ts is not None
 
 def test_export_navigator_stix_logic(export_service):
+    """Also a regression guard: process_threats() must run INSIDE the
+    pytm_build_lock() block (not left to a lazy call triggered later by
+    get_enriched_threats(), which would happen outside the lock)."""
     with patch('threat_analysis.server.export_service.create_threat_model') as mock_create:
         tm = MagicMock()
         tm.tm.name = "Test"
@@ -184,6 +187,7 @@ def test_export_navigator_stix_logic(export_service):
                                 with patch('shutil.rmtree'):
                                     buf, ts = export_service.export_navigator_stix_logic("md")
                                     assert ts is not None
+                                    tm.process_threats.assert_called_once()
 
 def test_export_attack_flow_logic(export_service):
     with patch('threat_analysis.server.export_service.create_threat_model') as mock_create:

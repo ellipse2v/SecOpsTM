@@ -48,3 +48,33 @@ def test_check_version_compatibility(model_management_service, tmp_path):
     meta_file_bad_id = tmp_path / "model_metadata_bad_id.json"
     meta_file_bad_id.write_text(json.dumps(meta_content_bad_id))
     assert model_management_service.check_version_compatibility(str(md_file), str(meta_file_bad_id)) is False
+
+def test_save_model_with_metadata_uses_pytm_build_lock(model_management_service, tmp_path, monkeypatch):
+    """Regression guard: save_model_with_metadata() must serialize model building
+    through pytm_build_lock(), not call create_threat_model() unprotected."""
+    from threat_analysis.core import model_factory
+
+    lock_calls = []
+    original_lock = model_factory.pytm_build_lock
+
+    def spy_lock():
+        lock_calls.append(1)
+        return original_lock()
+
+    monkeypatch.setattr(
+        "threat_analysis.server.model_management_service.pytm_build_lock", spy_lock
+    )
+
+    fake_threat_model = MagicMock()
+    model_management_service.diagram_service._generate_positions_from_graphviz.return_value = {}
+    with patch(
+        "threat_analysis.server.model_management_service.create_threat_model",
+        return_value=fake_threat_model,
+    ) as mock_create:
+        output_path = tmp_path / "model.md"
+        model_management_service.save_model_with_metadata(
+            "## Actors\n- User", str(output_path), positions_data=None
+        )
+
+    mock_create.assert_called_once()
+    assert lock_calls, "pytm_build_lock() was never entered"

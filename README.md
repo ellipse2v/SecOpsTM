@@ -31,7 +31,7 @@ This project is a Python-based, end-to-end STRIDE threat modeling and analysis f
 ## 🤖 AI Roles
 
 When AI is enabled, SecOpsTM runs several distinct LLM passes, each with its own system
-prompt and purpose (all defined in `config/prompts.yaml`, editable without touching Python
+prompt and purpose (all defined in `threat_analysis/config/prompts.yaml`, editable without touching Python
 code). All roles share the one provider configured in `config/ai_config.yaml` — there's no
 per-role provider selection — and every pass degrades gracefully offline: if no provider is
 reachable, the tool falls back to the pytm rule engine silently.
@@ -160,6 +160,18 @@ secopstm --model-file model.md --output-format json --output-file report.json
 # Launch the web editor
 secopstm --server
 ```
+
+---
+
+## Server Configuration (Optional)
+
+When running `secopstm --server`, you can configure the following optional environment variables:
+
+| Environment variable | Notes |
+|---|---|
+| `SECOPSTM_REQUIRE_AUTH` | Optional. When set to `true`, requires bearer token authentication (via `SECOPSTM_API_TOKEN`) for all routes. Off by default — single-user deployments remain frictionless. |
+| `SECOPSTM_API_TOKEN` | Required if `SECOPSTM_REQUIRE_AUTH=true`. Bearer token for authentication (env var or `?token=` query param). Example: `SECOPSTM_REQUIRE_AUTH=true SECOPSTM_API_TOKEN=my_secret secopstm --server` |
+| `SECOPSTM_WORKSPACES_DIR` | Optional. Directory containing one subdirectory per project. When set, a workspace picker appears in the `/simple` editor. See docs/usage.md § Multi-User Workspaces. |
 
 ---
 

@@ -88,7 +88,7 @@ The named volume `secopstm-rag` persists across container restarts and image reb
 |---|---|---|
 | Output reports | `-v $(pwd)/output:/app/output` | Files land in `output/<timestamp>/` on the host |
 | AI config | `-v $(pwd)/ai_config.yaml:/app/config/ai_config.yaml:ro` | Switch provider/model without rebuilding |
-| Prompts | `-v $(pwd)/prompts.yaml:/app/config/prompts.yaml:ro` | Override LLM prompts |
+| Prompts | `-v $(pwd)/prompts.yaml:/app/threat_analysis/config/prompts.yaml:ro` | Override LLM prompts |
 | System model files | `-v $(pwd)/models:/models` | Pass `--model-file /models/model.md` |
 | CVE definitions | `-v $(pwd)/cve_definitions.yml:/app/cve_definitions.yml:ro` | Per-asset CVE list |
 | RAG vector store | `-v secopstm-rag:/app/rag` | Named volume, required for RAG |
@@ -258,6 +258,28 @@ entry sets `internet_facing=true`; credential-looking `environment:` keys or any
     using the image name:tag as `software_version`. Populate `known_cves`/`patch_level` from
     your vulnerability scanner to feed CVE-based scoring (see section 4).
 3.  **View the results** in the generated `output/` folder, same as the Ansible/Terraform flows.
+
+### 3c. Multi-User Workspaces (Optional)
+
+By default SecOpsTM is single-user: one model/project per server invocation. For a small team
+sharing one server instance, set `SECOPSTM_WORKSPACES_DIR` to a directory containing one
+subdirectory per project (each with its own `main.md`/`model.md`, optionally `BOM/` and
+`context/`):
+
+```bash
+export SECOPSTM_WORKSPACES_DIR=/path/to/workspaces_root
+python -m threat_analysis --server
+```
+
+A "Workspace" dropdown appears in the `/simple` editor toolbar, listing every valid subdirectory.
+Switching workspaces is per-browser-session (via a session cookie) — two people with two browser
+tabs open against the same server can each be looking at a different workspace without
+interfering with each other. There's no per-user access control: everyone reaching the server
+(with the same bearer token, if `SECOPSTM_REQUIRE_AUTH` is set) can pick any listed workspace —
+this is meant as a convenience for a trusted team, not a security boundary.
+
+Leaving `SECOPSTM_WORKSPACES_DIR` unset (the default) keeps single-user behavior identical to
+every previous version — no dropdown, no change.
 
 ### 4. CVE-Based Threat Generation (Optional)
 

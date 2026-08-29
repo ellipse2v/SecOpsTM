@@ -850,6 +850,9 @@
                     <button onclick="TabManager.clearAllTabs()">🗑️ Clear All</button>
                 </div>
             </div>
+            <select id="workspace-picker" class="menu-button" style="display:none;" title="Switch workspace">
+                <option value="" disabled selected>Workspace…</option>
+            </select>
             <div class="menu-separator"></div>
             <button onclick="generateAllFiles()" class="menu-button">⚡ Generate All</button>
             <div class="menu-separator"></div>
@@ -1891,7 +1894,41 @@
         // Initialize Tabs
         TabManager.init();
         TabBar.init();
-        
+
+        // Workspace picker — invisible unless SECOPSTM_WORKSPACES_DIR is set server-side
+        fetch('/api/workspaces')
+            .then(r => r.json())
+            .then(workspaces => {
+                if (!workspaces || workspaces.length === 0) return;
+                const picker = document.getElementById('workspace-picker');
+                workspaces.forEach(ws => {
+                    const opt = document.createElement('option');
+                    opt.value = ws.path;
+                    opt.textContent = ws.name;
+                    picker.appendChild(opt);
+                });
+                picker.style.display = 'inline-block';
+                picker.addEventListener('change', (event) => {
+                    const path = event.target.value;
+                    if (!path) return;
+                    fetch('/api/set_project_path', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ path }),
+                    })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.success) {
+                                window.location.reload();
+                            } else {
+                                alert(data.error || 'Failed to switch workspace');
+                            }
+                        })
+                        .catch(() => alert('Failed to switch workspace (network error)'));
+                });
+            })
+            .catch(() => { /* /api/workspaces failing is non-fatal — picker just stays hidden */ });
+
         // Other functions (saveProjectToServer, exportFile, etc.) would need to be updated
         // to use the active editor's content or all tabs' content as appropriate.
         // For simplicity, they are left as they were, operating on the active editor.

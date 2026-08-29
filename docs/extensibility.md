@@ -6,7 +6,7 @@
   severity thresholds, VOC deltas, Jaccard dedup threshold, and technique mapper
   boosts via `config/scoring_config.yaml`.
 - **[Customizing Prompts](customizing_prompts.md)** — edit the LLM prompt templates
-  used for STRIDE generation, Attack Flow, and RAG queries via `config/prompts.yaml`.
+  used for STRIDE generation, Attack Flow, and RAG queries via `threat_analysis/config/prompts.yaml`.
 
 ## Model Capabilities
 

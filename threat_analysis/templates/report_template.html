@@ -1620,8 +1620,11 @@
               <tbody>
                 {% for s in gdaf_scenarios %}
                 {% set row_class = 'gdaf-row' + (' gdaf-unacceptable' if s.unacceptable_risk else '') %}
-                <tr class="{{ row_class }}" onclick="toggleGdafDetail('gdaf-detail-{{ loop.index }}')" title="Click to see per-hop techniques">
-                  <td style="color:var(--text-secondary);">{{ loop.index }}</td>
+                <tr class="{{ row_class }}" id="gdaf-{{ s.scenario_id }}" style="scroll-margin-top:80px;" onclick="toggleGdafDetail('gdaf-detail-{{ loop.index }}')" title="Click to see per-hop techniques">
+                  <td style="color:var(--text-secondary);">
+                    {{ loop.index }}
+                    <div style="font-size:.65rem;font-family:monospace;">{{ s.scenario_id }}</div>
+                  </td>
                   <td><span class="gdaf-risk-badge gdaf-risk-{{ s.risk_level }}">{{ s.risk_level }}</span></td>
                   <td>
                     <div style="font-weight:600;">{{ s.objective }}</div>
@@ -1634,7 +1637,7 @@
                     <div style="font-size:0.75rem;color:var(--text-secondary);">{{ s.actor_sophistication }}</div>
                   </td>
                   <td class="gdaf-path">{{ s.path }}</td>
-                  <td class="gdaf-score-{{ s.risk_level | lower }}"{% if s.pre_debate_score is not none %} title="Adjusted by Red/Blue debate — original score: {{ s.pre_debate_score }}"{% endif %}>{{ s.score }}{% if s.pre_debate_score is not none %}&nbsp;🥊{% endif %}</td>
+                  <td class="gdaf-score-{{ s.risk_level | lower }}"{% if s.pre_debate_score is not none %} title="Adjusted by Red/Blue debate — original score: {{ s.pre_debate_score }}"{% endif %}>{{ s.score }}{% if s.pre_debate_score is not none %}&nbsp;<a href="#debate-{{ s.scenario_id }}" onclick="event.stopPropagation();" title="Jump to debate transcript">🥊</a>{% endif %}</td>
                   <td style="text-align:center;">{{ s.hop_count }}</td>
                   <td style="text-align:center;font-size:0.8rem;">{{ "%.0f%%"|format(s.detection_coverage * 100) }}</td>
                 </tr>
@@ -1754,11 +1757,12 @@
               round count.
             </p>
             {% for d in debate_results %}
-            <div class="debate-card">
+            <div class="debate-card" id="debate-{{ d.scenario_id }}" style="scroll-margin-top:80px;">
               <div class="debate-card-header">
                 <span class="gdaf-risk-badge gdaf-risk-{{ 'HIGH' if d.residual_path_viable else 'LOW' }}">
                   {{ 'RESIDUAL PATH VIABLE' if d.residual_path_viable else 'PATH BLOCKED' }}
                 </span>
+                <a href="#gdaf-{{ d.scenario_id }}" style="font-family:monospace;font-size:.75rem;color:var(--text-secondary);text-decoration:none;" title="Jump to this scenario in the GDAF Attack Scenarios table">⚡ {{ d.scenario_id }}</a>
                 <strong>{{ d.objective_name }}</strong>
                 <span class="gdaf-path">{{ d.entry_point }} → {{ d.target_asset }}</span>
               </div>
