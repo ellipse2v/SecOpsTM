@@ -190,3 +190,49 @@ def test_determinism_aggregate_one_provider_stubbed(tmp_path, monkeypatch):
     assert prov["runs_ok"] == 3
     assert "factor_cv_median" in prov
     assert "rank_stability" in prov
+
+
+def test_ablation_aggregate_stubbed(tmp_path, monkeypatch):
+    import json
+    from tooling.eval import ablation
+    from tooling.eval._common import freeze, thaw
+
+    fx = tmp_path / "Toy.scenarios.json"
+    fx.write_text(json.dumps(freeze([
+        _scenario("S1", 5.0), _scenario("S2", 4.0), _scenario("S3", 3.0),
+        _scenario("S4", 2.0), _scenario("S5", 1.0), _scenario("S6", 0.5),
+    ])))
+
+    def fake_run_debate(scenarios, *, provider, config, sleep_s=0.0):
+        s = thaw(freeze(scenarios))
+        # push the lowest-scored debated scenario to the top
+        for sc in s:
+            sc.path_score_pre_debate = sc.path_score
+        s_sorted = sorted(s, key=lambda x: x.path_score)
+        s_sorted[0].path_score = 99.0
+        s_sorted[0].debate_factor = 1.5
+
+        class R:
+            def __init__(self, sid):
+                self.scenario_id = sid
+                self.final_viability = 0.8
+                self.residual_path_viable = True
+                self.rounds = []
+        return s, [R(sc.scenario_id) for sc in s]
+
+    monkeypatch.setattr(ablation, "run_debate", fake_run_debate)
+    monkeypatch.setattr(ablation, "make_provider", lambda name: object())
+
+    out = tmp_path / "abl.json"
+    rc = ablation.main([
+        "--fixtures-dir", str(tmp_path), "--fixtures", "Toy",
+        "--provider", "groq", "--top-n", "5", "--max-rounds", "1", "--sleep", "0",
+        "--out", str(out),
+    ])
+    assert rc == 0
+    data = json.loads(out.read_text())
+    assert data["step"] == "ablation"
+    tf = data["fixtures"]["Toy"]
+    assert tf["scenario_count"] == 6
+    assert "kendall_tau" in tf and "top5_jaccard" in tf
+    assert data["aggregate"]["fixtures_ok"] == 1
