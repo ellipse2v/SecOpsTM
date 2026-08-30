@@ -15,8 +15,12 @@
 """Frozen-fixture IO, provider forcing, and the debate run wrapper for the
 evaluation harness. See docs/superpowers/specs/2026-08-29-debate-gdaf-evaluation-design.md."""
 
+import asyncio
+import copy as _copy
 import logging
-from typing import Any, Dict, List
+import os
+import time
+from typing import Any, Dict, List, Tuple
 
 from threat_analysis.core.asset_technique_mapper import ScoredTechnique
 from threat_analysis.core.gdaf_engine import AttackHop, AttackScenario
@@ -129,3 +133,50 @@ def scenario_order(scenarios: List[AttackScenario]) -> List[str]:
 
 def risk_levels(scenarios: List[AttackScenario]) -> Dict[str, str]:
     return {s.scenario_id: s.risk_level for s in scenarios}
+
+
+# ---------------------------------------------------------------------------
+# Provider forcing + debate run wrapper
+# ---------------------------------------------------------------------------
+
+def make_provider(name: str) -> "LiteLLMProvider":
+    """Return a fresh LiteLLMProvider pinned to `name` via SECOPSTM_FORCE_PROVIDER.
+
+    The provider reads config/ai_config.yaml lazily on its first call, so the
+    env var only has to be set before generate_debate_turn runs. Build a NEW
+    provider for every run_debate call — run_debate uses asyncio.run(), which
+    closes its event loop on return, and a provider/client reused across a
+    closed loop raises "Event loop is closed" on the next call.
+    """
+    from threat_analysis.ai_engine.providers.litellm_provider import LiteLLMProvider
+    os.environ["SECOPSTM_FORCE_PROVIDER"] = name
+    return LiteLLMProvider({})
+
+
+def run_debate(
+    scenarios: List[AttackScenario], *, provider: Any, config: Dict,
+    sleep_s: float = 0.0,
+) -> Tuple[List[AttackScenario], List["DebateResult"]]:
+    """Debate a deep copy of `scenarios` and return (mutated_copies, debate_results).
+
+    `config` is passed straight to RedBlueDebateEngine. `sleep_s` is applied
+    between scenarios to stay under provider rate limits (the engine does not
+    self-throttle).
+    """
+    from threat_analysis.core.debate_engine import RedBlueDebateEngine
+
+    work = _copy.deepcopy(list(scenarios))
+    engine = RedBlueDebateEngine(provider, config=config)
+
+    if sleep_s > 0:
+        _orig = engine._debate_scenario
+
+        async def _throttled(scenario):
+            result = await _orig(scenario)
+            time.sleep(sleep_s)
+            return result
+
+        engine._debate_scenario = _throttled
+
+    results = asyncio.run(engine.run(work))
+    return work, results

@@ -98,3 +98,46 @@ def test_scenario_order_breaks_ties_by_id():
 def test_risk_levels_maps_id_to_level():
     scenarios = [_scenario("S1", 3.0, "HIGH"), _scenario("S2", 1.0, "LOW")]
     assert risk_levels(scenarios) == {"S1": "HIGH", "S2": "LOW"}
+
+
+def test_run_debate_mutates_copies_not_originals():
+    from tooling.eval._common import run_debate
+
+    class StubProvider:
+        async def generate_debate_turn(self, prompt, system_prompt):
+            return {"viability_score": 0.9, "techniques_blocked": [], "techniques_attempted": ["T1190"],
+                    "failed_alternatives": [], "detection_gaps": [], "evidence": [], "rationale": "stub"}
+
+    originals = [_scenario("S1", 3.0), _scenario("S2", 2.0)]
+    original_scores = [s.path_score for s in originals]
+    mutated, results = run_debate(
+        originals, provider=StubProvider(),
+        config={"top_n": 5, "min_viability_threshold": 0.0, "max_rounds": 1},
+        sleep_s=0.0,
+    )
+    assert [s.path_score for s in originals] == original_scores  # originals untouched
+    assert any(s.path_score_pre_debate is not None for s in mutated)
+    assert all(r.scenario_id for r in results)
+
+
+def test_run_debate_returns_debate_results_with_viability():
+    from tooling.eval._common import run_debate
+
+    class StubProvider:
+        async def generate_debate_turn(self, prompt, system_prompt):
+            return {"viability_score": 0.7, "techniques_blocked": [], "techniques_attempted": [],
+                    "failed_alternatives": [], "detection_gaps": [], "evidence": [], "rationale": "s"}
+
+    _, results = run_debate(
+        [_scenario("S1", 4.0)], provider=StubProvider(),
+        config={"top_n": 5, "min_viability_threshold": 0.0, "max_rounds": 1}, sleep_s=0.0,
+    )
+    assert len(results) == 1
+    assert 0.0 <= results[0].final_viability <= 1.0
+
+
+def test_make_provider_sets_force_env():
+    import os
+    from tooling.eval._common import make_provider
+    make_provider("groq")
+    assert os.environ["SECOPSTM_FORCE_PROVIDER"] == "groq"
