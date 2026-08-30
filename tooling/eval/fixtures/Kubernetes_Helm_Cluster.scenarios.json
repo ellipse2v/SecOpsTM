@@ -1,0 +1,1422 @@
+[
+  {
+    "scenario_id": "GDAF-A8B67C33",
+    "objective_id": "OBJ-AUTO-001",
+    "objective_name": "Compromise high-value assets",
+    "objective_description": "Auto-generated objective: reach the highest-CIA servers",
+    "objective_business_impact": "Data breach / service disruption",
+    "objective_mitre_final_tactic": "impact",
+    "actor_id": "ACT-AUTO-001",
+    "actor_name": "Generic External Adversary",
+    "actor_sophistication": "medium",
+    "entry_point": "End User",
+    "target_asset": "PostgreSQL (StatefulSet)",
+    "hops": [
+      {
+        "asset_name": "Cloud Load Balancer",
+        "asset_type": "load_balancer",
+        "techniques": [
+          {
+            "id": "T1133",
+            "name": "External Remote Services",
+            "tactics": [
+              "initial-access",
+              "persistence"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1133"
+          },
+          {
+            "id": "T1195.001",
+            "name": "Compromise Software Dependencies and Development Tools",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1195/001"
+          },
+          {
+            "id": "T1566.002",
+            "name": "Spearphishing Link",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1566/002"
+          }
+        ],
+        "dataflow_name": "User HTTPS Request",
+        "protocol": "https",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.33,
+        "hop_position": "entry"
+      },
+      {
+        "asset_name": "Ingress Controller (Nginx)",
+        "asset_type": "web_server",
+        "techniques": [
+          {
+            "id": "T1091",
+            "name": "Replication Through Removable Media",
+            "tactics": [
+              "initial-access",
+              "lateral-movement"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1091"
+          },
+          {
+            "id": "T1078.001",
+            "name": "Default Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1078/001"
+          },
+          {
+            "id": "T1078",
+            "name": "Valid Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1078"
+          }
+        ],
+        "dataflow_name": "LB to Ingress",
+        "protocol": "https",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.33,
+        "hop_position": "intermediate"
+      },
+      {
+        "asset_name": "Frontend Pod (React SPA)",
+        "asset_type": "web_server",
+        "techniques": [
+          {
+            "id": "T1091",
+            "name": "Replication Through Removable Media",
+            "tactics": [
+              "initial-access",
+              "lateral-movement"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1091"
+          },
+          {
+            "id": "T1078.001",
+            "name": "Default Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1078/001"
+          },
+          {
+            "id": "T1078",
+            "name": "Valid Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1078"
+          }
+        ],
+        "dataflow_name": "Ingress to Frontend",
+        "protocol": "http",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.33,
+        "hop_position": "intermediate"
+      },
+      {
+        "asset_name": "Backend API Pod (Node.js)",
+        "asset_type": "api_server",
+        "techniques": [
+          {
+            "id": "T1091",
+            "name": "Replication Through Removable Media",
+            "tactics": [
+              "initial-access",
+              "lateral-movement"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1091"
+          },
+          {
+            "id": "T1078.001",
+            "name": "Default Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1078/001"
+          },
+          {
+            "id": "T1078",
+            "name": "Valid Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1078"
+          }
+        ],
+        "dataflow_name": "Frontend to Backend API",
+        "protocol": "http",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.15,
+        "hop_position": "intermediate"
+      },
+      {
+        "asset_name": "PostgreSQL (StatefulSet)",
+        "asset_type": "database",
+        "techniques": [
+          {
+            "id": "T1557",
+            "name": "Adversary-in-the-Middle",
+            "tactics": [
+              "credential-access",
+              "collection"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
+            "url": "https://attack.mitre.org/techniques/T1557"
+          },
+          {
+            "id": "T1056.001",
+            "name": "Keylogging",
+            "tactics": [
+              "credential-access",
+              "collection"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
+            "url": "https://attack.mitre.org/techniques/T1056/001"
+          },
+          {
+            "id": "T1557.003",
+            "name": "DHCP Spoofing",
+            "tactics": [
+              "credential-access",
+              "collection"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
+            "url": "https://attack.mitre.org/techniques/T1557/003"
+          }
+        ],
+        "dataflow_name": "Backend API to PostgreSQL",
+        "protocol": "postgresql/tls",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.06,
+        "hop_position": "target"
+      }
+    ],
+    "path_score": 3.24,
+    "risk_level": "HIGH",
+    "detection_coverage": 0.0,
+    "unacceptable_risk": false,
+    "min_technique_score": 0.8
+  },
+  {
+    "scenario_id": "GDAF-3639A36F",
+    "objective_id": "OBJ-AUTO-001",
+    "objective_name": "Compromise high-value assets",
+    "objective_description": "Auto-generated objective: reach the highest-CIA servers",
+    "objective_business_impact": "Data breach / service disruption",
+    "objective_mitre_final_tactic": "impact",
+    "actor_id": "ACT-AUTO-001",
+    "actor_name": "Generic External Adversary",
+    "actor_sophistication": "medium",
+    "entry_point": "End User",
+    "target_asset": "PostgreSQL (StatefulSet)",
+    "hops": [
+      {
+        "asset_name": "Cloud Load Balancer",
+        "asset_type": "load_balancer",
+        "techniques": [
+          {
+            "id": "T1133",
+            "name": "External Remote Services",
+            "tactics": [
+              "initial-access",
+              "persistence"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1133"
+          },
+          {
+            "id": "T1195.001",
+            "name": "Compromise Software Dependencies and Development Tools",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1195/001"
+          },
+          {
+            "id": "T1566.002",
+            "name": "Spearphishing Link",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1566/002"
+          }
+        ],
+        "dataflow_name": "User HTTPS Request",
+        "protocol": "https",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.33,
+        "hop_position": "entry"
+      },
+      {
+        "asset_name": "Ingress Controller (Nginx)",
+        "asset_type": "web_server",
+        "techniques": [
+          {
+            "id": "T1091",
+            "name": "Replication Through Removable Media",
+            "tactics": [
+              "initial-access",
+              "lateral-movement"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1091"
+          },
+          {
+            "id": "T1078.001",
+            "name": "Default Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1078/001"
+          },
+          {
+            "id": "T1078",
+            "name": "Valid Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1078"
+          }
+        ],
+        "dataflow_name": "LB to Ingress",
+        "protocol": "https",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.33,
+        "hop_position": "intermediate"
+      },
+      {
+        "asset_name": "Backend API Pod (Node.js)",
+        "asset_type": "api_server",
+        "techniques": [
+          {
+            "id": "T1091",
+            "name": "Replication Through Removable Media",
+            "tactics": [
+              "initial-access",
+              "lateral-movement"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1091"
+          },
+          {
+            "id": "T1078.001",
+            "name": "Default Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1078/001"
+          },
+          {
+            "id": "T1078",
+            "name": "Valid Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1078"
+          }
+        ],
+        "dataflow_name": "Ingress to Backend API",
+        "protocol": "http",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.15,
+        "hop_position": "intermediate"
+      },
+      {
+        "asset_name": "PostgreSQL (StatefulSet)",
+        "asset_type": "database",
+        "techniques": [
+          {
+            "id": "T1557",
+            "name": "Adversary-in-the-Middle",
+            "tactics": [
+              "credential-access",
+              "collection"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
+            "url": "https://attack.mitre.org/techniques/T1557"
+          },
+          {
+            "id": "T1056.001",
+            "name": "Keylogging",
+            "tactics": [
+              "credential-access",
+              "collection"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
+            "url": "https://attack.mitre.org/techniques/T1056/001"
+          },
+          {
+            "id": "T1557.003",
+            "name": "DHCP Spoofing",
+            "tactics": [
+              "credential-access",
+              "collection"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
+            "url": "https://attack.mitre.org/techniques/T1557/003"
+          }
+        ],
+        "dataflow_name": "Backend API to PostgreSQL",
+        "protocol": "postgresql/tls",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.06,
+        "hop_position": "target"
+      }
+    ],
+    "path_score": 3.22,
+    "risk_level": "HIGH",
+    "detection_coverage": 0.0,
+    "unacceptable_risk": false,
+    "min_technique_score": 0.8
+  },
+  {
+    "scenario_id": "GDAF-2DC61607",
+    "objective_id": "OBJ-AUTO-001",
+    "objective_name": "Compromise high-value assets",
+    "objective_description": "Auto-generated objective: reach the highest-CIA servers",
+    "objective_business_impact": "Data breach / service disruption",
+    "objective_mitre_final_tactic": "impact",
+    "actor_id": "ACT-AUTO-001",
+    "actor_name": "Generic External Adversary",
+    "actor_sophistication": "medium",
+    "entry_point": "Attacker",
+    "target_asset": "PostgreSQL (StatefulSet)",
+    "hops": [
+      {
+        "asset_name": "Ingress Controller (Nginx)",
+        "asset_type": "web_server",
+        "techniques": [
+          {
+            "id": "T1133",
+            "name": "External Remote Services",
+            "tactics": [
+              "initial-access",
+              "persistence"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1133"
+          },
+          {
+            "id": "T1195.001",
+            "name": "Compromise Software Dependencies and Development Tools",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1195/001"
+          },
+          {
+            "id": "T1566.002",
+            "name": "Spearphishing Link",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1566/002"
+          }
+        ],
+        "dataflow_name": "Attacker via exposed API",
+        "protocol": "https",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.33,
+        "hop_position": "entry"
+      },
+      {
+        "asset_name": "Frontend Pod (React SPA)",
+        "asset_type": "web_server",
+        "techniques": [
+          {
+            "id": "T1091",
+            "name": "Replication Through Removable Media",
+            "tactics": [
+              "initial-access",
+              "lateral-movement"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1091"
+          },
+          {
+            "id": "T1078.001",
+            "name": "Default Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1078/001"
+          },
+          {
+            "id": "T1078",
+            "name": "Valid Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1078"
+          }
+        ],
+        "dataflow_name": "Ingress to Frontend",
+        "protocol": "http",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.33,
+        "hop_position": "intermediate"
+      },
+      {
+        "asset_name": "Backend API Pod (Node.js)",
+        "asset_type": "api_server",
+        "techniques": [
+          {
+            "id": "T1091",
+            "name": "Replication Through Removable Media",
+            "tactics": [
+              "initial-access",
+              "lateral-movement"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1091"
+          },
+          {
+            "id": "T1078.001",
+            "name": "Default Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1078/001"
+          },
+          {
+            "id": "T1078",
+            "name": "Valid Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1078"
+          }
+        ],
+        "dataflow_name": "Frontend to Backend API",
+        "protocol": "http",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.15,
+        "hop_position": "intermediate"
+      },
+      {
+        "asset_name": "PostgreSQL (StatefulSet)",
+        "asset_type": "database",
+        "techniques": [
+          {
+            "id": "T1557",
+            "name": "Adversary-in-the-Middle",
+            "tactics": [
+              "credential-access",
+              "collection"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
+            "url": "https://attack.mitre.org/techniques/T1557"
+          },
+          {
+            "id": "T1056.001",
+            "name": "Keylogging",
+            "tactics": [
+              "credential-access",
+              "collection"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
+            "url": "https://attack.mitre.org/techniques/T1056/001"
+          },
+          {
+            "id": "T1557.003",
+            "name": "DHCP Spoofing",
+            "tactics": [
+              "credential-access",
+              "collection"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
+            "url": "https://attack.mitre.org/techniques/T1557/003"
+          }
+        ],
+        "dataflow_name": "Backend API to PostgreSQL",
+        "protocol": "postgresql/tls",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.06,
+        "hop_position": "target"
+      }
+    ],
+    "path_score": 3.22,
+    "risk_level": "HIGH",
+    "detection_coverage": 0.0,
+    "unacceptable_risk": false,
+    "min_technique_score": 0.8
+  },
+  {
+    "scenario_id": "GDAF-D98A43AB",
+    "objective_id": "OBJ-AUTO-001",
+    "objective_name": "Compromise high-value assets",
+    "objective_description": "Auto-generated objective: reach the highest-CIA servers",
+    "objective_business_impact": "Data breach / service disruption",
+    "objective_mitre_final_tactic": "impact",
+    "actor_id": "ACT-AUTO-001",
+    "actor_name": "Generic External Adversary",
+    "actor_sophistication": "medium",
+    "entry_point": "End User",
+    "target_asset": "kube-apiserver",
+    "hops": [
+      {
+        "asset_name": "Cloud Load Balancer",
+        "asset_type": "load_balancer",
+        "techniques": [
+          {
+            "id": "T1133",
+            "name": "External Remote Services",
+            "tactics": [
+              "initial-access",
+              "persistence"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1133"
+          },
+          {
+            "id": "T1195.001",
+            "name": "Compromise Software Dependencies and Development Tools",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1195/001"
+          },
+          {
+            "id": "T1566.002",
+            "name": "Spearphishing Link",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1566/002"
+          }
+        ],
+        "dataflow_name": "User HTTPS Request",
+        "protocol": "https",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.33,
+        "hop_position": "entry"
+      },
+      {
+        "asset_name": "Ingress Controller (Nginx)",
+        "asset_type": "web_server",
+        "techniques": [
+          {
+            "id": "T1091",
+            "name": "Replication Through Removable Media",
+            "tactics": [
+              "initial-access",
+              "lateral-movement"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1091"
+          },
+          {
+            "id": "T1078.001",
+            "name": "Default Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1078/001"
+          },
+          {
+            "id": "T1078",
+            "name": "Valid Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1078"
+          }
+        ],
+        "dataflow_name": "LB to Ingress",
+        "protocol": "https",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.33,
+        "hop_position": "intermediate"
+      },
+      {
+        "asset_name": "kube-apiserver",
+        "asset_type": "api_server",
+        "techniques": [
+          {
+            "id": "T1659",
+            "name": "Content Injection",
+            "tactics": [
+              "initial-access",
+              "command-and-control"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1659"
+          },
+          {
+            "id": "T1133",
+            "name": "External Remote Services",
+            "tactics": [
+              "initial-access",
+              "persistence"
+            ],
+            "score": 1.55,
+            "rationale": "platform match, primary tactic, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1133"
+          },
+          {
+            "id": "T1195.001",
+            "name": "Compromise Software Dependencies and Development Tools",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.55,
+            "rationale": "platform match, primary tactic, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1195/001"
+          }
+        ],
+        "dataflow_name": "Ingress Controller to kube-apiserver",
+        "protocol": "https/mtls",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 2.81,
+        "hop_position": "target"
+      }
+    ],
+    "path_score": 3.16,
+    "risk_level": "HIGH",
+    "detection_coverage": 0.0,
+    "unacceptable_risk": false,
+    "min_technique_score": 0.8
+  },
+  {
+    "scenario_id": "GDAF-20C2D3D6",
+    "objective_id": "OBJ-AUTO-001",
+    "objective_name": "Compromise high-value assets",
+    "objective_description": "Auto-generated objective: reach the highest-CIA servers",
+    "objective_business_impact": "Data breach / service disruption",
+    "objective_mitre_final_tactic": "impact",
+    "actor_id": "ACT-AUTO-001",
+    "actor_name": "Generic External Adversary",
+    "actor_sophistication": "medium",
+    "entry_point": "Developer",
+    "target_asset": "kube-apiserver",
+    "hops": [
+      {
+        "asset_name": "kube-apiserver",
+        "asset_type": "api_server",
+        "techniques": [
+          {
+            "id": "T1133",
+            "name": "External Remote Services",
+            "tactics": [
+              "initial-access",
+              "persistence"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1133"
+          },
+          {
+            "id": "T1195.001",
+            "name": "Compromise Software Dependencies and Development Tools",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1195/001"
+          },
+          {
+            "id": "T1566.002",
+            "name": "Spearphishing Link",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1566/002"
+          }
+        ],
+        "dataflow_name": "Developer kubectl",
+        "protocol": "https/mtls",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.15,
+        "hop_position": "entry"
+      }
+    ],
+    "path_score": 3.15,
+    "risk_level": "HIGH",
+    "detection_coverage": 0.0,
+    "unacceptable_risk": false,
+    "min_technique_score": 0.8
+  },
+  {
+    "scenario_id": "GDAF-216535D2",
+    "objective_id": "OBJ-AUTO-001",
+    "objective_name": "Compromise high-value assets",
+    "objective_description": "Auto-generated objective: reach the highest-CIA servers",
+    "objective_business_impact": "Data breach / service disruption",
+    "objective_mitre_final_tactic": "impact",
+    "actor_id": "ACT-AUTO-001",
+    "actor_name": "Generic External Adversary",
+    "actor_sophistication": "medium",
+    "entry_point": "CI/CD Pipeline",
+    "target_asset": "kube-apiserver",
+    "hops": [
+      {
+        "asset_name": "kube-apiserver",
+        "asset_type": "api_server",
+        "techniques": [
+          {
+            "id": "T1133",
+            "name": "External Remote Services",
+            "tactics": [
+              "initial-access",
+              "persistence"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1133"
+          },
+          {
+            "id": "T1195.001",
+            "name": "Compromise Software Dependencies and Development Tools",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1195/001"
+          },
+          {
+            "id": "T1566.002",
+            "name": "Spearphishing Link",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1566/002"
+          }
+        ],
+        "dataflow_name": "CI/CD Helm Deploy",
+        "protocol": "https/mtls",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.15,
+        "hop_position": "entry"
+      }
+    ],
+    "path_score": 3.15,
+    "risk_level": "HIGH",
+    "detection_coverage": 0.0,
+    "unacceptable_risk": false,
+    "min_technique_score": 0.8
+  },
+  {
+    "scenario_id": "GDAF-E3548A1D",
+    "objective_id": "OBJ-AUTO-001",
+    "objective_name": "Compromise high-value assets",
+    "objective_description": "Auto-generated objective: reach the highest-CIA servers",
+    "objective_business_impact": "Data breach / service disruption",
+    "objective_mitre_final_tactic": "impact",
+    "actor_id": "ACT-AUTO-001",
+    "actor_name": "Generic External Adversary",
+    "actor_sophistication": "medium",
+    "entry_point": "End User",
+    "target_asset": "etcd",
+    "hops": [
+      {
+        "asset_name": "Cloud Load Balancer",
+        "asset_type": "load_balancer",
+        "techniques": [
+          {
+            "id": "T1133",
+            "name": "External Remote Services",
+            "tactics": [
+              "initial-access",
+              "persistence"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1133"
+          },
+          {
+            "id": "T1195.001",
+            "name": "Compromise Software Dependencies and Development Tools",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1195/001"
+          },
+          {
+            "id": "T1566.002",
+            "name": "Spearphishing Link",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1566/002"
+          }
+        ],
+        "dataflow_name": "User HTTPS Request",
+        "protocol": "https",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.33,
+        "hop_position": "entry"
+      },
+      {
+        "asset_name": "Ingress Controller (Nginx)",
+        "asset_type": "web_server",
+        "techniques": [
+          {
+            "id": "T1091",
+            "name": "Replication Through Removable Media",
+            "tactics": [
+              "initial-access",
+              "lateral-movement"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1091"
+          },
+          {
+            "id": "T1078.001",
+            "name": "Default Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1078/001"
+          },
+          {
+            "id": "T1078",
+            "name": "Valid Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1078"
+          }
+        ],
+        "dataflow_name": "LB to Ingress",
+        "protocol": "https",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.33,
+        "hop_position": "intermediate"
+      },
+      {
+        "asset_name": "kube-apiserver",
+        "asset_type": "api_server",
+        "techniques": [
+          {
+            "id": "T1091",
+            "name": "Replication Through Removable Media",
+            "tactics": [
+              "initial-access",
+              "lateral-movement"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1091"
+          },
+          {
+            "id": "T1078.001",
+            "name": "Default Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1078/001"
+          },
+          {
+            "id": "T1078",
+            "name": "Valid Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1078"
+          }
+        ],
+        "dataflow_name": "Ingress Controller to kube-apiserver",
+        "protocol": "https/mtls",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.15,
+        "hop_position": "intermediate"
+      },
+      {
+        "asset_name": "etcd",
+        "asset_type": "database",
+        "techniques": [
+          {
+            "id": "T1557",
+            "name": "Adversary-in-the-Middle",
+            "tactics": [
+              "credential-access",
+              "collection"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
+            "url": "https://attack.mitre.org/techniques/T1557"
+          },
+          {
+            "id": "T1056.001",
+            "name": "Keylogging",
+            "tactics": [
+              "credential-access",
+              "collection"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
+            "url": "https://attack.mitre.org/techniques/T1056/001"
+          },
+          {
+            "id": "T1557.003",
+            "name": "DHCP Spoofing",
+            "tactics": [
+              "credential-access",
+              "collection"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
+            "url": "https://attack.mitre.org/techniques/T1557/003"
+          }
+        ],
+        "dataflow_name": "etcd to kube-apiserver (reverse)",
+        "protocol": "grpc/mtls",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.06,
+        "hop_position": "target"
+      }
+    ],
+    "path_score": 3.22,
+    "risk_level": "HIGH",
+    "detection_coverage": 0.0,
+    "unacceptable_risk": false,
+    "min_technique_score": 0.8
+  },
+  {
+    "scenario_id": "GDAF-708AE941",
+    "objective_id": "OBJ-AUTO-001",
+    "objective_name": "Compromise high-value assets",
+    "objective_description": "Auto-generated objective: reach the highest-CIA servers",
+    "objective_business_impact": "Data breach / service disruption",
+    "objective_mitre_final_tactic": "impact",
+    "actor_id": "ACT-AUTO-001",
+    "actor_name": "Generic External Adversary",
+    "actor_sophistication": "medium",
+    "entry_point": "Attacker",
+    "target_asset": "etcd",
+    "hops": [
+      {
+        "asset_name": "Ingress Controller (Nginx)",
+        "asset_type": "web_server",
+        "techniques": [
+          {
+            "id": "T1133",
+            "name": "External Remote Services",
+            "tactics": [
+              "initial-access",
+              "persistence"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1133"
+          },
+          {
+            "id": "T1195.001",
+            "name": "Compromise Software Dependencies and Development Tools",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1195/001"
+          },
+          {
+            "id": "T1566.002",
+            "name": "Spearphishing Link",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1566/002"
+          }
+        ],
+        "dataflow_name": "Attacker via exposed API",
+        "protocol": "https",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.33,
+        "hop_position": "entry"
+      },
+      {
+        "asset_name": "kube-apiserver",
+        "asset_type": "api_server",
+        "techniques": [
+          {
+            "id": "T1091",
+            "name": "Replication Through Removable Media",
+            "tactics": [
+              "initial-access",
+              "lateral-movement"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1091"
+          },
+          {
+            "id": "T1078.001",
+            "name": "Default Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1078/001"
+          },
+          {
+            "id": "T1078",
+            "name": "Valid Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1078"
+          }
+        ],
+        "dataflow_name": "Ingress Controller to kube-apiserver",
+        "protocol": "https/mtls",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.15,
+        "hop_position": "intermediate"
+      },
+      {
+        "asset_name": "etcd",
+        "asset_type": "database",
+        "techniques": [
+          {
+            "id": "T1557",
+            "name": "Adversary-in-the-Middle",
+            "tactics": [
+              "credential-access",
+              "collection"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
+            "url": "https://attack.mitre.org/techniques/T1557"
+          },
+          {
+            "id": "T1056.001",
+            "name": "Keylogging",
+            "tactics": [
+              "credential-access",
+              "collection"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
+            "url": "https://attack.mitre.org/techniques/T1056/001"
+          },
+          {
+            "id": "T1557.003",
+            "name": "DHCP Spoofing",
+            "tactics": [
+              "credential-access",
+              "collection"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
+            "url": "https://attack.mitre.org/techniques/T1557/003"
+          }
+        ],
+        "dataflow_name": "etcd to kube-apiserver (reverse)",
+        "protocol": "grpc/mtls",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.06,
+        "hop_position": "target"
+      }
+    ],
+    "path_score": 3.18,
+    "risk_level": "HIGH",
+    "detection_coverage": 0.0,
+    "unacceptable_risk": false,
+    "min_technique_score": 0.8
+  },
+  {
+    "scenario_id": "GDAF-5AB41F52",
+    "objective_id": "OBJ-AUTO-001",
+    "objective_name": "Compromise high-value assets",
+    "objective_description": "Auto-generated objective: reach the highest-CIA servers",
+    "objective_business_impact": "Data breach / service disruption",
+    "objective_mitre_final_tactic": "impact",
+    "actor_id": "ACT-AUTO-001",
+    "actor_name": "Generic External Adversary",
+    "actor_sophistication": "medium",
+    "entry_point": "Developer",
+    "target_asset": "etcd",
+    "hops": [
+      {
+        "asset_name": "kube-apiserver",
+        "asset_type": "api_server",
+        "techniques": [
+          {
+            "id": "T1133",
+            "name": "External Remote Services",
+            "tactics": [
+              "initial-access",
+              "persistence"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1133"
+          },
+          {
+            "id": "T1195.001",
+            "name": "Compromise Software Dependencies and Development Tools",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1195/001"
+          },
+          {
+            "id": "T1566.002",
+            "name": "Spearphishing Link",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:http",
+            "url": "https://attack.mitre.org/techniques/T1566/002"
+          }
+        ],
+        "dataflow_name": "Developer kubectl",
+        "protocol": "https/mtls",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.15,
+        "hop_position": "entry"
+      },
+      {
+        "asset_name": "etcd",
+        "asset_type": "database",
+        "techniques": [
+          {
+            "id": "T1557",
+            "name": "Adversary-in-the-Middle",
+            "tactics": [
+              "credential-access",
+              "collection"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
+            "url": "https://attack.mitre.org/techniques/T1557"
+          },
+          {
+            "id": "T1056.001",
+            "name": "Keylogging",
+            "tactics": [
+              "credential-access",
+              "collection"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
+            "url": "https://attack.mitre.org/techniques/T1056/001"
+          },
+          {
+            "id": "T1557.003",
+            "name": "DHCP Spoofing",
+            "tactics": [
+              "credential-access",
+              "collection"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
+            "url": "https://attack.mitre.org/techniques/T1557/003"
+          }
+        ],
+        "dataflow_name": "etcd to kube-apiserver (reverse)",
+        "protocol": "grpc/mtls",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.06,
+        "hop_position": "target"
+      }
+    ],
+    "path_score": 3.1,
+    "risk_level": "HIGH",
+    "detection_coverage": 0.0,
+    "unacceptable_risk": false,
+    "min_technique_score": 0.8
+  }
+]

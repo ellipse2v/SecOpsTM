@@ -1,0 +1,65 @@
+[
+  {
+    "scenario_id": "GDAF-B8BB3E66",
+    "objective_id": "OBJ-TEST",
+    "objective_name": "Compromise Target Server",
+    "objective_description": "Reach and compromise the single target server from the internet.",
+    "objective_business_impact": "Test scenario \u2014 no real impact.",
+    "objective_mitre_final_tactic": "impact",
+    "actor_id": "TA-TEST",
+    "actor_name": "Test Attacker",
+    "actor_sophistication": "low",
+    "entry_point": "External Attacker",
+    "target_asset": "Target Server",
+    "hops": [
+      {
+        "asset_name": "Target Server",
+        "asset_type": "web-server",
+        "techniques": [
+          {
+            "id": "T1190",
+            "name": "Exploit Public-Facing Application",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 2.55,
+            "rationale": "platform match, primary tactic, hop position, actor TTP, no-auth asset, no-MFA, service:https",
+            "url": "https://attack.mitre.org/techniques/T1190"
+          },
+          {
+            "id": "T1133",
+            "name": "External Remote Services",
+            "tactics": [
+              "initial-access",
+              "persistence"
+            ],
+            "score": 2.05,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, no-MFA, service:https",
+            "url": "https://attack.mitre.org/techniques/T1133"
+          },
+          {
+            "id": "T1195.001",
+            "name": "Compromise Software Dependencies and Development Tools",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 2.05,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, no-MFA, service:https",
+            "url": "https://attack.mitre.org/techniques/T1195/001"
+          }
+        ],
+        "dataflow_name": "AttackerToServer",
+        "protocol": "https",
+        "is_encrypted": true,
+        "is_authenticated": false,
+        "hop_score": 3.9,
+        "hop_position": "entry"
+      }
+    ],
+    "path_score": 4.21,
+    "risk_level": "CRITICAL",
+    "detection_coverage": 0.0,
+    "unacceptable_risk": false,
+    "min_technique_score": 0.8
+  }
+]

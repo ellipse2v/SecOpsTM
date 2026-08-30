@@ -1,0 +1,1847 @@
+[
+  {
+    "scenario_id": "GDAF-95D36061",
+    "objective_id": "OBJ-AUTO-001",
+    "objective_name": "Compromise high-value assets",
+    "objective_description": "Auto-generated objective: reach the highest-CIA servers",
+    "objective_business_impact": "Data breach / service disruption",
+    "objective_mitre_final_tactic": "impact",
+    "actor_id": "ACT-AUTO-001",
+    "actor_name": "Generic External Adversary",
+    "actor_sophistication": "medium",
+    "entry_point": "End User (Browser/Mobile)",
+    "target_asset": "DynamoDB",
+    "hops": [
+      {
+        "asset_name": "AWS WAF",
+        "asset_type": "waf",
+        "techniques": [
+          {
+            "id": "T1133",
+            "name": "External Remote Services",
+            "tactics": [
+              "initial-access",
+              "persistence"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1133"
+          },
+          {
+            "id": "T1195.001",
+            "name": "Compromise Software Dependencies and Development Tools",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1195/001"
+          },
+          {
+            "id": "T1566.002",
+            "name": "Spearphishing Link",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1566/002"
+          }
+        ],
+        "dataflow_name": "User API Request",
+        "protocol": "https",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.33,
+        "hop_position": "entry"
+      },
+      {
+        "asset_name": "API Gateway (REST)",
+        "asset_type": "api_gateway",
+        "techniques": [
+          {
+            "id": "T1091",
+            "name": "Replication Through Removable Media",
+            "tactics": [
+              "initial-access",
+              "lateral-movement"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1091"
+          },
+          {
+            "id": "T1078.001",
+            "name": "Default Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1078/001"
+          },
+          {
+            "id": "T1078",
+            "name": "Valid Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1078"
+          }
+        ],
+        "dataflow_name": "WAF to API GW REST",
+        "protocol": "https",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.33,
+        "hop_position": "intermediate"
+      },
+      {
+        "asset_name": "Lambda \u2014 API Handler",
+        "asset_type": "faas",
+        "techniques": [
+          {
+            "id": "T1021.005",
+            "name": "VNC",
+            "tactics": [
+              "lateral-movement"
+            ],
+            "score": 1.5,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1021/005"
+          },
+          {
+            "id": "T1080",
+            "name": "Taint Shared Content",
+            "tactics": [
+              "lateral-movement"
+            ],
+            "score": 1.5,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1080"
+          },
+          {
+            "id": "T1021.004",
+            "name": "SSH",
+            "tactics": [
+              "lateral-movement"
+            ],
+            "score": 1.5,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1021/004"
+          }
+        ],
+        "dataflow_name": "API GW to Handler",
+        "protocol": "lambda invoke",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 2.55,
+        "hop_position": "intermediate"
+      },
+      {
+        "asset_name": "DynamoDB",
+        "asset_type": "database",
+        "techniques": [
+          {
+            "id": "T1048",
+            "name": "Exfiltration Over Alternative Protocol",
+            "tactics": [
+              "exfiltration"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, key technique",
+            "url": "https://attack.mitre.org/techniques/T1048"
+          },
+          {
+            "id": "T1030",
+            "name": "Data Transfer Size Limits",
+            "tactics": [
+              "exfiltration"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, key technique",
+            "url": "https://attack.mitre.org/techniques/T1030"
+          },
+          {
+            "id": "T1557",
+            "name": "Adversary-in-the-Middle",
+            "tactics": [
+              "credential-access",
+              "collection"
+            ],
+            "score": 1.4,
+            "rationale": "platform match, primary tactic, hop position, cleartext",
+            "url": "https://attack.mitre.org/techniques/T1557"
+          }
+        ],
+        "dataflow_name": "Handler to DynamoDB",
+        "protocol": "https/aws sdk",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 2.83,
+        "hop_position": "target"
+      }
+    ],
+    "path_score": 3.01,
+    "risk_level": "HIGH",
+    "detection_coverage": 0.0,
+    "unacceptable_risk": false,
+    "min_technique_score": 0.8
+  },
+  {
+    "scenario_id": "GDAF-E85C95B4",
+    "objective_id": "OBJ-AUTO-001",
+    "objective_name": "Compromise high-value assets",
+    "objective_description": "Auto-generated objective: reach the highest-CIA servers",
+    "objective_business_impact": "Data breach / service disruption",
+    "objective_mitre_final_tactic": "impact",
+    "actor_id": "ACT-AUTO-001",
+    "actor_name": "Generic External Adversary",
+    "actor_sophistication": "medium",
+    "entry_point": "Third-Party Webhook",
+    "target_asset": "DynamoDB",
+    "hops": [
+      {
+        "asset_name": "AWS WAF",
+        "asset_type": "waf",
+        "techniques": [
+          {
+            "id": "T1133",
+            "name": "External Remote Services",
+            "tactics": [
+              "initial-access",
+              "persistence"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1133"
+          },
+          {
+            "id": "T1195.001",
+            "name": "Compromise Software Dependencies and Development Tools",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1195/001"
+          },
+          {
+            "id": "T1566.002",
+            "name": "Spearphishing Link",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1566/002"
+          }
+        ],
+        "dataflow_name": "Webhook from Third Party",
+        "protocol": "https",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.33,
+        "hop_position": "entry"
+      },
+      {
+        "asset_name": "API Gateway (REST)",
+        "asset_type": "api_gateway",
+        "techniques": [
+          {
+            "id": "T1091",
+            "name": "Replication Through Removable Media",
+            "tactics": [
+              "initial-access",
+              "lateral-movement"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1091"
+          },
+          {
+            "id": "T1078.001",
+            "name": "Default Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1078/001"
+          },
+          {
+            "id": "T1078",
+            "name": "Valid Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1078"
+          }
+        ],
+        "dataflow_name": "WAF to API GW REST",
+        "protocol": "https",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.33,
+        "hop_position": "intermediate"
+      },
+      {
+        "asset_name": "Lambda \u2014 API Handler",
+        "asset_type": "faas",
+        "techniques": [
+          {
+            "id": "T1021.005",
+            "name": "VNC",
+            "tactics": [
+              "lateral-movement"
+            ],
+            "score": 1.5,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1021/005"
+          },
+          {
+            "id": "T1080",
+            "name": "Taint Shared Content",
+            "tactics": [
+              "lateral-movement"
+            ],
+            "score": 1.5,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1080"
+          },
+          {
+            "id": "T1021.004",
+            "name": "SSH",
+            "tactics": [
+              "lateral-movement"
+            ],
+            "score": 1.5,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1021/004"
+          }
+        ],
+        "dataflow_name": "API GW to Handler",
+        "protocol": "lambda invoke",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 2.55,
+        "hop_position": "intermediate"
+      },
+      {
+        "asset_name": "DynamoDB",
+        "asset_type": "database",
+        "techniques": [
+          {
+            "id": "T1048",
+            "name": "Exfiltration Over Alternative Protocol",
+            "tactics": [
+              "exfiltration"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, key technique",
+            "url": "https://attack.mitre.org/techniques/T1048"
+          },
+          {
+            "id": "T1030",
+            "name": "Data Transfer Size Limits",
+            "tactics": [
+              "exfiltration"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, key technique",
+            "url": "https://attack.mitre.org/techniques/T1030"
+          },
+          {
+            "id": "T1557",
+            "name": "Adversary-in-the-Middle",
+            "tactics": [
+              "credential-access",
+              "collection"
+            ],
+            "score": 1.4,
+            "rationale": "platform match, primary tactic, hop position, cleartext",
+            "url": "https://attack.mitre.org/techniques/T1557"
+          }
+        ],
+        "dataflow_name": "Handler to DynamoDB",
+        "protocol": "https/aws sdk",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 2.83,
+        "hop_position": "target"
+      }
+    ],
+    "path_score": 3.01,
+    "risk_level": "HIGH",
+    "detection_coverage": 0.0,
+    "unacceptable_risk": false,
+    "min_technique_score": 0.8
+  },
+  {
+    "scenario_id": "GDAF-7B492560",
+    "objective_id": "OBJ-AUTO-001",
+    "objective_name": "Compromise high-value assets",
+    "objective_description": "Auto-generated objective: reach the highest-CIA servers",
+    "objective_business_impact": "Data breach / service disruption",
+    "objective_mitre_final_tactic": "impact",
+    "actor_id": "ACT-AUTO-001",
+    "actor_name": "Generic External Adversary",
+    "actor_sophistication": "medium",
+    "entry_point": "Attacker",
+    "target_asset": "DynamoDB",
+    "hops": [
+      {
+        "asset_name": "AWS WAF",
+        "asset_type": "waf",
+        "techniques": [
+          {
+            "id": "T1133",
+            "name": "External Remote Services",
+            "tactics": [
+              "initial-access",
+              "persistence"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1133"
+          },
+          {
+            "id": "T1195.001",
+            "name": "Compromise Software Dependencies and Development Tools",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1195/001"
+          },
+          {
+            "id": "T1566.002",
+            "name": "Spearphishing Link",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1566/002"
+          }
+        ],
+        "dataflow_name": "Attacker brute-force API",
+        "protocol": "https",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.33,
+        "hop_position": "entry"
+      },
+      {
+        "asset_name": "API Gateway (REST)",
+        "asset_type": "api_gateway",
+        "techniques": [
+          {
+            "id": "T1091",
+            "name": "Replication Through Removable Media",
+            "tactics": [
+              "initial-access",
+              "lateral-movement"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1091"
+          },
+          {
+            "id": "T1078.001",
+            "name": "Default Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1078/001"
+          },
+          {
+            "id": "T1078",
+            "name": "Valid Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1078"
+          }
+        ],
+        "dataflow_name": "WAF to API GW REST",
+        "protocol": "https",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.33,
+        "hop_position": "intermediate"
+      },
+      {
+        "asset_name": "Lambda \u2014 API Handler",
+        "asset_type": "faas",
+        "techniques": [
+          {
+            "id": "T1021.005",
+            "name": "VNC",
+            "tactics": [
+              "lateral-movement"
+            ],
+            "score": 1.5,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1021/005"
+          },
+          {
+            "id": "T1080",
+            "name": "Taint Shared Content",
+            "tactics": [
+              "lateral-movement"
+            ],
+            "score": 1.5,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1080"
+          },
+          {
+            "id": "T1021.004",
+            "name": "SSH",
+            "tactics": [
+              "lateral-movement"
+            ],
+            "score": 1.5,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1021/004"
+          }
+        ],
+        "dataflow_name": "API GW to Handler",
+        "protocol": "lambda invoke",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 2.55,
+        "hop_position": "intermediate"
+      },
+      {
+        "asset_name": "DynamoDB",
+        "asset_type": "database",
+        "techniques": [
+          {
+            "id": "T1048",
+            "name": "Exfiltration Over Alternative Protocol",
+            "tactics": [
+              "exfiltration"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, key technique",
+            "url": "https://attack.mitre.org/techniques/T1048"
+          },
+          {
+            "id": "T1030",
+            "name": "Data Transfer Size Limits",
+            "tactics": [
+              "exfiltration"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, key technique",
+            "url": "https://attack.mitre.org/techniques/T1030"
+          },
+          {
+            "id": "T1557",
+            "name": "Adversary-in-the-Middle",
+            "tactics": [
+              "credential-access",
+              "collection"
+            ],
+            "score": 1.4,
+            "rationale": "platform match, primary tactic, hop position, cleartext",
+            "url": "https://attack.mitre.org/techniques/T1557"
+          }
+        ],
+        "dataflow_name": "Handler to DynamoDB",
+        "protocol": "https/aws sdk",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 2.83,
+        "hop_position": "target"
+      }
+    ],
+    "path_score": 3.01,
+    "risk_level": "HIGH",
+    "detection_coverage": 0.0,
+    "unacceptable_risk": false,
+    "min_technique_score": 0.8
+  },
+  {
+    "scenario_id": "GDAF-8CC41F1D",
+    "objective_id": "OBJ-AUTO-001",
+    "objective_name": "Compromise high-value assets",
+    "objective_description": "Auto-generated objective: reach the highest-CIA servers",
+    "objective_business_impact": "Data breach / service disruption",
+    "objective_mitre_final_tactic": "impact",
+    "actor_id": "ACT-AUTO-001",
+    "actor_name": "Generic External Adversary",
+    "actor_sophistication": "medium",
+    "entry_point": "End User (Browser/Mobile)",
+    "target_asset": "Aurora Serverless v2 (PostgreSQL)",
+    "hops": [
+      {
+        "asset_name": "AWS WAF",
+        "asset_type": "waf",
+        "techniques": [
+          {
+            "id": "T1133",
+            "name": "External Remote Services",
+            "tactics": [
+              "initial-access",
+              "persistence"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1133"
+          },
+          {
+            "id": "T1195.001",
+            "name": "Compromise Software Dependencies and Development Tools",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1195/001"
+          },
+          {
+            "id": "T1566.002",
+            "name": "Spearphishing Link",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1566/002"
+          }
+        ],
+        "dataflow_name": "User API Request",
+        "protocol": "https",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.33,
+        "hop_position": "entry"
+      },
+      {
+        "asset_name": "API Gateway (REST)",
+        "asset_type": "api_gateway",
+        "techniques": [
+          {
+            "id": "T1091",
+            "name": "Replication Through Removable Media",
+            "tactics": [
+              "initial-access",
+              "lateral-movement"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1091"
+          },
+          {
+            "id": "T1078.001",
+            "name": "Default Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1078/001"
+          },
+          {
+            "id": "T1078",
+            "name": "Valid Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1078"
+          }
+        ],
+        "dataflow_name": "WAF to API GW REST",
+        "protocol": "https",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.33,
+        "hop_position": "intermediate"
+      },
+      {
+        "asset_name": "Lambda \u2014 API Handler",
+        "asset_type": "faas",
+        "techniques": [
+          {
+            "id": "T1021.005",
+            "name": "VNC",
+            "tactics": [
+              "lateral-movement"
+            ],
+            "score": 1.5,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1021/005"
+          },
+          {
+            "id": "T1080",
+            "name": "Taint Shared Content",
+            "tactics": [
+              "lateral-movement"
+            ],
+            "score": 1.5,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1080"
+          },
+          {
+            "id": "T1021.004",
+            "name": "SSH",
+            "tactics": [
+              "lateral-movement"
+            ],
+            "score": 1.5,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1021/004"
+          }
+        ],
+        "dataflow_name": "API GW to Handler",
+        "protocol": "lambda invoke",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 2.55,
+        "hop_position": "intermediate"
+      },
+      {
+        "asset_name": "Aurora Serverless v2 (PostgreSQL)",
+        "asset_type": "database",
+        "techniques": [
+          {
+            "id": "T1557",
+            "name": "Adversary-in-the-Middle",
+            "tactics": [
+              "credential-access",
+              "collection"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
+            "url": "https://attack.mitre.org/techniques/T1557"
+          },
+          {
+            "id": "T1056.001",
+            "name": "Keylogging",
+            "tactics": [
+              "credential-access",
+              "collection"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
+            "url": "https://attack.mitre.org/techniques/T1056/001"
+          },
+          {
+            "id": "T1557.003",
+            "name": "DHCP Spoofing",
+            "tactics": [
+              "credential-access",
+              "collection"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
+            "url": "https://attack.mitre.org/techniques/T1557/003"
+          }
+        ],
+        "dataflow_name": "Handler to Aurora",
+        "protocol": "postgresql/tls",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.06,
+        "hop_position": "target"
+      }
+    ],
+    "path_score": 3.07,
+    "risk_level": "HIGH",
+    "detection_coverage": 0.0,
+    "unacceptable_risk": false,
+    "min_technique_score": 0.8
+  },
+  {
+    "scenario_id": "GDAF-A80E3D0A",
+    "objective_id": "OBJ-AUTO-001",
+    "objective_name": "Compromise high-value assets",
+    "objective_description": "Auto-generated objective: reach the highest-CIA servers",
+    "objective_business_impact": "Data breach / service disruption",
+    "objective_mitre_final_tactic": "impact",
+    "actor_id": "ACT-AUTO-001",
+    "actor_name": "Generic External Adversary",
+    "actor_sophistication": "medium",
+    "entry_point": "Third-Party Webhook",
+    "target_asset": "Aurora Serverless v2 (PostgreSQL)",
+    "hops": [
+      {
+        "asset_name": "AWS WAF",
+        "asset_type": "waf",
+        "techniques": [
+          {
+            "id": "T1133",
+            "name": "External Remote Services",
+            "tactics": [
+              "initial-access",
+              "persistence"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1133"
+          },
+          {
+            "id": "T1195.001",
+            "name": "Compromise Software Dependencies and Development Tools",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1195/001"
+          },
+          {
+            "id": "T1566.002",
+            "name": "Spearphishing Link",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1566/002"
+          }
+        ],
+        "dataflow_name": "Webhook from Third Party",
+        "protocol": "https",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.33,
+        "hop_position": "entry"
+      },
+      {
+        "asset_name": "API Gateway (REST)",
+        "asset_type": "api_gateway",
+        "techniques": [
+          {
+            "id": "T1091",
+            "name": "Replication Through Removable Media",
+            "tactics": [
+              "initial-access",
+              "lateral-movement"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1091"
+          },
+          {
+            "id": "T1078.001",
+            "name": "Default Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1078/001"
+          },
+          {
+            "id": "T1078",
+            "name": "Valid Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1078"
+          }
+        ],
+        "dataflow_name": "WAF to API GW REST",
+        "protocol": "https",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.33,
+        "hop_position": "intermediate"
+      },
+      {
+        "asset_name": "Lambda \u2014 API Handler",
+        "asset_type": "faas",
+        "techniques": [
+          {
+            "id": "T1021.005",
+            "name": "VNC",
+            "tactics": [
+              "lateral-movement"
+            ],
+            "score": 1.5,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1021/005"
+          },
+          {
+            "id": "T1080",
+            "name": "Taint Shared Content",
+            "tactics": [
+              "lateral-movement"
+            ],
+            "score": 1.5,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1080"
+          },
+          {
+            "id": "T1021.004",
+            "name": "SSH",
+            "tactics": [
+              "lateral-movement"
+            ],
+            "score": 1.5,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1021/004"
+          }
+        ],
+        "dataflow_name": "API GW to Handler",
+        "protocol": "lambda invoke",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 2.55,
+        "hop_position": "intermediate"
+      },
+      {
+        "asset_name": "Aurora Serverless v2 (PostgreSQL)",
+        "asset_type": "database",
+        "techniques": [
+          {
+            "id": "T1557",
+            "name": "Adversary-in-the-Middle",
+            "tactics": [
+              "credential-access",
+              "collection"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
+            "url": "https://attack.mitre.org/techniques/T1557"
+          },
+          {
+            "id": "T1056.001",
+            "name": "Keylogging",
+            "tactics": [
+              "credential-access",
+              "collection"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
+            "url": "https://attack.mitre.org/techniques/T1056/001"
+          },
+          {
+            "id": "T1557.003",
+            "name": "DHCP Spoofing",
+            "tactics": [
+              "credential-access",
+              "collection"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
+            "url": "https://attack.mitre.org/techniques/T1557/003"
+          }
+        ],
+        "dataflow_name": "Handler to Aurora",
+        "protocol": "postgresql/tls",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.06,
+        "hop_position": "target"
+      }
+    ],
+    "path_score": 3.07,
+    "risk_level": "HIGH",
+    "detection_coverage": 0.0,
+    "unacceptable_risk": false,
+    "min_technique_score": 0.8
+  },
+  {
+    "scenario_id": "GDAF-A91AB2D4",
+    "objective_id": "OBJ-AUTO-001",
+    "objective_name": "Compromise high-value assets",
+    "objective_description": "Auto-generated objective: reach the highest-CIA servers",
+    "objective_business_impact": "Data breach / service disruption",
+    "objective_mitre_final_tactic": "impact",
+    "actor_id": "ACT-AUTO-001",
+    "actor_name": "Generic External Adversary",
+    "actor_sophistication": "medium",
+    "entry_point": "Attacker",
+    "target_asset": "Aurora Serverless v2 (PostgreSQL)",
+    "hops": [
+      {
+        "asset_name": "AWS WAF",
+        "asset_type": "waf",
+        "techniques": [
+          {
+            "id": "T1133",
+            "name": "External Remote Services",
+            "tactics": [
+              "initial-access",
+              "persistence"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1133"
+          },
+          {
+            "id": "T1195.001",
+            "name": "Compromise Software Dependencies and Development Tools",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1195/001"
+          },
+          {
+            "id": "T1566.002",
+            "name": "Spearphishing Link",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1566/002"
+          }
+        ],
+        "dataflow_name": "Attacker brute-force API",
+        "protocol": "https",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.33,
+        "hop_position": "entry"
+      },
+      {
+        "asset_name": "API Gateway (REST)",
+        "asset_type": "api_gateway",
+        "techniques": [
+          {
+            "id": "T1091",
+            "name": "Replication Through Removable Media",
+            "tactics": [
+              "initial-access",
+              "lateral-movement"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1091"
+          },
+          {
+            "id": "T1078.001",
+            "name": "Default Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1078/001"
+          },
+          {
+            "id": "T1078",
+            "name": "Valid Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1078"
+          }
+        ],
+        "dataflow_name": "WAF to API GW REST",
+        "protocol": "https",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.33,
+        "hop_position": "intermediate"
+      },
+      {
+        "asset_name": "Lambda \u2014 API Handler",
+        "asset_type": "faas",
+        "techniques": [
+          {
+            "id": "T1021.005",
+            "name": "VNC",
+            "tactics": [
+              "lateral-movement"
+            ],
+            "score": 1.5,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1021/005"
+          },
+          {
+            "id": "T1080",
+            "name": "Taint Shared Content",
+            "tactics": [
+              "lateral-movement"
+            ],
+            "score": 1.5,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1080"
+          },
+          {
+            "id": "T1021.004",
+            "name": "SSH",
+            "tactics": [
+              "lateral-movement"
+            ],
+            "score": 1.5,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1021/004"
+          }
+        ],
+        "dataflow_name": "API GW to Handler",
+        "protocol": "lambda invoke",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 2.55,
+        "hop_position": "intermediate"
+      },
+      {
+        "asset_name": "Aurora Serverless v2 (PostgreSQL)",
+        "asset_type": "database",
+        "techniques": [
+          {
+            "id": "T1557",
+            "name": "Adversary-in-the-Middle",
+            "tactics": [
+              "credential-access",
+              "collection"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
+            "url": "https://attack.mitre.org/techniques/T1557"
+          },
+          {
+            "id": "T1056.001",
+            "name": "Keylogging",
+            "tactics": [
+              "credential-access",
+              "collection"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
+            "url": "https://attack.mitre.org/techniques/T1056/001"
+          },
+          {
+            "id": "T1557.003",
+            "name": "DHCP Spoofing",
+            "tactics": [
+              "credential-access",
+              "collection"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
+            "url": "https://attack.mitre.org/techniques/T1557/003"
+          }
+        ],
+        "dataflow_name": "Handler to Aurora",
+        "protocol": "postgresql/tls",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.06,
+        "hop_position": "target"
+      }
+    ],
+    "path_score": 3.07,
+    "risk_level": "HIGH",
+    "detection_coverage": 0.0,
+    "unacceptable_risk": false,
+    "min_technique_score": 0.8
+  },
+  {
+    "scenario_id": "GDAF-B5BC145A",
+    "objective_id": "OBJ-AUTO-001",
+    "objective_name": "Compromise high-value assets",
+    "objective_description": "Auto-generated objective: reach the highest-CIA servers",
+    "objective_business_impact": "Data breach / service disruption",
+    "objective_mitre_final_tactic": "impact",
+    "actor_id": "ACT-AUTO-001",
+    "actor_name": "Generic External Adversary",
+    "actor_sophistication": "medium",
+    "entry_point": "Developer / DevOps",
+    "target_asset": "S3 \u2014 Deployment Artifacts",
+    "hops": [
+      {
+        "asset_name": "S3 \u2014 Deployment Artifacts",
+        "asset_type": "object_storage",
+        "techniques": [
+          {
+            "id": "T1133",
+            "name": "External Remote Services",
+            "tactics": [
+              "initial-access",
+              "persistence"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1133"
+          },
+          {
+            "id": "T1195.001",
+            "name": "Compromise Software Dependencies and Development Tools",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1195/001"
+          },
+          {
+            "id": "T1566.002",
+            "name": "Spearphishing Link",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1566/002"
+          }
+        ],
+        "dataflow_name": "Developer Deploy",
+        "protocol": "https",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.15,
+        "hop_position": "entry"
+      }
+    ],
+    "path_score": 3.15,
+    "risk_level": "HIGH",
+    "detection_coverage": 0.0,
+    "unacceptable_risk": false,
+    "min_technique_score": 0.8
+  },
+  {
+    "scenario_id": "GDAF-6315380E",
+    "objective_id": "OBJ-AUTO-001",
+    "objective_name": "Compromise high-value assets",
+    "objective_description": "Auto-generated objective: reach the highest-CIA servers",
+    "objective_business_impact": "Data breach / service disruption",
+    "objective_mitre_final_tactic": "impact",
+    "actor_id": "ACT-AUTO-001",
+    "actor_name": "Generic External Adversary",
+    "actor_sophistication": "medium",
+    "entry_point": "End User (Browser/Mobile)",
+    "target_asset": "SQS Queue",
+    "hops": [
+      {
+        "asset_name": "AWS WAF",
+        "asset_type": "waf",
+        "techniques": [
+          {
+            "id": "T1133",
+            "name": "External Remote Services",
+            "tactics": [
+              "initial-access",
+              "persistence"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1133"
+          },
+          {
+            "id": "T1195.001",
+            "name": "Compromise Software Dependencies and Development Tools",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1195/001"
+          },
+          {
+            "id": "T1566.002",
+            "name": "Spearphishing Link",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1566/002"
+          }
+        ],
+        "dataflow_name": "User API Request",
+        "protocol": "https",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.33,
+        "hop_position": "entry"
+      },
+      {
+        "asset_name": "API Gateway (REST)",
+        "asset_type": "api_gateway",
+        "techniques": [
+          {
+            "id": "T1091",
+            "name": "Replication Through Removable Media",
+            "tactics": [
+              "initial-access",
+              "lateral-movement"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1091"
+          },
+          {
+            "id": "T1078.001",
+            "name": "Default Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1078/001"
+          },
+          {
+            "id": "T1078",
+            "name": "Valid Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1078"
+          }
+        ],
+        "dataflow_name": "WAF to API GW REST",
+        "protocol": "https",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.33,
+        "hop_position": "intermediate"
+      },
+      {
+        "asset_name": "Lambda \u2014 API Handler",
+        "asset_type": "faas",
+        "techniques": [
+          {
+            "id": "T1021.005",
+            "name": "VNC",
+            "tactics": [
+              "lateral-movement"
+            ],
+            "score": 1.5,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1021/005"
+          },
+          {
+            "id": "T1080",
+            "name": "Taint Shared Content",
+            "tactics": [
+              "lateral-movement"
+            ],
+            "score": 1.5,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1080"
+          },
+          {
+            "id": "T1021.004",
+            "name": "SSH",
+            "tactics": [
+              "lateral-movement"
+            ],
+            "score": 1.5,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1021/004"
+          }
+        ],
+        "dataflow_name": "API GW to Handler",
+        "protocol": "lambda invoke",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 2.55,
+        "hop_position": "intermediate"
+      },
+      {
+        "asset_name": "SQS Queue",
+        "asset_type": "message_queue",
+        "techniques": [
+          {
+            "id": "T1659",
+            "name": "Content Injection",
+            "tactics": [
+              "initial-access",
+              "command-and-control"
+            ],
+            "score": 1.5,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1659"
+          },
+          {
+            "id": "T1021.005",
+            "name": "VNC",
+            "tactics": [
+              "lateral-movement"
+            ],
+            "score": 1.2,
+            "rationale": "platform match, primary tactic, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1021/005"
+          },
+          {
+            "id": "T1133",
+            "name": "External Remote Services",
+            "tactics": [
+              "initial-access",
+              "persistence"
+            ],
+            "score": 1.2,
+            "rationale": "platform match, primary tactic, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1133"
+          }
+        ],
+        "dataflow_name": "Handler to SQS",
+        "protocol": "https/aws sdk",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 2.34,
+        "hop_position": "target"
+      }
+    ],
+    "path_score": 2.89,
+    "risk_level": "HIGH",
+    "detection_coverage": 0.0,
+    "unacceptable_risk": false,
+    "min_technique_score": 0.8
+  },
+  {
+    "scenario_id": "GDAF-BBCD9B18",
+    "objective_id": "OBJ-AUTO-001",
+    "objective_name": "Compromise high-value assets",
+    "objective_description": "Auto-generated objective: reach the highest-CIA servers",
+    "objective_business_impact": "Data breach / service disruption",
+    "objective_mitre_final_tactic": "impact",
+    "actor_id": "ACT-AUTO-001",
+    "actor_name": "Generic External Adversary",
+    "actor_sophistication": "medium",
+    "entry_point": "Third-Party Webhook",
+    "target_asset": "SQS Queue",
+    "hops": [
+      {
+        "asset_name": "AWS WAF",
+        "asset_type": "waf",
+        "techniques": [
+          {
+            "id": "T1133",
+            "name": "External Remote Services",
+            "tactics": [
+              "initial-access",
+              "persistence"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1133"
+          },
+          {
+            "id": "T1195.001",
+            "name": "Compromise Software Dependencies and Development Tools",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1195/001"
+          },
+          {
+            "id": "T1566.002",
+            "name": "Spearphishing Link",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1566/002"
+          }
+        ],
+        "dataflow_name": "Webhook from Third Party",
+        "protocol": "https",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.33,
+        "hop_position": "entry"
+      },
+      {
+        "asset_name": "API Gateway (REST)",
+        "asset_type": "api_gateway",
+        "techniques": [
+          {
+            "id": "T1091",
+            "name": "Replication Through Removable Media",
+            "tactics": [
+              "initial-access",
+              "lateral-movement"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1091"
+          },
+          {
+            "id": "T1078.001",
+            "name": "Default Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1078/001"
+          },
+          {
+            "id": "T1078",
+            "name": "Valid Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1078"
+          }
+        ],
+        "dataflow_name": "WAF to API GW REST",
+        "protocol": "https",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.33,
+        "hop_position": "intermediate"
+      },
+      {
+        "asset_name": "Lambda \u2014 API Handler",
+        "asset_type": "faas",
+        "techniques": [
+          {
+            "id": "T1021.005",
+            "name": "VNC",
+            "tactics": [
+              "lateral-movement"
+            ],
+            "score": 1.5,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1021/005"
+          },
+          {
+            "id": "T1080",
+            "name": "Taint Shared Content",
+            "tactics": [
+              "lateral-movement"
+            ],
+            "score": 1.5,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1080"
+          },
+          {
+            "id": "T1021.004",
+            "name": "SSH",
+            "tactics": [
+              "lateral-movement"
+            ],
+            "score": 1.5,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1021/004"
+          }
+        ],
+        "dataflow_name": "API GW to Handler",
+        "protocol": "lambda invoke",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 2.55,
+        "hop_position": "intermediate"
+      },
+      {
+        "asset_name": "SQS Queue",
+        "asset_type": "message_queue",
+        "techniques": [
+          {
+            "id": "T1659",
+            "name": "Content Injection",
+            "tactics": [
+              "initial-access",
+              "command-and-control"
+            ],
+            "score": 1.5,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1659"
+          },
+          {
+            "id": "T1021.005",
+            "name": "VNC",
+            "tactics": [
+              "lateral-movement"
+            ],
+            "score": 1.2,
+            "rationale": "platform match, primary tactic, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1021/005"
+          },
+          {
+            "id": "T1133",
+            "name": "External Remote Services",
+            "tactics": [
+              "initial-access",
+              "persistence"
+            ],
+            "score": 1.2,
+            "rationale": "platform match, primary tactic, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1133"
+          }
+        ],
+        "dataflow_name": "Handler to SQS",
+        "protocol": "https/aws sdk",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 2.34,
+        "hop_position": "target"
+      }
+    ],
+    "path_score": 2.89,
+    "risk_level": "HIGH",
+    "detection_coverage": 0.0,
+    "unacceptable_risk": false,
+    "min_technique_score": 0.8
+  },
+  {
+    "scenario_id": "GDAF-B5B8F31C",
+    "objective_id": "OBJ-AUTO-001",
+    "objective_name": "Compromise high-value assets",
+    "objective_description": "Auto-generated objective: reach the highest-CIA servers",
+    "objective_business_impact": "Data breach / service disruption",
+    "objective_mitre_final_tactic": "impact",
+    "actor_id": "ACT-AUTO-001",
+    "actor_name": "Generic External Adversary",
+    "actor_sophistication": "medium",
+    "entry_point": "Attacker",
+    "target_asset": "SQS Queue",
+    "hops": [
+      {
+        "asset_name": "AWS WAF",
+        "asset_type": "waf",
+        "techniques": [
+          {
+            "id": "T1133",
+            "name": "External Remote Services",
+            "tactics": [
+              "initial-access",
+              "persistence"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1133"
+          },
+          {
+            "id": "T1195.001",
+            "name": "Compromise Software Dependencies and Development Tools",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1195/001"
+          },
+          {
+            "id": "T1566.002",
+            "name": "Spearphishing Link",
+            "tactics": [
+              "initial-access"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1566/002"
+          }
+        ],
+        "dataflow_name": "Attacker brute-force API",
+        "protocol": "https",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.33,
+        "hop_position": "entry"
+      },
+      {
+        "asset_name": "API Gateway (REST)",
+        "asset_type": "api_gateway",
+        "techniques": [
+          {
+            "id": "T1091",
+            "name": "Replication Through Removable Media",
+            "tactics": [
+              "initial-access",
+              "lateral-movement"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1091"
+          },
+          {
+            "id": "T1078.001",
+            "name": "Default Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1078/001"
+          },
+          {
+            "id": "T1078",
+            "name": "Valid Accounts",
+            "tactics": [
+              "initial-access",
+              "privilege-escalation",
+              "persistence",
+              "defense-evasion"
+            ],
+            "score": 1.85,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
+            "url": "https://attack.mitre.org/techniques/T1078"
+          }
+        ],
+        "dataflow_name": "WAF to API GW REST",
+        "protocol": "https",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 3.33,
+        "hop_position": "intermediate"
+      },
+      {
+        "asset_name": "Lambda \u2014 API Handler",
+        "asset_type": "faas",
+        "techniques": [
+          {
+            "id": "T1021.005",
+            "name": "VNC",
+            "tactics": [
+              "lateral-movement"
+            ],
+            "score": 1.5,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1021/005"
+          },
+          {
+            "id": "T1080",
+            "name": "Taint Shared Content",
+            "tactics": [
+              "lateral-movement"
+            ],
+            "score": 1.5,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1080"
+          },
+          {
+            "id": "T1021.004",
+            "name": "SSH",
+            "tactics": [
+              "lateral-movement"
+            ],
+            "score": 1.5,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1021/004"
+          }
+        ],
+        "dataflow_name": "API GW to Handler",
+        "protocol": "lambda invoke",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 2.55,
+        "hop_position": "intermediate"
+      },
+      {
+        "asset_name": "SQS Queue",
+        "asset_type": "message_queue",
+        "techniques": [
+          {
+            "id": "T1659",
+            "name": "Content Injection",
+            "tactics": [
+              "initial-access",
+              "command-and-control"
+            ],
+            "score": 1.5,
+            "rationale": "platform match, primary tactic, hop position, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1659"
+          },
+          {
+            "id": "T1021.005",
+            "name": "VNC",
+            "tactics": [
+              "lateral-movement"
+            ],
+            "score": 1.2,
+            "rationale": "platform match, primary tactic, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1021/005"
+          },
+          {
+            "id": "T1133",
+            "name": "External Remote Services",
+            "tactics": [
+              "initial-access",
+              "persistence"
+            ],
+            "score": 1.2,
+            "rationale": "platform match, primary tactic, no-auth asset",
+            "url": "https://attack.mitre.org/techniques/T1133"
+          }
+        ],
+        "dataflow_name": "Handler to SQS",
+        "protocol": "https/aws sdk",
+        "is_encrypted": false,
+        "is_authenticated": false,
+        "hop_score": 2.34,
+        "hop_position": "target"
+      }
+    ],
+    "path_score": 2.89,
+    "risk_level": "HIGH",
+    "detection_coverage": 0.0,
+    "unacceptable_risk": false,
+    "min_technique_score": 0.8
+  }
+]
