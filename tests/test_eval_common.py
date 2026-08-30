@@ -141,3 +141,52 @@ def test_make_provider_sets_force_env():
     from tooling.eval._common import make_provider
     make_provider("groq")
     assert os.environ["SECOPSTM_FORCE_PROVIDER"] == "groq"
+
+
+def test_determinism_aggregate_one_provider_stubbed(tmp_path, monkeypatch):
+    """The aggregation math runs end to end with run_debate stubbed — no LLM."""
+    import json
+    from tooling.eval import determinism
+    from tooling.eval._common import thaw
+
+    fixture = tmp_path / "Toy.scenarios.json"
+    from tooling.eval._common import freeze
+    fixture.write_text(json.dumps(freeze([_scenario("S1", 3.0), _scenario("S2", 2.0)])))
+
+    calls = {"n": 0}
+
+    def fake_run_debate(scenarios, *, provider, config, sleep_s=0.0):
+        calls["n"] += 1
+        s = thaw(freeze(scenarios))
+        for sc in s:
+            sc.path_score_pre_debate = sc.path_score
+            sc.path_score = sc.path_score * (1.0 + 0.01 * calls["n"])
+            sc.debate_factor = 1.0 + 0.01 * calls["n"]
+
+        class R:
+            def __init__(self, sid):
+                self.scenario_id = sid
+                self.final_viability = 0.6
+                self.residual_path_viable = True
+                self.debate_factor = 1.0 + 0.01 * calls["n"]
+                self.rounds = []
+        return s, [R(sc.scenario_id) for sc in s]
+
+    monkeypatch.setattr(determinism, "run_debate", fake_run_debate)
+    monkeypatch.setattr(determinism, "make_provider", lambda name: object())
+
+    out = tmp_path / "result.json"
+    rc = determinism.main([
+        "--fixtures-dir", str(tmp_path),
+        "--fixtures", "Toy",
+        "--providers", "groq",
+        "--runs", "3", "--top-n", "5", "--max-rounds", "1", "--sleep", "0",
+        "--out", str(out),
+    ])
+    assert rc == 0
+    data = json.loads(out.read_text())
+    assert data["step"] == "determinism"
+    prov = data["fixtures"]["Toy"]["by_provider"]["groq"]
+    assert prov["runs_ok"] == 3
+    assert "factor_cv_median" in prov
+    assert "rank_stability" in prov
