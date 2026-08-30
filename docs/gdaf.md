@@ -98,7 +98,8 @@ Clicking a row expands an inline detail panel showing one entry per hop:
 
 > **How well does the debate re-scoring actually prioritise?** See
 > [`docs/evaluation.md`](evaluation.md) for the measurement method (determinism +
-> ablation) and the current verdict.
+> ablation) and the runbook. Results are pending — the harness is in place, the
+> numbers are not yet filled in.
 
 An opt-in pass (`config/ai_config.yaml → debate.enabled: true`, on by default) that runs after
 GDAF and before the HTML report is written. One configured LLM provider plays two personas —

@@ -19,6 +19,8 @@ the post-debate ordering. See
 docs/superpowers/specs/2026-08-29-debate-gdaf-evaluation-design.md and
 docs/evaluation.md.
 
+Run from the repo root (reads config/ai_config.yaml via cwd).
+
     export GROQ_API_KEY=...
     python -m tooling.eval.ablation --all --provider groq \
         --top-n 5 --max-rounds 3 --sleep 8 \
@@ -170,13 +172,19 @@ def main(argv: Optional[List[str]] = None) -> int:
             logger.warning("%s: ablation run failed: %s", name, exc)
             result["fixtures"][name] = {"status": "failed", "error": str(exc)}
 
-    ok = {k: v for k, v in result["fixtures"].items() if "kendall_tau" in v}
+    # a 1-scenario fixture is τ==1.0 / top5_unchanged by the metric guards, not by
+    # anything the debate did — exclude it from the aggregate (still listed in fixtures)
+    ok = {k: v for k, v in result["fixtures"].items()
+          if "kendall_tau" in v and v.get("scenario_count", 0) >= 2}
+    excluded_lt2 = sum(1 for v in result["fixtures"].values()
+                       if "kendall_tau" in v and v.get("scenario_count", 0) < 2)
     taus = [v["kendall_tau"] for v in ok.values()]
     unchanged = sum(1 for v in ok.values() if v["top5_unchanged"])
     candidates = [v["_candidate_example"] for v in ok.values() if v.get("_candidate_example")]
     worked = max(candidates, key=lambda c: c["move"]) if candidates else None
     result["aggregate"] = {
         "fixtures_ok": len(ok),
+        "fixtures_excluded_lt2": excluded_lt2,
         "top5_unchanged_count": unchanged,
         "kendall_tau_median": round(statistics.median(taus), 4) if taus else None,
         "worked_example": {

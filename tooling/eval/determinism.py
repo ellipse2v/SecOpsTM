@@ -19,6 +19,8 @@ provider, and reports how much the re-score moves run to run. See
 docs/superpowers/specs/2026-08-29-debate-gdaf-evaluation-design.md and
 docs/evaluation.md.
 
+Run from the repo root (reads config/ai_config.yaml via cwd).
+
     export GROQ_API_KEY=...   # and XAI_API_KEY for the cross-provider check
     python -m tooling.eval.determinism \
         --fixtures GDAF_Debate_Smoke_Test Kubernetes_Helm_Cluster On-Prem_Enterprise_Network \
@@ -74,7 +76,14 @@ def _run_provider(
     """Return (per_scenario_records, runs_ok, runs_failed).
 
     per_scenario_records: {scenario_id: {"factor": [...], "viable": [...],
-                                         "risk": [...]}}, plus "_orders": [order,...]
+                                         "risk": [...], "final_viability": [...]}},
+    plus "_orders": [order, ...].
+
+    A sample is recorded for a scenario in a given run ONLY if the debate
+    actually produced a DebateResult for it that run (spec §6 — a scenario the
+    debate returned None for, or never selected, contributes no cell). The
+    never-debated tail keeps its dataclass-default debate_factor == 1.0, which
+    would pin every dispersion metric to zero if it were included.
     """
     records: Dict[str, Any] = {}
     orders: List[List[str]] = []
@@ -99,13 +108,21 @@ def _run_provider(
         orders.append(scenario_order(mutated))
         rl = risk_levels(mutated)
         factor_by_id = {s.scenario_id: s.debate_factor for s in mutated}
+        debated_ids = {r.scenario_id for r in results}
         viable_by_id = {r.scenario_id: bool(r.residual_path_viable) for r in results}
-        for s in mutated:
-            rec = records.setdefault(s.scenario_id, {"factor": [], "viable": [], "risk": []})
-            rec["factor"].append(float(factor_by_id.get(s.scenario_id, 1.0)))
-            rec["risk"].append(rl.get(s.scenario_id, ""))
-            if s.scenario_id in viable_by_id:
-                rec["viable"].append(viable_by_id[s.scenario_id])
+        fv_by_id = {r.scenario_id: float(r.final_viability) for r in results
+                    if getattr(r, "final_viability", None) is not None}
+        for sid in debated_ids:
+            rec = records.setdefault(
+                sid, {"factor": [], "viable": [], "risk": [], "final_viability": []}
+            )
+            if sid in factor_by_id:
+                rec["factor"].append(float(factor_by_id[sid]))
+            rec["risk"].append(rl.get(sid, ""))
+            if sid in viable_by_id:
+                rec["viable"].append(viable_by_id[sid])
+            if sid in fv_by_id:
+                rec["final_viability"].append(fv_by_id[sid])
     records["_orders"] = orders
     return records, runs_ok, runs_failed
 
@@ -113,8 +130,11 @@ def _run_provider(
 def _aggregate_provider(records: Dict[str, Any], runs_ok: int) -> Dict[str, Any]:
     orders = records.get("_orders", [])
     scen_ids = [k for k in records if k != "_orders"]
+    debated_set = set(scen_ids)  # scenarios debated in >= 1 OK run
 
     cvs = [metrics.coeff_variation(records[sid]["factor"]) for sid in scen_ids if records[sid]["factor"]]
+    fv_cvs = [metrics.coeff_variation(records[sid]["final_viability"])
+              for sid in scen_ids if records[sid]["final_viability"]]
     risk_flips = sum(
         1 for sid in scen_ids
         if records[sid]["risk"] and len(set(records[sid]["risk"])) > 1
@@ -129,13 +149,26 @@ def _aggregate_provider(records: Dict[str, Any], runs_ok: int) -> Dict[str, Any]
         for b in range(a + 1, len(orders)):
             pair_taus.append(metrics.kendall_tau(orders[a], orders[b]))
 
-    n = len(scen_ids) or 1
+    # same Kendall τ but over just the debated sub-ordering of each run
+    debated_orders = [[sid for sid in o if sid in debated_set] for o in orders]
+    pair_taus_debated: List[float] = []
+    if len(debated_set) >= 2:
+        for a in range(len(debated_orders)):
+            for b in range(a + 1, len(debated_orders)):
+                pair_taus_debated.append(metrics.kendall_tau(debated_orders[a], debated_orders[b]))
+
+    n = len(scen_ids) or 1  # denominators are over the debated-across-runs set
     return {
         "runs_ok": runs_ok,
+        "debated_count": len(debated_set),
         "factor_cv_median": round(statistics.median(cvs), 4) if cvs else None,
         "factor_cv_max": round(max(cvs), 4) if cvs else None,
+        "final_viability_cv_median": round(statistics.median(fv_cvs), 4) if fv_cvs else None,
         "risk_level_flip_rate": round(risk_flips / n, 4),
         "rank_stability": round(statistics.fmean(pair_taus), 4) if pair_taus else None,
+        "rank_stability_debated": (
+            round(statistics.fmean(pair_taus_debated), 4) if pair_taus_debated else None
+        ),
         "direction_flip_rate": round(dir_flips / n, 4),
     }
 
@@ -200,6 +233,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         scenarios = thaw(json.loads(path.read_text(encoding="utf-8")))
         entry: Dict[str, Any] = {"scenario_count": len(scenarios), "by_provider": {}}
         per_provider_records: Dict[str, Any] = {}
+        usable_providers: List[str] = []
         for prov in args.providers:
             records, runs_ok, runs_failed = _run_provider(
                 scenarios, prov, args.runs, cfg, args.sleep
@@ -212,7 +246,14 @@ def main(argv: Optional[List[str]] = None) -> int:
             agg = _aggregate_provider(records, runs_ok)
             agg["runs_failed"] = runs_failed
             entry["by_provider"][prov] = agg
-        cross = _cross_provider(per_provider_records)
+            usable_providers.append(prov)
+        if len(args.providers) > 2:
+            logger.warning(
+                "cross-provider block is only computed for exactly 2 providers; %d given — skipping",
+                len(args.providers),
+            )
+        # only compare providers whose aggregate is a real number (not insufficient-data)
+        cross = _cross_provider({p: per_provider_records[p] for p in usable_providers})
         if cross:
             entry["cross_provider"] = cross
         result["fixtures"][name] = entry

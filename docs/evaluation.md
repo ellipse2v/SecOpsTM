@@ -37,10 +37,13 @@ scoring, no LLM. Only the debate pass calls a model.
 
 | Name | Meaning |
 |---|---|
-| `factor_cv` | coefficient of variation (stdev / mean) of `debate_factor` for one scenario across the runs. 0 = identical every run. |
-| `risk_level_flip_rate` | fraction of scenarios whose CRITICAL/HIGH/MEDIUM/LOW bucket is not the same in every run |
-| `rank_stability` | mean pairwise Kendall τ between the scenario orderings of the runs |
-| `direction_flip_rate` | fraction of scenarios where `residual_path_viable` (the debate's viable / not-viable verdict) is not constant across runs |
+| `factor_cv` | coefficient of variation (population stdev / mean) of `debate_factor` for one scenario across the runs. 0 = identical every run. |
+| `final_viability_cv_median` | same, over `DebateResult.final_viability` per scenario |
+| `debated_count` | distinct scenarios actually debated in ≥1 OK run — all Step-1 dispersion metrics are computed over this subset only, never the never-debated tail (which keeps `debate_factor == 1.0` by default and would pin every metric to 0) |
+| `risk_level_flip_rate` | fraction of *debated* scenarios whose CRITICAL/HIGH/MEDIUM/LOW bucket is not the same in every run |
+| `rank_stability` | mean pairwise Kendall τ between the full scenario orderings of the runs |
+| `rank_stability_debated` | same, but each run's ordering is first filtered to the debated subset (`null` if fewer than 2 scenarios were debated) |
+| `direction_flip_rate` | fraction of *debated* scenarios where `residual_path_viable` (the debate's viable / not-viable verdict) is not constant across runs |
 | `direction_agreement` | fraction of scenarios where two providers reach the same viable / not-viable majority verdict |
 | `kendall_tau`, `spearman_rho` | pre-debate ordering vs post-debate ordering |
 | `top5_jaccard` | set overlap of the two top-5s |
@@ -52,9 +55,9 @@ scoring, no LLM. Only the debate pass calls a model.
 > `tooling/eval/results/determinism-<date>.json` (produced by the command in
 > *Reproduce* below).
 
-| Fixture | Provider | runs ok | factor_cv median | factor_cv max | risk flip rate | rank stability | direction flip rate |
-|---|---|---|---|---|---|---|---|
-| _pending_ | | | | | | | |
+| Fixture | Provider | scenarios | debated | runs ok | factor_cv median | factor_cv max | risk flip rate | rank stability (debated) | direction flip rate |
+|---|---|---|---|---|---|---|---|---|---|
+| _pending_ | | | | | | | | | |
 
 Cross-provider (Groq vs Grok):
 
@@ -102,7 +105,19 @@ keep it, and a human-labelled Step 3 becomes worth the effort.
   NDCG@5 / Kendall τ against an analyst ranking) is a separate future spec.
 - Step 1 lowers `--top-n` and `--max-rounds` for the token budget, so its numbers
   are a floor on stability, not the production debate config.
-- GDAF's own `path_score` has ~0.02-0.15 run-to-run variation from set-iteration order (seen on the On-Prem fixture), and `scenario_id` is randomised per generation. The frozen fixtures are a fixed snapshot so this does not affect a single eval run, but regenerating them produces a different file — hence the pinned commit SHA below.
+- `RedBlueDebateEngine._select_scenarios` only debates the top-N by `path_score`
+  that also clear `min_viability_threshold`. With `--top-n 5`, a fixture with more
+  than 5 scenarios leaves its tail at the pre-debate score, which mechanically
+  caps how far Kendall τ and the top-5 metrics can move. Each fixture's scenario
+  count and `debated_count` are reported next to the metrics so this is visible.
+  For the same reason, Step 1's dispersion metrics are computed over the debated
+  subset only — the never-debated tail is constant by construction and would
+  otherwise dilute every number toward zero.
+- GDAF's own `path_score` has ~0.02-0.15 run-to-run variation from set-iteration
+  order (seen on the On-Prem fixture), and `scenario_id` is randomised per
+  generation. The frozen fixtures are a fixed snapshot so this does not affect a
+  single eval run, but regenerating them produces a different file — hence the
+  pinned commit SHA below.
 
 ## Reproduce
 

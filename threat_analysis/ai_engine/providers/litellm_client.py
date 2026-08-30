@@ -59,14 +59,18 @@ class LiteLLMClient:
             provider_name = None
             _providers = self.ai_config.get("ai_providers", {})
             _forced = os.environ.get("SECOPSTM_FORCE_PROVIDER")
-            if _forced and _forced in _providers:
+            if _forced and _providers.get(_forced):
                 self.provider_config = _providers[_forced]
                 provider_name = _forced
-                logging.info("Provider selection forced to '%s' via SECOPSTM_FORCE_PROVIDER", _forced)
+                logging.warning(
+                    "Provider selection forced to '%s' via SECOPSTM_FORCE_PROVIDER "
+                    "(overrides the enabled: flags in ai_config.yaml)", _forced
+                )
             else:
                 if _forced:
                     logging.warning(
-                        "SECOPSTM_FORCE_PROVIDER='%s' not found in ai_providers — ignoring", _forced
+                        "SECOPSTM_FORCE_PROVIDER='%s' not found or has no configuration in "
+                        "ai_providers — ignoring", _forced
                     )
                 for name, provider_config in _providers.items():
                     if provider_config.get('enabled', False):

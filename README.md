@@ -13,7 +13,7 @@ This project is a Python-based, end-to-end STRIDE threat modeling and analysis f
 -   **Trust Boundary Visualization**: Trusted zones rendered green solid, untrusted zones red dashed — baked into the DOT/SVG output, with an interactive severity heat map overlay in HTML diagrams.
 -   **Generate MITRE ATT&CK Navigator layers** for visualizing identified techniques.
 -   **Generate optimized Attack Flow diagrams** for key objectives (Tampering, Spoofing, Information Disclosure, Repudiation).
--   **Red/Blue adversarial debate** over the top GDAF attack paths (opt-in). Its effect on prioritisation is measured — see [`docs/evaluation.md`](docs/evaluation.md).
+-   **Red/Blue adversarial debate** over the top GDAF attack paths (opt-in). A reproducible harness measures its effect on prioritisation; method and runbook are in [`docs/evaluation.md`](docs/evaluation.md), results pending.
 -   **Extend and customize** all mappings, calculations, and reporting logic.
 -   **Run as a web-based editor** for live, interactive threat modeling.
 -   **AI-Enhanced Threat Analysis (Hybrid Mode)**: Threats from three independent engines — pytm rule engine, component-level LLM, and a cross-model RAG pipeline (ChromaDB + HuggingFace) — are automatically deduplicated and unified before reporting. Boundary objects are also analysed as AI targets. Supports Ollama (offline), Gemini, OpenAI, Mistral, Groq, xAI, and any LiteLLM-compatible provider. Configured in `config/ai_config.yaml`.

@@ -15,15 +15,20 @@
 """Frozen-fixture IO, provider forcing, and the debate run wrapper for the
 evaluation harness. See docs/superpowers/specs/2026-08-29-debate-gdaf-evaluation-design.md."""
 
+from __future__ import annotations
+
 import asyncio
 import copy as _copy
 import logging
 import os
-import time
-from typing import Any, Dict, List, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple
 
 from threat_analysis.core.asset_technique_mapper import ScoredTechnique
 from threat_analysis.core.gdaf_engine import AttackHop, AttackScenario
+
+if TYPE_CHECKING:
+    from threat_analysis.ai_engine.providers.litellm_provider import LiteLLMProvider
+    from threat_analysis.core.debate_engine import DebateResult
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +144,7 @@ def risk_levels(scenarios: List[AttackScenario]) -> Dict[str, str]:
 # Provider forcing + debate run wrapper
 # ---------------------------------------------------------------------------
 
-def make_provider(name: str) -> "LiteLLMProvider":
+def make_provider(name: str) -> LiteLLMProvider:
     """Return a fresh LiteLLMProvider pinned to `name` via SECOPSTM_FORCE_PROVIDER.
 
     The provider reads config/ai_config.yaml lazily on its first call, so the
@@ -156,7 +161,7 @@ def make_provider(name: str) -> "LiteLLMProvider":
 def run_debate(
     scenarios: List[AttackScenario], *, provider: Any, config: Dict,
     sleep_s: float = 0.0,
-) -> Tuple[List[AttackScenario], List["DebateResult"]]:
+) -> Tuple[List[AttackScenario], List[DebateResult]]:
     """Debate a deep copy of `scenarios` and return (mutated_copies, debate_results).
 
     `config` is passed straight to RedBlueDebateEngine. `sleep_s` is applied
@@ -173,7 +178,7 @@ def run_debate(
 
         async def _throttled(scenario):
             result = await _orig(scenario)
-            time.sleep(sleep_s)
+            await asyncio.sleep(sleep_s)
             return result
 
         engine._debate_scenario = _throttled

@@ -403,3 +403,28 @@ ai_providers:
             assert client.model_name == "openai/gpt-4"
 
     asyncio.run(_run())
+
+
+def test_force_provider_null_body_falls_back_to_enabled_scan():
+    """A forced provider whose config body is null/empty (everything commented
+    out) must fall through to the enabled scan, not select a provider-less config."""
+    mock_config_yaml = """
+ai_providers:
+  openai:
+    enabled: true
+    model: "gpt-4"
+    api_key_env: "OPENAI_API_KEY"
+  groq:
+"""
+    async def _run():
+        with patch("builtins.open", mock_open(read_data=mock_config_yaml)), \
+             patch("threat_analysis.ai_engine.providers.litellm_client.PROJECT_ROOT", Path("/tmp")), \
+             patch("importlib.import_module"), \
+             patch.object(LiteLLMClient, "check_connection", return_value=True), \
+             patch.dict(os.environ, {"SECOPSTM_FORCE_PROVIDER": "groq"}), \
+             patch("os.getenv", return_value="sk-test"):
+            client = LiteLLMClient()
+            await client._load_ai_config()
+            assert client.model_name == "openai/gpt-4"
+
+    asyncio.run(_run())

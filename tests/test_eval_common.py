@@ -136,9 +136,12 @@ def test_run_debate_returns_debate_results_with_viability():
     assert 0.0 <= results[0].final_viability <= 1.0
 
 
-def test_make_provider_sets_force_env():
+def test_make_provider_sets_force_env(monkeypatch):
     import os
     from tooling.eval._common import make_provider
+    # monkeypatch.setenv records the pre-test state and restores (here: unsets) it
+    # on teardown, so the var never leaks into the rest of the pytest process
+    monkeypatch.setenv("SECOPSTM_FORCE_PROVIDER", "placeholder")
     make_provider("groq")
     assert os.environ["SECOPSTM_FORCE_PROVIDER"] == "groq"
 
@@ -186,10 +189,22 @@ def test_determinism_aggregate_one_provider_stubbed(tmp_path, monkeypatch):
     assert rc == 0
     data = json.loads(out.read_text())
     assert data["step"] == "determinism"
+    assert data["fixtures"]["Toy"]["scenario_count"] == 2
     prov = data["fixtures"]["Toy"]["by_provider"]["groq"]
     assert prov["runs_ok"] == 3
-    assert "factor_cv_median" in prov
-    assert "rank_stability" in prov
+    # both S1 and S2 are debated by the stub -> the debated subset is the full set
+    assert prov["debated_count"] == 2
+    # factor vector per scenario is [1.01, 1.02, 1.03] across the 3 runs.
+    # population CV = pstdev / mean = 0.00816497 / 1.02 = 0.008005 -> round(4) = 0.008
+    assert prov["factor_cv_median"] == pytest.approx(0.008)
+    assert prov["factor_cv_max"] == pytest.approx(0.008)
+    # final_viability is a constant 0.6 every run -> CV 0
+    assert prov["final_viability_cv_median"] == pytest.approx(0.0)
+    # scaling both scenarios by the same factor keeps the ordering -> tau 1.0
+    assert prov["rank_stability"] == pytest.approx(1.0)
+    assert prov["rank_stability_debated"] == pytest.approx(1.0)
+    assert prov["risk_level_flip_rate"] == pytest.approx(0.0)
+    assert prov["direction_flip_rate"] == pytest.approx(0.0)
 
 
 def test_ablation_aggregate_stubbed(tmp_path, monkeypatch):
@@ -234,5 +249,13 @@ def test_ablation_aggregate_stubbed(tmp_path, monkeypatch):
     assert data["step"] == "ablation"
     tf = data["fixtures"]["Toy"]
     assert tf["scenario_count"] == 6
-    assert "kendall_tau" in tf and "top5_jaccard" in tf
+    # the stub pushes S6 (lowest pre-debate) to the top:
+    # pre  = [S1, S2, S3, S4, S5, S6]  post = [S6, S1, S2, S3, S4, S5]
+    assert tf["top5_unchanged"] is False
+    assert tf["top5_jaccard"] == pytest.approx(0.6667)      # {S1..S4} / {S1..S6}
+    assert tf["top5_max_displacement"] == 1                  # every top-5 item shifts by 1
+    assert tf["kendall_tau"] == pytest.approx(0.3333)        # 5 discordant of 15 pairs
+    assert tf["kendall_tau"] < 1.0
     assert data["aggregate"]["fixtures_ok"] == 1
+    assert data["aggregate"]["fixtures_excluded_lt2"] == 0
+    assert data["aggregate"]["kendall_tau_median"] == pytest.approx(0.3333)
