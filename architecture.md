@@ -154,7 +154,14 @@ threatModelBypyTm/
 │   ├── copy_cve_data.py
 │   ├── generate_attack_flow.py
 │   ├── validate_capec_json.py
-│   └── test_rag_generation.py    Manual RAG smoke test
+│   ├── test_rag_generation.py    Manual RAG smoke test
+│   └── eval/                     Debate/GDAF evaluation harness (offline; run manually)
+│       ├── metrics.py            Pure ranking / dispersion metrics (Kendall τ, Spearman ρ, CV, ...)
+│       ├── _common.py            Frozen-fixture IO, provider forcing, debate run wrapper
+│       ├── freeze_scenarios.py   Template → GDAF scenarios → committed fixtures/
+│       ├── determinism.py        Step 1 — run debate N× on the same input, measure variance
+│       ├── ablation.py           Step 2 — pre-debate vs post-debate scenario ordering
+│       └── fixtures/             Frozen GDAF scenario sets (committed)
 │
 ├── tests/                        pytest suite (~40 test files, 1487 tests)
 ├── threatModel_Template/         Ready-to-use DSL model templates
@@ -281,6 +288,10 @@ CSP script-src              'self' 'unsafe-inline' — external scripts blocked 
 minimal_subprocess_env()    env allowlist (PATH/HOME/LANG/...) passed to every `dot` subprocess
                              call (diagram_generator.py, svg_generator.py, diagram_service.py) —
                              LiteLLMClient's os.environ[api_key_env] writes are never inherited.
+
+SECOPSTM_FORCE_PROVIDER      Pins LLM provider selection to a named ai_providers key regardless
+                             of enabled: flags (litellm_client.py) — for A/B provider runs and
+                             tooling/eval. Unset → normal "first enabled wins".
 ```
 
 ### 3c. Lightweight Multi-User Workspaces

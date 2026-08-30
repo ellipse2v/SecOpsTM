@@ -96,6 +96,10 @@ Clicking a row expands an inline detail panel showing one entry per hop:
 
 ## Red/Blue Adversarial Debate
 
+> **How well does the debate re-scoring actually prioritise?** See
+> [`docs/evaluation.md`](evaluation.md) for the measurement method (determinism +
+> ablation) and the current verdict.
+
 An opt-in pass (`config/ai_config.yaml → debate.enabled: true`, on by default) that runs after
 GDAF and before the HTML report is written. One configured LLM provider plays two personas —
 **Red** (attack) and **Blue** (defence) — that argue over whether the top-scoring GDAF scenarios
