@@ -1,0 +1,71 @@
+{
+  "step": "ablation",
+  "generated_at": "2026-08-31T10:49:42Z",
+  "params": {
+    "provider": "mistral",
+    "top_n": 5,
+    "max_rounds": 3,
+    "sleep": 3.0,
+    "temperature": 0.0
+  },
+  "fixtures": {
+    "GDAF_Debate_Smoke_Test": {
+      "scenario_count": 1,
+      "band_count": 1,
+      "kendall_tau": 1.0,
+      "kendall_tau_banded": 1.0,
+      "spearman_rho": 1.0,
+      "top5_jaccard": 1.0,
+      "top5_max_displacement": 0,
+      "bucket_changes": 0,
+      "top5_unchanged": true
+    },
+    "Kubernetes_Helm_Cluster": {
+      "scenario_count": 9,
+      "band_count": 1,
+      "kendall_tau": 1.0,
+      "kendall_tau_banded": 1.0,
+      "spearman_rho": 1.0,
+      "top5_jaccard": 1.0,
+      "top5_max_displacement": 0,
+      "bucket_changes": 0,
+      "top5_unchanged": true
+    },
+    "On-Prem_Enterprise_Network": {
+      "scenario_count": 43,
+      "band_count": 3,
+      "kendall_tau": 0.9956,
+      "kendall_tau_banded": 1.0,
+      "spearman_rho": 0.9995,
+      "top5_jaccard": 1.0,
+      "top5_max_displacement": 2,
+      "bucket_changes": 0,
+      "top5_unchanged": true
+    },
+    "Serverless_AWS_Lambda": {
+      "scenario_count": 10,
+      "band_count": 1,
+      "kendall_tau": 0.7778,
+      "kendall_tau_banded": 1.0,
+      "spearman_rho": 0.8545,
+      "top5_jaccard": 0.6667,
+      "top5_max_displacement": 2,
+      "bucket_changes": 0,
+      "top5_unchanged": false
+    }
+  },
+  "aggregate": {
+    "fixtures_ok": 3,
+    "fixtures_excluded_lt2": 1,
+    "top5_unchanged_count": 2,
+    "kendall_tau_median": 0.9956,
+    "kendall_tau_banded_median": 1.0,
+    "worked_example": {
+      "fixture": "On-Prem_Enterprise_Network",
+      "scenario_id": "GDAF-C5C6AA55",
+      "pre_rank": 4,
+      "post_rank": 2,
+      "reason": "no detection cited for: DCSync via RPC to Backup Domain Controller (T1558.001), LDAP query to Primary Domain Controller (T1003.001), T1003.001 credential dumping on Primary Domain Controller"
+    }
+  }
+}

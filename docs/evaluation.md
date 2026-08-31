@@ -8,7 +8,7 @@ The HTML report contains **two separate ranked lists**, and they are not the sam
 |---|---|---|
 | Unit | one `ExtendedThreat` (pytm / AI / LLM) | one `AttackScenario` (a path through the architecture) |
 | Score | VOC severity — STRIDE base score adjusted by target, protocol, data classification, then `RiskContext` deltas (CVE match +0.5, high-risk CWE +0.3, network-exposed +0.7, D3FEND mitigation −0.5) | `path_score` — sum of per-hop `technique_score × vulnerability_weight`, plus boundary `traversal_difficulty` and data-value bonuses |
-| Changed by the Red/Blue debate? | **No. Never.** | **Yes** — `path_score` is multiplied by a `debate_factor` between 0.5 and 1.5, and the risk level is recomputed |
+| Changed by the Red/Blue debate? | **No. Never.** | **Yes** — when the debate converged, `path_score` is multiplied by a `debate_factor` between 0.8 and 1.2 and the risk level is recomputed |
 
 The debate re-scores **GDAF scenarios only**. It does not touch threat severity.
 So the question "does the debate prioritise better than the base score?" is only
@@ -79,14 +79,65 @@ the provider's default temperature. Changes since:
 - The report section is **"Adversarial Review"** with a qualitative verdict, not a
   precise adjusted score.
 
-**Spot check (Mistral, temp 0, discrete, pre-#4/#5/bands):** the 1-scenario Smoke
-fixture went from `factor_cv 0.53`, every flip rate at 1.0 → **all zeros** (fully
-reproducible). The 9-scenario Kubernetes fixture did **not** improve on the raw
-`rank_stability_debated` (0.56). The tables below are the **pre-improvement
-baseline**; a full re-run against the regenerated fixtures with the converged-gate,
-narrow band, and banded metrics is the next step.
+### Results after the improvements
 
-## Step 1 — Determinism
+Re-run 2026-08-31 against the regenerated fixtures, full current build
+(`determinism-2026-08-31d.json` / `ablation-2026-08-31d.json`, mistral). The
+cross-provider numbers are from an earlier mistral + groq pass on the same build,
+before Groq's daily token cap.
+
+**Step 1 — determinism** (Mistral, 3 runs, `--top-n 3 --max-rounds 2`, temp 0):
+
+| Fixture | debated | bands | factor_cv | rank_stability_debated | rank_stability_banded | top1_recurrence | direction_flip |
+|---|---|---|---|---|---|---|---|
+| GDAF_Debate_Smoke_Test | 1 | 1 | 0.0 | n/a | n/a | 1.0 | 0.0 |
+| Kubernetes_Helm_Cluster | 3 | 1 | **0.0** | **1.0** | **1.0** | 1.0 | 0.0 |
+| On-Prem_Enterprise_Network | 3 | 3 | **0.0** | **1.0** | **1.0** | 1.0 | 0.0 |
+
+Baseline for comparison: `rank_stability_debated` was 0.11 (Groq) / 0.56 (Mistral)
+on Kubernetes and 0.11 on On-Prem; `factor_cv` was 0.03–0.53. Every dispersion
+metric is now zero and every reproducibility metric is 1.0. The random-shuffle
+baseline for `rank_stability_debated` at k = 3 is −0.33, so 1.0 is not a chance
+result. (`final_viability_cv` is still ~0.18 — the raw viability estimate wobbles
+between rounds, but the snapped grid + `min()` + converged-gate absorb it before
+it reaches the factor. One earlier run scored On-Prem at `rank_stability_debated`
+0.56, so Mistral at temp 0 is *nearly* but not perfectly deterministic — n = 3 is
+too few to pin the exact value.)
+
+Cross-provider (Mistral vs Groq): `direction_agreement` **1.0** on both Smoke and
+Kubernetes — the two models agree on every viable / not-viable verdict.
+`factor_delta_mean` 0.07 (Smoke) / 0.10 (Kubernetes).
+
+**Step 2 — ablation** (Mistral, `--top-n 5 --max-rounds 3`, `ablation-2026-08-31d.json`):
+
+| Fixture | bands | kendall τ | kendall τ (banded) | top-5 changed? |
+|---|---|---|---|---|
+| Kubernetes_Helm_Cluster | 1 | 1.00 | 1.00 | no |
+| On-Prem_Enterprise_Network | 3 | 0.996 | 1.00 | no |
+| Serverless_AWS_Lambda | 1 | 0.78 | **1.00** | no (all movement within one band) |
+
+`kendall_tau_banded` is **1.00 on every fixture** — the debate makes no cross-band
+reordering. The one worked example (On-Prem `GDAF-C5C6AA55`, pre-rank #4 → #2,
+Blue cited no detection for the DCSync / credential-dumping path) is a small,
+band-neutral move.
+
+### Reading the post-improvement result
+
+The trade the four changes made: the debate re-score went from an **active but
+non-reproducible** re-ranker to a **reproducible but timid** one. It is now stable
+run to run (factor_cv 0, rank_stability 1.0) and the two providers agree on
+direction — but with the narrow `0.8–1.2` band, the converged-gate, and the
+discrete grid, it no longer moves any scenario across a confidence band. The
+number is trustworthy now; it is also close to a no-op for prioritisation.
+
+**So:** keep the Adversarial Review for its narrative and detection-gap output
+(the "Red tried X and could not, Blue has no rule for Y" list is the value), and
+treat `debate_factor` as a minor, reproducible tie-break within a band — not a
+signal that reorders the risk list. A larger run (`--top-n` ≥ 8, more runs, a
+second provider on every fixture) would confirm whether the debate ever earns a
+cross-band move on a fixture with more spread.
+
+## Step 1 — Determinism (pre-improvement baseline)
 
 Two providers, 3 runs per fixture, `--top-n 3 --max-rounds 2`. Sources:
 `tooling/eval/results/determinism-2026-08-30.json` (groq, `openai/gpt-oss-120b`,
@@ -143,7 +194,7 @@ is stable. n is small (3 runs, 3 debated scenarios), and k = 3 makes the headlin
 τ coarse — this is a signal, not proof — but it points away from trusting
 `debate_factor` as a ranking input.
 
-## Step 2 — Ablation
+## Step 2 — Ablation (pre-improvement baseline)
 
 Provider `mistral` (`mistral-small-latest`), `--all --top-n 5 --max-rounds 3
 --sleep 3`, clean run (no failed turns). Source:
@@ -177,34 +228,28 @@ reliably.
 
 ## Overall
 
-The harness works — the per-turn `--sleep` throttle beats Groq's per-minute
-limit, and both providers ran clean. The finding, from Step 1 (k = 3, 3 runs, two
-providers) and a clean Step 2 on Mistral:
+Two stages: a **pre-improvement baseline** (free-float viability, provider
+default temperature — the tables further down) and a **post-improvement re-run**
+(the "Results after the improvements" section above).
 
-- The debate **does** move the ranking — meaningfully, on 2 of 3 fixtures, with
-  at least one well-argued demotion (Lambda #1 → #10).
-- But it does **not** move it reproducibly — `rank_stability (debated)` ≈ 0.11
-  wherever there is more than one scenario to order.
-- So `debate_factor` is not a trustworthy prioritisation signal today, while the
-  Red/Blue reasoning that produces it (the detection gaps, the "Red tried X and
-  failed" list) is worth surfacing in the report on its own terms.
+- **Before:** the debate was an active re-ranker (`kendall_tau` 0.33–0.44 on two
+  ablation fixtures, a #1 → #10 demotion) whose re-score did **not** reproduce
+  (`rank_stability_debated` ≈ 0.11).
+- **After** temp 0 + discrete viability + converged-gate + narrow `0.8–1.2` band:
+  the re-score is **fully reproducible** (`factor_cv` 0, `rank_stability_debated`
+  and `_banded` 1.0, `top1_recurrence` 1.0, cross-provider `direction_agreement`
+  1.0) and, as a direct consequence, **timid** — `kendall_tau_banded` is 1.0 on
+  every ablation fixture, i.e. it never moves a scenario across a confidence band.
 
-**Next, to firm this up:**
+The `debate_factor` is now a small, trustworthy, within-band tie-break rather than
+a coin-flip that reorders the risk list. The part worth relying on is still the
+Red/Blue narrative and the detection-gap list, not the number.
 
-1. **Re-run Step 1 and Step 2** against the regenerated fixtures with the full
-   current build (temp 0, discrete viability, converged-gate, narrow band,
-   banded metrics). Read `rank_stability_banded` and `top1_recurrence` as the
-   headline — the raw `rank_stability_debated` is expected to stay low while the
-   banded value is what matters for a real decision.
-2. Raise `--top-n` to ≥ 8 and `--runs` to ≥ 15. On a paid tier or a local model
-   (Ollama) the token caps stop mattering; k = 3 makes the raw τ far too coarse
-   (it can only take four values). Add a pooled Kendall τ across fixtures with a
-   bootstrap CI rather than per-fixture point estimates.
-3. Instrument per run / per scenario: `round_count`, clean-vs-degraded turn, and
-   the exact debated set — to attribute residual noise to a specific stage.
-
-The harness already reports `rank_stability_banded`, `top1_recurrence`,
-`topk_set_recurrence` and `rank_stability_random_baseline`; item 1 is just a run.
+**Still to do:** a larger run (`--top-n` ≥ 8, `--runs` ≥ 15, a second provider on
+every fixture — needs a paid tier or a local model) to see whether the debate
+ever earns a cross-band move on a fixture with more score spread, and per-run
+instrumentation (`round_count`, degraded-turn flag) to attribute any residual
+noise.
 
 ## Limitations
 
@@ -214,8 +259,8 @@ The harness already reports `rank_stability_banded`, `top1_recurrence`,
   −1, −⅓, ⅓, 1). Raise `--top-n` and `--runs` for a real reading.
 - Two models tested (`openai/gpt-oss-120b`, `mistral-small-latest`). Not a claim
   about "LLMs" in general — and the two disagree on adjustment-magnitude stability.
-- No cross-provider direction-agreement number: the two providers ran on separate
-  days (Groq's daily quota), so the automatic Groq-vs-X block never fired.
+- Cross-provider `direction_agreement` is available for Smoke and Kubernetes only
+  (1.0 for both); Groq's daily token cap knocked it out on the largest fixture.
 - No human ground-truth ranking yet. Step 3 (a labelled benchmark scored with
   NDCG@5 / Kendall τ against an analyst ranking) is a separate future spec —
   Step 1's reproducibility result makes it lower priority.
