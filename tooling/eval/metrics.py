@@ -49,6 +49,19 @@ def kendall_tau(order_a: List[str], order_b: List[str]) -> float:
     return 0.0 if tau != tau else float(tau)  # NaN guard (all-tied input)
 
 
+def kendall_tau_values(vals_a: List[float], vals_b: List[float]) -> float:
+    """Kendall tau-b between two equal-length numeric vectors (ties allowed).
+
+    Used for band-aware ranking comparisons: pass each ordering mapped through a
+    scenario -> band-index lookup, so two orderings that differ only by a
+    within-band permutation compare as identical.
+    """
+    if len(vals_a) != len(vals_b) or len(vals_a) < 2:
+        return 1.0
+    tau = kendalltau(vals_a, vals_b).statistic
+    return 0.0 if tau != tau else float(tau)  # NaN guard (a vector with no variation)
+
+
 def spearman_rho(order_a: List[str], order_b: List[str]) -> float:
     """Spearman rho between two orderings. 1.0 identical, -1.0 reversed."""
     ra, rb = _rank_vectors(order_a, order_b)

@@ -119,8 +119,10 @@ class RedBlueDebateEngine:
         self.min_viability_threshold: float = float(cfg.get("min_viability_threshold", 0.5))
         self.max_rounds: int = int(cfg.get("max_rounds", 3))
         self.viability_delta_threshold: float = float(cfg.get("viability_delta_threshold", 0.1))
-        self.debate_factor_min: float = float(cfg.get("debate_factor_min", 0.5))
-        self.debate_factor_max: float = float(cfg.get("debate_factor_max", 1.5))
+        # Narrow band (was 0.5–1.5): a noisy debate should not be able to halve or
+        # 1.5× a GDAF score. The debate nudges, it does not overrule.
+        self.debate_factor_min: float = float(cfg.get("debate_factor_min", 0.8))
+        self.debate_factor_max: float = float(cfg.get("debate_factor_max", 1.2))
         # None → provider default. 0.0 = greedy, recommended (see docs/evaluation.md).
         _temp = cfg.get("temperature")
         self._temperature: Optional[float] = None if _temp is None else float(_temp)
@@ -378,6 +380,14 @@ class RedBlueDebateEngine:
     # ------------------------------------------------------------------
 
     def _reinject_score(self, scenario: Any, result: DebateResult) -> None:
+        if not result.converged:
+            # The rounds didn't agree — don't move the score, keep the narrative.
+            # An unconverged debate's final_viability is a coin toss between rounds.
+            scenario.path_score_pre_debate = scenario.path_score
+            scenario.debate_factor = 1.0
+            result.debate_factor = 1.0
+            return
+
         span = self.debate_factor_max - self.debate_factor_min
         base = self.debate_factor_min + span * result.final_viability
         factor = base if result.residual_path_viable else min(base, 1.0)

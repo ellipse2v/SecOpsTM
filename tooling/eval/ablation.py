@@ -40,6 +40,7 @@ from typing import Any, Dict, List, Optional
 
 from tooling.eval import metrics
 from tooling.eval._common import (
+    band_ranks,
     make_provider,
     risk_levels,
     run_debate,
@@ -59,8 +60,8 @@ def _debate_config(top_n: int, max_rounds: int, temperature: Optional[float]) ->
         "min_viability_threshold": 0.5,
         "max_rounds": max_rounds,
         "viability_delta_threshold": 0.1,
-        "debate_factor_min": 0.5,
-        "debate_factor_max": 1.5,
+        "debate_factor_min": 0.8,
+        "debate_factor_max": 1.2,
         "temperature": temperature,
     }
 
@@ -93,6 +94,7 @@ def _run_fixture(
     scenarios = thaw(json.loads(path.read_text(encoding="utf-8")))
     pre_order = scenario_order(scenarios)
     pre_risk = risk_levels(scenarios)
+    bands = band_ranks(scenarios)
 
     provider = make_provider(provider_name)
     mutated, results = run_debate(scenarios, provider=provider, config=cfg, sleep_s=sleep_s)
@@ -101,9 +103,16 @@ def _run_fixture(
 
     k = min(5, len(pre_order))
     top5_jaccard = metrics.top_k_jaccard(pre_order, post_order, k)
+    # band-aware τ: within-band reshuffles (scores that were never distinguishable)
+    # don't count as the debate changing the ranking
+    tau_banded = metrics.kendall_tau_values(
+        [bands.get(s, 0) for s in pre_order], [bands.get(s, 0) for s in post_order]
+    )
     entry: Dict[str, Any] = {
         "scenario_count": len(scenarios),
+        "band_count": (max(bands.values()) + 1) if bands else 0,
         "kendall_tau": round(metrics.kendall_tau(pre_order, post_order), 4),
+        "kendall_tau_banded": round(tau_banded, 4),
         "spearman_rho": round(metrics.spearman_rho(pre_order, post_order), 4),
         "top5_jaccard": round(top5_jaccard, 4),
         "top5_max_displacement": metrics.max_displacement(pre_order, post_order, k),
@@ -187,6 +196,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     excluded_lt2 = sum(1 for v in result["fixtures"].values()
                        if "kendall_tau" in v and v.get("scenario_count", 0) < 2)
     taus = [v["kendall_tau"] for v in ok.values()]
+    taus_banded = [v["kendall_tau_banded"] for v in ok.values() if "kendall_tau_banded" in v]
     unchanged = sum(1 for v in ok.values() if v["top5_unchanged"])
     candidates = [v["_candidate_example"] for v in ok.values() if v.get("_candidate_example")]
     worked = max(candidates, key=lambda c: c["move"]) if candidates else None
@@ -195,6 +205,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         "fixtures_excluded_lt2": excluded_lt2,
         "top5_unchanged_count": unchanged,
         "kendall_tau_median": round(statistics.median(taus), 4) if taus else None,
+        "kendall_tau_banded_median": round(statistics.median(taus_banded), 4) if taus_banded else None,
         "worked_example": {
             key: worked[key]
             for key in ("fixture", "scenario_id", "pre_rank", "post_rank", "reason")

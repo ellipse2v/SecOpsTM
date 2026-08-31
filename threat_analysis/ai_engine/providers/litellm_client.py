@@ -73,7 +73,7 @@ class LiteLLMClient:
                         "ai_providers — ignoring", _forced
                     )
                 for name, provider_config in _providers.items():
-                    if provider_config.get('enabled', False):
+                    if provider_config and provider_config.get('enabled', False):
                         self.provider_config = provider_config
                         provider_name = name
                         break

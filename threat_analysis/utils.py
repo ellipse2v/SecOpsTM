@@ -18,8 +18,9 @@ import json
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-# Define project root
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+# Repo root. utils.py lives at threat_analysis/utils.py, so parents[1] is the
+# repo root (parents[2] — the old value — overshot one level above it).
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 # Env vars a native subprocess like Graphviz's `dot` can legitimately need
 # (PATH/font lookup/locale) — everything else, notably the LLM API keys

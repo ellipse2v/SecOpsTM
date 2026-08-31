@@ -34,6 +34,7 @@ import argparse
 import datetime as _dt
 import json
 import logging
+import random
 import statistics
 import sys
 from pathlib import Path
@@ -42,6 +43,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from threat_analysis.core.gdaf_engine import AttackScenario
 from tooling.eval import metrics
 from tooling.eval._common import (
+    band_ranks,
     make_provider,
     risk_levels,
     run_debate,
@@ -61,8 +63,8 @@ def _debate_config(top_n: int, max_rounds: int, temperature: Optional[float]) ->
         "min_viability_threshold": 0.5,
         "max_rounds": max_rounds,
         "viability_delta_threshold": 0.1,
-        "debate_factor_min": 0.5,
-        "debate_factor_max": 1.5,
+        "debate_factor_min": 0.8,
+        "debate_factor_max": 1.2,
         "temperature": temperature,
     }
 
@@ -125,12 +127,16 @@ def _run_provider(
             if sid in fv_by_id:
                 rec["final_viability"].append(fv_by_id[sid])
     records["_orders"] = orders
+    # pre-debate confidence bands (fixed input) — used to tell a real cross-band
+    # move from a within-band shuffle that no ranking could have got right anyway
+    records["_bands"] = band_ranks(fixture_scenarios)
     return records, runs_ok, runs_failed
 
 
 def _aggregate_provider(records: Dict[str, Any], runs_ok: int) -> Dict[str, Any]:
     orders = records.get("_orders", [])
-    scen_ids = [k for k in records if k != "_orders"]
+    bands = records.get("_bands", {})
+    scen_ids = [k for k in records if k not in ("_orders", "_bands")]
     debated_set = set(scen_ids)  # scenarios debated in >= 1 OK run
 
     cvs = [metrics.coeff_variation(records[sid]["factor"]) for sid in scen_ids if records[sid]["factor"]]
@@ -153,15 +159,50 @@ def _aggregate_provider(records: Dict[str, Any], runs_ok: int) -> Dict[str, Any]
     # same Kendall τ but over just the debated sub-ordering of each run
     debated_orders = [[sid for sid in o if sid in debated_set] for o in orders]
     pair_taus_debated: List[float] = []
+    pair_taus_banded: List[float] = []
     if len(debated_set) >= 2:
         for a in range(len(debated_orders)):
             for b in range(a + 1, len(debated_orders)):
                 pair_taus_debated.append(metrics.kendall_tau(debated_orders[a], debated_orders[b]))
+                if bands:
+                    va = [bands.get(sid, 0) for sid in debated_orders[a]]
+                    vb = [bands.get(sid, 0) for sid in debated_orders[b]]
+                    pair_taus_banded.append(metrics.kendall_tau_values(va, vb))
+
+    # decision stability: does the same scenario come back on top / in the top set?
+    top1s = [o[0] for o in debated_orders if o]
+    topk = min(3, len(debated_set))
+    topk_sets = [frozenset(o[:topk]) for o in debated_orders if len(o) >= topk]
+    top1_recurrence = (
+        round(max(top1s.count(x) for x in set(top1s)) / len(top1s), 4) if top1s else None
+    )
+    topk_set_recurrence = (
+        round(max(topk_sets.count(x) for x in set(topk_sets)) / len(topk_sets), 4)
+        if topk_sets else None
+    )
+
+    # random-shuffle baseline for rank_stability_debated at this k and run count
+    rnd_baseline = None
+    if len(debated_set) >= 2 and len(debated_orders) >= 2:
+        rng = random.Random(0)
+        shuffles = []
+        for _ in range(len(debated_orders)):
+            ids = list(debated_set)
+            rng.shuffle(ids)
+            shuffles.append(ids)
+        rnd_taus = [
+            metrics.kendall_tau(shuffles[a], shuffles[b])
+            for a in range(len(shuffles)) for b in range(a + 1, len(shuffles))
+        ]
+        rnd_baseline = round(statistics.fmean(rnd_taus), 4) if rnd_taus else None
 
     n = len(scen_ids) or 1  # denominators are over the debated-across-runs set
     return {
         "runs_ok": runs_ok,
         "debated_count": len(debated_set),
+        "top1_recurrence": top1_recurrence,
+        "topk_set_recurrence": topk_set_recurrence,
+        "rank_stability_random_baseline": rnd_baseline,
         "factor_cv_median": round(statistics.median(cvs), 4) if cvs else None,
         "factor_cv_max": round(max(cvs), 4) if cvs else None,
         "final_viability_cv_median": round(statistics.median(fv_cvs), 4) if fv_cvs else None,
@@ -170,6 +211,10 @@ def _aggregate_provider(records: Dict[str, Any], runs_ok: int) -> Dict[str, Any]
         "rank_stability_debated": (
             round(statistics.fmean(pair_taus_debated), 4) if pair_taus_debated else None
         ),
+        "rank_stability_banded": (
+            round(statistics.fmean(pair_taus_banded), 4) if pair_taus_banded else None
+        ),
+        "band_count": (max(bands.values()) + 1) if bands else None,
         "direction_flip_rate": round(dir_flips / n, 4),
     }
 

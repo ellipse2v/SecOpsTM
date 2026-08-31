@@ -229,6 +229,57 @@ def test_determinism_aggregate_one_provider_stubbed(tmp_path, monkeypatch):
     assert prov["direction_flip_rate"] == pytest.approx(0.0)
 
 
+def test_determinism_metrics_use_debated_subset_only(tmp_path, monkeypatch):
+    """Regression guard for the dilution bug: a fixture where the debate touches
+    only 2 of 4 scenarios must report debated_count == 2 and compute dispersion
+    over just those 2 — the 2 never-debated scenarios (constant debate_factor 1.0)
+    must not drag every metric to zero."""
+    import json
+    from tooling.eval import determinism
+    from tooling.eval._common import freeze, thaw
+
+    fixture = tmp_path / "Toy.scenarios.json"
+    fixture.write_text(json.dumps(freeze([
+        _scenario("S1", 5.0), _scenario("S2", 4.0), _scenario("S3", 3.0), _scenario("S4", 2.0),
+    ])))
+
+    calls = {"n": 0}
+
+    def fake_run_debate(scenarios, *, provider, config, sleep_s=0.0):
+        calls["n"] += 1
+        s = thaw(freeze(scenarios))
+        for sc in s:
+            sc.path_score_pre_debate = sc.path_score
+        # debate only S1 and S2; give them a genuinely varying factor run to run
+        debated = {"S1": 0.8 + 0.1 * calls["n"], "S2": 1.2 - 0.1 * calls["n"]}
+        for sc in s:
+            sc.debate_factor = debated.get(sc.scenario_id, 1.0)
+            sc.path_score = sc.path_score * sc.debate_factor
+
+        class R:
+            def __init__(self, sid):
+                self.scenario_id = sid
+                self.final_viability = 0.6
+                self.residual_path_viable = True
+                self.rounds = []
+        return s, [R("S1"), R("S2")]  # results for the debated subset only
+
+    monkeypatch.setattr(determinism, "run_debate", fake_run_debate)
+    monkeypatch.setattr(determinism, "make_provider", lambda name: object())
+
+    out = tmp_path / "r.json"
+    rc = determinism.main([
+        "--fixtures-dir", str(tmp_path), "--fixtures", "Toy", "--providers", "groq",
+        "--runs", "3", "--top-n", "2", "--max-rounds", "1", "--sleep", "0", "--out", str(out),
+    ])
+    assert rc == 0
+    prov = json.loads(out.read_text())["fixtures"]["Toy"]["by_provider"]["groq"]
+    assert prov["debated_count"] == 2
+    # S1 factor is [0.9, 1.0, 1.1], S2 is [1.1, 1.0, 0.9] — both have real dispersion.
+    # If the 2 undebated scenarios were included, the median CV would be ~0.
+    assert prov["factor_cv_median"] > 0.02
+
+
 def test_ablation_aggregate_stubbed(tmp_path, monkeypatch):
     import json
     from tooling.eval import ablation

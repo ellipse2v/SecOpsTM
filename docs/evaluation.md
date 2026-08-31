@@ -43,36 +43,48 @@ scoring, no LLM. Only the debate pass calls a model.
 | `risk_level_flip_rate` | fraction of *debated* scenarios whose CRITICAL/HIGH/MEDIUM/LOW bucket is not the same in every run |
 | `rank_stability` | mean pairwise Kendall τ between the full scenario orderings of the runs |
 | `rank_stability_debated` | same, but each run's ordering is first filtered to the debated subset (`null` if fewer than 2 scenarios were debated) |
+| `rank_stability_banded` | same as `_debated` but scenarios in the same pre-debate confidence band are treated as tied — a within-band reshuffle (scores that were never distinguishable) does not count as instability. `band_count` reports how many bands the fixture split into. |
+| `rank_stability_random_baseline` | mean pairwise τ over random shuffles of the debated ids at this k — the value `rank_stability_debated` would take if the debate were pure noise (≈ 0 for k ≥ ~4). |
+| `top1_recurrence` | fraction of runs whose #1 debated scenario matches the modal #1 — decision stability, not score stability |
+| `topk_set_recurrence` | same, for the top-3 debated *set* |
 | `direction_flip_rate` | fraction of *debated* scenarios where `residual_path_viable` (the debate's viable / not-viable verdict) is not constant across runs |
 | `direction_agreement` | fraction of scenarios where two providers reach the same viable / not-viable majority verdict |
 | `kendall_tau`, `spearman_rho` | pre-debate ordering vs post-debate ordering |
+| `kendall_tau_banded` | `kendall_tau` with same-band scenarios tied (ablation) |
 | `top5_jaccard` | set overlap of the two top-5s |
 | `top5_max_displacement` | largest rank change among the pre-debate top-5 |
 
 ## Improvements applied after the first run (2026-08-31)
 
 The first run below fed the ranking with a free 0.0–1.0 `viability_score` float at
-the provider's default temperature. Four changes followed:
+the provider's default temperature. Changes since:
 
 - **`debate.temperature: 0.0`** (greedy) is now the default (`config/ai_config.yaml`).
 - **Discrete viability** — Red and Blue must return one of `0.0 / 0.25 / 0.5 /
   0.75 / 1.0`; the engine snaps to that grid and the round outcome is
   `min(red, blue)` (the old `− 0.15 × len(techniques_blocked)` term, a raw count
   of an LLM-generated list, is gone).
+- **The factor is only applied when the debate converged.** An unconverged debate
+  (rounds didn't agree) keeps the GDAF score and contributes only its narrative.
+- **Narrower band** — `debate_factor` range `0.5–1.5` → `0.8–1.2`. The debate
+  nudges a score, it does not halve or 1.5× it.
 - **GDAF is now deterministic** — technique selection sorts with an id tie-break,
   the services set is iterated sorted, and `scenario_id` is a hash of the path
   signature (was `uuid4`). Two GDAF runs are now byte-identical; the committed
   fixtures were regenerated.
+- **Confidence bands** — the harness groups scenarios whose `path_score`s are
+  within 5 % into a band and reports `rank_stability_banded` / `kendall_tau_banded`
+  alongside the raw values, so a within-band reshuffle (scores that were never
+  distinguishable) is not counted against the debate.
 - The report section is **"Adversarial Review"** with a qualitative verdict, not a
-  precise adjusted score (see the debate feature docs).
+  precise adjusted score.
 
-**Spot check (Mistral, temp 0, discrete):** the 1-scenario Smoke fixture went from
-`factor_cv 0.53`, every flip rate at 1.0 → **all zeros** (fully reproducible). The
-9-scenario Kubernetes fixture did **not** improve (`rank_stability_debated` 0.56,
-unchanged; risk-flip 0.0 → 0.33) — with 3 close-scored debated scenarios, a
-single one-notch grid disagreement between runs still permutes the order. The
-tables below are the **pre-improvement baseline**; a full re-run against the
-regenerated fixtures is the next step.
+**Spot check (Mistral, temp 0, discrete, pre-#4/#5/bands):** the 1-scenario Smoke
+fixture went from `factor_cv 0.53`, every flip rate at 1.0 → **all zeros** (fully
+reproducible). The 9-scenario Kubernetes fixture did **not** improve on the raw
+`rank_stability_debated` (0.56). The tables below are the **pre-improvement
+baseline**; a full re-run against the regenerated fixtures with the converged-gate,
+narrow band, and banded metrics is the next step.
 
 ## Step 1 — Determinism
 
@@ -179,22 +191,20 @@ providers) and a clean Step 2 on Mistral:
 
 **Next, to firm this up:**
 
-1. **Re-run Step 1 and Step 2** against the regenerated fixtures with the
-   `temperature: 0` + discrete-viability build (default `--temperature 0.0`).
-   The spot check says the single-scenario case is now fully reproducible but
-   multi-scenario fixtures are not — a full run confirms how far that goes.
-2. Raise `--top-n` to ≥ 8 and `--runs` to ≥ 15 against a local Ollama model (no
-   token cap, no per-call cost). Report a pooled Kendall τ with a bootstrap CI
-   instead of per-fixture point estimates, and show the random-reshuffle baseline
-   next to it.
-3. Add a `top_k_recurrence` metric — over N runs, how often the same top-3
-   debated scenarios (and the same #1) come back. That is the number an analyst
-   triaging the report actually depends on.
-4. Instrument per run / per scenario: `round_count`, clean-vs-degraded turn,
-   and the exact debated set — to attribute residual noise to a specific stage.
-5. GDAF confidence bands: with `path_score`s clustered within ~0.1, any
-   re-scoring reshuffles close scenarios. Report ties / bands instead of a strict
-   order so a one-notch debate shift stops mattering.
+1. **Re-run Step 1 and Step 2** against the regenerated fixtures with the full
+   current build (temp 0, discrete viability, converged-gate, narrow band,
+   banded metrics). Read `rank_stability_banded` and `top1_recurrence` as the
+   headline — the raw `rank_stability_debated` is expected to stay low while the
+   banded value is what matters for a real decision.
+2. Raise `--top-n` to ≥ 8 and `--runs` to ≥ 15. On a paid tier or a local model
+   (Ollama) the token caps stop mattering; k = 3 makes the raw τ far too coarse
+   (it can only take four values). Add a pooled Kendall τ across fixtures with a
+   bootstrap CI rather than per-fixture point estimates.
+3. Instrument per run / per scenario: `round_count`, clean-vs-degraded turn, and
+   the exact debated set — to attribute residual noise to a specific stage.
+
+The harness already reports `rank_stability_banded`, `top1_recurrence`,
+`topk_set_recurrence` and `rank_stability_random_baseline`; item 1 is just a run.
 
 ## Limitations
 

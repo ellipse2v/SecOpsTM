@@ -236,13 +236,17 @@ gdaf:
 # Red/Blue adversarial debate over the top-N GDAF attack scenarios (opt-in).
 # See docs/gdaf.md. Runs after GDAF and before the HTML report is written.
 debate:
+  # Adversarial Review. The re-score is a directional nudge, not a precise number
+  # (see docs/evaluation.md); the Red/Blue narrative and detection-gap list are
+  # the parts to rely on.
   enabled: true
   top_n: 5
   min_viability_threshold: 0.5
   max_rounds: 3
   viability_delta_threshold: 0.1
-  debate_factor_min: 0.5
-  debate_factor_max: 1.5
+  # Narrow band: the debate nudges a GDAF score, it does not overrule it.
+  debate_factor_min: 0.8
+  debate_factor_max: 1.2
   # 0.0 = greedy. The re-score did not reproduce run-to-run at the provider
   # default temperature (see docs/evaluation.md). Set to null to use the
   # provider's own temperature instead.

@@ -140,6 +140,31 @@ def risk_levels(scenarios: List[AttackScenario]) -> Dict[str, str]:
     return {s.scenario_id: s.risk_level for s in scenarios}
 
 
+def band_ranks(scenarios: List[AttackScenario], rel_tol: float = 0.05) -> Dict[str, int]:
+    """Map each scenario id to a confidence-band index (0 = highest-risk band).
+
+    Scenarios are sorted by path_score desc; a new band starts when the gap to the
+    previous score exceeds ``rel_tol`` of the top score. Ranking metrics computed
+    over band indices (rather than the strict order) stop penalising the debate for
+    permuting scenarios whose scores were never distinguishable — see
+    docs/evaluation.md "GDAF confidence bands".
+    """
+    ordered = sorted(scenarios, key=lambda s: (-s.path_score, s.scenario_id))
+    if not ordered:
+        return {}
+    top = ordered[0].path_score or 1.0
+    tol = abs(top) * rel_tol
+    out: Dict[str, int] = {}
+    band = 0
+    prev = ordered[0].path_score
+    for s in ordered:
+        if prev - s.path_score > tol:
+            band += 1
+        out[s.scenario_id] = band
+        prev = s.path_score
+    return out
+
+
 # ---------------------------------------------------------------------------
 # Provider forcing + debate run wrapper
 # ---------------------------------------------------------------------------
