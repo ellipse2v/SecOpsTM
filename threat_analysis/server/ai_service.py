@@ -25,6 +25,7 @@ from threat_analysis.utils import extract_json_from_llm_response
 from pytm import Threat  # Keep original Threat import for direct pytm usage where needed
 from threat_analysis.core.models_module import ExtendedThreat
 from threat_analysis.core.ai_cache import AIThreatCache
+from threat_analysis.core.ai_threat_grounding import score_grounding
 from threat_analysis.ai_engine.rag_service import RAGThreatGenerator
 from threat_analysis.ai_engine.providers.base_provider import BaseLLMProvider
 from threat_analysis.ai_engine.providers.litellm_provider import LiteLLMProvider
@@ -767,12 +768,25 @@ class AIService:
                 "outbound_flows": "\n".join(f"  - {f}" for f in outbound) if outbound else "  None",
             }
 
-        def _apply_threats_to_element(element, ai_threats_json: List[Dict]) -> None:
-            """Convert a list of threat dicts to ExtendedThreat objects on element."""
+        def _apply_threats_to_element(element, ai_threats_json: List[Dict], details: Dict) -> None:
+            """Convert a list of threat dicts to ExtendedThreat objects on element.
+
+            Each threat's ``confidence`` is replaced by a grounded value derived from
+            what it gets right about this component (see ai_threat_grounding) — the
+            LLM's self-reported number is not trusted (docs/evaluation.md).
+            """
             severity_map = {"critical": 5, "high": 4, "medium": 3, "low": 2, "info": 1}
             likelihood_map = {"high": 5, "medium": 3, "low": 1}
 
             candidates = [t for t in (ai_threats_json or []) if isinstance(t, dict)]
+            for t in candidates:
+                g = score_grounding(t, details)
+                # keep the LLM's original number once; re-derivation on a cache hit
+                # must not clobber it with the already-derived value
+                t.setdefault("llm_confidence", t.get("confidence"))
+                t["confidence"] = g.confidence
+                t["grounding_flags"] = g.flags
+                t["grounding_signals"] = g.signals
             if self.confidence_threshold > 0:
                 candidates = [
                     t for t in candidates
@@ -811,8 +825,14 @@ class AIService:
                     if isinstance(c, str) and c.upper().startswith('CAPEC-')
                 ]
                 new_threat.ai_details = threat_json
+                new_threat.confidence = float(threat_json.get('confidence', 0.5))
+                new_threat.grounding_flags = list(threat_json.get('grounding_flags', []))
+                new_threat.grounding_signals = list(threat_json.get('grounding_signals', []))
                 element.threats.append(new_threat)
-                logging.info("Added AI threat '%s' to %s", title, element.name)
+                logging.info(
+                    "Added AI threat '%s' to %s (confidence %.1f, %d flag(s))",
+                    title, element.name, new_threat.confidence, len(new_threat.grounding_flags),
+                )
 
         async def _update_progress(name: str) -> None:
             nonlocal processed_elements
@@ -842,7 +862,7 @@ class AIService:
             if cached is not None:
                 logging.debug("AI cache HIT  %-32s [%s]  (%d threats)",
                               details["name"], h[:8], len(cached))
-                _apply_threats_to_element(element, cached)
+                _apply_threats_to_element(element, cached, details)
                 await _update_progress(details["name"])
 
         uncached = [(elem, det, h) for elem, det, h, cached in all_prepared if cached is None]
@@ -855,7 +875,7 @@ class AIService:
         async def _enrich_batch(batch: List) -> None:
             """Send one batch of components to the LLM and distribute results."""
             components = [det for _, det, _ in batch]
-            elem_by_name = {det["name"]: (elem, h) for elem, det, h in batch}
+            elem_by_name = {det["name"]: (elem, h, det) for elem, det, h in batch}
 
             async with self._ai_semaphore:
                 results: Dict[str, List[Dict]] = await self.provider.generate_threats_batch(
@@ -867,9 +887,9 @@ class AIService:
             # Distribute results back to elements
             for comp_name, threats_json in results.items():
                 if comp_name in elem_by_name:
-                    elem, h = elem_by_name[comp_name]
+                    elem, h, det = elem_by_name[comp_name]
                     cache.put(h, comp_name, provider_name, threats_json or [])
-                    _apply_threats_to_element(elem, threats_json)
+                    _apply_threats_to_element(elem, threats_json, det)
                     logging.debug("AI cache MISS %-32s [%s]  → stored %d threats (batch)",
                                   comp_name, h[:8], len(threats_json or []))
 
@@ -901,7 +921,7 @@ class AIService:
             cache.put(h, det["name"], provider_name, threats_json or [])
             logging.debug("AI cache MISS %-32s [%s]  → stored %d threats",
                           det["name"], h[:8], len(threats_json or []))
-            _apply_threats_to_element(elem, threats_json)
+            _apply_threats_to_element(elem, threats_json, det)
             await _update_progress(det["name"])
 
         if uncached:

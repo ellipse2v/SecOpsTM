@@ -246,8 +246,12 @@ def test_enrich_with_ai_threats_confidence_threshold_filters_low_confidence(ai_s
         threat_model.dataflows = []
         threat_model.tm.description = "System desc"
 
-        low_conf = {"title": "Low", "description": "d", "category": "Spoofing", "confidence": 0.3}
-        high_conf = {"title": "High", "description": "d", "category": "Spoofing", "confidence": 0.9}
+        # confidence is now GROUNDING-derived, not the LLM's number (docs/evaluation.md):
+        # "Low" cites a CVE (a STRIDE threat is never CVE-grounded) -> flagged -> low
+        # "High" targets real (absent) controls -> grounded -> high
+        low_conf = {"title": "Low", "description": "RCE via CVE-2019-0708", "category": "Spoofing"}
+        high_conf = {"title": "High", "description": "auth bypass with no WAF, no MFA, no IDS",
+                     "category": "Spoofing", "capec_ids": ["CAPEC-115"]}
         ai_service.provider.generate_threats_batch = AsyncMock(
             return_value={"Actor 1": [low_conf, high_conf]}
         )
@@ -283,8 +287,9 @@ def test_enrich_with_ai_threats_max_threats_per_component_caps_and_keeps_highest
         threat_model.dataflows = []
         threat_model.tm.description = "System desc"
 
-        low = {"title": "Low", "description": "d", "category": "Spoofing", "confidence": 0.4}
-        high = {"title": "High", "description": "d", "category": "Spoofing", "confidence": 0.95}
+        low = {"title": "Low", "description": "RCE via CVE-2019-0708", "category": "Spoofing"}
+        high = {"title": "High", "description": "auth bypass with no WAF, no MFA, no IDS",
+                "category": "Spoofing", "capec_ids": ["CAPEC-115"]}
         ai_service.provider.generate_threats_batch = AsyncMock(
             return_value={"Actor 1": [low, high]}
         )

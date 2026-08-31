@@ -485,6 +485,7 @@ class ScoringMixin:
                     "confidence": getattr(et, 'confidence', 0.9),
                     "source": "AI",
                     "risk_signals": score_result["risk_signals"],
+                    "grounding_flags": list(getattr(et, "grounding_flags", []) or []),
                     "soc_analysis": (getattr(et, "ai_details", {}) or {}).get("soc_analysis"),
                 })
 
