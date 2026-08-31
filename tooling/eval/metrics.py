@@ -58,8 +58,11 @@ def kendall_tau_values(vals_a: List[float], vals_b: List[float]) -> float:
     """
     if len(vals_a) != len(vals_b) or len(vals_a) < 2:
         return 1.0
+    if list(vals_a) == list(vals_b):
+        return 1.0  # identical position-by-position — incl. an all-one-band vector,
+        # where scipy would return NaN for lack of variance. Nothing was reordered.
     tau = kendalltau(vals_a, vals_b).statistic
-    return 0.0 if tau != tau else float(tau)  # NaN guard (a vector with no variation)
+    return 0.0 if tau != tau else float(tau)  # NaN guard
 
 
 def spearman_rho(order_a: List[str], order_b: List[str]) -> float:

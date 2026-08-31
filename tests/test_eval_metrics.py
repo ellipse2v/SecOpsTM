@@ -18,6 +18,7 @@ import pytest
 
 from tooling.eval.metrics import (
     kendall_tau,
+    kendall_tau_values,
     spearman_rho,
     top_k_jaccard,
     max_displacement,
@@ -44,6 +45,25 @@ def test_kendall_tau_single_adjacent_swap():
 def test_kendall_tau_ignores_element_order_of_args_only_ranking_matters():
     # same ranking expressed with a different id set order in order_b's construction
     assert kendall_tau(["x", "y", "z"], ["x", "y", "z"]) == pytest.approx(1.0)
+
+
+def test_kendall_tau_values_identical_vectors():
+    assert kendall_tau_values([0, 0, 1, 2], [0, 0, 1, 2]) == pytest.approx(1.0)
+
+
+def test_kendall_tau_values_all_one_band_is_one_not_nan():
+    # every scenario in the same band -> constant vector -> scipy returns NaN.
+    # Correct answer: nothing was reordered across bands -> 1.0.
+    assert kendall_tau_values([0, 0, 0, 0], [0, 0, 0, 0]) == pytest.approx(1.0)
+
+
+def test_kendall_tau_values_cross_band_move_drops_it():
+    # a scenario in band 1 jumped ahead of a band-0 scenario
+    assert kendall_tau_values([0, 0, 1], [0, 1, 0]) < 1.0
+
+
+def test_kendall_tau_values_length_mismatch_is_one():
+    assert kendall_tau_values([0, 1], [0, 1, 2]) == pytest.approx(1.0)
 
 
 def test_spearman_rho_identical_is_one():
