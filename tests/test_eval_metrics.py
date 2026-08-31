@@ -47,6 +47,21 @@ def test_kendall_tau_ignores_element_order_of_args_only_ranking_matters():
     assert kendall_tau(["x", "y", "z"], ["x", "y", "z"]) == pytest.approx(1.0)
 
 
+def test_ai_threats_fuzzy_match_and_dice():
+    from tooling.eval.ai_threats import _threat_key, _same, _dice
+
+    a = {"target": "web", "category": "Tampering", "title": "Auth bypass via malformed JWT on /token"}
+    b = {"target": "web", "category": "Tampering", "title": "JWT auth bypass on the /token endpoint"}
+    c = {"target": "web", "category": "Spoofing", "title": "Cache poisoning through unvalidated DNS"}
+    ka, kb, kc = _threat_key(a), _threat_key(b), _threat_key(c)
+
+    assert _same(ka, kb) is True          # paraphrase of the same threat
+    assert _same(ka, kc) is False         # different category + content
+    assert _dice([ka, kc], [ka, kc]) == pytest.approx(1.0)
+    assert _dice([ka], [kc]) == pytest.approx(0.0)
+    assert 0.0 < _dice([ka, kc], [kb]) < 1.0
+
+
 def test_kendall_tau_values_identical_vectors():
     assert kendall_tau_values([0, 0, 1, 2], [0, 0, 1, 2]) == pytest.approx(1.0)
 
