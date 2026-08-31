@@ -1637,7 +1637,7 @@
                     <div style="font-size:0.75rem;color:var(--text-secondary);">{{ s.actor_sophistication }}</div>
                   </td>
                   <td class="gdaf-path">{{ s.path }}</td>
-                  <td class="gdaf-score-{{ s.risk_level | lower }}"{% if s.pre_debate_score is not none %} title="Adjusted by Red/Blue debate — original score: {{ s.pre_debate_score }}"{% endif %}>{{ s.score }}{% if s.pre_debate_score is not none %}&nbsp;<a href="#debate-{{ s.scenario_id }}" onclick="event.stopPropagation();" title="Jump to debate transcript">🥊</a>{% endif %}</td>
+                  <td class="gdaf-score-{{ s.risk_level | lower }}"{% if s.pre_debate_score is not none %} title="Adversarial review adjusted this (directional) — pre-review score: {{ s.pre_debate_score }}"{% endif %}>{{ s.score }}{% if s.pre_debate_score is not none %}&nbsp;<a href="#debate-{{ s.scenario_id }}" onclick="event.stopPropagation();" title="Jump to the adversarial review">🥊</a>{% endif %}</td>
                   <td style="text-align:center;">{{ s.hop_count }}</td>
                   <td style="text-align:center;font-size:0.8rem;">{{ "%.0f%%"|format(s.detection_coverage * 100) }}</td>
                 </tr>
@@ -1746,15 +1746,16 @@
         <details class="gdaf-section technical-section">
           <summary>
             <span class="gdaf-summary-arrow"></span>
-            🥊 Red/Blue Adversarial Debate
+            🥊 Adversarial Review
             <span class="gdaf-badge-count">{{ debate_results | length }}</span>
-            <span class="gdaf-hint">Adversarial challenge on top attack paths — click to expand</span>
+            <span class="gdaf-hint">Red (attack) vs. Blue (defence) challenge on top attack paths — click to expand</span>
           </summary>
           <div class="gdaf-content">
             <p class="gdaf-description">
-              Each residual attack path below survived a multi-round Red (attack) vs. Blue (defence)
-              debate. The headline is what Blue blocked and where detection gaps remain — not the
-              round count.
+              Each top attack path below was challenged in a multi-round Red (attack) vs. Blue
+              (defence) exchange. Read it for what Blue blocked, where detection gaps remain, and
+              what Red tried and failed. The verdict is a qualitative outcome — the numeric score
+              adjustment it drives is directional, not precise (see <code>docs/evaluation.md</code>).
             </p>
             {% for d in debate_results %}
             <div class="debate-card" id="debate-{{ d.scenario_id }}" style="scroll-margin-top:80px;">
@@ -1767,9 +1768,9 @@
                 <span class="gdaf-path">{{ d.entry_point }} → {{ d.target_asset }}</span>
               </div>
               <p class="debate-summary-line">
-                Detection gaps confirmed via adversarial challenge → Red tried and failed to bypass
-                {{ d.blocked_paths | length }} technique(s) → residual viability
-                {{ "%.0f%%"|format(d.final_viability * 100) }}.
+                <strong>Verdict: {{ d.verdict_label }}.</strong>
+                Red tried and failed to bypass {{ d.blocked_paths | length }} technique(s);
+                {{ d.residual_detection_gaps | length }} detection gap(s) remain.
               </p>
 
               {% if d.blocked_paths %}
@@ -1818,8 +1819,8 @@
 
               <div class="debate-footnote">
                 {{ d.round_count }} round(s) · converged: {{ 'yes' if d.converged else 'no' }}
-                · convergence delta: {{ d.convergence_delta }}
-                · score adjustment factor: {{ d.debate_factor }}×
+                · score adjustment: {{ d.debate_factor }}× (directional — see
+                <code>docs/evaluation.md</code>)
               </div>
 
               <details class="debate-transcript">
@@ -1827,7 +1828,7 @@
                 {% for turn in d.rounds %}
                 <div class="debate-turn debate-turn-{{ turn.role }}">
                   <div class="debate-turn-header">
-                    Round {{ turn.round_index + 1 }} · {{ turn.role | upper }} · viability {{ "%.2f"|format(turn.viability_score) }}
+                    Round {{ turn.round_index + 1 }} · {{ turn.role | upper }} · viability estimate {{ "%.2f"|format(turn.viability_score) }}
                   </div>
                   <div class="debate-turn-rationale">{{ turn.rationale }}</div>
                   {% if turn.evidence %}

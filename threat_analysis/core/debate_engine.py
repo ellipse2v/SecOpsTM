@@ -88,6 +88,17 @@ def _clamp(value: float, low: float = 0.0, high: float = 1.0) -> float:
     return max(low, min(high, value))
 
 
+# Viability is reported on a fixed 5-point grid, not a free 0.0–1.0 float. The
+# evaluation (docs/evaluation.md) showed a free float gave a re-score that did not
+# reproduce run to run; snapping to discrete anchors removes that fine-grained noise.
+_VIABILITY_GRID = (0.0, 0.25, 0.5, 0.75, 1.0)
+
+
+def _snap(value: float) -> float:
+    """Snap a viability estimate to the nearest anchor on the 5-point grid."""
+    return min(_VIABILITY_GRID, key=lambda g: abs(g - _clamp(value)))
+
+
 class RedBlueDebateEngine:
     """Runs the Red/Blue debate loop over GDAF AttackScenario objects.
 
@@ -110,6 +121,9 @@ class RedBlueDebateEngine:
         self.viability_delta_threshold: float = float(cfg.get("viability_delta_threshold", 0.1))
         self.debate_factor_min: float = float(cfg.get("debate_factor_min", 0.5))
         self.debate_factor_max: float = float(cfg.get("debate_factor_max", 1.5))
+        # None → provider default. 0.0 = greedy, recommended (see docs/evaluation.md).
+        _temp = cfg.get("temperature")
+        self._temperature: Optional[float] = None if _temp is None else float(_temp)
         self._bom_directory = bom_directory
 
     async def run(self, scenarios: List[Any]) -> List[DebateResult]:
@@ -198,7 +212,11 @@ class RedBlueDebateEngine:
                 break
             rounds.append(blue_turn)
 
-            viability = _clamp(red_turn.viability_score - 0.15 * len(blue_turn.techniques_blocked))
+            # Discrete: the path is only as viable as the more pessimistic of Red's
+            # and Blue's snapped estimates. No continuous term — a raw count of
+            # `techniques_blocked` (an LLM-generated list whose length swings) used
+            # to drive the score and was a major noise source.
+            viability = min(red_turn.viability_score, blue_turn.viability_score)
             convergence_delta = abs(viability - prev_viability)
             blue_prior = self._summarize_turn(blue_turn)
             final_viability = viability
@@ -245,7 +263,9 @@ class RedBlueDebateEngine:
             return None
 
         try:
-            raw = await self.provider.generate_debate_turn(user_prompt, system_prompt)
+            raw = await self.provider.generate_debate_turn(
+                user_prompt, system_prompt, temperature=self._temperature
+            )
         except Exception as exc:
             logger.warning(
                 "Red/Blue debate: %s turn failed for scenario %s: %s",
@@ -264,7 +284,7 @@ class RedBlueDebateEngine:
             return DebateTurn(
                 role=role,
                 round_index=round_index,
-                viability_score=_clamp(float(raw.get("viability_score", 0.0))),
+                viability_score=_snap(float(raw.get("viability_score", 0.0))),
                 techniques_attempted=list(raw.get("techniques_attempted") or []),
                 techniques_blocked=list(raw.get("techniques_blocked") or []),
                 detection_gaps=self._parse_detection_gaps(raw.get("detection_gaps")),

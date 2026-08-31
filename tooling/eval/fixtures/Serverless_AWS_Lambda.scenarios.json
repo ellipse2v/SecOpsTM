@@ -1,6 +1,6 @@
 [
   {
-    "scenario_id": "GDAF-95D36061",
+    "scenario_id": "GDAF-EDACDE64",
     "objective_id": "OBJ-AUTO-001",
     "objective_name": "Compromise high-value assets",
     "objective_description": "Auto-generated objective: reach the highest-CIA servers",
@@ -17,35 +17,43 @@
         "asset_type": "waf",
         "techniques": [
           {
-            "id": "T1133",
-            "name": "External Remote Services",
+            "id": "T1078",
+            "name": "Valid Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "persistence"
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1133"
+            "url": "https://attack.mitre.org/techniques/T1078"
           },
           {
-            "id": "T1195.001",
-            "name": "Compromise Software Dependencies and Development Tools",
+            "id": "T1078.001",
+            "name": "Default Accounts",
             "tactics": [
-              "initial-access"
+              "defense-evasion",
+              "initial-access",
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1195/001"
+            "url": "https://attack.mitre.org/techniques/T1078/001"
           },
           {
-            "id": "T1566.002",
-            "name": "Spearphishing Link",
+            "id": "T1078.002",
+            "name": "Domain Accounts",
             "tactics": [
-              "initial-access"
+              "defense-evasion",
+              "initial-access",
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1566/002"
+            "url": "https://attack.mitre.org/techniques/T1078/002"
           }
         ],
         "dataflow_name": "User API Request",
@@ -60,41 +68,43 @@
         "asset_type": "api_gateway",
         "techniques": [
           {
-            "id": "T1091",
-            "name": "Replication Through Removable Media",
+            "id": "T1078",
+            "name": "Valid Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "lateral-movement"
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1091"
+            "url": "https://attack.mitre.org/techniques/T1078"
           },
           {
             "id": "T1078.001",
             "name": "Default Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "privilege-escalation",
               "persistence",
-              "defense-evasion"
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
             "url": "https://attack.mitre.org/techniques/T1078/001"
           },
           {
-            "id": "T1078",
-            "name": "Valid Accounts",
+            "id": "T1078.002",
+            "name": "Domain Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "privilege-escalation",
               "persistence",
-              "defense-evasion"
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1078"
+            "url": "https://attack.mitre.org/techniques/T1078/002"
           }
         ],
         "dataflow_name": "WAF to API GW REST",
@@ -109,34 +119,34 @@
         "asset_type": "faas",
         "techniques": [
           {
-            "id": "T1021.005",
-            "name": "VNC",
+            "id": "T1021",
+            "name": "Remote Services",
             "tactics": [
               "lateral-movement"
             ],
             "score": 1.5,
             "rationale": "platform match, primary tactic, hop position, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1021/005"
+            "url": "https://attack.mitre.org/techniques/T1021"
           },
           {
-            "id": "T1080",
-            "name": "Taint Shared Content",
+            "id": "T1021.001",
+            "name": "Remote Desktop Protocol",
             "tactics": [
               "lateral-movement"
             ],
             "score": 1.5,
             "rationale": "platform match, primary tactic, hop position, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1080"
+            "url": "https://attack.mitre.org/techniques/T1021/001"
           },
           {
-            "id": "T1021.004",
-            "name": "SSH",
+            "id": "T1021.002",
+            "name": "SMB/Windows Admin Shares",
             "tactics": [
               "lateral-movement"
             ],
             "score": 1.5,
             "rationale": "platform match, primary tactic, hop position, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1021/004"
+            "url": "https://attack.mitre.org/techniques/T1021/002"
           }
         ],
         "dataflow_name": "API GW to Handler",
@@ -151,16 +161,6 @@
         "asset_type": "database",
         "techniques": [
           {
-            "id": "T1048",
-            "name": "Exfiltration Over Alternative Protocol",
-            "tactics": [
-              "exfiltration"
-            ],
-            "score": 1.8,
-            "rationale": "platform match, primary tactic, hop position, key technique",
-            "url": "https://attack.mitre.org/techniques/T1048"
-          },
-          {
             "id": "T1030",
             "name": "Data Transfer Size Limits",
             "tactics": [
@@ -171,15 +171,25 @@
             "url": "https://attack.mitre.org/techniques/T1030"
           },
           {
-            "id": "T1557",
-            "name": "Adversary-in-the-Middle",
+            "id": "T1048",
+            "name": "Exfiltration Over Alternative Protocol",
             "tactics": [
-              "credential-access",
-              "collection"
+              "exfiltration"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, key technique",
+            "url": "https://attack.mitre.org/techniques/T1048"
+          },
+          {
+            "id": "T1056",
+            "name": "Input Capture",
+            "tactics": [
+              "collection",
+              "credential-access"
             ],
             "score": 1.4,
             "rationale": "platform match, primary tactic, hop position, cleartext",
-            "url": "https://attack.mitre.org/techniques/T1557"
+            "url": "https://attack.mitre.org/techniques/T1056"
           }
         ],
         "dataflow_name": "Handler to DynamoDB",
@@ -197,7 +207,7 @@
     "min_technique_score": 0.8
   },
   {
-    "scenario_id": "GDAF-E85C95B4",
+    "scenario_id": "GDAF-EA7E989A",
     "objective_id": "OBJ-AUTO-001",
     "objective_name": "Compromise high-value assets",
     "objective_description": "Auto-generated objective: reach the highest-CIA servers",
@@ -214,35 +224,43 @@
         "asset_type": "waf",
         "techniques": [
           {
-            "id": "T1133",
-            "name": "External Remote Services",
+            "id": "T1078",
+            "name": "Valid Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "persistence"
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1133"
+            "url": "https://attack.mitre.org/techniques/T1078"
           },
           {
-            "id": "T1195.001",
-            "name": "Compromise Software Dependencies and Development Tools",
+            "id": "T1078.001",
+            "name": "Default Accounts",
             "tactics": [
-              "initial-access"
+              "defense-evasion",
+              "initial-access",
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1195/001"
+            "url": "https://attack.mitre.org/techniques/T1078/001"
           },
           {
-            "id": "T1566.002",
-            "name": "Spearphishing Link",
+            "id": "T1078.002",
+            "name": "Domain Accounts",
             "tactics": [
-              "initial-access"
+              "defense-evasion",
+              "initial-access",
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1566/002"
+            "url": "https://attack.mitre.org/techniques/T1078/002"
           }
         ],
         "dataflow_name": "Webhook from Third Party",
@@ -257,41 +275,43 @@
         "asset_type": "api_gateway",
         "techniques": [
           {
-            "id": "T1091",
-            "name": "Replication Through Removable Media",
+            "id": "T1078",
+            "name": "Valid Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "lateral-movement"
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1091"
+            "url": "https://attack.mitre.org/techniques/T1078"
           },
           {
             "id": "T1078.001",
             "name": "Default Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "privilege-escalation",
               "persistence",
-              "defense-evasion"
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
             "url": "https://attack.mitre.org/techniques/T1078/001"
           },
           {
-            "id": "T1078",
-            "name": "Valid Accounts",
+            "id": "T1078.002",
+            "name": "Domain Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "privilege-escalation",
               "persistence",
-              "defense-evasion"
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1078"
+            "url": "https://attack.mitre.org/techniques/T1078/002"
           }
         ],
         "dataflow_name": "WAF to API GW REST",
@@ -306,34 +326,34 @@
         "asset_type": "faas",
         "techniques": [
           {
-            "id": "T1021.005",
-            "name": "VNC",
+            "id": "T1021",
+            "name": "Remote Services",
             "tactics": [
               "lateral-movement"
             ],
             "score": 1.5,
             "rationale": "platform match, primary tactic, hop position, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1021/005"
+            "url": "https://attack.mitre.org/techniques/T1021"
           },
           {
-            "id": "T1080",
-            "name": "Taint Shared Content",
+            "id": "T1021.001",
+            "name": "Remote Desktop Protocol",
             "tactics": [
               "lateral-movement"
             ],
             "score": 1.5,
             "rationale": "platform match, primary tactic, hop position, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1080"
+            "url": "https://attack.mitre.org/techniques/T1021/001"
           },
           {
-            "id": "T1021.004",
-            "name": "SSH",
+            "id": "T1021.002",
+            "name": "SMB/Windows Admin Shares",
             "tactics": [
               "lateral-movement"
             ],
             "score": 1.5,
             "rationale": "platform match, primary tactic, hop position, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1021/004"
+            "url": "https://attack.mitre.org/techniques/T1021/002"
           }
         ],
         "dataflow_name": "API GW to Handler",
@@ -348,16 +368,6 @@
         "asset_type": "database",
         "techniques": [
           {
-            "id": "T1048",
-            "name": "Exfiltration Over Alternative Protocol",
-            "tactics": [
-              "exfiltration"
-            ],
-            "score": 1.8,
-            "rationale": "platform match, primary tactic, hop position, key technique",
-            "url": "https://attack.mitre.org/techniques/T1048"
-          },
-          {
             "id": "T1030",
             "name": "Data Transfer Size Limits",
             "tactics": [
@@ -368,15 +378,25 @@
             "url": "https://attack.mitre.org/techniques/T1030"
           },
           {
-            "id": "T1557",
-            "name": "Adversary-in-the-Middle",
+            "id": "T1048",
+            "name": "Exfiltration Over Alternative Protocol",
             "tactics": [
-              "credential-access",
-              "collection"
+              "exfiltration"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, key technique",
+            "url": "https://attack.mitre.org/techniques/T1048"
+          },
+          {
+            "id": "T1056",
+            "name": "Input Capture",
+            "tactics": [
+              "collection",
+              "credential-access"
             ],
             "score": 1.4,
             "rationale": "platform match, primary tactic, hop position, cleartext",
-            "url": "https://attack.mitre.org/techniques/T1557"
+            "url": "https://attack.mitre.org/techniques/T1056"
           }
         ],
         "dataflow_name": "Handler to DynamoDB",
@@ -394,7 +414,7 @@
     "min_technique_score": 0.8
   },
   {
-    "scenario_id": "GDAF-7B492560",
+    "scenario_id": "GDAF-1DC4B799",
     "objective_id": "OBJ-AUTO-001",
     "objective_name": "Compromise high-value assets",
     "objective_description": "Auto-generated objective: reach the highest-CIA servers",
@@ -411,35 +431,43 @@
         "asset_type": "waf",
         "techniques": [
           {
-            "id": "T1133",
-            "name": "External Remote Services",
+            "id": "T1078",
+            "name": "Valid Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "persistence"
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1133"
+            "url": "https://attack.mitre.org/techniques/T1078"
           },
           {
-            "id": "T1195.001",
-            "name": "Compromise Software Dependencies and Development Tools",
+            "id": "T1078.001",
+            "name": "Default Accounts",
             "tactics": [
-              "initial-access"
+              "defense-evasion",
+              "initial-access",
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1195/001"
+            "url": "https://attack.mitre.org/techniques/T1078/001"
           },
           {
-            "id": "T1566.002",
-            "name": "Spearphishing Link",
+            "id": "T1078.002",
+            "name": "Domain Accounts",
             "tactics": [
-              "initial-access"
+              "defense-evasion",
+              "initial-access",
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1566/002"
+            "url": "https://attack.mitre.org/techniques/T1078/002"
           }
         ],
         "dataflow_name": "Attacker brute-force API",
@@ -454,41 +482,43 @@
         "asset_type": "api_gateway",
         "techniques": [
           {
-            "id": "T1091",
-            "name": "Replication Through Removable Media",
+            "id": "T1078",
+            "name": "Valid Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "lateral-movement"
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1091"
+            "url": "https://attack.mitre.org/techniques/T1078"
           },
           {
             "id": "T1078.001",
             "name": "Default Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "privilege-escalation",
               "persistence",
-              "defense-evasion"
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
             "url": "https://attack.mitre.org/techniques/T1078/001"
           },
           {
-            "id": "T1078",
-            "name": "Valid Accounts",
+            "id": "T1078.002",
+            "name": "Domain Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "privilege-escalation",
               "persistence",
-              "defense-evasion"
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1078"
+            "url": "https://attack.mitre.org/techniques/T1078/002"
           }
         ],
         "dataflow_name": "WAF to API GW REST",
@@ -503,34 +533,34 @@
         "asset_type": "faas",
         "techniques": [
           {
-            "id": "T1021.005",
-            "name": "VNC",
+            "id": "T1021",
+            "name": "Remote Services",
             "tactics": [
               "lateral-movement"
             ],
             "score": 1.5,
             "rationale": "platform match, primary tactic, hop position, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1021/005"
+            "url": "https://attack.mitre.org/techniques/T1021"
           },
           {
-            "id": "T1080",
-            "name": "Taint Shared Content",
+            "id": "T1021.001",
+            "name": "Remote Desktop Protocol",
             "tactics": [
               "lateral-movement"
             ],
             "score": 1.5,
             "rationale": "platform match, primary tactic, hop position, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1080"
+            "url": "https://attack.mitre.org/techniques/T1021/001"
           },
           {
-            "id": "T1021.004",
-            "name": "SSH",
+            "id": "T1021.002",
+            "name": "SMB/Windows Admin Shares",
             "tactics": [
               "lateral-movement"
             ],
             "score": 1.5,
             "rationale": "platform match, primary tactic, hop position, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1021/004"
+            "url": "https://attack.mitre.org/techniques/T1021/002"
           }
         ],
         "dataflow_name": "API GW to Handler",
@@ -545,16 +575,6 @@
         "asset_type": "database",
         "techniques": [
           {
-            "id": "T1048",
-            "name": "Exfiltration Over Alternative Protocol",
-            "tactics": [
-              "exfiltration"
-            ],
-            "score": 1.8,
-            "rationale": "platform match, primary tactic, hop position, key technique",
-            "url": "https://attack.mitre.org/techniques/T1048"
-          },
-          {
             "id": "T1030",
             "name": "Data Transfer Size Limits",
             "tactics": [
@@ -565,15 +585,25 @@
             "url": "https://attack.mitre.org/techniques/T1030"
           },
           {
-            "id": "T1557",
-            "name": "Adversary-in-the-Middle",
+            "id": "T1048",
+            "name": "Exfiltration Over Alternative Protocol",
             "tactics": [
-              "credential-access",
-              "collection"
+              "exfiltration"
+            ],
+            "score": 1.8,
+            "rationale": "platform match, primary tactic, hop position, key technique",
+            "url": "https://attack.mitre.org/techniques/T1048"
+          },
+          {
+            "id": "T1056",
+            "name": "Input Capture",
+            "tactics": [
+              "collection",
+              "credential-access"
             ],
             "score": 1.4,
             "rationale": "platform match, primary tactic, hop position, cleartext",
-            "url": "https://attack.mitre.org/techniques/T1557"
+            "url": "https://attack.mitre.org/techniques/T1056"
           }
         ],
         "dataflow_name": "Handler to DynamoDB",
@@ -591,7 +621,7 @@
     "min_technique_score": 0.8
   },
   {
-    "scenario_id": "GDAF-8CC41F1D",
+    "scenario_id": "GDAF-55483A4A",
     "objective_id": "OBJ-AUTO-001",
     "objective_name": "Compromise high-value assets",
     "objective_description": "Auto-generated objective: reach the highest-CIA servers",
@@ -608,35 +638,43 @@
         "asset_type": "waf",
         "techniques": [
           {
-            "id": "T1133",
-            "name": "External Remote Services",
+            "id": "T1078",
+            "name": "Valid Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "persistence"
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1133"
+            "url": "https://attack.mitre.org/techniques/T1078"
           },
           {
-            "id": "T1195.001",
-            "name": "Compromise Software Dependencies and Development Tools",
+            "id": "T1078.001",
+            "name": "Default Accounts",
             "tactics": [
-              "initial-access"
+              "defense-evasion",
+              "initial-access",
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1195/001"
+            "url": "https://attack.mitre.org/techniques/T1078/001"
           },
           {
-            "id": "T1566.002",
-            "name": "Spearphishing Link",
+            "id": "T1078.002",
+            "name": "Domain Accounts",
             "tactics": [
-              "initial-access"
+              "defense-evasion",
+              "initial-access",
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1566/002"
+            "url": "https://attack.mitre.org/techniques/T1078/002"
           }
         ],
         "dataflow_name": "User API Request",
@@ -651,41 +689,43 @@
         "asset_type": "api_gateway",
         "techniques": [
           {
-            "id": "T1091",
-            "name": "Replication Through Removable Media",
+            "id": "T1078",
+            "name": "Valid Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "lateral-movement"
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1091"
+            "url": "https://attack.mitre.org/techniques/T1078"
           },
           {
             "id": "T1078.001",
             "name": "Default Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "privilege-escalation",
               "persistence",
-              "defense-evasion"
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
             "url": "https://attack.mitre.org/techniques/T1078/001"
           },
           {
-            "id": "T1078",
-            "name": "Valid Accounts",
+            "id": "T1078.002",
+            "name": "Domain Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "privilege-escalation",
               "persistence",
-              "defense-evasion"
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1078"
+            "url": "https://attack.mitre.org/techniques/T1078/002"
           }
         ],
         "dataflow_name": "WAF to API GW REST",
@@ -700,34 +740,34 @@
         "asset_type": "faas",
         "techniques": [
           {
-            "id": "T1021.005",
-            "name": "VNC",
+            "id": "T1021",
+            "name": "Remote Services",
             "tactics": [
               "lateral-movement"
             ],
             "score": 1.5,
             "rationale": "platform match, primary tactic, hop position, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1021/005"
+            "url": "https://attack.mitre.org/techniques/T1021"
           },
           {
-            "id": "T1080",
-            "name": "Taint Shared Content",
+            "id": "T1021.001",
+            "name": "Remote Desktop Protocol",
             "tactics": [
               "lateral-movement"
             ],
             "score": 1.5,
             "rationale": "platform match, primary tactic, hop position, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1080"
+            "url": "https://attack.mitre.org/techniques/T1021/001"
           },
           {
-            "id": "T1021.004",
-            "name": "SSH",
+            "id": "T1021.002",
+            "name": "SMB/Windows Admin Shares",
             "tactics": [
               "lateral-movement"
             ],
             "score": 1.5,
             "rationale": "platform match, primary tactic, hop position, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1021/004"
+            "url": "https://attack.mitre.org/techniques/T1021/002"
           }
         ],
         "dataflow_name": "API GW to Handler",
@@ -742,37 +782,35 @@
         "asset_type": "database",
         "techniques": [
           {
-            "id": "T1557",
-            "name": "Adversary-in-the-Middle",
+            "id": "T1030",
+            "name": "Data Transfer Size Limits",
             "tactics": [
-              "credential-access",
-              "collection"
+              "exfiltration"
             ],
             "score": 1.8,
-            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
-            "url": "https://attack.mitre.org/techniques/T1557"
+            "rationale": "platform match, primary tactic, hop position, key technique",
+            "url": "https://attack.mitre.org/techniques/T1030"
           },
           {
-            "id": "T1056.001",
-            "name": "Keylogging",
+            "id": "T1048",
+            "name": "Exfiltration Over Alternative Protocol",
             "tactics": [
-              "credential-access",
-              "collection"
+              "exfiltration"
             ],
             "score": 1.8,
-            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
-            "url": "https://attack.mitre.org/techniques/T1056/001"
+            "rationale": "platform match, primary tactic, hop position, key technique",
+            "url": "https://attack.mitre.org/techniques/T1048"
           },
           {
-            "id": "T1557.003",
-            "name": "DHCP Spoofing",
+            "id": "T1056",
+            "name": "Input Capture",
             "tactics": [
-              "credential-access",
-              "collection"
+              "collection",
+              "credential-access"
             ],
             "score": 1.8,
             "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
-            "url": "https://attack.mitre.org/techniques/T1557/003"
+            "url": "https://attack.mitre.org/techniques/T1056"
           }
         ],
         "dataflow_name": "Handler to Aurora",
@@ -790,7 +828,7 @@
     "min_technique_score": 0.8
   },
   {
-    "scenario_id": "GDAF-A80E3D0A",
+    "scenario_id": "GDAF-C37EC6FB",
     "objective_id": "OBJ-AUTO-001",
     "objective_name": "Compromise high-value assets",
     "objective_description": "Auto-generated objective: reach the highest-CIA servers",
@@ -807,35 +845,43 @@
         "asset_type": "waf",
         "techniques": [
           {
-            "id": "T1133",
-            "name": "External Remote Services",
+            "id": "T1078",
+            "name": "Valid Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "persistence"
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1133"
+            "url": "https://attack.mitre.org/techniques/T1078"
           },
           {
-            "id": "T1195.001",
-            "name": "Compromise Software Dependencies and Development Tools",
+            "id": "T1078.001",
+            "name": "Default Accounts",
             "tactics": [
-              "initial-access"
+              "defense-evasion",
+              "initial-access",
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1195/001"
+            "url": "https://attack.mitre.org/techniques/T1078/001"
           },
           {
-            "id": "T1566.002",
-            "name": "Spearphishing Link",
+            "id": "T1078.002",
+            "name": "Domain Accounts",
             "tactics": [
-              "initial-access"
+              "defense-evasion",
+              "initial-access",
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1566/002"
+            "url": "https://attack.mitre.org/techniques/T1078/002"
           }
         ],
         "dataflow_name": "Webhook from Third Party",
@@ -850,41 +896,43 @@
         "asset_type": "api_gateway",
         "techniques": [
           {
-            "id": "T1091",
-            "name": "Replication Through Removable Media",
+            "id": "T1078",
+            "name": "Valid Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "lateral-movement"
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1091"
+            "url": "https://attack.mitre.org/techniques/T1078"
           },
           {
             "id": "T1078.001",
             "name": "Default Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "privilege-escalation",
               "persistence",
-              "defense-evasion"
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
             "url": "https://attack.mitre.org/techniques/T1078/001"
           },
           {
-            "id": "T1078",
-            "name": "Valid Accounts",
+            "id": "T1078.002",
+            "name": "Domain Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "privilege-escalation",
               "persistence",
-              "defense-evasion"
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1078"
+            "url": "https://attack.mitre.org/techniques/T1078/002"
           }
         ],
         "dataflow_name": "WAF to API GW REST",
@@ -899,34 +947,34 @@
         "asset_type": "faas",
         "techniques": [
           {
-            "id": "T1021.005",
-            "name": "VNC",
+            "id": "T1021",
+            "name": "Remote Services",
             "tactics": [
               "lateral-movement"
             ],
             "score": 1.5,
             "rationale": "platform match, primary tactic, hop position, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1021/005"
+            "url": "https://attack.mitre.org/techniques/T1021"
           },
           {
-            "id": "T1080",
-            "name": "Taint Shared Content",
+            "id": "T1021.001",
+            "name": "Remote Desktop Protocol",
             "tactics": [
               "lateral-movement"
             ],
             "score": 1.5,
             "rationale": "platform match, primary tactic, hop position, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1080"
+            "url": "https://attack.mitre.org/techniques/T1021/001"
           },
           {
-            "id": "T1021.004",
-            "name": "SSH",
+            "id": "T1021.002",
+            "name": "SMB/Windows Admin Shares",
             "tactics": [
               "lateral-movement"
             ],
             "score": 1.5,
             "rationale": "platform match, primary tactic, hop position, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1021/004"
+            "url": "https://attack.mitre.org/techniques/T1021/002"
           }
         ],
         "dataflow_name": "API GW to Handler",
@@ -941,37 +989,35 @@
         "asset_type": "database",
         "techniques": [
           {
-            "id": "T1557",
-            "name": "Adversary-in-the-Middle",
+            "id": "T1030",
+            "name": "Data Transfer Size Limits",
             "tactics": [
-              "credential-access",
-              "collection"
+              "exfiltration"
             ],
             "score": 1.8,
-            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
-            "url": "https://attack.mitre.org/techniques/T1557"
+            "rationale": "platform match, primary tactic, hop position, key technique",
+            "url": "https://attack.mitre.org/techniques/T1030"
           },
           {
-            "id": "T1056.001",
-            "name": "Keylogging",
+            "id": "T1048",
+            "name": "Exfiltration Over Alternative Protocol",
             "tactics": [
-              "credential-access",
-              "collection"
+              "exfiltration"
             ],
             "score": 1.8,
-            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
-            "url": "https://attack.mitre.org/techniques/T1056/001"
+            "rationale": "platform match, primary tactic, hop position, key technique",
+            "url": "https://attack.mitre.org/techniques/T1048"
           },
           {
-            "id": "T1557.003",
-            "name": "DHCP Spoofing",
+            "id": "T1056",
+            "name": "Input Capture",
             "tactics": [
-              "credential-access",
-              "collection"
+              "collection",
+              "credential-access"
             ],
             "score": 1.8,
             "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
-            "url": "https://attack.mitre.org/techniques/T1557/003"
+            "url": "https://attack.mitre.org/techniques/T1056"
           }
         ],
         "dataflow_name": "Handler to Aurora",
@@ -989,7 +1035,7 @@
     "min_technique_score": 0.8
   },
   {
-    "scenario_id": "GDAF-A91AB2D4",
+    "scenario_id": "GDAF-9B2FFCFD",
     "objective_id": "OBJ-AUTO-001",
     "objective_name": "Compromise high-value assets",
     "objective_description": "Auto-generated objective: reach the highest-CIA servers",
@@ -1006,35 +1052,43 @@
         "asset_type": "waf",
         "techniques": [
           {
-            "id": "T1133",
-            "name": "External Remote Services",
+            "id": "T1078",
+            "name": "Valid Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "persistence"
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1133"
+            "url": "https://attack.mitre.org/techniques/T1078"
           },
           {
-            "id": "T1195.001",
-            "name": "Compromise Software Dependencies and Development Tools",
+            "id": "T1078.001",
+            "name": "Default Accounts",
             "tactics": [
-              "initial-access"
+              "defense-evasion",
+              "initial-access",
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1195/001"
+            "url": "https://attack.mitre.org/techniques/T1078/001"
           },
           {
-            "id": "T1566.002",
-            "name": "Spearphishing Link",
+            "id": "T1078.002",
+            "name": "Domain Accounts",
             "tactics": [
-              "initial-access"
+              "defense-evasion",
+              "initial-access",
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1566/002"
+            "url": "https://attack.mitre.org/techniques/T1078/002"
           }
         ],
         "dataflow_name": "Attacker brute-force API",
@@ -1049,41 +1103,43 @@
         "asset_type": "api_gateway",
         "techniques": [
           {
-            "id": "T1091",
-            "name": "Replication Through Removable Media",
+            "id": "T1078",
+            "name": "Valid Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "lateral-movement"
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1091"
+            "url": "https://attack.mitre.org/techniques/T1078"
           },
           {
             "id": "T1078.001",
             "name": "Default Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "privilege-escalation",
               "persistence",
-              "defense-evasion"
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
             "url": "https://attack.mitre.org/techniques/T1078/001"
           },
           {
-            "id": "T1078",
-            "name": "Valid Accounts",
+            "id": "T1078.002",
+            "name": "Domain Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "privilege-escalation",
               "persistence",
-              "defense-evasion"
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1078"
+            "url": "https://attack.mitre.org/techniques/T1078/002"
           }
         ],
         "dataflow_name": "WAF to API GW REST",
@@ -1098,34 +1154,34 @@
         "asset_type": "faas",
         "techniques": [
           {
-            "id": "T1021.005",
-            "name": "VNC",
+            "id": "T1021",
+            "name": "Remote Services",
             "tactics": [
               "lateral-movement"
             ],
             "score": 1.5,
             "rationale": "platform match, primary tactic, hop position, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1021/005"
+            "url": "https://attack.mitre.org/techniques/T1021"
           },
           {
-            "id": "T1080",
-            "name": "Taint Shared Content",
+            "id": "T1021.001",
+            "name": "Remote Desktop Protocol",
             "tactics": [
               "lateral-movement"
             ],
             "score": 1.5,
             "rationale": "platform match, primary tactic, hop position, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1080"
+            "url": "https://attack.mitre.org/techniques/T1021/001"
           },
           {
-            "id": "T1021.004",
-            "name": "SSH",
+            "id": "T1021.002",
+            "name": "SMB/Windows Admin Shares",
             "tactics": [
               "lateral-movement"
             ],
             "score": 1.5,
             "rationale": "platform match, primary tactic, hop position, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1021/004"
+            "url": "https://attack.mitre.org/techniques/T1021/002"
           }
         ],
         "dataflow_name": "API GW to Handler",
@@ -1140,37 +1196,35 @@
         "asset_type": "database",
         "techniques": [
           {
-            "id": "T1557",
-            "name": "Adversary-in-the-Middle",
+            "id": "T1030",
+            "name": "Data Transfer Size Limits",
             "tactics": [
-              "credential-access",
-              "collection"
+              "exfiltration"
             ],
             "score": 1.8,
-            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
-            "url": "https://attack.mitre.org/techniques/T1557"
+            "rationale": "platform match, primary tactic, hop position, key technique",
+            "url": "https://attack.mitre.org/techniques/T1030"
           },
           {
-            "id": "T1056.001",
-            "name": "Keylogging",
+            "id": "T1048",
+            "name": "Exfiltration Over Alternative Protocol",
             "tactics": [
-              "credential-access",
-              "collection"
+              "exfiltration"
             ],
             "score": 1.8,
-            "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
-            "url": "https://attack.mitre.org/techniques/T1056/001"
+            "rationale": "platform match, primary tactic, hop position, key technique",
+            "url": "https://attack.mitre.org/techniques/T1048"
           },
           {
-            "id": "T1557.003",
-            "name": "DHCP Spoofing",
+            "id": "T1056",
+            "name": "Input Capture",
             "tactics": [
-              "credential-access",
-              "collection"
+              "collection",
+              "credential-access"
             ],
             "score": 1.8,
             "rationale": "platform match, primary tactic, hop position, cleartext, credentials-stored",
-            "url": "https://attack.mitre.org/techniques/T1557/003"
+            "url": "https://attack.mitre.org/techniques/T1056"
           }
         ],
         "dataflow_name": "Handler to Aurora",
@@ -1188,7 +1242,7 @@
     "min_technique_score": 0.8
   },
   {
-    "scenario_id": "GDAF-B5BC145A",
+    "scenario_id": "GDAF-C6A461F2",
     "objective_id": "OBJ-AUTO-001",
     "objective_name": "Compromise high-value assets",
     "objective_description": "Auto-generated objective: reach the highest-CIA servers",
@@ -1205,35 +1259,43 @@
         "asset_type": "object_storage",
         "techniques": [
           {
-            "id": "T1133",
-            "name": "External Remote Services",
+            "id": "T1078",
+            "name": "Valid Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "persistence"
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1133"
+            "url": "https://attack.mitre.org/techniques/T1078"
           },
           {
-            "id": "T1195.001",
-            "name": "Compromise Software Dependencies and Development Tools",
+            "id": "T1078.001",
+            "name": "Default Accounts",
             "tactics": [
-              "initial-access"
+              "defense-evasion",
+              "initial-access",
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1195/001"
+            "url": "https://attack.mitre.org/techniques/T1078/001"
           },
           {
-            "id": "T1566.002",
-            "name": "Spearphishing Link",
+            "id": "T1078.002",
+            "name": "Domain Accounts",
             "tactics": [
-              "initial-access"
+              "defense-evasion",
+              "initial-access",
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1566/002"
+            "url": "https://attack.mitre.org/techniques/T1078/002"
           }
         ],
         "dataflow_name": "Developer Deploy",
@@ -1251,7 +1313,7 @@
     "min_technique_score": 0.8
   },
   {
-    "scenario_id": "GDAF-6315380E",
+    "scenario_id": "GDAF-35E50729",
     "objective_id": "OBJ-AUTO-001",
     "objective_name": "Compromise high-value assets",
     "objective_description": "Auto-generated objective: reach the highest-CIA servers",
@@ -1268,35 +1330,43 @@
         "asset_type": "waf",
         "techniques": [
           {
-            "id": "T1133",
-            "name": "External Remote Services",
+            "id": "T1078",
+            "name": "Valid Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "persistence"
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1133"
+            "url": "https://attack.mitre.org/techniques/T1078"
           },
           {
-            "id": "T1195.001",
-            "name": "Compromise Software Dependencies and Development Tools",
+            "id": "T1078.001",
+            "name": "Default Accounts",
             "tactics": [
-              "initial-access"
+              "defense-evasion",
+              "initial-access",
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1195/001"
+            "url": "https://attack.mitre.org/techniques/T1078/001"
           },
           {
-            "id": "T1566.002",
-            "name": "Spearphishing Link",
+            "id": "T1078.002",
+            "name": "Domain Accounts",
             "tactics": [
-              "initial-access"
+              "defense-evasion",
+              "initial-access",
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1566/002"
+            "url": "https://attack.mitre.org/techniques/T1078/002"
           }
         ],
         "dataflow_name": "User API Request",
@@ -1311,41 +1381,43 @@
         "asset_type": "api_gateway",
         "techniques": [
           {
-            "id": "T1091",
-            "name": "Replication Through Removable Media",
+            "id": "T1078",
+            "name": "Valid Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "lateral-movement"
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1091"
+            "url": "https://attack.mitre.org/techniques/T1078"
           },
           {
             "id": "T1078.001",
             "name": "Default Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "privilege-escalation",
               "persistence",
-              "defense-evasion"
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
             "url": "https://attack.mitre.org/techniques/T1078/001"
           },
           {
-            "id": "T1078",
-            "name": "Valid Accounts",
+            "id": "T1078.002",
+            "name": "Domain Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "privilege-escalation",
               "persistence",
-              "defense-evasion"
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1078"
+            "url": "https://attack.mitre.org/techniques/T1078/002"
           }
         ],
         "dataflow_name": "WAF to API GW REST",
@@ -1360,34 +1432,34 @@
         "asset_type": "faas",
         "techniques": [
           {
-            "id": "T1021.005",
-            "name": "VNC",
+            "id": "T1021",
+            "name": "Remote Services",
             "tactics": [
               "lateral-movement"
             ],
             "score": 1.5,
             "rationale": "platform match, primary tactic, hop position, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1021/005"
+            "url": "https://attack.mitre.org/techniques/T1021"
           },
           {
-            "id": "T1080",
-            "name": "Taint Shared Content",
+            "id": "T1021.001",
+            "name": "Remote Desktop Protocol",
             "tactics": [
               "lateral-movement"
             ],
             "score": 1.5,
             "rationale": "platform match, primary tactic, hop position, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1080"
+            "url": "https://attack.mitre.org/techniques/T1021/001"
           },
           {
-            "id": "T1021.004",
-            "name": "SSH",
+            "id": "T1021.002",
+            "name": "SMB/Windows Admin Shares",
             "tactics": [
               "lateral-movement"
             ],
             "score": 1.5,
             "rationale": "platform match, primary tactic, hop position, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1021/004"
+            "url": "https://attack.mitre.org/techniques/T1021/002"
           }
         ],
         "dataflow_name": "API GW to Handler",
@@ -1405,33 +1477,32 @@
             "id": "T1659",
             "name": "Content Injection",
             "tactics": [
-              "initial-access",
-              "command-and-control"
+              "command-and-control",
+              "initial-access"
             ],
             "score": 1.5,
             "rationale": "platform match, primary tactic, hop position, no-auth asset",
             "url": "https://attack.mitre.org/techniques/T1659"
           },
           {
-            "id": "T1021.005",
-            "name": "VNC",
+            "id": "T1021",
+            "name": "Remote Services",
             "tactics": [
               "lateral-movement"
             ],
             "score": 1.2,
             "rationale": "platform match, primary tactic, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1021/005"
+            "url": "https://attack.mitre.org/techniques/T1021"
           },
           {
-            "id": "T1133",
-            "name": "External Remote Services",
+            "id": "T1021.001",
+            "name": "Remote Desktop Protocol",
             "tactics": [
-              "initial-access",
-              "persistence"
+              "lateral-movement"
             ],
             "score": 1.2,
             "rationale": "platform match, primary tactic, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1133"
+            "url": "https://attack.mitre.org/techniques/T1021/001"
           }
         ],
         "dataflow_name": "Handler to SQS",
@@ -1449,7 +1520,7 @@
     "min_technique_score": 0.8
   },
   {
-    "scenario_id": "GDAF-BBCD9B18",
+    "scenario_id": "GDAF-D6105016",
     "objective_id": "OBJ-AUTO-001",
     "objective_name": "Compromise high-value assets",
     "objective_description": "Auto-generated objective: reach the highest-CIA servers",
@@ -1466,35 +1537,43 @@
         "asset_type": "waf",
         "techniques": [
           {
-            "id": "T1133",
-            "name": "External Remote Services",
+            "id": "T1078",
+            "name": "Valid Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "persistence"
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1133"
+            "url": "https://attack.mitre.org/techniques/T1078"
           },
           {
-            "id": "T1195.001",
-            "name": "Compromise Software Dependencies and Development Tools",
+            "id": "T1078.001",
+            "name": "Default Accounts",
             "tactics": [
-              "initial-access"
+              "defense-evasion",
+              "initial-access",
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1195/001"
+            "url": "https://attack.mitre.org/techniques/T1078/001"
           },
           {
-            "id": "T1566.002",
-            "name": "Spearphishing Link",
+            "id": "T1078.002",
+            "name": "Domain Accounts",
             "tactics": [
-              "initial-access"
+              "defense-evasion",
+              "initial-access",
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1566/002"
+            "url": "https://attack.mitre.org/techniques/T1078/002"
           }
         ],
         "dataflow_name": "Webhook from Third Party",
@@ -1509,41 +1588,43 @@
         "asset_type": "api_gateway",
         "techniques": [
           {
-            "id": "T1091",
-            "name": "Replication Through Removable Media",
+            "id": "T1078",
+            "name": "Valid Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "lateral-movement"
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1091"
+            "url": "https://attack.mitre.org/techniques/T1078"
           },
           {
             "id": "T1078.001",
             "name": "Default Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "privilege-escalation",
               "persistence",
-              "defense-evasion"
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
             "url": "https://attack.mitre.org/techniques/T1078/001"
           },
           {
-            "id": "T1078",
-            "name": "Valid Accounts",
+            "id": "T1078.002",
+            "name": "Domain Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "privilege-escalation",
               "persistence",
-              "defense-evasion"
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1078"
+            "url": "https://attack.mitre.org/techniques/T1078/002"
           }
         ],
         "dataflow_name": "WAF to API GW REST",
@@ -1558,34 +1639,34 @@
         "asset_type": "faas",
         "techniques": [
           {
-            "id": "T1021.005",
-            "name": "VNC",
+            "id": "T1021",
+            "name": "Remote Services",
             "tactics": [
               "lateral-movement"
             ],
             "score": 1.5,
             "rationale": "platform match, primary tactic, hop position, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1021/005"
+            "url": "https://attack.mitre.org/techniques/T1021"
           },
           {
-            "id": "T1080",
-            "name": "Taint Shared Content",
+            "id": "T1021.001",
+            "name": "Remote Desktop Protocol",
             "tactics": [
               "lateral-movement"
             ],
             "score": 1.5,
             "rationale": "platform match, primary tactic, hop position, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1080"
+            "url": "https://attack.mitre.org/techniques/T1021/001"
           },
           {
-            "id": "T1021.004",
-            "name": "SSH",
+            "id": "T1021.002",
+            "name": "SMB/Windows Admin Shares",
             "tactics": [
               "lateral-movement"
             ],
             "score": 1.5,
             "rationale": "platform match, primary tactic, hop position, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1021/004"
+            "url": "https://attack.mitre.org/techniques/T1021/002"
           }
         ],
         "dataflow_name": "API GW to Handler",
@@ -1603,33 +1684,32 @@
             "id": "T1659",
             "name": "Content Injection",
             "tactics": [
-              "initial-access",
-              "command-and-control"
+              "command-and-control",
+              "initial-access"
             ],
             "score": 1.5,
             "rationale": "platform match, primary tactic, hop position, no-auth asset",
             "url": "https://attack.mitre.org/techniques/T1659"
           },
           {
-            "id": "T1021.005",
-            "name": "VNC",
+            "id": "T1021",
+            "name": "Remote Services",
             "tactics": [
               "lateral-movement"
             ],
             "score": 1.2,
             "rationale": "platform match, primary tactic, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1021/005"
+            "url": "https://attack.mitre.org/techniques/T1021"
           },
           {
-            "id": "T1133",
-            "name": "External Remote Services",
+            "id": "T1021.001",
+            "name": "Remote Desktop Protocol",
             "tactics": [
-              "initial-access",
-              "persistence"
+              "lateral-movement"
             ],
             "score": 1.2,
             "rationale": "platform match, primary tactic, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1133"
+            "url": "https://attack.mitre.org/techniques/T1021/001"
           }
         ],
         "dataflow_name": "Handler to SQS",
@@ -1647,7 +1727,7 @@
     "min_technique_score": 0.8
   },
   {
-    "scenario_id": "GDAF-B5B8F31C",
+    "scenario_id": "GDAF-0F0A77EE",
     "objective_id": "OBJ-AUTO-001",
     "objective_name": "Compromise high-value assets",
     "objective_description": "Auto-generated objective: reach the highest-CIA servers",
@@ -1664,35 +1744,43 @@
         "asset_type": "waf",
         "techniques": [
           {
-            "id": "T1133",
-            "name": "External Remote Services",
+            "id": "T1078",
+            "name": "Valid Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "persistence"
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1133"
+            "url": "https://attack.mitre.org/techniques/T1078"
           },
           {
-            "id": "T1195.001",
-            "name": "Compromise Software Dependencies and Development Tools",
+            "id": "T1078.001",
+            "name": "Default Accounts",
             "tactics": [
-              "initial-access"
+              "defense-evasion",
+              "initial-access",
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1195/001"
+            "url": "https://attack.mitre.org/techniques/T1078/001"
           },
           {
-            "id": "T1566.002",
-            "name": "Spearphishing Link",
+            "id": "T1078.002",
+            "name": "Domain Accounts",
             "tactics": [
-              "initial-access"
+              "defense-evasion",
+              "initial-access",
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1566/002"
+            "url": "https://attack.mitre.org/techniques/T1078/002"
           }
         ],
         "dataflow_name": "Attacker brute-force API",
@@ -1707,41 +1795,43 @@
         "asset_type": "api_gateway",
         "techniques": [
           {
-            "id": "T1091",
-            "name": "Replication Through Removable Media",
+            "id": "T1078",
+            "name": "Valid Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "lateral-movement"
+              "persistence",
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1091"
+            "url": "https://attack.mitre.org/techniques/T1078"
           },
           {
             "id": "T1078.001",
             "name": "Default Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "privilege-escalation",
               "persistence",
-              "defense-evasion"
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
             "url": "https://attack.mitre.org/techniques/T1078/001"
           },
           {
-            "id": "T1078",
-            "name": "Valid Accounts",
+            "id": "T1078.002",
+            "name": "Domain Accounts",
             "tactics": [
+              "defense-evasion",
               "initial-access",
-              "privilege-escalation",
               "persistence",
-              "defense-evasion"
+              "privilege-escalation"
             ],
             "score": 1.85,
             "rationale": "platform match, primary tactic, hop position, no-auth asset, service:https",
-            "url": "https://attack.mitre.org/techniques/T1078"
+            "url": "https://attack.mitre.org/techniques/T1078/002"
           }
         ],
         "dataflow_name": "WAF to API GW REST",
@@ -1756,34 +1846,34 @@
         "asset_type": "faas",
         "techniques": [
           {
-            "id": "T1021.005",
-            "name": "VNC",
+            "id": "T1021",
+            "name": "Remote Services",
             "tactics": [
               "lateral-movement"
             ],
             "score": 1.5,
             "rationale": "platform match, primary tactic, hop position, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1021/005"
+            "url": "https://attack.mitre.org/techniques/T1021"
           },
           {
-            "id": "T1080",
-            "name": "Taint Shared Content",
+            "id": "T1021.001",
+            "name": "Remote Desktop Protocol",
             "tactics": [
               "lateral-movement"
             ],
             "score": 1.5,
             "rationale": "platform match, primary tactic, hop position, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1080"
+            "url": "https://attack.mitre.org/techniques/T1021/001"
           },
           {
-            "id": "T1021.004",
-            "name": "SSH",
+            "id": "T1021.002",
+            "name": "SMB/Windows Admin Shares",
             "tactics": [
               "lateral-movement"
             ],
             "score": 1.5,
             "rationale": "platform match, primary tactic, hop position, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1021/004"
+            "url": "https://attack.mitre.org/techniques/T1021/002"
           }
         ],
         "dataflow_name": "API GW to Handler",
@@ -1801,33 +1891,32 @@
             "id": "T1659",
             "name": "Content Injection",
             "tactics": [
-              "initial-access",
-              "command-and-control"
+              "command-and-control",
+              "initial-access"
             ],
             "score": 1.5,
             "rationale": "platform match, primary tactic, hop position, no-auth asset",
             "url": "https://attack.mitre.org/techniques/T1659"
           },
           {
-            "id": "T1021.005",
-            "name": "VNC",
+            "id": "T1021",
+            "name": "Remote Services",
             "tactics": [
               "lateral-movement"
             ],
             "score": 1.2,
             "rationale": "platform match, primary tactic, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1021/005"
+            "url": "https://attack.mitre.org/techniques/T1021"
           },
           {
-            "id": "T1133",
-            "name": "External Remote Services",
+            "id": "T1021.001",
+            "name": "Remote Desktop Protocol",
             "tactics": [
-              "initial-access",
-              "persistence"
+              "lateral-movement"
             ],
             "score": 1.2,
             "rationale": "platform match, primary tactic, no-auth asset",
-            "url": "https://attack.mitre.org/techniques/T1133"
+            "url": "https://attack.mitre.org/techniques/T1021/001"
           }
         ],
         "dataflow_name": "Handler to SQS",

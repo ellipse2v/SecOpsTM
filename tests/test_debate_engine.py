@@ -63,8 +63,8 @@ class FakeProvider:
         self._responses = list(responses)
         self.calls = []
 
-    async def generate_debate_turn(self, prompt, system_prompt):
-        self.calls.append((prompt, system_prompt))
+    async def generate_debate_turn(self, prompt, system_prompt, temperature=None):
+        self.calls.append((prompt, system_prompt, temperature))
         if not self._responses:
             return {}
         return self._responses.pop(0)
@@ -127,8 +127,11 @@ def test_top_n_caps_selection():
 
 def test_convergence_stops_before_max_rounds():
     scenario = make_scenario()
-    provider = FakeProvider([RED_TURN_HIGH, BLUE_TURN_BLOCK_ALL])
-    engine = RedBlueDebateEngine(provider, config={"max_rounds": 3, "viability_delta_threshold": 0.5})
+    # Round viability is min(snap(red), snap(blue)) = min(0.75, 0.5) = 0.5; the initial
+    # viability for this scenario clamps to 1.0, so convergence_delta is 0.5 — a
+    # threshold above that stops the loop after round 1.
+    provider = FakeProvider([RED_TURN_HIGH, BLUE_TURN_GAP])
+    engine = RedBlueDebateEngine(provider, config={"max_rounds": 3, "viability_delta_threshold": 0.6})
     result = asyncio.run(engine._debate_scenario(scenario))
     assert result is not None
     assert result.converged is True
@@ -279,7 +282,7 @@ def _extract_debate_section() -> str:
 def test_debate_section_hidden_when_no_results():
     tmpl = jinja2.Template(_extract_debate_section())
     html = tmpl.render(debate_results=[])
-    assert "Red/Blue Adversarial Debate" not in html
+    assert "Adversarial Review" not in html
 
 
 def test_debate_section_shows_persuasion_order():
@@ -289,7 +292,8 @@ def test_debate_section_shows_persuasion_order():
         "entry_point": "ExternalUser",
         "target_asset": "WebServer",
         "residual_path_viable": True,
-        "final_viability": 0.6,
+        "final_viability": 0.5,
+        "verdict_label": "Viable but detected — Blue has reliable coverage",
         "blocked_paths": ["T1078"],
         "residual_detection_gaps": [
             {"step": "hop1", "control_family": "SIEM", "covered": False,
@@ -303,7 +307,7 @@ def test_debate_section_shows_persuasion_order():
         "rounds": [],
     }]
     html = tmpl.render(debate_results=debate_results)
-    assert "Red/Blue Adversarial Debate" in html
+    assert "Adversarial Review" in html
     idx_blocked = html.index("Paths Blue successfully blocked")
     idx_gaps = html.index("Detection gaps on the residual path")
     idx_failed = html.index("Red's failed alternative attempts")

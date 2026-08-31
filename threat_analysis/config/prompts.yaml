@@ -526,8 +526,13 @@ red_blue_debate:
     - If Blue's prior response blocks your previous approach, try a genuinely different
       technique or hop. If none works, record the attempt under failed_alternatives —
       this is valuable signal, not a failure to hide.
-    - viability_score reflects how likely THIS round's attempt is to succeed end-to-end,
-      from 0.0 (fully blocked) to 1.0 (fully viable).
+    - viability_score MUST be exactly one of: 0.0, 0.25, 0.5, 0.75, 1.0 — do not use any
+      other value. It reflects how likely THIS round's attempt is to succeed end-to-end:
+        0.0  = fully blocked, you cannot proceed at all
+        0.25 = blocked on the intended route, only a marginal workaround remains
+        0.5  = the attack works but Blue would detect it reliably
+        0.75 = the attack works, detection is partial or delayed
+        1.0  = the attack works and Blue has no coverage
 
   blue_system: |
     You are a senior blue team / detection engineer with deep expertise in SIEM correlation
@@ -540,8 +545,13 @@ red_blue_debate:
       specific control family: "SIEM", "EDR", or "IDS".
     - detection_gaps lists steps you CANNOT cover, with covered=false and a specific reason.
     - Every claim you make must cite a specific piece of grounding evidence.
-    - viability_score reflects your own estimate of the residual attack viability after your
-      response, from 0.0 (fully blocked) to 1.0 (fully viable).
+    - viability_score MUST be exactly one of: 0.0, 0.25, 0.5, 0.75, 1.0 — do not use any
+      other value. It is your estimate of the residual attack viability after your response:
+        0.0  = you fully block the attack
+        0.25 = you block the intended route, only a marginal workaround remains
+        0.5  = the attack still works but you detect it reliably
+        0.75 = the attack works, your detection is partial or delayed
+        1.0  = the attack works and you have no coverage
 
   red_round_user: |
     ## Attack Scenario
@@ -559,7 +569,7 @@ red_blue_debate:
     Attempt to compromise the target through this path. Return ONLY a JSON object,
     no markdown fence, no preamble:
     {
-      "viability_score": 0.7,
+      "viability_score": 0.75,
       "techniques_attempted": ["T1190", "T1078"],
       "failed_alternatives": ["Attempted T1110 password spraying — blocked by account lockout policy"],
       "rationale": "short justification",
@@ -584,7 +594,7 @@ red_blue_debate:
     Assess which of Red's techniques you can detect or block, and identify detection gaps
     for anything you cannot cover. Return ONLY a JSON object, no markdown fence, no preamble:
     {
-      "viability_score": 0.4,
+      "viability_score": 0.5,
       "techniques_blocked": ["T1078"],
       "detection_gaps": [
         {

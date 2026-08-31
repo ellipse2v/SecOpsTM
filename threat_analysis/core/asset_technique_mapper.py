@@ -312,7 +312,7 @@ class AssetTechniqueMapper:
 
             # Service-specific boosts (protocols exposed by this asset)
             if services:
-                for svc in services:
+                for svc in sorted(services):  # sorted: deterministic across runs
                     proto_entry = protocols.get(svc, {})
                     tactic_boost = set(proto_entry.get("tactic_boost", []))
                     if tech_tactics.intersection(tactic_boost):
@@ -336,14 +336,14 @@ class AssetTechniqueMapper:
             scored.append(ScoredTechnique(
                 id=tech_id,
                 name=tech.get("name", ""),
-                tactics=list(tech_tactics),
+                tactics=sorted(tech_tactics),
                 score=round(score, 2),
                 rationale=", ".join(reasons),
                 url=tech_url,
             ))
 
-        # Sort by score descending, return top_k
-        scored.sort(key=lambda t: t.score, reverse=True)
+        # Sort by score descending, ties broken by id → deterministic top_k
+        scored.sort(key=lambda t: (-t.score, t.id))
         return scored[:top_k]
 
     def _get_sparta_techniques(
@@ -442,13 +442,14 @@ class AssetTechniqueMapper:
             scored.append(ScoredTechnique(
                 id=tech_id,
                 name=tech.get("name", ""),
-                tactics=tactic_ids if tactic_ids else list(tech_tactics),
+                tactics=tactic_ids if tactic_ids else sorted(tech_tactics),
                 score=round(score, 2),
                 rationale=", ".join(reasons),
                 url=tech_url,
             ))
 
-        scored.sort(key=lambda t: t.score, reverse=True)
+        # Sort by score descending, ties broken by id → deterministic top_k
+        scored.sort(key=lambda t: (-t.score, t.id))
         return scored[:top_k]
 
     def _normalize_type(self, asset_type: str) -> str:

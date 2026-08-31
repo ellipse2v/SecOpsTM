@@ -206,7 +206,7 @@ class LiteLLMProvider(BaseLLMProvider):
             logging.error("SOC analysis generation failed: %s", exc)
             return []
 
-    async def generate_debate_turn(self, prompt: str, system_prompt: str) -> Dict:
+    async def generate_debate_turn(self, prompt: str, system_prompt: str, temperature: Optional[float] = None) -> Dict:
         """Calls the LLM with a Red or Blue debate persona and returns the parsed turn."""
         client = await self._get_client()
         try:
@@ -214,6 +214,7 @@ class LiteLLMProvider(BaseLLMProvider):
                 prompt=prompt,
                 system_prompt=system_prompt,
                 output_format="json",
+                temperature=temperature,
             ):
                 if isinstance(chunk, dict):
                     return chunk

@@ -92,6 +92,7 @@ class BaseLLMProvider(ABC):
         self,
         prompt: str,
         system_prompt: str,
+        temperature: Optional[float] = None,
     ) -> Dict:
         """Generates one Red or Blue turn in an adversarial debate round.
 

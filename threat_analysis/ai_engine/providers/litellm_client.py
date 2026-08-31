@@ -216,13 +216,15 @@ class LiteLLMClient:
             self.ai_online = False
             return False
 
-    async def generate_content(self, prompt: str, system_prompt: str, stream: Optional[bool] = None, output_format: str = "text", max_tokens: Optional[int] = None, timeout: Optional[float] = None):
+    async def generate_content(self, prompt: str, system_prompt: str, stream: Optional[bool] = None, output_format: str = "text", max_tokens: Optional[int] = None, timeout: Optional[float] = None, temperature: Optional[float] = None):
         """
         Generates content using LiteLLM.
         Can yield chunks if streaming is enabled.
         output_format can be "text" or "json".
         max_tokens overrides the provider config value when provided (useful for batch calls).
         timeout overrides the provider config value when provided (useful for batch calls).
+        temperature overrides the provider config value when provided (0.0 = greedy —
+        used by the Red/Blue debate to reduce run-to-run variance).
         """
         if not self.ai_online or not self._litellm_module:
             raise RuntimeError("AI server is not available or litellm not loaded. This feature is disabled.")
@@ -234,11 +236,12 @@ class LiteLLMClient:
 
         effective_max_tokens = max_tokens or self.provider_config.get('max_tokens', 4096)
         effective_timeout = timeout if timeout is not None else self.provider_config.get('timeout', 30)
+        effective_temperature = temperature if temperature is not None else self.provider_config.get('temperature', 0.7)
         completion_params = {
             "model": self.model_name,
             "messages": messages,
             "stream": self.stream if stream is None else stream,
-            "temperature": self.provider_config.get('temperature', 0.7),
+            "temperature": effective_temperature,
             "max_tokens": effective_max_tokens,
             "timeout": effective_timeout,
             "num_retries": int(self.ai_config.get("threat_generation", {}).get("num_retries", 3)),

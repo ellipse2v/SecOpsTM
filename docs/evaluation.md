@@ -49,6 +49,31 @@ scoring, no LLM. Only the debate pass calls a model.
 | `top5_jaccard` | set overlap of the two top-5s |
 | `top5_max_displacement` | largest rank change among the pre-debate top-5 |
 
+## Improvements applied after the first run (2026-08-31)
+
+The first run below fed the ranking with a free 0.0–1.0 `viability_score` float at
+the provider's default temperature. Four changes followed:
+
+- **`debate.temperature: 0.0`** (greedy) is now the default (`config/ai_config.yaml`).
+- **Discrete viability** — Red and Blue must return one of `0.0 / 0.25 / 0.5 /
+  0.75 / 1.0`; the engine snaps to that grid and the round outcome is
+  `min(red, blue)` (the old `− 0.15 × len(techniques_blocked)` term, a raw count
+  of an LLM-generated list, is gone).
+- **GDAF is now deterministic** — technique selection sorts with an id tie-break,
+  the services set is iterated sorted, and `scenario_id` is a hash of the path
+  signature (was `uuid4`). Two GDAF runs are now byte-identical; the committed
+  fixtures were regenerated.
+- The report section is **"Adversarial Review"** with a qualitative verdict, not a
+  precise adjusted score (see the debate feature docs).
+
+**Spot check (Mistral, temp 0, discrete):** the 1-scenario Smoke fixture went from
+`factor_cv 0.53`, every flip rate at 1.0 → **all zeros** (fully reproducible). The
+9-scenario Kubernetes fixture did **not** improve (`rank_stability_debated` 0.56,
+unchanged; risk-flip 0.0 → 0.33) — with 3 close-scored debated scenarios, a
+single one-notch grid disagreement between runs still permutes the order. The
+tables below are the **pre-improvement baseline**; a full re-run against the
+regenerated fixtures is the next step.
+
 ## Step 1 — Determinism
 
 Two providers, 3 runs per fixture, `--top-n 3 --max-rounds 2`. Sources:
@@ -154,9 +179,10 @@ providers) and a clean Step 2 on Mistral:
 
 **Next, to firm this up:**
 
-1. Run one pass at `temperature: 0` (greedy). If the ranking is still unstable,
-   the non-determinism is structural (prompt sensitivity, JSON-parse failures,
-   the engine's early-stop convergence) rather than sampling — a different fix.
+1. **Re-run Step 1 and Step 2** against the regenerated fixtures with the
+   `temperature: 0` + discrete-viability build (default `--temperature 0.0`).
+   The spot check says the single-scenario case is now fully reproducible but
+   multi-scenario fixtures are not — a full run confirms how far that goes.
 2. Raise `--top-n` to ≥ 8 and `--runs` to ≥ 15 against a local Ollama model (no
    token cap, no per-call cost). Report a pooled Kendall τ with a bootstrap CI
    instead of per-fixture point estimates, and show the random-reshuffle baseline
@@ -165,7 +191,10 @@ providers) and a clean Step 2 on Mistral:
    debated scenarios (and the same #1) come back. That is the number an analyst
    triaging the report actually depends on.
 4. Instrument per run / per scenario: `round_count`, clean-vs-degraded turn,
-   and the exact debated set — to attribute the noise to a specific stage.
+   and the exact debated set — to attribute residual noise to a specific stage.
+5. GDAF confidence bands: with `path_score`s clustered within ~0.1, any
+   re-scoring reshuffles close scenarios. Report ties / bands instead of a strict
+   order so a one-notch debate shift stops mattering.
 
 ## Limitations
 
@@ -223,7 +252,8 @@ python -m tooling.eval.ablation --all --provider mistral \
     --out tooling/eval/results/ablation-$(date +%F).json
 ```
 
-Fixtures were generated at commit `b15e16c` — regenerate them if `GDAFEngine`,
+Fixtures were regenerated 2026-08-31 after the GDAF-determinism fix — they are
+now byte-reproducible. Regenerate if `GDAFEngine`,
 `AssetTechniqueMapper`, or a template changes.
 
 ## Next

@@ -23,8 +23,8 @@ a ranked list of AttackScenario objects.
 All processing is offline — only disk reads, no network calls.
 """
 
+import hashlib
 import logging
-import uuid
 import yaml
 from collections import deque
 from dataclasses import dataclass
@@ -712,8 +712,17 @@ class GDAFEngine:
 
         target_name = path[-1][0]
 
+        # Deterministic id from the path signature — same model in, same ids out,
+        # so two GDAF runs (and the debate ablation baseline) are diffable.
+        _sig = "|".join([
+            str(objective.get("id", "")),
+            str(actor.get("id", "")),
+            ">".join(n for n, _ in path),
+        ])
+        _sid = hashlib.sha1(_sig.encode("utf-8")).hexdigest()[:8].upper()
+
         return AttackScenario(
-            scenario_id=f"GDAF-{str(uuid.uuid4())[:8].upper()}",
+            scenario_id=f"GDAF-{_sid}",
             objective_id=objective["id"],
             objective_name=objective["name"],
             objective_description=objective.get("description", ""),

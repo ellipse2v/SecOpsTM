@@ -345,6 +345,16 @@ class ReportGenerator(ScoringMixin, AIAnalysisMixin, ProjectReportMixin):
                     "final_viability": result.final_viability,
                     "residual_path_viable": result.residual_path_viable,
                     "debate_factor": result.debate_factor,
+                    # qualitative verdict — the evaluation showed the numeric factor
+                    # is directional, not precise (docs/evaluation.md), so the report
+                    # leads with a label, not a percentage
+                    "verdict_label": {
+                        0.0: "Blocked — Red could not advance this path",
+                        0.25: "Largely blocked — only a marginal workaround remains",
+                        0.5: "Viable but detected — Blue has reliable coverage",
+                        0.75: "Viable — detection is partial or delayed",
+                        1.0: "Viable — Blue has no coverage",
+                    }.get(round(result.final_viability * 4) / 4, "Uncertain"),
                     "rounds": rounds_data,
                 })
 

@@ -53,7 +53,7 @@ logger = logging.getLogger("ablation")
 DEFAULT_FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures"
 
 
-def _debate_config(top_n: int, max_rounds: int) -> Dict[str, Any]:
+def _debate_config(top_n: int, max_rounds: int, temperature: Optional[float]) -> Dict[str, Any]:
     return {
         "top_n": top_n,
         "min_viability_threshold": 0.5,
@@ -61,6 +61,7 @@ def _debate_config(top_n: int, max_rounds: int) -> Dict[str, Any]:
         "viability_delta_threshold": 0.1,
         "debate_factor_min": 0.5,
         "debate_factor_max": 1.5,
+        "temperature": temperature,
     }
 
 
@@ -141,6 +142,9 @@ def main(argv: Optional[List[str]] = None) -> int:
                         help="seconds to pause after every Red/Blue turn (LLM call) "
                              "to stay under a provider's tokens-per-minute limit; "
                              "~22 for the Groq free tier (8000 TPM)")
+    parser.add_argument("--temperature", type=float, default=0.0,
+                        help="debate LLM temperature; 0.0 (default) = greedy. "
+                             "Pass a negative value to use the provider default.")
     parser.add_argument("--out", required=True)
     args = parser.parse_args(argv)
 
@@ -153,13 +157,14 @@ def main(argv: Optional[List[str]] = None) -> int:
     if not names:
         parser.error("pass --fixtures NAME ... or --all")
 
-    cfg = _debate_config(args.top_n, args.max_rounds)
+    temp = None if args.temperature < 0 else args.temperature
+    cfg = _debate_config(args.top_n, args.max_rounds, temp)
     result: Dict[str, Any] = {
         "step": "ablation",
         "generated_at": _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "params": {
             "provider": args.provider, "top_n": args.top_n,
-            "max_rounds": args.max_rounds, "sleep": args.sleep,
+            "max_rounds": args.max_rounds, "sleep": args.sleep, "temperature": temp,
         },
         "fixtures": {},
     }

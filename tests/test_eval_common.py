@@ -104,7 +104,7 @@ def test_run_debate_mutates_copies_not_originals():
     from tooling.eval._common import run_debate
 
     class StubProvider:
-        async def generate_debate_turn(self, prompt, system_prompt):
+        async def generate_debate_turn(self, prompt, system_prompt, temperature=None):
             return {"viability_score": 0.9, "techniques_blocked": [], "techniques_attempted": ["T1190"],
                     "failed_alternatives": [], "detection_gaps": [], "evidence": [], "rationale": "stub"}
 
@@ -124,7 +124,7 @@ def test_run_debate_returns_debate_results_with_viability():
     from tooling.eval._common import run_debate
 
     class StubProvider:
-        async def generate_debate_turn(self, prompt, system_prompt):
+        async def generate_debate_turn(self, prompt, system_prompt, temperature=None):
             return {"viability_score": 0.7, "techniques_blocked": [], "techniques_attempted": [],
                     "failed_alternatives": [], "detection_gaps": [], "evidence": [], "rationale": "s"}
 
@@ -142,7 +142,7 @@ def test_run_debate_sleeps_after_every_turn_not_just_per_scenario():
     from tooling.eval._common import run_debate
 
     class StubProvider:
-        async def generate_debate_turn(self, prompt, system_prompt):
+        async def generate_debate_turn(self, prompt, system_prompt, temperature=None):
             return {"viability_score": 0.6, "techniques_blocked": [], "techniques_attempted": [],
                     "failed_alternatives": [], "detection_gaps": [], "evidence": [], "rationale": "s"}
 
