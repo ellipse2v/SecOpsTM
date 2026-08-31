@@ -56,6 +56,9 @@ logger = logging.getLogger("determinism")
 
 DEFAULT_FIXTURE_DIR = Path(__file__).resolve().parent / "fixtures"
 
+# keys in a provider's `records` dict that are not per-scenario samples
+_META_KEYS = ("_orders", "_bands")
+
 
 def _debate_config(top_n: int, max_rounds: int, temperature: Optional[float]) -> Dict[str, Any]:
     return {
@@ -136,7 +139,7 @@ def _run_provider(
 def _aggregate_provider(records: Dict[str, Any], runs_ok: int) -> Dict[str, Any]:
     orders = records.get("_orders", [])
     bands = records.get("_bands", {})
-    scen_ids = [k for k in records if k not in ("_orders", "_bands")]
+    scen_ids = [k for k in records if k not in _META_KEYS]
     debated_set = set(scen_ids)  # scenarios debated in >= 1 OK run
 
     cvs = [metrics.coeff_variation(records[sid]["factor"]) for sid in scen_ids if records[sid]["factor"]]
@@ -225,7 +228,7 @@ def _cross_provider(per_provider_records: Dict[str, Any]) -> Optional[Dict[str, 
     if len(names) != 2:
         return None
     a, b = per_provider_records[names[0]], per_provider_records[names[1]]
-    scen_ids = [k for k in a if k != "_orders" and k in b]
+    scen_ids = [k for k in a if k not in _META_KEYS and k in b]
     if not scen_ids:
         return None
 
