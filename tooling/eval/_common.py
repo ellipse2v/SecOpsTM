@@ -165,8 +165,11 @@ def run_debate(
     """Debate a deep copy of `scenarios` and return (mutated_copies, debate_results).
 
     `config` is passed straight to RedBlueDebateEngine. `sleep_s` is applied
-    between scenarios to stay under provider rate limits (the engine does not
-    self-throttle).
+    after every Red/Blue turn (each turn is one LLM call) to stay under provider
+    rate limits (the engine does not self-throttle). Per-turn — not per-scenario —
+    because a debate round fires two calls back to back, which blows past a low
+    tokens-per-minute cap (e.g. Groq free tier, 8000 TPM) before a per-scenario
+    sleep would ever run.
     """
     from threat_analysis.core.debate_engine import RedBlueDebateEngine
 
@@ -174,14 +177,14 @@ def run_debate(
     engine = RedBlueDebateEngine(provider, config=config)
 
     if sleep_s > 0:
-        _orig = engine._debate_scenario
+        _orig_turn = engine._run_turn
 
-        async def _throttled(scenario):
-            result = await _orig(scenario)
+        async def _throttled_turn(*args, **kwargs):
+            result = await _orig_turn(*args, **kwargs)
             await asyncio.sleep(sleep_s)
             return result
 
-        engine._debate_scenario = _throttled
+        engine._run_turn = _throttled_turn
 
     results = asyncio.run(engine.run(work))
     return work, results

@@ -136,6 +136,28 @@ def test_run_debate_returns_debate_results_with_viability():
     assert 0.0 <= results[0].final_viability <= 1.0
 
 
+def test_run_debate_sleeps_after_every_turn_not_just_per_scenario():
+    # 1 scenario, 1 round -> 2 turns (Red + Blue) -> 2 sleeps, not 1.
+    import time
+    from tooling.eval._common import run_debate
+
+    class StubProvider:
+        async def generate_debate_turn(self, prompt, system_prompt):
+            return {"viability_score": 0.6, "techniques_blocked": [], "techniques_attempted": [],
+                    "failed_alternatives": [], "detection_gaps": [], "evidence": [], "rationale": "s"}
+
+    sleep_s = 0.05
+    start = time.monotonic()
+    run_debate(
+        [_scenario("S1", 4.0)], provider=StubProvider(),
+        config={"top_n": 5, "min_viability_threshold": 0.0, "max_rounds": 1},
+        sleep_s=sleep_s,
+    )
+    elapsed = time.monotonic() - start
+    # a per-scenario throttle would sleep once (>= 0.05); per-turn sleeps twice.
+    assert elapsed >= 2 * sleep_s
+
+
 def test_make_provider_sets_force_env(monkeypatch):
     import os
     from tooling.eval._common import make_provider

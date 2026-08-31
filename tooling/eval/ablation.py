@@ -23,7 +23,7 @@ Run from the repo root (reads config/ai_config.yaml via cwd).
 
     export GROQ_API_KEY=...
     python -m tooling.eval.ablation --all --provider groq \
-        --top-n 5 --max-rounds 3 --sleep 8 \
+        --top-n 5 --max-rounds 3 --sleep 22 \
         --out tooling/eval/results/ablation-2026-08-29.json
 """
 
@@ -137,7 +137,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--provider", required=True)
     parser.add_argument("--top-n", type=int, default=5)
     parser.add_argument("--max-rounds", type=int, default=3)
-    parser.add_argument("--sleep", type=float, default=8.0)
+    parser.add_argument("--sleep", type=float, default=8.0,
+                        help="seconds to pause after every Red/Blue turn (LLM call) "
+                             "to stay under a provider's tokens-per-minute limit; "
+                             "~22 for the Groq free tier (8000 TPM)")
     parser.add_argument("--out", required=True)
     args = parser.parse_args(argv)
 

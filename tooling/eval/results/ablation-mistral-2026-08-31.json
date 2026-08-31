@@ -1,0 +1,61 @@
+{
+  "step": "ablation",
+  "generated_at": "2026-08-31T07:49:11Z",
+  "params": {
+    "provider": "mistral",
+    "top_n": 5,
+    "max_rounds": 3,
+    "sleep": 3.0
+  },
+  "fixtures": {
+    "GDAF_Debate_Smoke_Test": {
+      "scenario_count": 1,
+      "kendall_tau": 1.0,
+      "spearman_rho": 1.0,
+      "top5_jaccard": 1.0,
+      "top5_max_displacement": 0,
+      "bucket_changes": 1,
+      "top5_unchanged": true
+    },
+    "Kubernetes_Helm_Cluster": {
+      "scenario_count": 9,
+      "kendall_tau": 0.4444,
+      "spearman_rho": 0.4167,
+      "top5_jaccard": 0.4286,
+      "top5_max_displacement": 5,
+      "bucket_changes": 4,
+      "top5_unchanged": false
+    },
+    "On-Prem_Enterprise_Network": {
+      "scenario_count": 43,
+      "kendall_tau": 0.9978,
+      "spearman_rho": 0.9998,
+      "top5_jaccard": 1.0,
+      "top5_max_displacement": 1,
+      "bucket_changes": 0,
+      "top5_unchanged": true
+    },
+    "Serverless_AWS_Lambda": {
+      "scenario_count": 10,
+      "kendall_tau": 0.3333,
+      "spearman_rho": 0.3091,
+      "top5_jaccard": 0.6667,
+      "top5_max_displacement": 9,
+      "bucket_changes": 3,
+      "top5_unchanged": false
+    }
+  },
+  "aggregate": {
+    "fixtures_ok": 3,
+    "fixtures_excluded_lt2": 1,
+    "top5_unchanged_count": 1,
+    "kendall_tau_median": 0.4444,
+    "worked_example": {
+      "fixture": "Serverless_AWS_Lambda",
+      "scenario_id": "GDAF-B5BC145A",
+      "pre_rank": 1,
+      "post_rank": 10,
+      "reason": "no detection cited for: Exploitation via service misconfiguration (T1190, T1078), Initial access via S3 (T1133), S3 bucket access via unauthenticated HTTPS; Red alt failed: Attempted T1078 credential abuse via unauthenticated access \u2014 S3 bucket is explicitly unauthenticated per grounding facts, Attempted T1190 exploitation of unpatched service \u2014 no exploitable CVEs listed in grounding facts"
+    }
+  }
+}

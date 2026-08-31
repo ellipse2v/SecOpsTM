@@ -98,8 +98,11 @@ Clicking a row expands an inline detail panel showing one entry per hop:
 
 > **How well does the debate re-scoring actually prioritise?** See
 > [`docs/evaluation.md`](evaluation.md) for the measurement method (determinism +
-> ablation) and the runbook. Results are pending — the harness is in place, the
-> numbers are not yet filled in.
+> ablation) and the runbook. First result (small n, two models): the debate moves
+> the GDAF ranking meaningfully — one #1 path dropped to #10 for a defensible
+> reason — but the movement does not reproduce run to run
+> (`rank_stability (debated)` ≈ 0.11). Treat the Red/Blue reasoning as a narrative
+> aid; do not treat `debate_factor` as a prioritisation signal.
 
 An opt-in pass (`config/ai_config.yaml → debate.enabled: true`, on by default) that runs after
 GDAF and before the HTML report is written. One configured LLM provider plays two personas —

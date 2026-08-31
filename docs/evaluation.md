@@ -51,60 +51,140 @@ scoring, no LLM. Only the debate pass calls a model.
 
 ## Step 1 — Determinism
 
-> **NOT YET RUN.** Fill this section from
-> `tooling/eval/results/determinism-<date>.json` (produced by the command in
-> *Reproduce* below).
+Two providers, 3 runs per fixture, `--top-n 3 --max-rounds 2`. Sources:
+`tooling/eval/results/determinism-2026-08-30.json` (groq, `openai/gpt-oss-120b`,
+`--sleep 22`) and `determinism-mistral-2026-08-31.json` (mistral,
+`mistral-small-latest`, `--sleep 3`). Runs 3/3 OK on both, no failed turns.
 
-| Fixture | Provider | scenarios | debated | runs ok | factor_cv median | factor_cv max | risk flip rate | rank stability (debated) | direction flip rate |
-|---|---|---|---|---|---|---|---|---|---|
-| _pending_ | | | | | | | | | |
+| Fixture | provider | debated | factor_cv med | risk flip rate | **rank stability (debated)** | direction flip rate |
+|---|---|---|---|---|---|---|
+| GDAF_Debate_Smoke_Test | groq | 1 | 0.038 | 0.0 | n/a (1 scenario) | 0.0 |
+| GDAF_Debate_Smoke_Test | mistral | 1 | **0.530** | **1.0** | n/a | **1.0** |
+| Kubernetes_Helm_Cluster | groq | 3 | 0.076 | **1.0** | **0.11** | 0.0 |
+| Kubernetes_Helm_Cluster | mistral | 3 | 0.018 | 0.0 | **0.56** | 0.0 |
+| On-Prem_Enterprise_Network | groq | 3 | 0.033 | 0.0 | **0.11** | 0.0 |
+| On-Prem_Enterprise_Network | mistral | 3 | 0.065 | 0.0 | **0.11** | 0.0 |
 
-Cross-provider (Groq vs Grok):
+Cross-provider direction-agreement (the automatic Groq-vs-X block) was not
+produced: Groq's daily quota was spent, so the two providers ran on different
+days and can't be compared in one invocation. Gemini is geo-blocked from the run
+location; no xAI key was available.
 
-| Fixture | direction_agreement | factor_delta_mean |
-|---|---|---|
-| _pending_ | | |
+**Verdict rule.** Headline metric is `rank_stability (debated)` — Kendall τ
+between runs over the scenarios the debate actually re-scored. ≥ 0.8 →
+**reproducible**. ≤ 0.4 → **noise**: keep the debate as an explanation generator
+(the detection-gap list and the Red/Blue narrative have value on their own), stop
+treating `debate_factor` as a prioritisation input, or make it opt-in and
+labelled experimental. Between → **caveated**. (`factor_cv` — the adjustment
+*magnitude* — is secondary; the run showed it can be steady while the ranking
+is not.)
 
-**Verdict rule.** `factor_cv` median ≤ 0.05 across fixtures → the re-score is
-**stable**, Step 2 and a later Step 3 (human-labelled benchmark) are worth doing.
-≥ 0.30 on any fixture → the re-score is **noise**: keep the debate as an
-explanation generator (the detection-gap list and the Red/Blue narrative have
-value on their own), but stop treating `debate_factor` as a prioritisation input,
-or make it opt-in and labelled experimental. Between the two → **caveated**;
-report the instability and read Step 2 with it in mind.
+**Reading the numbers.**
 
-**Verdict:** _pending_
+- **`rank_stability (debated)`** is the recurring signal: **0.11** in three of the
+  four multi-scenario cells (both providers on On-Prem, Groq on Kubernetes), 0.56
+  in the fourth (Mistral on Kubernetes). 0.11 is near the random baseline —
+  re-running the same debate on the same input reshuffles the relative order of
+  the three debated scenarios. **Resolution caveat:** with only 3 debated
+  scenarios, a pairwise Kendall τ can only be −1, −⅓, ⅓ or 1, so these are coarse
+  estimates from a handful of values; a proper reading needs `--top-n` ≥ 8 and
+  more runs.
+- **`factor_cv` disagrees between providers.** On the 1-scenario Smoke fixture,
+  Groq is tight (0.038) and Mistral is chaotic (0.530, with `final_viability_cv`
+  1.41 and both flip rates at 1.0). On Kubernetes the order reverses — Mistral
+  0.018, Groq 0.076 with every risk bucket flipping. There is no provider-
+  independent statement to make about adjustment-magnitude stability.
+- **`direction_flip_rate`** (the viable / not-viable verdict) is 0.0 for every
+  multi-scenario cell on both providers — the binary call is stable — but 1.0 for
+  Mistral on the single Smoke scenario.
+
+**Verdict: caveated, leaning negative for prioritisation.** The one metric that
+holds across providers and fixtures says the debated-scenario ordering does not
+reproduce (`rank_stability (debated)` ≈ 0.11 in 3 of 4 cells). Adjustment
+magnitude is model-dependent and sometimes chaotic. The binary viable/not verdict
+is stable. n is small (3 runs, 3 debated scenarios), and k = 3 makes the headline
+τ coarse — this is a signal, not proof — but it points away from trusting
+`debate_factor` as a ranking input.
 
 ## Step 2 — Ablation
 
-> **NOT YET RUN.** Fill from `tooling/eval/results/ablation-<date>.json`.
+Provider `mistral` (`mistral-small-latest`), `--all --top-n 5 --max-rounds 3
+--sleep 3`, clean run (no failed turns). Source:
+`tooling/eval/results/ablation-mistral-2026-08-31.json`. (The 2026-08-30 Groq run
+is discarded — it hit the daily token cap and most debate turns errored out,
+making its `kendall_tau = 1.0` indistinguishable from "no change".)
 
-| Fixture | scenarios | kendall τ | spearman ρ | top-5 Jaccard | top-5 max move | bucket changes |
+| Fixture | scenarios | kendall τ | top-5 Jaccard | top-5 max move | bucket changes | top-5 changed? |
 |---|---|---|---|---|---|---|
-| _pending_ | | | | | | |
+| Kubernetes_Helm_Cluster | 9 | **0.44** | **0.43** | **5** | 4 | **yes** |
+| On-Prem_Enterprise_Network | 43 | 1.00 | 1.00 | 1 | 0 | no |
+| Serverless_AWS_Lambda | 10 | **0.33** | 0.67 | **9** | 3 | **yes** |
+| GDAF_Debate_Smoke_Test | 1 | — | — | — | — | excluded (<2 scenarios) |
 
-- top-5 set unchanged in **_N / M_** fixtures
-- median Kendall τ: **_pending_**
+top-5 set unchanged in **1 of 3** fixtures; median Kendall τ **0.44**.
 
-**Worked example:** _pending_ — the fixture + scenario with the largest top-5
-displacement, with the one-line reason from the debate rounds.
+**Worked example** (`Serverless_AWS_Lambda`, scenario `GDAF-B5BC145A`): pre-debate
+rank **#1 → post-debate rank #10**. The debate demoted the top GDAF path because,
+under adversarial challenge, Red could not advance it — "S3 bucket is explicitly
+unauthenticated per grounding facts" (no credentials to abuse) and "no exploitable
+CVEs listed in grounding facts" — and Blue cited no detection as needed. So the
+raw-`path_score` favourite turned out to be a dead end. That is a *sensible*
+demotion.
 
-**Reading it.** top-5 essentially never moves → the debate is expensive for
-prioritisation; recommend opt-in + experimental, or cut. top-5 moves in a
-meaningful share of fixtures → the worked example is the evidence it adds signal;
-keep it, and a human-labelled Step 3 becomes worth the effort.
+**Verdict: the debate is an active re-ranker, not an inert one.** It substantially
+reordered two of three fixtures — including moving a #1 path to #10 for a
+defensible reason — and left the largest fixture untouched. Combined with Step 1:
+the debate makes large, plausible-looking ranking changes that **do not reproduce
+run to run**. It is finding something real (the Lambda dead-end) but not
+reliably.
 
-**Verdict:** _pending_
+## Overall
+
+The harness works — the per-turn `--sleep` throttle beats Groq's per-minute
+limit, and both providers ran clean. The finding, from Step 1 (k = 3, 3 runs, two
+providers) and a clean Step 2 on Mistral:
+
+- The debate **does** move the ranking — meaningfully, on 2 of 3 fixtures, with
+  at least one well-argued demotion (Lambda #1 → #10).
+- But it does **not** move it reproducibly — `rank_stability (debated)` ≈ 0.11
+  wherever there is more than one scenario to order.
+- So `debate_factor` is not a trustworthy prioritisation signal today, while the
+  Red/Blue reasoning that produces it (the detection gaps, the "Red tried X and
+  failed" list) is worth surfacing in the report on its own terms.
+
+**Next, to firm this up:**
+
+1. Run one pass at `temperature: 0` (greedy). If the ranking is still unstable,
+   the non-determinism is structural (prompt sensitivity, JSON-parse failures,
+   the engine's early-stop convergence) rather than sampling — a different fix.
+2. Raise `--top-n` to ≥ 8 and `--runs` to ≥ 15 against a local Ollama model (no
+   token cap, no per-call cost). Report a pooled Kendall τ with a bootstrap CI
+   instead of per-fixture point estimates, and show the random-reshuffle baseline
+   next to it.
+3. Add a `top_k_recurrence` metric — over N runs, how often the same top-3
+   debated scenarios (and the same #1) come back. That is the number an analyst
+   triaging the report actually depends on.
+4. Instrument per run / per scenario: `round_count`, clean-vs-degraded turn,
+   and the exact debated set — to attribute the noise to a specific stage.
 
 ## Limitations
 
-- Small n — about four fixtures for Step 1, up to eighteen for Step 2.
-- One model per provider. Not a claim about "LLMs" in general.
-- LLM output is non-deterministic by construction; this is what Step 1 quantifies.
+- Small n — 3 fixtures × 3 runs for Step 1, 3 scored fixtures for Step 2.
+- `--top-n 3` for Step 1 means only 3 scenarios per fixture are ordered, so the
+  headline Kendall τ is a coarse estimate (pairwise τ over 3 items is one of
+  −1, −⅓, ⅓, 1). Raise `--top-n` and `--runs` for a real reading.
+- Two models tested (`openai/gpt-oss-120b`, `mistral-small-latest`). Not a claim
+  about "LLMs" in general — and the two disagree on adjustment-magnitude stability.
+- No cross-provider direction-agreement number: the two providers ran on separate
+  days (Groq's daily quota), so the automatic Groq-vs-X block never fired.
 - No human ground-truth ranking yet. Step 3 (a labelled benchmark scored with
-  NDCG@5 / Kendall τ against an analyst ranking) is a separate future spec.
-- Step 1 lowers `--top-n` and `--max-rounds` for the token budget, so its numbers
-  are a floor on stability, not the production debate config.
+  NDCG@5 / Kendall τ against an analyst ranking) is a separate future spec —
+  Step 1's reproducibility result makes it lower priority.
+- Groq's free tier caps tokens-per-minute (8,000) *and* tokens-per-day (200,000);
+  the per-turn `--sleep` handles the minute cap but one Step 1 run exhausts the
+  day cap. Mistral's free tier had no binding limit for these run sizes. A local
+  Ollama model removes both constraints and is the right target for a larger
+  Step 1.
 - `RedBlueDebateEngine._select_scenarios` only debates the top-N by `path_score`
   that also clear `min_viability_threshold`. With `--top-n 5`, a fixture with more
   than 5 scenarios leaves its tail at the pre-debate score, which mechanically
@@ -122,25 +202,28 @@ keep it, and a human-labelled Step 3 becomes worth the effort.
 ## Reproduce
 
 ```bash
-export GROQ_API_KEY=gsk_...
-export XAI_API_KEY=xai-...        # optional; enables the cross-provider check
+export GROQ_API_KEY=gsk_...           # 8000 TPM + 200k TPD free-tier caps
+export MISTRAL_API_KEY=...            # no binding free-tier cap for these sizes
+# a second working provider name also enables the cross-provider check
 
 # 1. Freeze the GDAF scenarios (offline, no key needed)
 python -m tooling.eval.freeze_scenarios --all
 
-# 2. Step 1 — determinism (~15-30 min, spends tokens)
+# 2. Step 1 — determinism
+#    Groq needs --sleep 22 (per-minute cap) and one full run spends the day cap.
+#    Mistral runs at --sleep 3 in ~10 min.
 python -m tooling.eval.determinism \
     --fixtures GDAF_Debate_Smoke_Test Kubernetes_Helm_Cluster On-Prem_Enterprise_Network \
-    --providers groq xai --runs 3 --top-n 3 --max-rounds 2 --sleep 8 \
+    --providers mistral --runs 3 --top-n 3 --max-rounds 2 --sleep 3 \
     --out tooling/eval/results/determinism-$(date +%F).json
 
-# 3. Step 2 — ablation (~30-60 min)
-python -m tooling.eval.ablation --all --provider groq \
-    --top-n 5 --max-rounds 3 --sleep 8 \
+# 3. Step 2 — ablation
+python -m tooling.eval.ablation --all --provider mistral \
+    --top-n 5 --max-rounds 3 --sleep 3 \
     --out tooling/eval/results/ablation-$(date +%F).json
 ```
 
-Fixtures were generated at commit `9e46110` — regenerate them if `GDAFEngine`,
+Fixtures were generated at commit `b15e16c` — regenerate them if `GDAFEngine`,
 `AssetTechniqueMapper`, or a template changes.
 
 ## Next

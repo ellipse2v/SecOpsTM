@@ -24,7 +24,7 @@ Run from the repo root (reads config/ai_config.yaml via cwd).
     export GROQ_API_KEY=...   # and XAI_API_KEY for the cross-provider check
     python -m tooling.eval.determinism \
         --fixtures GDAF_Debate_Smoke_Test Kubernetes_Helm_Cluster On-Prem_Enterprise_Network \
-        --providers groq xai --runs 3 --top-n 3 --max-rounds 2 --sleep 8 \
+        --providers groq xai --runs 3 --top-n 3 --max-rounds 2 --sleep 22 \
         --out tooling/eval/results/determinism-2026-08-29.json
 """
 
@@ -209,7 +209,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--runs", type=int, default=3)
     parser.add_argument("--top-n", type=int, default=3)
     parser.add_argument("--max-rounds", type=int, default=2)
-    parser.add_argument("--sleep", type=float, default=8.0)
+    parser.add_argument("--sleep", type=float, default=8.0,
+                        help="seconds to pause after every Red/Blue turn (LLM call) "
+                             "to stay under a provider's tokens-per-minute limit; "
+                             "~22 for the Groq free tier (8000 TPM)")
     parser.add_argument("--out", required=True)
     args = parser.parse_args(argv)
 
