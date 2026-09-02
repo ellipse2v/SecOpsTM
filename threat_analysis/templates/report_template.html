@@ -2085,9 +2085,16 @@
                                     {% endfor %}
 
                                     {% if all_defend_mitigations %}
+                                        {% set _seen_d3f = [] %}
                                         {% for mitigation in all_defend_mitigations %}
-                                            {% if mitigation.id %}
-                                            <li><a href="https://d3fend.mitre.org/technique/d3f:{{ mitigation.url_friendly_name }}" target="_blank" class="mitre-link">{{ mitigation.id }}: {{ mitigation.name }}</a></li>
+                                            {% if mitigation.id and mitigation.id not in _seen_d3f %}
+                                            {% do _seen_d3f.append(mitigation.id) %}
+                                            <li>
+                                              <a href="https://d3fend.mitre.org/technique/d3f:{{ mitigation.url_friendly_name }}" target="_blank" class="mitre-link">{{ mitigation.id }}: {{ mitigation.name }}</a>
+                                              {% if mitigation.description and 'not found' not in mitigation.description %}
+                                              <div style="font-size:.8rem;color:var(--text-secondary);margin-top:2px;">{{ mitigation.description }}</div>
+                                              {% endif %}
+                                            </li>
                                             {% endif %}
                                         {% endfor %}
                                     {% else %}
