@@ -18,10 +18,14 @@ evaluation harness. See docs/superpowers/specs/2026-08-29-debate-gdaf-evaluation
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures
 import copy as _copy
 import logging
 import os
-from typing import TYPE_CHECKING, Any, Dict, List, Tuple
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Tuple
+
+import yaml
 
 from threat_analysis.core.asset_technique_mapper import ScoredTechnique
 from threat_analysis.core.gdaf_engine import AttackHop, AttackScenario
@@ -166,21 +170,65 @@ def band_ranks(scenarios: List[AttackScenario], rel_tol: float = 0.05) -> Dict[s
 
 
 # ---------------------------------------------------------------------------
+# Multi-provider dispatch config — read from config/ai_config.yaml
+# ---------------------------------------------------------------------------
+
+def load_eval_multi_provider_config() -> Dict[str, Any]:
+    """Read the `eval_multi_provider` section of config/ai_config.yaml (resolved
+    relative to cwd, same as LiteLLMClient._load_ai_config — run harness scripts
+    from the repo root).
+
+    Only used by determinism.py/ablation.py when invoked with no explicit
+    --provider(s) CLI flag — see docs/evaluation.md "Multi-provider dispatch".
+    Returns {"enabled": bool, "mode": "fallback"|"parallel_merge", "providers": [...]}.
+    An empty/missing `providers` list resolves to every `ai_providers` entry
+    with `enabled: true`, in the order they appear in the file.
+    """
+    path = Path.cwd() / "config" / "ai_config.yaml"
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            full = yaml.safe_load(f) or {}
+    except FileNotFoundError:
+        return {"enabled": False, "mode": "fallback", "providers": []}
+
+    section = full.get("eval_multi_provider") or {}
+    providers = [p for p in (section.get("providers") or []) if p]
+    if not providers:
+        providers = [
+            name for name, pc in (full.get("ai_providers") or {}).items()
+            if pc and pc.get("enabled", False)
+        ]
+    return {
+        "enabled": bool(section.get("enabled", False)),
+        "mode": section.get("mode", "fallback"),
+        "providers": providers,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Provider forcing + debate run wrapper
 # ---------------------------------------------------------------------------
 
 def make_provider(name: str) -> LiteLLMProvider:
-    """Return a fresh LiteLLMProvider pinned to `name` via SECOPSTM_FORCE_PROVIDER.
+    """Return a fresh LiteLLMProvider pinned to `name`.
 
-    The provider reads config/ai_config.yaml lazily on its first call, so the
-    env var only has to be set before generate_debate_turn runs. Build a NEW
-    provider for every run_debate call — run_debate uses asyncio.run(), which
-    closes its event loop on return, and a provider/client reused across a
-    closed loop raises "Event loop is closed" on the next call.
+    The provider reads config/ai_config.yaml lazily on its first call. Build a
+    NEW provider for every run_debate call — run_debate uses asyncio.run(),
+    which closes its event loop on return, and a provider/client reused across
+    a closed loop raises "Event loop is closed" on the next call.
+
+    Sets SECOPSTM_FORCE_PROVIDER (kept for backward compatibility / single-
+    threaded scripts) *and* passes `name` as LiteLLMProvider's explicit
+    `forced_provider`, which takes precedence over the env var. The explicit
+    parameter is what actually matters under `run_parallel_merge_attempts`:
+    the env var is process-global and races when multiple providers'
+    providers are constructed from concurrent threads, but each provider
+    instance still resolves to the correct config regardless of which
+    thread's env-var write won the race.
     """
     from threat_analysis.ai_engine.providers.litellm_provider import LiteLLMProvider
     os.environ["SECOPSTM_FORCE_PROVIDER"] = name
-    return LiteLLMProvider({})
+    return LiteLLMProvider({}, forced_provider=name)
 
 
 def run_debate(
@@ -213,3 +261,102 @@ def run_debate(
 
     results = asyncio.run(engine.run(work))
     return work, results
+
+
+# ---------------------------------------------------------------------------
+# Multi-provider dispatch — avoid a single provider's rate limit / quota
+# ---------------------------------------------------------------------------
+#
+# Two modes, chosen by config/ai_config.yaml's `eval_multi_provider.mode`
+# (see load_eval_multi_provider_config above — not a CLI flag; --providers on
+# the CLI overrides the whole section and uses the legacy per-provider path):
+#
+#   fallback:       `runs` slots total. For each slot, try the given providers
+#                   in order until one succeeds. Use this to keep a fixed
+#                   sample count while riding out one provider's rate limit —
+#                   it does not increase how many samples you get.
+#   parallel_merge: every provider runs its own full `runs` attempts, all
+#                   providers running concurrently, and every success from
+#                   every provider is pooled into one combined sample set (up
+#                   to len(providers) * runs values). Use this to get a firmer
+#                   statistic (bigger n) in roughly the wall-clock time of the
+#                   slowest provider instead of the sum of all of them.
+#
+# `attempt(provider_name, attempt_index)` performs one run against the named
+# provider and returns its result, raising on failure (rate limit, timeout,
+# bad response, ...). It is expected to build its own LiteLLMProvider via
+# `make_provider(provider_name)` — passing `forced_provider` explicitly rather
+# than relying solely on the SECOPSTM_FORCE_PROVIDER env var is what makes
+# parallel_merge's concurrent threads safe: the env var is process-global and
+# races across threads, but each provider instance still resolves to the
+# correct config regardless of which thread's write won that race.
+
+MULTI_PROVIDER_MODES = ("fallback", "parallel_merge")
+
+
+def run_fallback_attempts(
+    providers: List[str], runs: int, attempt: Callable[[str, int], Any],
+) -> Tuple[List[Tuple[str, Any]], int]:
+    """`runs` slots; for each slot, try `providers` in order until one succeeds.
+
+    Returns (successes, failed_slots) where successes is a list of
+    (provider_name_that_served_it, result) — a slot that exhausts every
+    provider without success counts toward failed_slots, not toward successes.
+    """
+    successes: List[Tuple[str, Any]] = []
+    failed = 0
+    for i in range(runs):
+        for prov in providers:
+            try:
+                successes.append((prov, attempt(prov, i)))
+                break
+            except Exception as exc:
+                logger.warning(
+                    "fallback: %s attempt %d/%d failed (%s) — trying next provider",
+                    prov, i + 1, runs, exc,
+                )
+        else:
+            failed += 1
+    return successes, failed
+
+
+def run_parallel_merge_attempts(
+    providers: List[str], runs: int, attempt: Callable[[str, int], Any],
+) -> Tuple[List[Tuple[str, Any]], int]:
+    """Every provider runs its own `runs` attempts concurrently (one thread per
+    provider — `attempt` typically calls `run_debate`/similar, which owns and
+    closes its own asyncio loop via `asyncio.run()` per call; those can't be
+    nested in one loop, so threads are used instead of `asyncio.gather`).
+    Every success from every provider is pooled together.
+    """
+    successes: List[Tuple[str, Any]] = []
+    failed = 0
+
+    def _worker(prov: str) -> Tuple[List[Tuple[str, Any]], int]:
+        local: List[Tuple[str, Any]] = []
+        local_failed = 0
+        for i in range(runs):
+            try:
+                local.append((prov, attempt(prov, i)))
+            except Exception as exc:
+                logger.warning("parallel_merge: %s attempt %d/%d failed (%s)",
+                                prov, i + 1, runs, exc)
+                local_failed += 1
+        return local, local_failed
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(providers)) as ex:
+        for local, local_failed in ex.map(_worker, providers):
+            successes.extend(local)
+            failed += local_failed
+    return successes, failed
+
+
+def run_multi_provider(
+    providers: List[str], runs: int, mode: str, attempt: Callable[[str, int], Any],
+) -> Tuple[List[Tuple[str, Any]], int]:
+    """Dispatch to `run_fallback_attempts` or `run_parallel_merge_attempts` by `mode`."""
+    if mode == "fallback":
+        return run_fallback_attempts(providers, runs, attempt)
+    if mode == "parallel_merge":
+        return run_parallel_merge_attempts(providers, runs, attempt)
+    raise ValueError(f"unknown multi-provider mode: {mode!r} (expected one of {MULTI_PROVIDER_MODES})")

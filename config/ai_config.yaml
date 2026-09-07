@@ -252,6 +252,28 @@ debate:
   # provider's own temperature instead.
   temperature: 0.0
 
+# Multi-provider dispatch for the evaluation harness (tooling/eval/determinism.py,
+# ablation.py — see docs/evaluation.md "Multi-provider dispatch"). NOT read by
+# the running application (server.py, ai_service.py, RedBlueDebateEngine) —
+# production provider selection stays "first ai_providers entry with
+# enabled: true wins", or SECOPSTM_FORCE_PROVIDER to pin one. This section only
+# matters when a harness script is invoked with no explicit --provider(s) flag
+# (passing one on the CLI always overrides it).
+eval_multi_provider:
+  enabled: false
+  # "fallback": one pooled run; for each sample, try providers in order until
+  #   one succeeds — same sample count as a single provider, rides out one
+  #   provider's rate limit/quota. Used by both determinism.py and ablation.py.
+  # "parallel_merge": every provider runs its own full sample set concurrently
+  #   and every success is pooled — up to len(providers) x the per-provider
+  #   count, at roughly the slowest provider's wall-clock cost. determinism.py
+  #   only (ablation.py always uses fallback — one debate run per fixture has
+  #   nothing to pool).
+  mode: "fallback"
+  # Providers to dispatch across, in priority/dispatch order. Empty ([]) means
+  # every ai_providers entry above with enabled: true, in the order listed there.
+  providers: []
+
 # Fine-tuning (Phase 3 — optional, not enabled by default)
 fine_tuning:
   enabled: false

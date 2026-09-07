@@ -146,6 +146,95 @@ def test_enrich_with_ai_threats(ai_service):
     asyncio.run(_run())
 
 
+def test_enrich_with_ai_threats_batch_truncation_retries_as_smaller_batches(ai_service):
+    """A whole-batch failure (empty dict — a max_tokens truncation on a multi-component
+    response, per docs/evaluation.md) must retry as smaller batches, which get a
+    proportionally bigger per-component token share from generate_threats_batch's
+    own provider-max floor, before dropping to one call per component.
+    """
+    async def _run():
+        ai_service.ai_online = True
+        ai_service.provider = MagicMock()
+        ai_service.provider.check_connection = AsyncMock(return_value=True)
+
+        class MockElement:
+            def __init__(self, name):
+                self.name = name
+                self.description = ""
+                self.stereotype = "Actor"
+                self.threats = []
+
+        actors = [MockElement(f"Actor {i}") for i in range(1, 5)]  # 4 -> one batch of 4
+        threat_model = MagicMock()
+        threat_model.actors = [{'object': a} for a in actors]
+        threat_model.servers = []
+        threat_model.dataflows = []
+        threat_model.tm.description = "System desc"
+
+        threat_payload = {"title": "SQLi", "description": "SQL injection", "category": "Tampering"}
+
+        async def mock_batch(components, context):
+            if len(components) == 4:
+                return {}  # simulates the full 4-component batch getting truncated
+            return {c["name"]: [dict(threat_payload)] for c in components}
+
+        ai_service.provider.generate_threats_batch = AsyncMock(side_effect=mock_batch)
+        ai_service.provider.generate_threats = AsyncMock(return_value=[threat_payload])
+
+        await ai_service._enrich_with_ai_threats(threat_model)
+
+        for actor in actors:
+            assert len(actor.threats) == 1, f"{actor.name} got no threat"
+        # 1 failed 4-component call + 2 successful 2-component retries
+        assert ai_service.provider.generate_threats_batch.call_count == 3
+        # the smaller retries must have succeeded — no need for the 1-by-1 fallback
+        ai_service.provider.generate_threats.assert_not_called()
+    asyncio.run(_run())
+
+
+def test_enrich_with_ai_threats_batch_partial_miss_falls_back_individually(ai_service):
+    """When the LLM response only covers some of the batch's components (the same
+    truncation failure mode, just cut off mid-list instead of before the first valid
+    entry), the missing ones must be retried individually — not cached as threat-free.
+    """
+    async def _run():
+        ai_service.ai_online = True
+        ai_service.provider = MagicMock()
+        ai_service.provider.check_connection = AsyncMock(return_value=True)
+
+        class MockElement:
+            def __init__(self, name):
+                self.name = name
+                self.description = ""
+                self.stereotype = "Actor"
+                self.threats = []
+
+        actors = [MockElement(f"Actor {i}") for i in range(1, 4)]
+        threat_model = MagicMock()
+        threat_model.actors = [{'object': a} for a in actors]
+        threat_model.servers = []
+        threat_model.dataflows = []
+        threat_model.tm.description = "System desc"
+
+        threat_payload = {"title": "SQLi", "description": "SQL injection", "category": "Tampering"}
+        individual_payload = {"title": "XSS", "description": "Reflected XSS", "category": "Tampering"}
+
+        # "Actor 3" is missing from the batch response — as if truncated mid-list.
+        ai_service.provider.generate_threats_batch = AsyncMock(
+            return_value={"Actor 1": [threat_payload], "Actor 2": [threat_payload]}
+        )
+        ai_service.provider.generate_threats = AsyncMock(return_value=[individual_payload])
+
+        await ai_service._enrich_with_ai_threats(threat_model)
+
+        assert len(actors[0].threats) == 1
+        assert len(actors[1].threats) == 1
+        assert len(actors[2].threats) == 1
+        assert "XSS" in actors[2].threats[0].description
+        ai_service.provider.generate_threats.assert_awaited_once()
+    asyncio.run(_run())
+
+
 def test_enrich_with_ai_threats_missing_title_falls_back_consistently(ai_service, caplog):
     """A threat dict missing 'title' (the LLM occasionally drops it under batch token
     pressure) must still get a sensible SID/description, and the 'Added AI threat ...'

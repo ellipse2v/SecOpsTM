@@ -23,15 +23,17 @@ import json
 class LiteLLMProvider(BaseLLMProvider):
     """Provider for multiple LLMs via LiteLLM"""
 
-    def __init__(self, config: Dict):
+    def __init__(self, config: Dict, forced_provider: Optional[str] = None):
         # We don't use the config directly here, as LiteLLMClient loads it from ai_config.yaml
         # But we might want to override some settings if needed.
         self._client = None
         self._config = config
+        # Takes precedence over SECOPSTM_FORCE_PROVIDER — see LiteLLMClient.create().
+        self._forced_provider = forced_provider
 
     async def _get_client(self):
         if self._client is None:
-            self._client = await LiteLLMClient.create()
+            self._client = await LiteLLMClient.create(forced_provider=self._forced_provider)
         return self._client
 
     async def check_connection(self) -> bool:
@@ -58,6 +60,11 @@ class LiteLLMProvider(BaseLLMProvider):
                             return chunk[key]
                     # Dict with no known list key — treat it as a single threat.
                     return [chunk]
+                if isinstance(chunk, str) and chunk.startswith("Error:"):
+                    logging.warning(
+                        "generate_threats: LLM returned error string for '%s': %s",
+                        component.get("name", "?"), chunk[:200],
+                    )
             return []
         except Exception as e:
             logging.error(f"Error generating threats via LiteLLM: {e}")

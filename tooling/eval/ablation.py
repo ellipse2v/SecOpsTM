@@ -25,6 +25,14 @@ Run from the repo root (reads config/ai_config.yaml via cwd).
     python -m tooling.eval.ablation --all --provider groq \
         --top-n 5 --max-rounds 3 --sleep 22 \
         --out tooling/eval/results/ablation-2026-08-29.json
+
+Pass --providers A B instead of --provider for per-fixture fallback: if A
+fails (rate limit, quota, transient error) on a given fixture, B is tried
+before giving up on that fixture. Omit both --provider and --providers to use
+config/ai_config.yaml's eval_multi_provider section instead (same fallback
+behavior — see docs/evaluation.md "Multi-provider dispatch"; ablation always
+uses fallback regardless of that section's `mode`, since one debate run per
+fixture has nothing to pool).
 """
 
 from __future__ import annotations
@@ -41,6 +49,7 @@ from typing import Any, Dict, List, Optional
 from tooling.eval import metrics
 from tooling.eval._common import (
     band_ranks,
+    load_eval_multi_provider_config,
     make_provider,
     risk_levels,
     run_debate,
@@ -144,7 +153,19 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--fixtures", nargs="+", metavar="NAME")
     parser.add_argument("--all", action="store_true")
     parser.add_argument("--fixtures-dir", default=str(DEFAULT_FIXTURE_DIR))
-    parser.add_argument("--provider", required=True)
+    parser.add_argument(
+        "--provider",
+        help="single provider — overrides config/ai_config.yaml's eval_multi_provider "
+             "section. Mutually exclusive with --providers.",
+    )
+    parser.add_argument(
+        "--providers", nargs="+", metavar="NAME",
+        help="2+ providers with fallback: for each fixture, tries them in order "
+             "until one produces a result — rides out one provider's rate limit "
+             "or quota without losing that fixture's run. Overrides "
+             "config/ai_config.yaml's eval_multi_provider section. Mutually "
+             "exclusive with --provider.",
+    )
     parser.add_argument("--top-n", type=int, default=5)
     parser.add_argument("--max-rounds", type=int, default=3)
     parser.add_argument("--sleep", type=float, default=8.0,
@@ -156,6 +177,23 @@ def main(argv: Optional[List[str]] = None) -> int:
                              "Pass a negative value to use the provider default.")
     parser.add_argument("--out", required=True)
     args = parser.parse_args(argv)
+
+    if args.provider and args.providers:
+        parser.error("pass at most one of --provider or --providers")
+    if args.provider:
+        providers: List[str] = [args.provider]
+    elif args.providers:
+        providers = list(args.providers)
+    else:
+        mp_cfg = load_eval_multi_provider_config()
+        if not mp_cfg["enabled"] or not mp_cfg["providers"]:
+            parser.error(
+                "pass --provider NAME, --providers NAME [NAME ...], or enable "
+                "eval_multi_provider (with a non-empty providers list, or at "
+                "least one enabled: true ai_providers entry) in config/ai_config.yaml"
+            )
+        providers = mp_cfg["providers"]
+        logger.info("eval_multi_provider (config): providers=%s (fallback)", providers)
 
     fixture_dir = Path(args.fixtures_dir)
     if args.all:
@@ -172,7 +210,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         "step": "ablation",
         "generated_at": _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "params": {
-            "provider": args.provider, "top_n": args.top_n,
+            "providers": providers, "top_n": args.top_n,
             "max_rounds": args.max_rounds, "sleep": args.sleep, "temperature": temp,
         },
         "fixtures": {},
@@ -183,11 +221,18 @@ def main(argv: Optional[List[str]] = None) -> int:
         if not path.exists():
             logger.error("fixture not found: %s", path)
             return 2
-        try:
-            result["fixtures"][name] = _run_fixture(name, path, args.provider, cfg, args.sleep)
-        except Exception as exc:  # provider down / quota / bad fixture — record and continue
-            logger.warning("%s: ablation run failed: %s", name, exc)
-            result["fixtures"][name] = {"status": "failed", "error": str(exc)}
+        last_exc: Optional[Exception] = None
+        for prov in providers:
+            try:
+                result["fixtures"][name] = _run_fixture(name, path, prov, cfg, args.sleep)
+                last_exc = None
+                break
+            except Exception as exc:  # provider down / quota / bad fixture — try next provider
+                logger.warning("%s: provider %s failed (%s)%s", name, prov, exc,
+                               " — trying next provider" if prov != providers[-1] else "")
+                last_exc = exc
+        if last_exc is not None:
+            result["fixtures"][name] = {"status": "failed", "error": str(last_exc)}
 
     # a 1-scenario fixture is τ==1.0 / top5_unchanged by the metric guards, not by
     # anything the debate did — exclude it from the aggregate (still listed in fixtures)

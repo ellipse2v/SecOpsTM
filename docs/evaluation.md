@@ -1,6 +1,16 @@
-# Evaluating the Red/Blue Debate Re-Scoring
+# Evaluating the Red/Blue Debate Re-Scoring and the AI Threat Pass
 
 ## What is measured
+
+Two independent evals live here:
+
+1. **The Red/Blue debate re-score** — does the adversarial pass over GDAF attack
+   scenarios reproduce, and does it change the ranking? (below)
+2. **The AI STRIDE threat pass** — does generating per-component AI threats twice
+   on the same model produce the same threats? (`## The AI STRIDE threat pass`)
+
+They test different LLM call sites and don't share a pipeline — see each section
+for its own method and results.
 
 The HTML report contains **two separate ranked lists**, and they are not the same thing:
 
@@ -251,6 +261,120 @@ ever earns a cross-band move on a fixture with more score spread, and per-run
 instrumentation (`round_count`, degraded-turn flag) to attribute any residual
 noise.
 
+## The AI STRIDE threat pass — determinism
+
+The debate re-scores GDAF scenarios; it never touches the per-component AI threats
+in the STRIDE table. Those come from a separate LLM call site
+(`AIService._enrich_with_ai_threats`, one prompt per component). The grounding /
+confidence work (commit `fad75c8`) makes *selection* of an already-generated
+threat grounding-based (each threat gets a confidence + `grounding_flags`) — it
+says nothing about whether *generation* itself is stable. `tooling/eval/ai_threats.py`
+checks that directly: generate the per-component threats N times, no cache, same
+model, same architecture, and measure how much the threat set moves.
+
+**Method.** For each template: run the AI threat pass `--runs` times with the
+per-model cache disabled (`_model_file_path = None`), then compare runs pairwise
+using the same fuzzy key `ThreatConsolidator` uses for dedup (`target`,
+`stride_category`, ≥50% Jaccard overlap on title words). `set_stability_dice` is
+the mean pairwise Dice coefficient over that fuzzy match; `recurrence_full` is the
+fraction of the union of threats (across all runs) that appears in *every* run —
+the "reliable core". `threat_count_cv` is the coefficient of variation of the
+per-run threat count. `grounding_flag_rate_{mean,cv}` tracks how often a threat
+comes back flagged as possibly hallucinated, and whether that rate itself
+reproduces.
+
+**Results** (Mistral, `mistral-small-latest`, 3 runs, no cache — source:
+`tooling/eval/results/ai-threats-2026-08-31.json`):
+
+| Template | runs OK | count mean | count CV | set_stability (Dice) | recurrence_full | grounding_flag_rate |
+|---|---|---|---|---|---|---|
+| Simple_Monolithic_Web_Application | 2/3 | 7.5 | 0.20 | 0.40 | 0.25 | 0.0 (CV 0) |
+| IoT | 3/3 | 22.33 | 0.18 | 0.18 | **0.0** | 0.0 (CV 0) |
+| Three_Tier_Architecture | 3/3 | 10.33 | **0.57** | **0.09** | **0.0** | 0.0 (CV 0) |
+
+(Simple_Monolithic lost one run to a transient "AI provider offline" blip — the
+harness continues past it and reports on the remaining runs.)
+
+**Reading the numbers.**
+
+- **The AI threat pass is far less reproducible than the debate ever was**, even
+  before the debate's own fixes. Two runs of the same model on the same
+  architecture share 9–40% of their threats (Dice); on IoT and Three-Tier, **not
+  one threat recurs in all 3 runs** — there is no reliable core set at all, only a
+  different sample of plausible threats each time.
+- **Count instability compounds the set instability.** Three-Tier's `threat_count_cv`
+  of 0.57 means the pass sometimes returns roughly half or double the threats of
+  another run on the identical model — not just different threats, a different
+  *amount* of coverage.
+- **A real pipeline bug is a contributor, not the whole story.** Mistral batch
+  calls in `LiteLLMProvider.generate_threats_batch` hit `finish_reason=length`
+  (the response gets cut off before valid JSON closes) on 16 of the 19
+  multi-component batches in this run. The existing full-batch fallback (retry
+  each component individually) mostly absorbed that — but the log for this run
+  shows one individual fallback call *also* truncated, and its threats were
+  dropped with no warning and no retry, silently costing one component's
+  threats for that run. That's a genuine bug (fixed since — see below), not
+  just LLM variance — but even a fully-fixed batching layer would still be
+  sampling a stochastic model per component, so it reduces but doesn't
+  eliminate the instability above.
+- **`grounding_flag_rate` is 0.0 everywhere, and its CV is 0 too** — it reproduces
+  perfectly by *always finding nothing to flag*. That's consistent with either
+  reading: the grounding check is lenient on these templates, or Mistral doesn't
+  hallucinate ungrounded claims on architectures this simple. It doesn't tell us
+  the threat *set* is trustworthy — it only says the model isn't inventing facts
+  not in the prompt, which is a different failure mode from "which real threats
+  it happens to mention this run."
+
+**Verdict.** Treat a single AI-threat-pass run as one plausible sample from a wide
+distribution, not a fixed inventory — re-running the same model on the same
+architecture is expected to surface a substantially different (not just
+re-ordered) threat set. This is a stronger warning than the debate's "timid but
+reproducible" verdict: here the underlying generation itself doesn't reproduce,
+so nothing downstream (ranking, dedup, severity) can be trusted to be stable
+either. Fixing the batch-truncation bug (below) is the first concrete lever;
+stronger prompt grounding (#3) and a self-consistency filter (#4) are next.
+
+### Batch-truncation fix (2026-09-05)
+
+`AIService._enrich_batch` (`server/ai_service.py`) had two gaps once a batch
+call's response got truncated:
+
+1. **Total batch failure** (nothing parsable) fell back to one individual call
+   per component in the batch — correct, but wasteful, and it discarded the
+   batching benefit entirely on any truncation.
+2. **Partial batch success** (some components missing from the parsed
+   response — the same truncation, just cut off further into the list) cached
+   those missing components as threat-free *forever*, with only a log line.
+   No retry. This is the more damaging gap: it manufactures a real, permanent
+   `0 threats` result that looks identical to "the model had nothing to say"
+   in the eval numbers above.
+
+Fix: on total failure, the batch is now retried as two smaller batches before
+dropping to individual calls (`generate_threats_batch`'s own token-budget
+formula floors its request at the provider's `max_tokens` regardless of batch
+size, so a smaller batch gets a bigger real per-component share of that same
+floor — often enough to stop truncating). On partial success, the missing
+components are retried individually instead of being cached empty. A matching
+gap in the single-component path (`LiteLLMProvider.generate_threats`) — a
+truncated individual call returned `[]` with zero logging — now logs a
+warning, so this failure mode is visible instead of indistinguishable from
+"no threats found."
+
+Verified: 2 new regression tests in `tests/test_ai_service.py` (full suite:
+1561 passed, 3 pre-existing unrelated `ansible`-module failures) exercise both
+retry paths against a mocked provider. A live re-run against Mistral to get a
+before/after `set_stability`/`recurrence_full` comparison is still pending —
+the project's Mistral key hit a sustained quota `rate_limited` (not a burst)
+on the day this fix landed. A smaller live check against Groq did confirm the
+new code paths fire correctly on a real truncation (`Batch: no threats
+returned for 'DatabaseServer' — falling back to an individual call`) and on a
+real full-batch failure (`Batch enrichment returned empty for 3 component(s)
+— retrying as smaller batches`), though Groq's 8000 TPM cap was too tight to
+also produce a clean quantitative determinism re-run in the same pass.
+**Re-running `tooling/eval/ai_threats.py` against Mistral once its quota
+resets is the next concrete step** to quantify how much of the instability
+above the fix actually closes.
+
 ## Limitations
 
 - Small n — 3 fixtures × 3 runs for Step 1, 3 scored fixtures for Step 2.
@@ -305,11 +429,68 @@ python -m tooling.eval.determinism \
 python -m tooling.eval.ablation --all --provider mistral \
     --top-n 5 --max-rounds 3 --sleep 3 \
     --out tooling/eval/results/ablation-$(date +%F).json
+
+# 4. AI STRIDE threat pass — determinism (no cache, hits the LLM every run)
+python -m tooling.eval.ai_threats \
+    --templates Simple_Monolithic_Web_Application IoT Three_Tier_Architecture \
+    --provider mistral --runs 3 --sleep 2 \
+    --out tooling/eval/results/ai-threats-$(date +%F).json
 ```
 
 Fixtures were regenerated 2026-08-31 after the GDAF-determinism fix — they are
 now byte-reproducible. Regenerate if `GDAFEngine`,
 `AssetTechniqueMapper`, or a template changes.
+
+### Multi-provider dispatch (2026-09-05) — avoiding a single provider's rate limit
+
+Both Mistral and Groq have gone rate-limited/quota-exhausted mid-session during
+this work (a sustained Mistral 429, Groq's 8000 TPM cap saturated by the
+batch-truncation retries in the previous section). `determinism.py` and
+`ablation.py` now accept more than one provider with a dispatch mode — driven
+by `config/ai_config.yaml`'s `eval_multi_provider` section, not a CLI flag:
+
+```yaml
+eval_multi_provider:
+  enabled: false
+  mode: "fallback"     # "fallback" | "parallel_merge"
+  providers: []        # empty = every ai_providers entry with enabled: true
+```
+
+This section is only consulted when a harness script is invoked with **no**
+explicit `--provider`/`--providers` on the CLI — passing one always overrides
+it and uses the legacy per-provider-separate reporting (`by_provider` +
+`cross_provider`, unchanged).
+
+- **`mode: fallback`** (`determinism.py`, and `ablation.py` — fallback is
+  ablation's only mode, since a single debate run per fixture has no sensible
+  "merge"): one pooled run of `--runs` slots; for each slot, providers are
+  tried in order until one succeeds. Same sample count as a single-provider
+  run, but rides out one provider going down mid-run instead of losing that
+  slot.
+- **`mode: parallel_merge`** (`determinism.py` only — ablation ignores this
+  value and always does fallback): every provider runs its own full `--runs`
+  attempts *concurrently* (one thread per provider — `run_debate` owns and
+  closes its own asyncio loop via `asyncio.run()` per call, so threads are
+  used instead of `asyncio.gather`), and every success from every provider is
+  pooled into one combined sample set — up to `len(providers) * runs`
+  samples, at roughly the wall-clock cost of the slowest provider instead of
+  the sum. This is the concrete way to address "Still-open Step 1 firming:
+  pooled τ across fixtures" (tasks.md) — more samples per fixture without a
+  longer wall-clock run.
+
+**A real concurrency bug this surfaced and fixed:** `SECOPSTM_FORCE_PROVIDER`
+is a process-global env var. `parallel_merge`'s concurrent threads each used
+to set it before constructing their `LiteLLMProvider`, which raced — one
+thread's write could be overwritten by another's before the first thread's
+`LiteLLMClient` actually read it, silently handing it the wrong provider's
+config. Fixed by adding an explicit `forced_provider` parameter to
+`LiteLLMProvider.__init__` / `LiteLLMClient.create()` that takes precedence
+over the env var — each thread's provider now resolves correctly regardless
+of which thread's env-var write won the race. The env var itself is kept
+(backward compatible for single-threaded/manual use).
+
+Not yet extended to `tooling/eval/ai_threats.py` (the AI STRIDE pass) — same
+idea would apply there, just not done this session.
 
 ## Next
 

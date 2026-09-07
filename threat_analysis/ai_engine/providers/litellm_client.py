@@ -37,13 +37,20 @@ class LiteLLMClient:
         self._litellm_module = None
 
     @staticmethod
-    async def create():
-        """Creates and asynchronously initializes the LiteLLMClient."""
+    async def create(forced_provider: Optional[str] = None):
+        """Creates and asynchronously initializes the LiteLLMClient.
+
+        `forced_provider`, when given, takes precedence over the
+        SECOPSTM_FORCE_PROVIDER env var — the env var is process-global, so it
+        cannot safely select a per-instance provider across concurrent threads
+        (the evaluation harness's parallel_merge mode runs one thread per
+        provider). Pass it explicitly there instead of relying on the env var.
+        """
         client = LiteLLMClient()
-        await client._load_ai_config()
+        await client._load_ai_config(forced_provider)
         return client
 
-    async def _load_ai_config(self):
+    async def _load_ai_config(self, forced_provider: Optional[str] = None):
         """Loads AI configuration from ai_config.yaml and initializes LiteLLM."""
         start_time = time.time()
         logging.info(f"[{time.time() - start_time:.4f}s] Loading AI configuration...")
@@ -51,20 +58,21 @@ class LiteLLMClient:
             with open(Path.cwd() / "config" / "ai_config.yaml", 'r') as f:
                 self.ai_config = yaml.safe_load(f)
             logging.info(f"[{time.time() - start_time:.4f}s] AI configuration loaded.")
-            
+
             # Provider selection: first `enabled: true` wins, unless
             # SECOPSTM_FORCE_PROVIDER names a provider present in the config
             # (used for A/B provider comparison and the evaluation harness —
             # see docs/evaluation.md). A forced provider need not be enabled.
             provider_name = None
             _providers = self.ai_config.get("ai_providers", {})
-            _forced = os.environ.get("SECOPSTM_FORCE_PROVIDER")
+            _forced = forced_provider or os.environ.get("SECOPSTM_FORCE_PROVIDER")
             if _forced and _providers.get(_forced):
                 self.provider_config = _providers[_forced]
                 provider_name = _forced
                 logging.warning(
-                    "Provider selection forced to '%s' via SECOPSTM_FORCE_PROVIDER "
-                    "(overrides the enabled: flags in ai_config.yaml)", _forced
+                    "Provider selection forced to '%s' via %s "
+                    "(overrides the enabled: flags in ai_config.yaml)", _forced,
+                    "explicit forced_provider" if forced_provider else "SECOPSTM_FORCE_PROVIDER",
                 )
             else:
                 if _forced:

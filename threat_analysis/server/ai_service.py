@@ -873,7 +873,19 @@ class AIService:
         provider_name = type(self.provider).__name__
 
         async def _enrich_batch(batch: List) -> None:
-            """Send one batch of components to the LLM and distribute results."""
+            """Send one batch of components to the LLM and distribute results.
+
+            On a total batch failure (empty result — almost always a `max_tokens`
+            truncation on a multi-component response), retries as two smaller
+            batches before dropping to one call per component: `generate_threats_batch`
+            floors its token request at the provider's own `max_tokens`, so a
+            smaller batch gets a proportionally bigger per-component share of that
+            same floor and often avoids the truncation that sank the full batch.
+            On a partial success (some components missing from the response —
+            same failure mode, just cut off mid-list instead of before the first
+            valid entry), the missing ones are retried individually rather than
+            cached as threat-free.
+            """
             components = [det for _, det, _ in batch]
             elem_by_name = {det["name"]: (elem, h, det) for elem, det, h in batch}
 
@@ -890,27 +902,41 @@ class AIService:
                     elem, h, det = elem_by_name[comp_name]
                     cache.put(h, comp_name, provider_name, threats_json or [])
                     _apply_threats_to_element(elem, threats_json, det)
+                    await _update_progress(det["name"])
                     logging.debug("AI cache MISS %-32s [%s]  → stored %d threats (batch)",
                                   comp_name, h[:8], len(threats_json or []))
 
-            # Batch failed entirely — fall back to individual calls rather than caching empty.
-            if not results:
-                logging.warning(
-                    "Batch enrichment returned empty for %d component(s) — falling back to individual calls",
-                    len(batch),
-                )
-                await asyncio.gather(*[_enrich_one_fallback(elem, det, h) for elem, det, h in batch])
+            missing = [(elem, det, h) for elem, det, h in batch if det["name"] not in results]
+            if not missing:
                 return
 
-            # Cache empty result for components the LLM did not mention
-            for elem, det, h in batch:
-                if det["name"] not in results:
-                    logging.warning("Batch: no threats returned for '%s' — caching empty.",
-                                    det["name"])
-                    cache.put(h, det["name"], provider_name, [])
+            async def _retry_smaller(sub_batch: List) -> None:
+                # A sub-batch of 1 that reached here already failed as part of a
+                # larger batch — escalate straight to the individual-call path
+                # instead of re-issuing generate_threats_batch for a singleton
+                # (which would just repeat the same failure forever).
+                if len(sub_batch) == 1:
+                    elem, det, h = sub_batch[0]
+                    await _enrich_one_fallback(elem, det, h)
+                else:
+                    await _enrich_batch(sub_batch)
 
-            for _, det, _ in batch:
-                await _update_progress(det["name"])
+            if not results and len(batch) > 1:
+                # Total batch failure — almost always the multi-component response got
+                # truncated. missing == batch here (nothing parsed at all).
+                logging.warning(
+                    "Batch enrichment returned empty for %d component(s) — retrying as smaller batches",
+                    len(missing),
+                )
+                mid = len(missing) // 2
+                await asyncio.gather(_retry_smaller(missing[:mid]), _retry_smaller(missing[mid:]))
+            else:
+                for elem, det, h in missing:
+                    logging.warning(
+                        "Batch: no threats returned for '%s' — falling back to an individual call.",
+                        det["name"],
+                    )
+                await asyncio.gather(*[_enrich_one_fallback(elem, det, h) for elem, det, h in missing])
 
         async def _enrich_one_fallback(elem, det: Dict, h: str) -> None:
             """Individual enrichment — used when provider lacks generate_threats_batch."""

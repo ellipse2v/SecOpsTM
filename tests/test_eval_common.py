@@ -371,3 +371,327 @@ def test_ablation_aggregate_stubbed(tmp_path, monkeypatch):
     assert data["aggregate"]["fixtures_ok"] == 1
     assert data["aggregate"]["fixtures_excluded_lt2"] == 0
     assert data["aggregate"]["kendall_tau_median"] == pytest.approx(0.3333)
+
+
+# ---------------------------------------------------------------------------
+# Multi-provider dispatch (fallback / parallel_merge)
+# ---------------------------------------------------------------------------
+
+def test_run_fallback_attempts_tries_next_provider_on_failure():
+    from tooling.eval._common import run_fallback_attempts
+
+    def attempt(prov, i):
+        if prov == "a":
+            raise RuntimeError("a is rate-limited")
+        return f"{prov}-{i}"
+
+    successes, failed = run_fallback_attempts(["a", "b"], 3, attempt)
+    assert failed == 0
+    assert [s for _, s in successes] == ["b-0", "b-1", "b-2"]
+    assert {p for p, _ in successes} == {"b"}
+
+
+def test_run_fallback_attempts_counts_a_slot_failed_only_when_every_provider_fails():
+    from tooling.eval._common import run_fallback_attempts
+
+    def attempt(prov, i):
+        raise RuntimeError("down")
+
+    successes, failed = run_fallback_attempts(["a", "b"], 2, attempt)
+    assert successes == []
+    assert failed == 2  # 2 slots, each exhausts both providers
+
+
+def test_run_parallel_merge_attempts_pools_every_provider_full_runs():
+    from tooling.eval._common import run_parallel_merge_attempts
+
+    def attempt(prov, i):
+        return f"{prov}-{i}"
+
+    successes, failed = run_parallel_merge_attempts(["a", "b"], 3, attempt)
+    assert failed == 0
+    # both providers run their own full 3 attempts -> 6 pooled samples
+    assert sorted(s for _, s in successes) == ["a-0", "a-1", "a-2", "b-0", "b-1", "b-2"]
+
+
+def test_run_parallel_merge_attempts_pools_partial_success_when_one_provider_fails():
+    from tooling.eval._common import run_parallel_merge_attempts
+
+    def attempt(prov, i):
+        if prov == "a":
+            raise RuntimeError("a is down")
+        return f"{prov}-{i}"
+
+    successes, failed = run_parallel_merge_attempts(["a", "b"], 2, attempt)
+    assert failed == 2  # both of a's attempts
+    assert sorted(s for _, s in successes) == ["b-0", "b-1"]
+
+
+def test_run_multi_provider_dispatches_by_mode():
+    from tooling.eval._common import run_multi_provider
+
+    def attempt(prov, i):
+        return f"{prov}-{i}"
+
+    fb, _ = run_multi_provider(["a", "b"], 1, "fallback", attempt)
+    assert [s for _, s in fb] == ["a-0"]  # "a" never fails -> fallback never reaches "b"
+
+    pm, _ = run_multi_provider(["a", "b"], 1, "parallel_merge", attempt)
+    assert sorted(s for _, s in pm) == ["a-0", "b-0"]
+
+    with pytest.raises(ValueError):
+        run_multi_provider(["a"], 1, "bogus", attempt)
+
+
+def test_determinism_with_no_providers_flag_errors_when_config_disabled(tmp_path, monkeypatch):
+    from tooling.eval import determinism
+
+    monkeypatch.setattr(
+        determinism, "load_eval_multi_provider_config",
+        lambda: {"enabled": False, "mode": "fallback", "providers": []},
+    )
+    out = tmp_path / "result.json"
+    with pytest.raises(SystemExit):
+        determinism.main([
+            "--fixtures-dir", str(tmp_path), "--fixtures", "Toy", "--out", str(out),
+        ])
+
+
+def test_determinism_config_fallback_pools_into_one_entry(tmp_path, monkeypatch):
+    """eval_multi_provider enabled with mode: fallback (from config, no --providers
+    on the CLI): one pooled entry, no by_provider/cross_provider, and the failing
+    provider contributes nothing to served_by."""
+    import json
+    from tooling.eval import determinism
+    from tooling.eval._common import freeze, thaw
+
+    fixture = tmp_path / "Toy.scenarios.json"
+    fixture.write_text(json.dumps(freeze([_scenario("S1", 3.0), _scenario("S2", 2.0)])))
+
+    def fake_run_debate(scenarios, *, provider, config, sleep_s=0.0):
+        if provider == "down":
+            raise RuntimeError("down is rate-limited")
+        s = thaw(freeze(scenarios))
+
+        class R:
+            def __init__(self, sid):
+                self.scenario_id = sid
+                self.final_viability = 0.6
+                self.residual_path_viable = True
+                self.debate_factor = 1.0
+                self.rounds = []
+        return s, [R(sc.scenario_id) for sc in s]
+
+    monkeypatch.setattr(determinism, "run_debate", fake_run_debate)
+    # make_provider's return value stands in for the provider identity fake_run_debate checks
+    monkeypatch.setattr(determinism, "make_provider", lambda name: name)
+    monkeypatch.setattr(
+        determinism, "load_eval_multi_provider_config",
+        lambda: {"enabled": True, "mode": "fallback", "providers": ["down", "up"]},
+    )
+
+    out = tmp_path / "result.json"
+    rc = determinism.main([
+        "--fixtures-dir", str(tmp_path), "--fixtures", "Toy",
+        "--runs", "3", "--top-n", "5", "--max-rounds", "1", "--sleep", "0",
+        "--out", str(out),
+    ])
+    assert rc == 0
+    data = json.loads(out.read_text())
+    assert data["params"]["providers"] == ["down", "up"]
+    assert data["params"]["multi_provider_mode"] == "fallback"
+    entry = data["fixtures"]["Toy"]
+    assert "by_provider" not in entry
+    assert "cross_provider" not in entry
+    assert entry["served_by"] == {"up": 3}  # "down" always fails -> fallback always reaches "up"
+    assert entry["runs_ok"] == 3
+    assert entry["debated_count"] == 2
+
+
+def test_determinism_config_parallel_merge_pools_both_providers(tmp_path, monkeypatch):
+    import json
+    from tooling.eval import determinism
+    from tooling.eval._common import freeze, thaw
+
+    fixture = tmp_path / "Toy.scenarios.json"
+    fixture.write_text(json.dumps(freeze([_scenario("S1", 3.0), _scenario("S2", 2.0)])))
+
+    def fake_run_debate(scenarios, *, provider, config, sleep_s=0.0):
+        s = thaw(freeze(scenarios))
+
+        class R:
+            def __init__(self, sid):
+                self.scenario_id = sid
+                self.final_viability = 0.6
+                self.residual_path_viable = True
+                self.debate_factor = 1.0
+                self.rounds = []
+        return s, [R(sc.scenario_id) for sc in s]
+
+    monkeypatch.setattr(determinism, "run_debate", fake_run_debate)
+    monkeypatch.setattr(determinism, "make_provider", lambda name: name)
+    monkeypatch.setattr(
+        determinism, "load_eval_multi_provider_config",
+        lambda: {"enabled": True, "mode": "parallel_merge", "providers": ["a", "b"]},
+    )
+
+    out = tmp_path / "result.json"
+    rc = determinism.main([
+        "--fixtures-dir", str(tmp_path), "--fixtures", "Toy",
+        "--runs", "2", "--top-n", "5", "--max-rounds", "1", "--sleep", "0",
+        "--out", str(out),
+    ])
+    assert rc == 0
+    entry = json.loads(out.read_text())["fixtures"]["Toy"]
+    # both providers run their own 2 attempts -> 4 pooled samples total
+    assert entry["served_by"] == {"a": 2, "b": 2}
+    assert entry["runs_ok"] == 4
+
+
+def test_determinism_explicit_providers_cli_overrides_config_and_uses_legacy_path(tmp_path, monkeypatch):
+    """Passing --providers on the CLI always wins over config/ai_config.yaml and
+    keeps the legacy per-provider-separate reporting, even if config is enabled."""
+    import json
+    from tooling.eval import determinism
+    from tooling.eval._common import freeze, thaw
+
+    fixture = tmp_path / "Toy.scenarios.json"
+    fixture.write_text(json.dumps(freeze([_scenario("S1", 3.0), _scenario("S2", 2.0)])))
+
+    def fake_run_debate(scenarios, *, provider, config, sleep_s=0.0):
+        s = thaw(freeze(scenarios))
+
+        class R:
+            def __init__(self, sid):
+                self.scenario_id = sid
+                self.final_viability = 0.6
+                self.residual_path_viable = True
+                self.debate_factor = 1.0
+                self.rounds = []
+        return s, [R(sc.scenario_id) for sc in s]
+
+    monkeypatch.setattr(determinism, "run_debate", fake_run_debate)
+    monkeypatch.setattr(determinism, "make_provider", lambda name: object())
+    # config says "parallel_merge" — the explicit CLI --providers below must ignore it
+    monkeypatch.setattr(
+        determinism, "load_eval_multi_provider_config",
+        lambda: (_ for _ in ()).throw(AssertionError("config should not be consulted")),
+    )
+
+    out = tmp_path / "result.json"
+    rc = determinism.main([
+        "--fixtures-dir", str(tmp_path), "--fixtures", "Toy",
+        "--providers", "groq",
+        "--runs", "2", "--top-n", "5", "--max-rounds", "1", "--sleep", "0",
+        "--out", str(out),
+    ])
+    assert rc == 0
+    entry = json.loads(out.read_text())["fixtures"]["Toy"]
+    assert "by_provider" in entry
+    assert "groq" in entry["by_provider"]
+
+
+def test_ablation_providers_falls_back_on_failure(tmp_path, monkeypatch):
+    """--providers A B: A fails outright, B serves the fixture."""
+    import json
+    from tooling.eval import ablation
+    from tooling.eval._common import freeze, thaw
+
+    fx = tmp_path / "Toy.scenarios.json"
+    fx.write_text(json.dumps(freeze([_scenario("S1", 5.0), _scenario("S2", 4.0)])))
+
+    def fake_run_debate(scenarios, *, provider, config, sleep_s=0.0):
+        if provider == "down":
+            raise RuntimeError("down is rate-limited")
+        s = thaw(freeze(scenarios))
+
+        class R:
+            def __init__(self, sid):
+                self.scenario_id = sid
+                self.final_viability = 0.8
+                self.residual_path_viable = True
+                self.rounds = []
+        return s, [R(sc.scenario_id) for sc in s]
+
+    monkeypatch.setattr(ablation, "run_debate", fake_run_debate)
+    monkeypatch.setattr(ablation, "make_provider", lambda name: name)
+
+    out = tmp_path / "abl.json"
+    rc = ablation.main([
+        "--fixtures-dir", str(tmp_path), "--fixtures", "Toy",
+        "--providers", "down", "up", "--top-n", "5", "--max-rounds", "1", "--sleep", "0",
+        "--out", str(out),
+    ])
+    assert rc == 0
+    data = json.loads(out.read_text())
+    assert data["params"]["providers"] == ["down", "up"]
+    assert "kendall_tau" in data["fixtures"]["Toy"]  # succeeded via fallback to "up"
+
+
+def test_ablation_rejects_both_provider_and_providers(tmp_path):
+    from tooling.eval import ablation
+
+    out = tmp_path / "abl.json"
+    with pytest.raises(SystemExit):
+        ablation.main([
+            "--fixtures-dir", str(tmp_path), "--fixtures", "Toy",
+            "--provider", "groq", "--providers", "groq", "xai",
+            "--out", str(out),
+        ])
+
+
+def test_ablation_with_no_provider_flag_errors_when_config_disabled(tmp_path, monkeypatch):
+    """Neither --provider nor --providers, and eval_multi_provider disabled/empty
+    in config -> a clear error, not a silent fallback to nothing."""
+    from tooling.eval import ablation
+
+    monkeypatch.setattr(
+        ablation, "load_eval_multi_provider_config",
+        lambda: {"enabled": False, "mode": "fallback", "providers": []},
+    )
+    out = tmp_path / "abl.json"
+    with pytest.raises(SystemExit):
+        ablation.main([
+            "--fixtures-dir", str(tmp_path), "--fixtures", "Toy",
+            "--out", str(out),
+        ])
+
+
+def test_ablation_with_no_provider_flag_uses_config(tmp_path, monkeypatch):
+    """Neither --provider nor --providers -> providers come from
+    config/ai_config.yaml's eval_multi_provider section."""
+    import json
+    from tooling.eval import ablation
+    from tooling.eval._common import freeze, thaw
+
+    fx = tmp_path / "Toy.scenarios.json"
+    fx.write_text(json.dumps(freeze([_scenario("S1", 5.0), _scenario("S2", 4.0)])))
+
+    def fake_run_debate(scenarios, *, provider, config, sleep_s=0.0):
+        s = thaw(freeze(scenarios))
+
+        class R:
+            def __init__(self, sid):
+                self.scenario_id = sid
+                self.final_viability = 0.8
+                self.residual_path_viable = True
+                self.rounds = []
+        return s, [R(sc.scenario_id) for sc in s]
+
+    monkeypatch.setattr(ablation, "run_debate", fake_run_debate)
+    monkeypatch.setattr(ablation, "make_provider", lambda name: name)
+    monkeypatch.setattr(
+        ablation, "load_eval_multi_provider_config",
+        lambda: {"enabled": True, "mode": "fallback", "providers": ["from-config"]},
+    )
+
+    out = tmp_path / "abl.json"
+    rc = ablation.main([
+        "--fixtures-dir", str(tmp_path), "--fixtures", "Toy",
+        "--top-n", "5", "--max-rounds", "1", "--sleep", "0",
+        "--out", str(out),
+    ])
+    assert rc == 0
+    data = json.loads(out.read_text())
+    assert data["params"]["providers"] == ["from-config"]
+    assert "kendall_tau" in data["fixtures"]["Toy"]

@@ -26,6 +26,19 @@ Run from the repo root (reads config/ai_config.yaml via cwd).
         --fixtures GDAF_Debate_Smoke_Test Kubernetes_Helm_Cluster On-Prem_Enterprise_Network \
         --providers groq xai --runs 3 --top-n 3 --max-rounds 2 --sleep 22 \
         --out tooling/eval/results/determinism-2026-08-29.json
+
+Two or more --providers run independently and are reported per-provider (plus
+a cross-provider agreement block for exactly 2).
+
+Pooled dispatch (fallback / parallel_merge — see docs/evaluation.md
+"Multi-provider dispatch") is config-driven, not a CLI flag: omit --providers
+entirely and set config/ai_config.yaml's `eval_multi_provider` section
+instead (enabled, mode, providers). 'fallback' rides out one provider's rate
+limit at the same sample count; 'parallel_merge' runs every listed provider's
+full sample set concurrently and pools every success into one combined set
+(bigger n, roughly the slowest provider's wall-clock cost). Passing
+--providers on the CLI always overrides ai_config.yaml and uses the legacy
+per-provider-separate reporting above instead.
 """
 
 from __future__ import annotations
@@ -44,9 +57,11 @@ from threat_analysis.core.gdaf_engine import AttackScenario
 from tooling.eval import metrics
 from tooling.eval._common import (
     band_ranks,
+    load_eval_multi_provider_config,
     make_provider,
     risk_levels,
     run_debate,
+    run_multi_provider,
     scenario_order,
     thaw,
 )
@@ -72,6 +87,53 @@ def _debate_config(top_n: int, max_rounds: int, temperature: Optional[float]) ->
     }
 
 
+def _one_attempt(
+    fixture_scenarios: List[AttackScenario],
+    provider_name: str,
+    cfg: Dict[str, Any],
+    sleep_s: float,
+) -> Tuple[List[AttackScenario], List[Any]]:
+    """Run the debate once against `provider_name`. Raises on failure (provider
+    down / quota) or on a debate that produced no results at all."""
+    # fresh provider per run — see make_provider docstring (closed-loop guard)
+    mutated, results = run_debate(
+        fixture_scenarios, provider=make_provider(provider_name),
+        config=cfg, sleep_s=sleep_s,
+    )
+    if not results:
+        raise RuntimeError("debate produced no results")
+    return mutated, results
+
+
+def _record_attempt(records: Dict[str, Any], mutated: List[AttackScenario], results: List[Any]) -> None:
+    """Merge one (mutated, results) attempt into the shared `records` dict, in place.
+
+    A sample is recorded for a scenario ONLY if the debate actually produced a
+    DebateResult for it (spec §6 — a scenario the debate returned None for, or
+    never selected, contributes no cell). The never-debated tail keeps its
+    dataclass-default debate_factor == 1.0, which would pin every dispersion
+    metric to zero if it were included.
+    """
+    records.setdefault("_orders", []).append(scenario_order(mutated))
+    rl = risk_levels(mutated)
+    factor_by_id = {s.scenario_id: s.debate_factor for s in mutated}
+    debated_ids = {r.scenario_id for r in results}
+    viable_by_id = {r.scenario_id: bool(r.residual_path_viable) for r in results}
+    fv_by_id = {r.scenario_id: float(r.final_viability) for r in results
+                if getattr(r, "final_viability", None) is not None}
+    for sid in debated_ids:
+        rec = records.setdefault(
+            sid, {"factor": [], "viable": [], "risk": [], "final_viability": []}
+        )
+        if sid in factor_by_id:
+            rec["factor"].append(float(factor_by_id[sid]))
+        rec["risk"].append(rl.get(sid, ""))
+        if sid in viable_by_id:
+            rec["viable"].append(viable_by_id[sid])
+        if sid in fv_by_id:
+            rec["final_viability"].append(fv_by_id[sid])
+
+
 def _run_provider(
     fixture_scenarios: List[AttackScenario],
     provider_name: str,
@@ -84,56 +146,52 @@ def _run_provider(
     per_scenario_records: {scenario_id: {"factor": [...], "viable": [...],
                                          "risk": [...], "final_viability": [...]}},
     plus "_orders": [order, ...].
-
-    A sample is recorded for a scenario in a given run ONLY if the debate
-    actually produced a DebateResult for it that run (spec §6 — a scenario the
-    debate returned None for, or never selected, contributes no cell). The
-    never-debated tail keeps its dataclass-default debate_factor == 1.0, which
-    would pin every dispersion metric to zero if it were included.
     """
     records: Dict[str, Any] = {}
-    orders: List[List[str]] = []
     runs_ok = 0
     runs_failed = 0
     for i in range(runs):
         try:
-            # fresh provider per run — see make_provider docstring (closed-loop guard)
-            mutated, results = run_debate(
-                fixture_scenarios, provider=make_provider(provider_name),
-                config=cfg, sleep_s=sleep_s,
-            )
-        except Exception as exc:  # provider down / quota — count and continue
+            mutated, results = _one_attempt(fixture_scenarios, provider_name, cfg, sleep_s)
+        except Exception as exc:  # provider down / quota / no results — count and continue
             logger.warning("%s run %d/%d failed: %s", provider_name, i + 1, runs, exc)
             runs_failed += 1
             continue
-        if not results:
-            logger.warning("%s run %d/%d produced no debate results", provider_name, i + 1, runs)
-            runs_failed += 1
-            continue
         runs_ok += 1
-        orders.append(scenario_order(mutated))
-        rl = risk_levels(mutated)
-        factor_by_id = {s.scenario_id: s.debate_factor for s in mutated}
-        debated_ids = {r.scenario_id for r in results}
-        viable_by_id = {r.scenario_id: bool(r.residual_path_viable) for r in results}
-        fv_by_id = {r.scenario_id: float(r.final_viability) for r in results
-                    if getattr(r, "final_viability", None) is not None}
-        for sid in debated_ids:
-            rec = records.setdefault(
-                sid, {"factor": [], "viable": [], "risk": [], "final_viability": []}
-            )
-            if sid in factor_by_id:
-                rec["factor"].append(float(factor_by_id[sid]))
-            rec["risk"].append(rl.get(sid, ""))
-            if sid in viable_by_id:
-                rec["viable"].append(viable_by_id[sid])
-            if sid in fv_by_id:
-                rec["final_viability"].append(fv_by_id[sid])
-    records["_orders"] = orders
+        _record_attempt(records, mutated, results)
     # pre-debate confidence bands (fixed input) — used to tell a real cross-band
     # move from a within-band shuffle that no ranking could have got right anyway
     records["_bands"] = band_ranks(fixture_scenarios)
     return records, runs_ok, runs_failed
+
+
+def _run_pooled(
+    fixture_scenarios: List[AttackScenario],
+    providers: List[str],
+    runs: int,
+    mode: str,
+    cfg: Dict[str, Any],
+    sleep_s: float,
+) -> Tuple[Dict[str, Any], int, int, Dict[str, int]]:
+    """Same shape as `_run_provider`, but samples are pooled across `providers`
+    per `mode` (fallback or parallel_merge — see _common.py and
+    config/ai_config.yaml's eval_multi_provider section).
+
+    Returns (per_scenario_records, runs_ok, runs_failed, served_by) where
+    served_by counts how many successful attempts each provider contributed —
+    useful to see in the output whether one provider silently did all the work.
+    """
+    def attempt(provider_name: str, _i: int) -> Tuple[List[AttackScenario], List[Any]]:
+        return _one_attempt(fixture_scenarios, provider_name, cfg, sleep_s)
+
+    successes, runs_failed = run_multi_provider(providers, runs, mode, attempt)
+    records: Dict[str, Any] = {}
+    served_by: Dict[str, int] = {}
+    for prov, (mutated, results) in successes:
+        _record_attempt(records, mutated, results)
+        served_by[prov] = served_by.get(prov, 0) + 1
+    records["_bands"] = band_ranks(fixture_scenarios)
+    return records, len(successes), runs_failed, served_by
 
 
 def _aggregate_provider(records: Dict[str, Any], runs_ok: int) -> Dict[str, Any]:
@@ -254,7 +312,14 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--fixtures", nargs="+", required=True, metavar="NAME")
     parser.add_argument("--fixtures-dir", default=str(DEFAULT_FIXTURE_DIR))
-    parser.add_argument("--providers", nargs="+", required=True, metavar="NAME")
+    parser.add_argument(
+        "--providers", nargs="+", metavar="NAME", default=None,
+        help="Explicit provider list — overrides config/ai_config.yaml's "
+             "eval_multi_provider section and always uses the legacy "
+             "per-provider-separate reporting (by_provider + cross_provider). "
+             "Omit to use eval_multi_provider instead (pooled fallback / "
+             "parallel_merge dispatch — see the module docstring).",
+    )
     parser.add_argument("--runs", type=int, default=3)
     parser.add_argument("--top-n", type=int, default=3)
     parser.add_argument("--max-rounds", type=int, default=2)
@@ -268,6 +333,24 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--out", required=True)
     args = parser.parse_args(argv)
 
+    pooled = False
+    multi_provider_mode: Optional[str] = None
+    if args.providers:
+        providers = list(args.providers)
+    else:
+        mp_cfg = load_eval_multi_provider_config()
+        if not mp_cfg["enabled"] or not mp_cfg["providers"]:
+            parser.error(
+                "pass --providers NAME [NAME ...], or enable eval_multi_provider "
+                "(with a non-empty providers list, or at least one enabled: true "
+                "ai_providers entry) in config/ai_config.yaml"
+            )
+        providers = mp_cfg["providers"]
+        multi_provider_mode = mp_cfg["mode"]
+        pooled = True
+        logger.info("eval_multi_provider (config): mode=%s providers=%s",
+                    multi_provider_mode, providers)
+
     temp = None if args.temperature < 0 else args.temperature
     cfg = _debate_config(args.top_n, args.max_rounds, temp)
     fixture_dir = Path(args.fixtures_dir)
@@ -276,7 +359,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         "generated_at": _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "params": {
             "runs": args.runs, "top_n": args.top_n, "max_rounds": args.max_rounds,
-            "sleep": args.sleep, "temperature": temp, "providers": list(args.providers),
+            "sleep": args.sleep, "temperature": temp, "providers": providers,
+            "multi_provider_mode": multi_provider_mode,
         },
         "fixtures": {},
     }
@@ -287,10 +371,27 @@ def main(argv: Optional[List[str]] = None) -> int:
             logger.error("fixture not found: %s — run freeze_scenarios first", path)
             return 2
         scenarios = thaw(json.loads(path.read_text(encoding="utf-8")))
+
+        if pooled:
+            records, runs_ok, runs_failed, served_by = _run_pooled(
+                scenarios, providers, args.runs, multi_provider_mode,
+                cfg, args.sleep,
+            )
+            entry = {"scenario_count": len(scenarios), "served_by": served_by}
+            if runs_ok == 0 or runs_ok * 2 < args.runs:
+                entry.update({"runs_ok": runs_ok, "runs_failed": runs_failed,
+                              "status": "insufficient-data"})
+            else:
+                agg = _aggregate_provider(records, runs_ok)
+                agg["runs_failed"] = runs_failed
+                entry.update(agg)
+            result["fixtures"][name] = entry
+            continue
+
         entry: Dict[str, Any] = {"scenario_count": len(scenarios), "by_provider": {}}
         per_provider_records: Dict[str, Any] = {}
         usable_providers: List[str] = []
-        for prov in args.providers:
+        for prov in providers:
             records, runs_ok, runs_failed = _run_provider(
                 scenarios, prov, args.runs, cfg, args.sleep
             )
@@ -303,10 +404,10 @@ def main(argv: Optional[List[str]] = None) -> int:
             agg["runs_failed"] = runs_failed
             entry["by_provider"][prov] = agg
             usable_providers.append(prov)
-        if len(args.providers) > 2:
+        if len(providers) > 2:
             logger.warning(
                 "cross-provider block is only computed for exactly 2 providers; %d given — skipping",
-                len(args.providers),
+                len(providers),
             )
         # only compare providers whose aggregate is a real number (not insufficient-data)
         cross = _cross_provider({p: per_provider_records[p] for p in usable_providers})
