@@ -375,6 +375,35 @@ also produce a clean quantitative determinism re-run in the same pass.
 resets is the next concrete step** to quantify how much of the instability
 above the fix actually closes.
 
+**2026-09-14 — three-provider attempt, all blocked by quota.** Tried Mistral,
+Groq (`--sleep 22`, then `--sleep 40`), and Gemini in sequence to get any
+clean before/after signal. All three hit hard limits before producing usable
+data:
+
+- Mistral: still a sustained `rate_limited` (same as 2026-09-05, not a burst
+  — the key's quota has not recovered).
+- Groq: the `--sleep 22` run burned into the daily cap; the follow-up
+  `--sleep 40` run then hit the **TPD** limit (200,000/day) mid-run, on top
+  of the per-minute cap from the first attempt. `threat_count_cv` came back
+  worse than the pre-fix Mistral baseline (0.64–1.41 vs 0.18–0.57) — this is
+  rate-limit noise (`RateLimitError` after 3 retries, threats silently 0 for
+  the failed component), not a measurement of prompt/grounding instability.
+  Don't compare these numbers to the 2026-08-31 baseline; they're not
+  apples-to-apples.
+- Gemini (`gemini-flash-latest`, forced via `SECOPSTM_FORCE_PROVIDER`,
+  `enabled: false` in config): free-tier cap of 5 requests/minute exceeded
+  immediately, and a second, separate failure —
+  `FAILED_PRECONDITION: User location is not supported for the API use` —
+  blocks this key/region from the Gemini API regardless of quota. Unusable
+  for this eval as configured.
+
+Result files kept for reference, not as a valid signal:
+`tooling/eval/results/ai-threats-2026-09-14*.json`. **Still no clean
+before/after comparison for the batch-truncation fix.** Next attempt should
+wait for a provider's quota to actually reset (Groq's own error reported a
+~40 min TPD cooldown) rather than switching providers under time pressure —
+switching mid-budget is what produced the contaminated Groq numbers above.
+
 ## Limitations
 
 - Small n — 3 fixtures × 3 runs for Step 1, 3 scored fixtures for Step 2.

@@ -37,6 +37,7 @@ import json
 import logging
 import statistics
 import sys
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -142,20 +143,44 @@ async def _noop():
     return None
 
 
+_HEARTBEAT_SECONDS = 15.0
+
+
+async def _generate_once_with_heartbeat(
+    template_dir: Path, provider_name: str, label: str
+) -> List[Dict[str, Any]]:
+    """Same as _generate_once, but logs a heartbeat every _HEARTBEAT_SECONDS so a
+    slow/stuck LLM call is visible instead of producing total silence — the actual
+    generation work happens inside AIService and doesn't log until a batch/component
+    completes, which can otherwise look identical to a hang for many minutes."""
+    start = time.monotonic()
+    task = asyncio.ensure_future(_generate_once(template_dir, provider_name))
+    while not task.done():
+        try:
+            await asyncio.wait_for(asyncio.shield(task), timeout=_HEARTBEAT_SECONDS)
+        except asyncio.TimeoutError:
+            logger.info("%s — still waiting on LLM (%.0fs elapsed)", label, time.monotonic() - start)
+    return task.result()
+
+
 def _run_template(name: str, provider: str, runs: int, sleep_s: float) -> Dict[str, Any]:
     template_dir = TEMPLATE_ROOT / name
     per_run: List[List[Dict[str, Any]]] = []
     ok = 0
     for i in range(runs):
+        label = f"{name} run {i + 1}/{runs}"
+        logger.info("%s — starting", label)
+        run_start = time.monotonic()
         try:
-            threats = asyncio.run(_generate_once(template_dir, provider))
+            threats = asyncio.run(_generate_once_with_heartbeat(template_dir, provider, label))
         except Exception as exc:
-            logger.warning("%s run %d/%d failed: %s", name, i + 1, runs, exc)
+            logger.warning("%s failed after %.1fs: %s", label, time.monotonic() - run_start, exc)
             continue
+        elapsed = time.monotonic() - run_start
+        logger.info("%s — done in %.1fs (%d threats)", label, elapsed, len(threats))
         per_run.append(threats)
         ok += 1
         if sleep_s and i < runs - 1:
-            import time
             time.sleep(sleep_s)
 
     if ok < 2:
@@ -214,8 +239,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         "params": {"provider": args.provider, "runs": args.runs, "sleep": args.sleep},
         "templates": {},
     }
-    for name in args.templates:
-        logger.info("=== %s ===", name)
+    total_templates = len(args.templates)
+    for idx, name in enumerate(args.templates, start=1):
+        logger.info("=== %s (template %d/%d) ===", name, idx, total_templates)
         result["templates"][name] = _run_template(name, args.provider, args.runs, args.sleep)
 
     out = Path(args.out)
