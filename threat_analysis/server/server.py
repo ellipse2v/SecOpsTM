@@ -1158,6 +1158,57 @@ def save_model():
         logging.error(f"Error during model save: {e}", exc_info=True)
         return jsonify({"error": "An internal error occurred. Check server logs for details."}), 500
 
+def _clean_project_rel_path(path: str) -> Optional[str]:
+    """Normalises a browser-supplied tab path to a POSIX path relative to the project.
+
+    Returns None for paths that are empty, absolute or escape the project ("../").
+    """
+    if not path:
+        return None
+    p = os.path.normpath(path.replace("\\", "/")).replace("\\", "/")
+    if p in (".", "") or p.startswith("/") or p == ".." or p.startswith("../"):
+        return None
+    return p
+
+
+def _rebase_project_files(active_path: str, markdown_content: str, submodels: list) -> tuple:
+    """Re-roots the editor tabs on the directory that holds the project's main.md.
+
+    Tabs opened through "Load project" are prefixed with the picked directory name
+    ("proj/main.md", "proj/level1/model.md"); submodel= references inside the models
+    are relative to the project root, so the prefix must be stripped or every
+    sub-model is written one directory too deep and silently skipped.
+
+    Returns ``(files, active_rel_path, main_content)`` where *files* maps each
+    project-relative path to its content (the active tab included, at its own path)
+    and *main_content* is the content of the root main.md (None if no tab is one).
+    """
+    entries = []
+    for sub in submodels or []:
+        rel = _clean_project_rel_path(sub.get("path", ""))
+        content = sub.get("content")
+        if rel and content:
+            entries.append((rel, content))
+    active_rel = _clean_project_rel_path(active_path) or "main.md"
+    entries.append((active_rel, markdown_content))
+
+    main_candidates = [rel for rel, _ in entries if rel.split("/")[-1].lower() == "main.md"]
+    prefix = ""
+    if main_candidates:
+        root_main = min(main_candidates, key=lambda r: (r.count("/"), r))
+        prefix = root_main[: -len("main.md")]
+
+    def _strip(rel: str) -> str:
+        return rel[len(prefix):] if prefix and rel.startswith(prefix) else rel
+
+    files: Dict[str, str] = {}
+    for rel, content in entries:
+        files[_strip(rel)] = content  # active tab is last: its live content wins
+    active_rel = _strip(active_rel)
+    main_content = files.get("main.md") if main_candidates else None
+    return files, active_rel, main_content
+
+
 @app.route("/api/generate_all", methods=["POST"])
 def generate_all():
     """
@@ -1188,15 +1239,17 @@ def generate_all():
         # We save every tab to its ACTUAL path.
         # The main entry point for the generator is ALWAYS main.md at the root of generation_dir.
         
-        # 1. Save all submodels (other tabs)
-        for submodel in submodels:
-            sub_path = submodel.get("path")
-            sub_content = submodel.get("content")
-            if sub_path and sub_content:
-                full_sub_path = os.path.join(generation_dir, sub_path.lstrip('./\\'))
-                os.makedirs(os.path.dirname(full_sub_path), exist_ok=True)
-                with open(full_sub_path, "w", encoding="utf-8") as f:
-                    f.write(sub_content)
+        # 1. Save every tab (sub-models and the active one) at its path relative to
+        # the project root — the directory holding main.md, which may be prefixed by
+        # the folder name when the project was opened with "Load project".
+        project_files, active_path, final_main_content = _rebase_project_files(
+            active_path, markdown_content, submodels
+        )
+        for rel_path, content in project_files.items():
+            full_sub_path = os.path.join(generation_dir, rel_path)
+            os.makedirs(os.path.dirname(full_sub_path), exist_ok=True)
+            with open(full_sub_path, "w", encoding="utf-8") as f:
+                f.write(content)
 
         # 1b. Write extra files (BOM/*.yaml, context/*.yaml) sent directly by the client.
         # When the browser explicitly sends "extra_files" (even an empty list), it has taken
@@ -1274,11 +1327,8 @@ def generate_all():
                 "Received %d extra_files from browser.", len(extra_files)
             )
 
-        # 2. Save the active tab content to its ACTUAL path
-        full_active_path = os.path.join(generation_dir, active_path.lstrip('./\\'))
-        os.makedirs(os.path.dirname(full_active_path), exist_ok=True)
-        with open(full_active_path, "w", encoding="utf-8") as f:
-            f.write(markdown_content)
+        # 2. The active tab content was written to its ACTUAL path in step 1
+        full_active_path = os.path.join(generation_dir, active_path)
 
         # 3. Handle Metadata/Positions for the active file
         # We use standard main.md for metadata if the active file IS main.md, otherwise we use its name
@@ -1292,15 +1342,7 @@ def generate_all():
         # 4. Ensure a main.md exists at the root for the generator.
         # We need the ACTUAL main.md content for the first argument of the service call.
         target_main_md = os.path.join(generation_dir, "main.md")
-        final_main_content = markdown_content if active_path == "main.md" else None
-        
-        if not final_main_content:
-            # Look for main.md in submodels
-            for sub in submodels:
-                if sub.get("path") == "main.md":
-                    final_main_content = sub.get("content")
-                    break
-        
+
         if not final_main_content:
             # Fallback: if no main.md found, use active tab as main
             final_main_content = markdown_content

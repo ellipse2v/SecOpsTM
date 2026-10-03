@@ -1099,6 +1099,22 @@
             },
         };
 
+        // Resolves a submodel= reference against the path of the model that declares
+        // it ("a/b/model.md" + "./c/model.md" -> "a/b/c/model.md").
+        function resolveRelativePath(base, relative) {
+            const stack = base ? base.split('/') : [];
+            stack.pop(); // remove filename
+            for (const part of relative.split('/')) {
+                if (part === '' || part === '.') continue;
+                if (part === '..') {
+                    if (stack.length > 0) stack.pop();
+                } else {
+                    stack.push(part);
+                }
+            }
+            return stack.join('/');
+        }
+
         const TabManager = {
             editors: [],
             tabCount: 0,
@@ -1263,30 +1279,51 @@
             },
 
             openOrSwitchToTab: function(submodelRef) {
-                // Extract the filename (basename) from the ref, ignoring directory parts.
-                // Works for any form: "./foo/bar.md", "../foo/bar.md", "bar.md"
-                const basename = submodelRef.split('/').pop().split('\\').pop();
+                // DSL refs (submodel=./level2/model.md) are relative to the model
+                // that declares them, i.e. the active tab. Resolve against its path
+                // first: projects commonly reuse the same filename (model.md) in
+                // every folder, so a basename-only match jumps to the wrong model.
+                const norm = p => p.replace(/\\/g, '/');
+                const ref = norm(submodelRef);
+                const findTab = pred => this.editors.findIndex(e => e && pred(norm(e.path)));
+                const active = this.getActiveEditorData();
+                const target = active ? resolveRelativePath(norm(active.path), ref) : resolveRelativePath('', ref);
 
-                // Search all open tabs by filename — path-based matching is unreliable
-                // because tabs use project-root-relative paths while DSL refs are
-                // relative to the current model file.
-                const idx = this.editors.findIndex(
-                    e => e && e.path.split('/').pop().split('\\').pop() === basename
-                );
+                let idx = findTab(p => p === target);
+                if (idx === -1) {
+                    // Tabs from "Load project" carry the picked folder as prefix;
+                    // accept a unique tab whose path ends with the resolved target.
+                    const matches = this.editors
+                        .map((e, i) => (e && norm(e.path).endsWith('/' + target)) ? i : -1)
+                        .filter(i => i !== -1);
+                    if (matches.length === 1) idx = matches[0];
+                }
+                if (idx === -1) {
+                    // Last resort: the basename, only when it is unambiguous.
+                    const basename = ref.split('/').pop();
+                    const matches = this.editors
+                        .map((e, i) => (e && norm(e.path).split('/').pop() === basename) ? i : -1)
+                        .filter(i => i !== -1);
+                    if (matches.length === 1) idx = matches[0];
+                    else if (matches.length > 1) {
+                        console.warn(`openOrSwitchToTab: "${ref}" resolves to "${target}", which matches no open tab; ${matches.length} tabs share the name "${basename}".`);
+                        return;
+                    }
+                }
                 if (idx !== -1) { this.switchTab(idx); return; }
 
                 // No match found — when a full project was loaded via picker the
                 // referenced sub-model should already be in the tabs; opening a blank
                 // tab would cause an empty SVG and an svg-pan-zoom crash.
                 if (this.projectLoaded) {
-                    console.warn(`openOrSwitchToTab: no open tab matches "${basename}" — load the full project directory first.`);
+                    console.warn(`openOrSwitchToTab: no open tab matches "${target}" — load the full project directory first.`);
                     return;
                 }
 
-                // Fallback for server-managed mode: create a new tab so the user
-                // can start editing the referenced sub-model.
-                const stem = basename.replace(/\.md$/, '') || 'Sub-Model';
-                const newIndex = this.addTab(basename, `# System Model: ${stem}\n\n`);
+                // Fallback for server-managed mode: create a new tab at the resolved
+                // path so the user can start editing the referenced sub-model.
+                const stem = target.split('/').pop().replace(/\.md$/, '') || 'Sub-Model';
+                const newIndex = this.addTab(target, `# System Model: ${stem}\n\n`);
                 this.switchTab(newIndex);
             },
 
@@ -1445,6 +1482,14 @@
                     }
 
                     await processDirectory(dirHandle, '');
+
+                    // Root main.md first (tab 0 becomes the active model), then
+                    // shallow-to-deep: directory iteration order is unspecified.
+                    const depth = p => p.split('/').length;
+                    models.sort((a, b) =>
+                        (b.path === 'main.md') - (a.path === 'main.md')
+                        || depth(a.path) - depth(b.path)
+                        || a.path.localeCompare(b.path));
 
                     if (models.length === 0) {
                         alert('No markdown files (.md) found in the selected directory.');
@@ -1677,31 +1722,16 @@
                 content: e.editor.getValue()
             }));
 
-            function resolvePath(base, relative) {
-                const stack = base.split('/');
-                stack.pop(); // remove filename
-                const parts = relative.split('/');
-                for (let i = 0; i < parts.length; i++) {
-                    if (parts[i] === '.') continue;
-                    if (parts[i] === '..') {
-                        if (stack.length > 0) stack.pop();
-                    } else {
-                        stack.push(parts[i]);
-                    }
-                }
-                return stack.join('/');
-            }
-
             let hasPotentialUnresolved = false;
-            const openPaths = new Set(allFiles.map(f => f.path));
-            const subModelRegex = /sub_model_path\s*=\s*"(.*?)"/g;
+            const openPaths = new Set(allFiles.map(f => f.path.replace(/\\/g, '/')));
+            const subModelRegex = /submodel\s*=\s*["']?([^"'\s,]+)["']?/g;
 
             for (const fileData of allFiles) {
                 let match;
                 while ((match = subModelRegex.exec(fileData.content)) !== null) {
                     const referencedPath = match[1];
                     try {
-                        const resolvedPath = resolvePath(fileData.path, referencedPath);
+                        const resolvedPath = resolveRelativePath(fileData.path.replace(/\\/g, '/'), referencedPath);
                         if (!openPaths.has(resolvedPath)) {
                             hasPotentialUnresolved = true;
                             break;
@@ -1794,6 +1824,7 @@
                    headers: { 'Content-Type': 'application/json' },
                    body: JSON.stringify({
                        markdown: mainModelContent, // Content of the active editor
+                       path: activeEditorPath,     // Where the active editor lives in the project
                        submodels: finalSubmodels,  // All other collected models
                        // Only send extra_files when the browser loaded a project via directory
                        // picker. Omitting the key lets the server fall back to its own
