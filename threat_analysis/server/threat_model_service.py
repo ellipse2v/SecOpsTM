@@ -170,6 +170,11 @@ class ThreatModelService:
             except Exception as e:
                 logging.error(f"Error reading {file_path}: {e}")
         
+        # Root main.md first (it becomes the active tab), then shallow-to-deep
+        # in path order — glob order is arbitrary and on a project with dozens of
+        # sub-model folders the first tab would otherwise be a random sub-model.
+        project_files.sort(key=lambda f: (f["path"] != "main.md", f["path"].count(os.sep), f["path"]))
+
         if not any(f["path"] == "main.md" for f in project_files):
              project_files.insert(0, {"path": "main.md", "content": "# New Threat Model\n\n"})
              
