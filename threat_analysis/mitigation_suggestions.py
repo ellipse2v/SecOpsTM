@@ -22,6 +22,7 @@ This module provides mitigation suggestions from two sources:
 
 import json
 import logging
+import threading
 from pathlib import Path
 from typing import List, Dict, Any
 from collections import defaultdict
@@ -29,6 +30,13 @@ from threat_analysis.core.data_loader import load_cis_to_mitre_mapping, load_nis
 
 # Define the path to the STIX data file
 STIX_DATA_FILE = Path(__file__).parent / 'external_data' / 'enterprise-attack.json'
+
+# Parsed technique -> mitigations map, shared by every MitigationStixMapper.
+# A project run builds one mapper per (sub-)model; re-parsing the ~40 MB STIX
+# bundle each time made a 50-model project spend most of its time here.
+_STIX_MITIGATIONS_CACHE: Dict[Any, Dict[str, List[Dict[str, Any]]]] = {}
+_STIX_MITIGATIONS_LOCK = threading.Lock()
+
 
 class MitigationStixMapper:
     def __init__(self):
@@ -41,6 +49,20 @@ class MitigationStixMapper:
         return self._attack_to_mitigations_map
 
     def _load_stix_mitigations(self):
+        try:
+            cache_key = (str(STIX_DATA_FILE), STIX_DATA_FILE.stat().st_mtime_ns)
+        except OSError:
+            cache_key = None
+        with _STIX_MITIGATIONS_LOCK:
+            if cache_key is not None and cache_key in _STIX_MITIGATIONS_CACHE:
+                return _STIX_MITIGATIONS_CACHE[cache_key]
+            mitigations_map = self._parse_stix_mitigations()
+            if cache_key is not None and mitigations_map:
+                _STIX_MITIGATIONS_CACHE.clear()
+                _STIX_MITIGATIONS_CACHE[cache_key] = mitigations_map
+            return mitigations_map
+
+    def _parse_stix_mitigations(self):
         mitigations_map = {}
         try:
             with open(STIX_DATA_FILE, 'r', encoding='utf-8') as f:
@@ -48,6 +70,7 @@ class MitigationStixMapper:
 
             # Extract mitigations and their relationships to techniques
             objects = stix_data.get('objects', [])
+            attack_patterns = {o['id']: o for o in objects if o.get('type') == 'attack-pattern' and 'id' in o}
             
             # First pass: collect all mitigations
             mitigations = {}
@@ -70,7 +93,7 @@ class MitigationStixMapper:
 
                     if source_ref in mitigations:
                         # Find the ATT&CK ID for the target_ref (technique)
-                        technique_obj = next((o for o in objects if o['id'] == target_ref and o.get('type') == 'attack-pattern'), None)
+                        technique_obj = attack_patterns.get(target_ref)
                         if technique_obj:
                             technique_external_id = next((ref['external_id'] for ref in technique_obj.get('external_references', []) if ref.get('source_name') == 'mitre-attack'), None)
                             if technique_external_id:
