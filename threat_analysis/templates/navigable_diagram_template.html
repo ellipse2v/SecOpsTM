@@ -266,7 +266,7 @@
         let protocolVisibilityState = {};
 
         // B2: report URL for "View threats" link
-        const REPORT_URL = '{{ report_url | default("") | safe }}';
+        const REPORT_URL = {{ report_url | default("") | tojson }};
 
         // B2: severity heat-map state
         const SEV_COLORS = { CRITICAL: '#dc2626', HIGH: '#ea580c', MEDIUM: '#d97706', LOW: '#16a34a' };
@@ -315,11 +315,28 @@
             const meta = globalGraphMetadata && globalGraphMetadata.nodes && globalGraphMetadata.nodes[nodeId];
             const label = meta ? meta.label : nodeId;
             const tip = document.getElementById('severity-tooltip');
-            let html = `<strong>${label}</strong><br>Max Severity: <span style="color:${SEV_COLORS[level]};font-weight:bold;">${level}</span>`;
-            if (REPORT_URL) {
-                html += `<br><a href="${REPORT_URL}#component-${nodeId}" target="_top" style="color:#90cdf4;font-size:11px;">View threats →</a>`;
+            // Built with the DOM API: label/nodeId/REPORT_URL derive from model names.
+            tip.textContent = '';
+            const strong = document.createElement('strong');
+            strong.textContent = label;
+            tip.appendChild(strong);
+            tip.appendChild(document.createElement('br'));
+            tip.appendChild(document.createTextNode('Max Severity: '));
+            const sevSpan = document.createElement('span');
+            sevSpan.style.color = SEV_COLORS[level];
+            sevSpan.style.fontWeight = 'bold';
+            sevSpan.textContent = level;
+            tip.appendChild(sevSpan);
+            // A report URL starting with a scheme ("javascript:...") is never a sibling file.
+            if (REPORT_URL && !/^\s*[a-z][a-z0-9+.\-]*:/i.test(REPORT_URL)) {
+                tip.appendChild(document.createElement('br'));
+                const link = document.createElement('a');
+                link.href = REPORT_URL + '#component-' + nodeId;
+                link.target = '_top';
+                link.style.cssText = 'color:#90cdf4;font-size:11px;';
+                link.textContent = 'View threats →';
+                tip.appendChild(link);
             }
-            tip.innerHTML = html;
             tip.style.display = 'block';
             tip.style.left = (e.clientX + 12) + 'px';
             tip.style.top  = (e.clientY + 12) + 'px';
@@ -465,7 +482,7 @@
             var svgElement = document.querySelector('#svg-container svg');
 
             // Inject graph_metadata from Jinja2 context
-            const rawGraphMetadata = JSON.parse('{{ graph_metadata_json | safe }}');
+            const rawGraphMetadata = JSON.parse({{ graph_metadata_json | tojson }});
             if (Object.keys(rawGraphMetadata).length > 0) {
                 globalGraphMetadata = rawGraphMetadata;
             } else {
@@ -473,7 +490,7 @@
             }
 
             // B2: inject severity map
-            const rawSeverityMap = JSON.parse('{{ severity_map_json | safe }}');
+            const rawSeverityMap = JSON.parse({{ severity_map_json | tojson }});
             if (Object.keys(rawSeverityMap).length > 0) {
                 severityMap = rawSeverityMap;
             } else {

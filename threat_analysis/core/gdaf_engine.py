@@ -36,6 +36,11 @@ from threat_analysis.core.bom_loader import BOMLoader
 
 logger = logging.getLogger(__name__)
 
+# Upper bounds for path-search settings that a model's context YAML can otherwise inflate.
+_MAX_HOPS_LIMIT = 15
+_MAX_PATHS_LIMIT = 50
+_MAX_BFS_EXPANSIONS = 200_000
+
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _PKG_ROOT = Path(__file__).resolve().parents[1]
 _SCORING_CONFIG_PATH = _PKG_ROOT / "config" / "scoring_config.yaml"
@@ -235,8 +240,10 @@ class GDAFEngine:
             return []
 
         graph = self._build_graph()
-        max_hops = risk_criteria.get("max_hops", self._gdaf_defaults["max_hops"])
-        max_paths = risk_criteria.get("max_paths_per_objective", self._gdaf_defaults["max_paths_per_objective"])
+        # risk_criteria comes from the context YAML (model-controlled): bound it so a
+        # crafted `max_hops: 100000` cannot turn the path search into an exhaustive one.
+        max_hops = max(1, min(int(risk_criteria.get("max_hops", self._gdaf_defaults["max_hops"])), _MAX_HOPS_LIMIT))
+        max_paths = max(1, min(int(risk_criteria.get("max_paths_per_objective", self._gdaf_defaults["max_paths_per_objective"])), _MAX_PATHS_LIMIT))
         acceptable_risk = risk_criteria.get("acceptable_risk_score", self._gdaf_defaults["acceptable_risk_score"])
         self._min_technique_score = float(risk_criteria.get("gdaf_min_technique_score", self._gdaf_defaults["gdaf_min_technique_score"]))
 
@@ -567,8 +574,15 @@ class GDAFEngine:
         queue = deque()
         queue.append((start, [(start, {})]))
         paths = []
+        expansions = 0
 
         while queue:
+            expansions += 1
+            if expansions > _MAX_BFS_EXPANSIONS:
+                # Dense graph: enumerating every simple path is exponential. BFS
+                # yields shortest paths first, so what was collected is the useful part.
+                logger.warning("GDAF: path search budget (%d) exhausted %s -> %s", _MAX_BFS_EXPANSIONS, start, end)
+                break
             current, path = queue.popleft()
             if len(path) > max_hops + 1:
                 continue

@@ -1281,6 +1281,12 @@
             </div>
         </div>
         <script>
+        // Model names, threat text and AI output flow into the innerHTML strings below.
+        function escapeHtml(v) {
+            return String(v == null ? '' : v)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
         (function(){
             const _GRAPH = {{ threat_graph | tojson }};
             const SEV_COLOR = {CRITICAL:"#b91c1c",HIGH:"#ea580c",MEDIUM:"#d97706",LOW:"#16a34a","":"#64748b"};
@@ -1512,17 +1518,17 @@
                 if(!n){ panel.innerHTML='<em style="color:var(--text-secondary)">Click a node to see its threats.</em>'; return; }
                 const threats=(_GRAPH.threats_by_node||{})[n.id]||[];
                 const SEV_BADGE={CRITICAL:"#b91c1c",HIGH:"#ea580c",MEDIUM:"#d97706",LOW:"#16a34a"};
-                let html='<strong style="font-size:.85rem;">'+n.id+'</strong>';
-                html+='<div style="color:var(--text-secondary);font-size:.75rem;margin:.25rem 0 .5rem;">'+n.type+(n.boundary?' · '+n.boundary:'')+'</div>';
+                let html='<strong style="font-size:.85rem;">'+escapeHtml(n.id)+'</strong>';
+                html+='<div style="color:var(--text-secondary);font-size:.75rem;margin:.25rem 0 .5rem;">'+escapeHtml(n.type)+(n.boundary?' · '+escapeHtml(n.boundary):'')+'</div>';
                 if(!threats.length){ html+='<em style="color:var(--text-secondary)">No threats.</em>'; }
                 else {
                     threats.forEach(t=>{
                         const c=SEV_BADGE[t.sev]||"#64748b";
                         html+='<div style="margin:.25rem 0;padding:.25rem .4rem;border-left:3px solid '+c+';background:var(--bg-tertiary);border-radius:2px;">'
-                            +'<span style="font-size:.7rem;color:'+c+';font-weight:700;">'+t.sev+'</span>'
-                            +(t.id?' <span style="color:var(--text-secondary);font-size:.7rem;">'+t.id+'</span>':'')
-                            +'<br><span>'+t.name+'</span>'
-                            +'<br><span style="color:var(--text-secondary);font-size:.7rem;">'+t.stride+'</span>'
+                            +'<span style="font-size:.7rem;color:'+c+';font-weight:700;">'+escapeHtml(t.sev)+'</span>'
+                            +(t.id?' <span style="color:var(--text-secondary);font-size:.7rem;">'+escapeHtml(t.id)+'</span>':'')
+                            +'<br><span>'+escapeHtml(t.name)+'</span>'
+                            +'<br><span style="color:var(--text-secondary);font-size:.7rem;">'+escapeHtml(t.stride)+'</span>'
                             +'</div>';
                     });
                 }
@@ -2374,8 +2380,8 @@
                     var extra  = dots.length - MAX_DOTS;
                     visible.forEach(function(t) {
                         var tip = t.target + '\n' + t.category + ' — ' + t.level + ' (' + t.score.toFixed(1) + ')';
-                        html += '<div class="rm-dot ' + dotClass(t.level) + '" data-tip="' + tip.replace(/"/g, '&quot;') + '">' +
-                                (t.category ? t.category[0] : '?') + '</div>';
+                        html += '<div class="rm-dot ' + dotClass(t.level) + '" data-tip="' + escapeHtml(tip) + '">' +
+                                escapeHtml(t.category ? t.category[0] : '?') + '</div>';
                     });
                     if (extra > 0) {
                         html += '<div class="rm-overflow">+' + extra + '</div>';

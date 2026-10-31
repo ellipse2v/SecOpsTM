@@ -261,7 +261,8 @@ class ThreatModelValidator:
             )
 
     def _check_references(self) -> None:
-        assert self._model is not None
+        if self._model is None:
+            raise RuntimeError("model not loaded")
         m = self._model
         all_nodes = set(m.actors) | set(m.servers)
         boundary_names = set(m.boundaries)
@@ -291,7 +292,8 @@ class ThreatModelValidator:
                 )
 
     def _check_bom(self) -> None:
-        assert self._model is not None
+        if self._model is None:
+            raise RuntimeError("model not loaded")
         bom_dir = self.model_dir / 'BOM'
         context_bom = self._model.context.get('bom_directory')
         if context_bom:
@@ -330,7 +332,8 @@ class ThreatModelValidator:
                 self._fail(f"YAML error in {yaml_file.relative_to(self.model_dir)}: {exc}")
 
     def _check_submodel_paths(self) -> None:
-        assert self._model is not None
+        if self._model is None:
+            raise RuntimeError("model not loaded")
         for sm_path in self._model.submodels:
             resolved = (self.model_dir / sm_path).resolve()
             if not resolved.exists():
@@ -350,7 +353,8 @@ class ThreatModelValidator:
                 break
 
     def _check_severity_multipliers(self) -> None:
-        assert self._model is not None
+        if self._model is None:
+            raise RuntimeError("model not loaded")
         for name, value in self._model.severity_multipliers.items():
             if not (SEVERITY_MULTIPLIER_MIN <= value <= SEVERITY_MULTIPLIER_MAX):
                 self._fail(
@@ -360,7 +364,8 @@ class ThreatModelValidator:
 
     def _check_unused_boundaries(self) -> None:
         """Flag boundaries defined in ## Boundaries but not referenced by any actor or server."""
-        assert self._model is not None
+        if self._model is None:
+            raise RuntimeError("model not loaded")
         m = self._model
         used: set = set()
         for props in (*m.actors.values(), *m.servers.values()):
@@ -407,7 +412,8 @@ class ThreatModelValidator:
         if not self._load_model():
             return (1, 0)
         self._load_custom_types()
-        assert self._model is not None
+        if self._model is None:
+            raise RuntimeError("model not loaded")
         m = self._model
         self._run_check(
             lambda: [self._check_enum('Boundary', n, p) for n, p in m.boundaries.items()],

@@ -10,12 +10,17 @@ on:
 jobs:
   sync-to-wiki:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
-        
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+        with:
+          # The wiki checkout below holds the push credential; the source tree must not,
+          # or a docs/*.md symlink could copy .git/config into the public wiki.
+          persist-credentials: false
       - name: Checkout wiki repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
         with:
           repository: ${{ github.repository }}.wiki
           path: wiki
@@ -24,6 +29,12 @@ jobs:
       - name: Sync markdown files from docs
         run: |
           mkdir -p wiki
+
+          # Never publish through a symlink (docs/index.md -> some other file)
+          if [ -L docs/index.md ]; then
+            echo "docs/index.md is a symlink — refusing to sync"
+            exit 1
+          fi
 
           # docs/index.md → Home (GitHub Wiki default landing page)
           # Rewrite the technical_documentation/index.md link to its wiki flat name

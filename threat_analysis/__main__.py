@@ -31,7 +31,10 @@ import inspect
 import traceback
 
 from threat_analysis import config # Re-add config import
-from threat_analysis.utils import resolve_path, _validate_path_within_project, compare_threat_reports
+from threat_analysis.utils import (
+    resolve_path, _validate_path_within_project, compare_threat_reports,
+    safe_extract_tar, UnsafePathError,
+)
 from threat_analysis.generation.utils import get_enriched_threats
 
 # Import library modules
@@ -93,7 +96,7 @@ def init_rag(force: bool = False) -> int:
     print(f"\nExtracting to {dest.parent} …")
     try:
         with tarfile.open(archive, "r:gz") as tf:
-            tf.extractall(dest.parent)
+            safe_extract_tar(tf, dest.parent)
     except Exception as exc:
         print(f"Extraction failed: {exc}")
         return 1
@@ -172,14 +175,11 @@ def download_data(args=None, package_dir=None):
     tmp_dir = Path(tempfile.mkdtemp(dir=str(package_dir), prefix=".download_tmp_"))
     try:
         with _tarfile.open(fileobj=_io.BytesIO(tarball_bytes), mode="r:gz") as tf:
-            members = tf.getmembers()
-            dest_resolved = Path(package_dir).resolve()
-            for m in members:
-                member_path = (dest_resolved / m.name).resolve()
-                if not str(member_path).startswith(str(dest_resolved)):
-                    print(f"Aborting: path traversal detected in tarball: {m.name}")
-                    sys.exit(1)
-            tf.extractall(path=tmp_dir)
+            try:
+                safe_extract_tar(tf, tmp_dir)
+            except UnsafePathError as exc:
+                print(f"Aborting: unsafe entry in tarball: {exc}")
+                sys.exit(1)
 
         extracted_dir = tmp_dir / "external_data"
         if not extracted_dir.exists():

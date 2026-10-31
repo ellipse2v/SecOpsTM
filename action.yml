@@ -98,6 +98,14 @@ inputs:
     required: false
     default: ''
 
+  trust-ai-cache:
+    description: >
+      Reuse a committed .secopstm_ai_cache.json next to the model. Off by default:
+      on a pull request that file is contributor-controlled and can hide AI findings
+      from the gate. Enable only when the cache is not writable by the PR author.
+    required: false
+    default: 'false'
+
   comment-on-pr:
     description: 'Post a threat-summary comment on the pull request.'
     required: false
@@ -161,7 +169,7 @@ runs:
 
     # ── 2. Python ─────────────────────────────────────────────────────────────
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
       with:
         python-version: ${{ inputs.python-version }}
         cache: 'pip'
@@ -169,50 +177,67 @@ runs:
     # ── 3. Install SecOpsTM from the action's own checkout ───────────────────
     - name: Install SecOpsTM
       shell: bash
+      env:
+        # Inputs and paths reach the shell through env vars, never through ${{ }}
+        # interpolation in the script body — an input containing `"; cmd; "` would
+        # otherwise be executed as shell code (script injection).
+        ACTION_PATH: ${{ github.action_path }}
+        AI_CONFIG_FILE: ${{ inputs.ai-config-file }}
       run: |
         pip install --quiet --upgrade pip
         # Install from the action directory so the version always matches
         # the tag referenced in uses: ellipse2v/SecOpsTM@<tag>
-        pip install --quiet "${{ github.action_path }}"
+        pip install --quiet "$ACTION_PATH"
         # Install AI extras only when an ai-config-file is provided
-        if [ -n "${{ inputs.ai-config-file }}" ]; then
-          pip install --quiet "${{ github.action_path }}[ai]"
+        if [ -n "$AI_CONFIG_FILE" ]; then
+          pip install --quiet "$ACTION_PATH[ai]"
         fi
 
     # ── 4. Run analysis ───────────────────────────────────────────────────────
     - name: Run SecOpsTM threat analysis
       id: analyse
       shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        IN_TERRAFORM_PATH: ${{ inputs.terraform-path }}
+        IN_ANSIBLE_PATH: ${{ inputs.ansible-path }}
+        IN_MODEL_FILE: ${{ inputs.model-file }}
+        IN_OUTPUT_FORMAT: ${{ inputs.output-format }}
+        IN_NAVIGATOR: ${{ inputs.navigator }}
+        IN_ATTACK_FLOW: ${{ inputs.attack-flow }}
+        IN_SARIF: ${{ inputs.sarif }}
+        IN_AI_CONFIG_FILE: ${{ inputs.ai-config-file }}
+        SECOPSTM_DISABLE_AI_CACHE: ${{ inputs.trust-ai-cache != 'true' }}
       run: |
         set -euo pipefail
 
         # ── Build CLI command ──────────────────────────────────────────────
         SECOPSTM_ARGS=()
 
-        if [ -n "${{ inputs.terraform-path }}" ]; then
-          SECOPSTM_ARGS+=(--terraform-path "${{ inputs.terraform-path }}")
-        elif [ -n "${{ inputs.ansible-path }}" ]; then
-          SECOPSTM_ARGS+=(--ansible-path "${{ inputs.ansible-path }}")
+        if [ -n "$IN_TERRAFORM_PATH" ]; then
+          SECOPSTM_ARGS+=(--terraform-path "$IN_TERRAFORM_PATH")
+        elif [ -n "$IN_ANSIBLE_PATH" ]; then
+          SECOPSTM_ARGS+=(--ansible-path "$IN_ANSIBLE_PATH")
         else
-          SECOPSTM_ARGS+=(--model-file "${{ inputs.model-file }}")
+          SECOPSTM_ARGS+=(--model-file "$IN_MODEL_FILE")
         fi
 
-        SECOPSTM_ARGS+=(--output-format "${{ inputs.output-format }}")
+        SECOPSTM_ARGS+=(--output-format "$IN_OUTPUT_FORMAT")
 
-        if [ "${{ inputs.navigator }}" = "true" ]; then
+        if [ "$IN_NAVIGATOR" = "true" ]; then
           SECOPSTM_ARGS+=(--navigator)
         fi
 
-        if [ "${{ inputs.attack-flow }}" = "true" ]; then
+        if [ "$IN_ATTACK_FLOW" = "true" ]; then
           SECOPSTM_ARGS+=(--attack-flow)
         fi
 
-        if [ "${{ inputs.sarif }}" = "true" ]; then
+        if [ "$IN_SARIF" = "true" ]; then
           SECOPSTM_ARGS+=(--sarif)
         fi
 
-        if [ -n "${{ inputs.ai-config-file }}" ]; then
-          SECOPSTM_ARGS+=(--ai-config-file "${{ inputs.ai-config-file }}")
+        if [ -n "$IN_AI_CONFIG_FILE" ]; then
+          SECOPSTM_ARGS+=(--ai-config-file "$IN_AI_CONFIG_FILE")
         fi
 
         # ── Always produce a JSON sidecar for stats + PR comment ───────────
@@ -229,10 +254,10 @@ runs:
         REPORT_HTML=""
         REPORT_SARIF=""
 
-        if [ "${{ inputs.sarif }}" = "true" ]; then
+        if [ "$IN_SARIF" = "true" ]; then
           REPORT_SARIF=$(find . -name "*.sarif.json" \
             -not -path "*/.git/*" \
-            -newer "${{ github.action_path }}/action.yml" \
+            -newer "$ACTION_PATH/action.yml" \
             2>/dev/null | head -1 || true)
         fi
 
@@ -241,7 +266,7 @@ runs:
           -not -path "*/.git/*" \
           -not -name "*.stix.json" \
           -not -name "*.navigator.json" \
-          -newer "${{ github.action_path }}/action.yml" \
+          -newer "$ACTION_PATH/action.yml" \
           2>/dev/null | sort -t/ -k3 | tail -1 || true)
 
         if [ -f "$REPORT_JSON" ]; then
@@ -256,7 +281,7 @@ runs:
           LOW=$(jq   -r '.statistics.by_severity_level.LOW // 0'      "$REPORT_JSON")
           REPORT_HTML=$(find . -name "*.html" \
             -not -path "*/.git/*" \
-            -newer "${{ github.action_path }}/action.yml" \
+            -newer "$ACTION_PATH/action.yml" \
             2>/dev/null | head -1 || true)
         fi
 
@@ -287,12 +312,14 @@ runs:
       id: diff
       if: inputs.baseline != ''
       shell: bash
+      env:
+        REPORT_JSON: ${{ steps.analyse.outputs.report-json }}
+        IN_BASELINE: ${{ inputs.baseline }}
       run: |
-        REPORT_JSON="${{ steps.analyse.outputs.report-json }}"
         DIFF_FILE="${RUNNER_TEMP}/secopstm_diff.txt"
 
-        if [ -f "${{ inputs.baseline }}" ] && [ -f "$REPORT_JSON" ]; then
-          secopstm --diff "${{ inputs.baseline }}" "$REPORT_JSON" > "$DIFF_FILE" 2>&1 || true
+        if [ -f "$IN_BASELINE" ] && [ -f "$REPORT_JSON" ]; then
+          secopstm --diff "$IN_BASELINE" "$REPORT_JSON" > "$DIFF_FILE" 2>&1 || true
         else
           echo "Baseline or current report not found — skipping diff." > "$DIFF_FILE"
         fi
@@ -313,14 +340,16 @@ runs:
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
+        REPORT_JSON: ${{ steps.analyse.outputs.report-json }}
+        TOTAL: ${{ steps.analyse.outputs.total-threats }}
+        CRIT: ${{ steps.analyse.outputs.critical-threats }}
+        HIGH: ${{ steps.analyse.outputs.high-threats }}
+        MED: ${{ steps.analyse.outputs.medium-threats }}
+        LOW: ${{ steps.analyse.outputs.low-threats }}
+        DIFF_FILE: ${{ steps.diff.outputs.diff-file }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        REPO: ${{ github.repository }}
       run: |
-        REPORT_JSON="${{ steps.analyse.outputs.report-json }}"
-        TOTAL="${{ steps.analyse.outputs.total-threats }}"
-        CRIT="${{ steps.analyse.outputs.critical-threats }}"
-        HIGH="${{ steps.analyse.outputs.high-threats }}"
-        MED="${{ steps.analyse.outputs.medium-threats }}"
-        LOW="${{ steps.analyse.outputs.low-threats }}"
-        DIFF_FILE="${{ steps.diff.outputs.diff-file }}"
 
         # Severity badge
         if [ "$CRIT" -gt 0 ]; then
@@ -377,14 +406,14 @@ runs:
         printf '\n_Generated by [SecOpsTM](https://github.com/ellipse2v/SecOpsTM)_\n' \
           >> "$BODY_FILE"
 
-        gh pr comment "${{ github.event.pull_request.number }}" \
-          --repo "${{ github.repository }}" \
+        gh pr comment "$PR_NUMBER" \
+          --repo "$REPO" \
           --body-file "$BODY_FILE"
 
     # ── 7. Upload artifacts ───────────────────────────────────────────────────
     - name: Upload threat reports
       if: inputs.upload-artifacts == 'true'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
       with:
         name: ${{ inputs.artifact-name }}
         path: |
@@ -400,7 +429,7 @@ runs:
     # ── 8. Upload SARIF (Security > Code scanning) ────────────────────────────
     - name: Upload SARIF
       if: inputs.sarif == 'true' && steps.analyse.outputs.report-sarif != ''
-      uses: github/codeql-action/upload-sarif@v3
+      uses: github/codeql-action/upload-sarif@3ea06614dafe36dec890db3446326e0d40ce53d4  # v3
       with:
         sarif_file: ${{ steps.analyse.outputs.report-sarif }}
 
@@ -413,12 +442,17 @@ runs:
     - name: Apply security gate
       if: inputs.gate != 'none' && inputs.gate != ''
       shell: bash
+      env:
+        REPORT_JSON: ${{ steps.analyse.outputs.report-json }}
+        IN_GATE: ${{ inputs.gate }}
+        IN_BASELINE: ${{ inputs.baseline }}
+        IN_ACCEPTED_RISKS: ${{ inputs.accepted-risks }}
       run: |
-        GATE_ARGS=(--gate "${{ steps.analyse.outputs.report-json }}" --fail-on "${{ inputs.gate }}")
-        if [ -n "${{ inputs.baseline }}" ]; then
-          GATE_ARGS+=(--baseline "${{ inputs.baseline }}")
+        GATE_ARGS=(--gate "$REPORT_JSON" --fail-on "$IN_GATE")
+        if [ -n "$IN_BASELINE" ]; then
+          GATE_ARGS+=(--baseline "$IN_BASELINE")
         fi
-        if [ -n "${{ inputs.accepted-risks }}" ]; then
-          GATE_ARGS+=(--accepted-risks "${{ inputs.accepted-risks }}")
+        if [ -n "$IN_ACCEPTED_RISKS" ]; then
+          GATE_ARGS+=(--accepted-risks "$IN_ACCEPTED_RISKS")
         fi
         secopstm "${GATE_ARGS[@]}"

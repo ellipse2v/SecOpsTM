@@ -23,7 +23,7 @@ import sys
 from typing import Dict, List, Any, Optional, Set
 from datetime import datetime
 import webbrowser
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 import os
 from pathlib import Path
 from threat_analysis.utils import resolve_gdaf_context
@@ -76,7 +76,12 @@ class ReportGenerator(ScoringMixin, AIAnalysisMixin, ProjectReportMixin):
                  disable_rag: bool = False):
         self.severity_calculator = severity_calculator
         self.mitre_mapping = mitre_mapping
-        self.env = Environment(loader=FileSystemLoader(Path(__file__).parent.parent / 'templates'), extensions=['jinja2.ext.do'])
+        # Model names, threat text and AI output all end up in these templates — escape them.
+        self.env = Environment(
+            loader=FileSystemLoader(Path(__file__).parent.parent / 'templates'),
+            extensions=['jinja2.ext.do'],
+            autoescape=select_autoescape(['html', 'xml']),
+        )
         # B2: sanitize_id filter — same algo as DiagramService._sanitize_name_for_id
         self.env.filters['sid'] = lambda s: (
             lambda san: f'_{san}' if san and san[0].isdigit() else san or 'unnamed'
@@ -114,7 +119,7 @@ class ReportGenerator(ScoringMixin, AIAnalysisMixin, ProjectReportMixin):
                     else:
                         logging.info(f"Initializing LiteLLMProvider for '{provider_name}'")
                         from threat_analysis.ai_engine.providers.litellm_provider import LiteLLMProvider  # noqa: PLC0415
-                        self.ai_provider = LiteLLMProvider(provider_config)
+                        self.ai_provider = LiteLLMProvider(provider_config, config_path=ai_config_path)
                     break
             
             if self.ai_provider:

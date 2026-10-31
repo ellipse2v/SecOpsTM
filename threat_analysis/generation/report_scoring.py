@@ -26,6 +26,7 @@ from threat_analysis.core.accepted_risks import AcceptedRiskLoader, compute_thre
 from threat_analysis.core.threat_consolidator import ThreatConsolidator
 from threat_analysis.core.models_module import ThreatModel
 from threat_analysis.severity_calculator_module import RiskContext
+from threat_analysis.utils import resolve_model_relative_path
 from .utils import extract_name_from_object, get_target_name
 
 
@@ -90,26 +91,18 @@ def _get_vex_loader(threat_model: Any) -> Optional[Any]:
     # 1. Explicit single file
     vex_file = ctx_cfg.get("vex_file")
     if vex_file:
-        candidates = []
-        if model_path:
-            candidates.append(Path(model_path).parent / vex_file)
-        candidates.append(Path(vex_file))
-        for p in candidates:
-            if p.is_file():
-                logging.info("VEX (scoring): using file from DSL ## Context: %s", p)
-                return VEXLoader.from_file(p)
+        p = resolve_model_relative_path(vex_file, model_path)
+        if p is not None and p.is_file():
+            logging.info("VEX (scoring): using file from DSL ## Context: %s", p)
+            return VEXLoader.from_file(p)
 
     # 2. Explicit directory
     vex_dir = ctx_cfg.get("vex_directory")
     if vex_dir:
-        candidates = []
-        if model_path:
-            candidates.append(Path(model_path).parent / vex_dir)
-        candidates.append(Path(vex_dir))
-        for p in candidates:
-            if p.is_dir():
-                logging.info("VEX (scoring): using directory from DSL ## Context: %s", p)
-                return VEXLoader.from_directory(p)
+        p = resolve_model_relative_path(vex_dir, model_path)
+        if p is not None and p.is_dir():
+            logging.info("VEX (scoring): using directory from DSL ## Context: %s", p)
+            return VEXLoader.from_directory(p)
 
     # 3. Auto-discovery
     if model_path:
@@ -137,15 +130,10 @@ def _get_bom_loader(threat_model: Any) -> Optional[Any]:
     dsl_path = ctx_cfg.get("bom_directory")
     model_path = getattr(threat_model, "_model_file_path", None)
     if dsl_path:
-        # Resolve relative to model file directory first (fixes CLI single-model mode)
-        if model_path:
-            p = Path(model_path).parent / dsl_path
-            if p.is_dir():
-                logging.info("BOM (scoring): using directory from DSL ## Context: %s", p)
-                return BOMLoader(str(p))
-        if Path(dsl_path).is_dir():
-            logging.info("BOM (scoring): using directory from DSL ## Context: %s", dsl_path)
-            return BOMLoader(dsl_path)
+        p = resolve_model_relative_path(dsl_path, model_path)
+        if p is not None and p.is_dir():
+            logging.info("BOM (scoring): using directory from DSL ## Context: %s", p)
+            return BOMLoader(str(p))
 
     if model_path:
         bom_dir = Path(model_path).parent / "BOM"
