@@ -404,6 +404,28 @@ wait for a provider's quota to actually reset (Groq's own error reported a
 ~40 min TPD cooldown) rather than switching providers under time pressure —
 switching mid-budget is what produced the contaminated Groq numbers above.
 
+**2026-09-19 — first clean post-fix run (Anthropic Haiku 4.5, 3 runs, no cache).**
+Provider switched to Anthropic (`claude-haiku-4-5-20251001`; `timeout` raised 30 → 90 s
+in `config/ai_config.yaml` — 30 s was shorter than a 16000-token generation and made
+the timeout/retry loop stall a run for 1 h+ on 2026-09-14). Source:
+`tooling/eval/results/ai-threats-2026-09-19-anthropic-simple.json`.
+
+| Template | runs OK | count mean | count CV | set_stability (Dice) | recurrence_mean | recurrence_full |
+|---|---|---|---|---|---|---|
+| Simple_Monolithic_Web_Application | 3/3 | 7.33 | 0.56 | **0.07** | 0.35 | **0.0** |
+
+Pre-fix baseline for the same template (Mistral small, 2026-08-31, 2/3 runs): count
+CV 0.20, Dice 0.40, recurrence_full 0.25. **The batch-truncation fix did not make the
+pass stable** — Dice and `recurrence_full` are lower than the baseline, count CV is
+higher. Not a like-for-like comparison (different model; the baseline had only one
+run pair), so this does not show the fix made things worse either. `recurrence_mean`
+of 0.35 with 3 runs means nearly every threat appears in exactly one run (1/3 = 0.33):
+almost no overlap under the current match key (target + STRIDE category + ≥50% Jaccard
+on title words). Open question: how much of that is real divergence versus the model
+paraphrasing titles of the same underlying threat — the JSON output has no per-run
+titles, so this can't be told apart yet. One template, one model, n = 3: a data point,
+not a verdict.
+
 ## Limitations
 
 - Small n — 3 fixtures × 3 runs for Step 1, 3 scored fixtures for Step 2.

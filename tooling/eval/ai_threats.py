@@ -183,8 +183,14 @@ def _run_template(name: str, provider: str, runs: int, sleep_s: float) -> Dict[s
         if sleep_s and i < runs - 1:
             time.sleep(sleep_s)
 
+    # raw per-run titles, so paraphrase vs real divergence can be judged by eye
+    threats_per_run = [
+        [{"target": t["target"], "category": t["category"], "title": t["title"]} for t in r]
+        for r in per_run
+    ]
+
     if ok < 2:
-        return {"runs_ok": ok, "status": "insufficient-data"}
+        return {"runs_ok": ok, "status": "insufficient-data", "threats_per_run": threats_per_run}
 
     counts = [len(r) for r in per_run]
     keys = [[_threat_key(t) for t in r] for r in per_run]
@@ -218,6 +224,7 @@ def _run_template(name: str, provider: str, runs: int, sleep_s: float) -> Dict[s
         "grounding_flag_rate_cv": round(
             statistics.pstdev(flag_rates) / statistics.fmean(flag_rates), 4
         ) if statistics.fmean(flag_rates) else 0.0,
+        "threats_per_run": threats_per_run,
     }
 
 
