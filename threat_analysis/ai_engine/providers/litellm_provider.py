@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import logging
+from pathlib import Path
 from typing import AsyncGenerator, Dict, List, Optional
 from .base_provider import BaseLLMProvider
 from .litellm_client import LiteLLMClient
@@ -23,17 +24,21 @@ import json
 class LiteLLMProvider(BaseLLMProvider):
     """Provider for multiple LLMs via LiteLLM"""
 
-    def __init__(self, config: Dict, forced_provider: Optional[str] = None):
+    def __init__(self, config: Dict, forced_provider: Optional[str] = None, config_path: Optional[Path] = None):
         # We don't use the config directly here, as LiteLLMClient loads it from ai_config.yaml
         # But we might want to override some settings if needed.
         self._client = None
         self._config = config
         # Takes precedence over SECOPSTM_FORCE_PROVIDER — see LiteLLMClient.create().
         self._forced_provider = forced_provider
+        # The ai_config.yaml the caller selected; None → LiteLLMClient's default location.
+        self._config_path = config_path
 
     async def _get_client(self):
         if self._client is None:
-            self._client = await LiteLLMClient.create(forced_provider=self._forced_provider)
+            self._client = await LiteLLMClient.create(
+                forced_provider=self._forced_provider, config_path=self._config_path,
+            )
         return self._client
 
     async def check_connection(self) -> bool:

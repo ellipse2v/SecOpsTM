@@ -27,13 +27,16 @@ import xml.etree.ElementTree as ET
 from urllib.parse import urlparse # Added line
 from typing import Callable, Dict, List, Optional
 from pathlib import Path
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from threat_analysis.core.models_module import ThreatModel
 from threat_analysis.config_generator import CONFIG_DATA
-from threat_analysis.utils import minimal_subprocess_env
+from threat_analysis.utils import minimal_subprocess_env, safe_xml_fromstring
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+# A URL scheme prefix ("javascript:", "data:", "http:" ...) — never valid in a submodel path.
+_URL_SCHEME_RE = re.compile(r"^\s*[a-zA-Z][a-zA-Z0-9+.\-]*:")
 
 class DiagramGenerator:
     """Enhanced class for threat model diagram generation with protocol styles and boundary attributes"""
@@ -54,7 +57,12 @@ class DiagramGenerator:
     def __init__(self):
         self.dot_executable = "dot"
         self.supported_formats = ["svg", "png", "pdf", "ps"]
-        self.template_env = Environment(loader=FileSystemLoader(Path(__file__).parent.parent / "templates"))
+        # Escape HTML templates only: threat_model.dot.j2 emits Graphviz DOT, where
+        # autoescaping would turn every quote into &#34; and break the graph.
+        self.template_env = Environment(
+            loader=FileSystemLoader(Path(__file__).parent.parent / "templates"),
+            autoescape=select_autoescape(["html", "xml"]),
+        )
 
 
     def generate_dot_file_from_model(self, threat_model, output_file: str, project_protocol_styles: Optional[Dict] = None, external_connections: Optional[List[Dict]] = None) -> Optional[str]:
@@ -436,12 +444,21 @@ class DiagramGenerator:
         ET.register_namespace("", "http://www.w3.org/2000/svg")
         ET.register_namespace("xlink", "http://www.w3.org/1999/xlink")
 
-        root = ET.fromstring(svg_content)
+        root = safe_xml_fromstring(svg_content)
 
         for server in threat_model.servers:
             if isinstance(server, dict) and 'submodel' in server:
                 server_name = server['name']
                 sanitized_name = self._sanitize_name(server_name)
+
+                if _URL_SCHEME_RE.match(str(server['submodel'])):
+                    # `submodel=javascript:...` would otherwise become a clickable
+                    # script URL in the exported SVG/HTML.
+                    logging.warning(
+                        "Ignoring submodel link on '%s': %r is not a relative file path",
+                        server_name, server['submodel'],
+                    )
+                    continue
 
                 submodel_path = Path(server['submodel'])
                 if href_builder is not None:

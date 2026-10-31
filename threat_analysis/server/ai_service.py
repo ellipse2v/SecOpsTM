@@ -21,7 +21,7 @@ import asyncio
 import threading
 from pathlib import Path
 from typing import Optional, List, Dict, Any
-from threat_analysis.utils import extract_json_from_llm_response
+from threat_analysis.utils import extract_json_from_llm_response, resolve_model_relative_path
 from pytm import Threat  # Keep original Threat import for direct pytm usage where needed
 from threat_analysis.core.models_module import ExtendedThreat
 from threat_analysis.core.ai_cache import AIThreatCache
@@ -69,6 +69,7 @@ class AIService:
         self.provider: Optional[BaseLLMProvider] = None
         self.rag_generator = None
         self.ai_online = False
+        self._config_path = config_path
         self.ai_config = self._load_ai_config(config_path)
         self.ai_status_event_queue = ai_status_event_queue
         # CLI --no-rag override — skips the RAG pre-warm (chromadb+embeddings, can take
@@ -167,6 +168,10 @@ class AIService:
 
         return warnings
 
+    def _new_rag_generator(self) -> RAGThreatGenerator:
+        """RAG generator bound to the same ai_config.yaml as this service, not the CWD's."""
+        return RAGThreatGenerator(ai_config_path=str(self._config_path))
+
     def _load_ai_config(self, config_path: str) -> Dict[str, Any]:
         """Loads AI configuration from ai_config.yaml."""
         if not os.path.exists(config_path):
@@ -223,14 +228,9 @@ class AIService:
 
         context_path = None
         if dsl_path:
-            if model_path:
-                p = Path(model_path).parent / dsl_path
-                if p.exists():
-                    context_path = p
-            if context_path is None:
-                p = Path(dsl_path)
-                if p.exists():
-                    context_path = p
+            p = resolve_model_relative_path(dsl_path, model_path)
+            if p is not None and p.is_file():
+                context_path = p
             if context_path is None:
                 logging.debug("AI: gdaf_context '%s' declared but not found; skipping model context enrichment.", dsl_path)
         if context_path is None and model_path:
@@ -303,9 +303,9 @@ class AIService:
         if rag_enabled:
             logging.info("RAG pre-warm started (parallel to AI connection check).")
             loop = asyncio.get_running_loop()
-            rag_task = loop.run_in_executor(None, RAGThreatGenerator)
+            rag_task = loop.run_in_executor(None, self._new_rag_generator)
 
-        self.provider = LiteLLMProvider(enabled_config)
+        self.provider = LiteLLMProvider(enabled_config, config_path=Path(self._config_path))
         self.ai_online = await self.provider.check_connection()
 
         # Semaphore must be created inside the active event loop (not in __init__).
@@ -321,14 +321,14 @@ class AIService:
                 except Exception as e:
                     logging.warning("RAG pre-warm failed (%s); retrying synchronously.", e)
                     try:
-                        self.rag_generator = RAGThreatGenerator()
+                        self.rag_generator = self._new_rag_generator()
                         logging.info("RAG service initialized (synchronous fallback).")
                     except Exception as e2:
                         _log_rag_init_failure(e2)
                         self.rag_generator = None
             else:
                 try:
-                    self.rag_generator = RAGThreatGenerator()
+                    self.rag_generator = self._new_rag_generator()
                     logging.info("RAG service initialized.")
                 except Exception as e:
                     _log_rag_init_failure(e)

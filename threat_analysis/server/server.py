@@ -23,14 +23,15 @@ import json
 import glob
 import threading
 import time
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlencode
 from pathlib import Path
 from typing import Dict, List, Any, Optional
-from flask import Flask, render_template, request, jsonify, send_from_directory, send_file, make_response, Response, stream_with_context, g, abort, session
+from flask import Flask, render_template, request, jsonify, send_from_directory, send_file, make_response, Response, stream_with_context, g, abort, session, redirect
 from waitress import serve
 from threat_analysis import config
 import asyncio
 from threat_analysis.server.events import ai_status_event_queue
+from threat_analysis.utils import safe_join, UnsafePathError
 
 # Initialize the service layer lazily to speed up startup
 _threat_model_service = None
@@ -38,6 +39,11 @@ _service_lock = threading.Lock()
 
 # Rate-limit AI generation: only one long-running LLM call at a time
 _ai_generation_lock = threading.Lock()
+_generate_all_lock = threading.Lock()
+# /api/generate_all writes one directory of files per call — bound what a single
+# request can make the server allocate (models are text; 16 MB is far above any real one).
+_MAX_REQUEST_BYTES = 16 * 1024 * 1024
+_MAX_SUBMODELS = 200
 
 class SSEBroadcaster:
     def __init__(self):
@@ -94,6 +100,7 @@ app = Flask(__name__,
 # _get_active_model_file_path below), not for authentication. Sessions not
 # surviving a server restart is an acceptable trade-off for this local tool.
 app.secret_key = secrets.token_hex(32)
+app.config["MAX_CONTENT_LENGTH"] = _MAX_REQUEST_BYTES
 
 def _is_allowed_request_host(hostname: str) -> bool:
     """Hostnames this server should ever see in Host/Origin headers on a mutating
@@ -173,6 +180,12 @@ def _enforce_bearer_auth():
     if not presented or not secrets.compare_digest(presented, expected_token):
         abort(401)
     session["_secopstm_authed"] = True
+    if request.args.get("token") and request.method == "GET":
+        # Redirect to the same URL without the credential so it does not stay in the
+        # address bar, browser history, or the Referer sent to later requests. The
+        # session cookie just set carries the authentication from here on.
+        remaining = [(k, v) for k, v in request.args.items(multi=True) if k != "token"]
+        return redirect(request.path + ("?" + urlencode(remaining) if remaining else ""))
     return None
 
 
@@ -557,8 +570,8 @@ def simple_mode():
 
     return render_template(
         "simple_mode.html",
-        initial_markdown=json.dumps(initial_markdown_content),
-        DEFAULT_EMPTY_MARKDOWN=json.dumps(DEFAULT_EMPTY_MARKDOWN),
+        initial_markdown=initial_markdown_content,
+        DEFAULT_EMPTY_MARKDOWN=DEFAULT_EMPTY_MARKDOWN,
         model_name=model_name,
         ai_online=get_threat_model_service().ai_online,
         initial_models=initial_models_b64,
@@ -1158,12 +1171,64 @@ def save_model():
         logging.error(f"Error during model save: {e}", exc_info=True)
         return jsonify({"error": "An internal error occurred. Check server logs for details."}), 500
 
+def _clean_project_rel_path(path: str) -> Optional[str]:
+    """Normalises a browser-supplied tab path to a POSIX path relative to the project.
+
+    Returns None for paths that are empty, absolute or escape the project ("../").
+    """
+    if not path:
+        return None
+    p = os.path.normpath(path.replace("\\", "/")).replace("\\", "/")
+    if p in (".", "") or p.startswith("/") or p == ".." or p.startswith("../"):
+        return None
+    return p
+
+
+def _rebase_project_files(active_path: str, markdown_content: str, submodels: list) -> tuple:
+    """Re-roots the editor tabs on the directory that holds the project's main.md.
+
+    Tabs opened through "Load project" are prefixed with the picked directory name
+    ("proj/main.md", "proj/level1/model.md"); submodel= references inside the models
+    are relative to the project root, so the prefix must be stripped or every
+    sub-model is written one directory too deep and silently skipped.
+
+    Returns ``(files, active_rel_path, main_content)`` where *files* maps each
+    project-relative path to its content (the active tab included, at its own path)
+    and *main_content* is the content of the root main.md (None if no tab is one).
+    """
+    entries = []
+    for sub in submodels or []:
+        rel = _clean_project_rel_path(sub.get("path", ""))
+        content = sub.get("content")
+        if rel and content:
+            entries.append((rel, content))
+    active_rel = _clean_project_rel_path(active_path) or "main.md"
+    entries.append((active_rel, markdown_content))
+
+    main_candidates = [rel for rel, _ in entries if rel.split("/")[-1].lower() == "main.md"]
+    prefix = ""
+    if main_candidates:
+        root_main = min(main_candidates, key=lambda r: (r.count("/"), r))
+        prefix = root_main[: -len("main.md")]
+
+    def _strip(rel: str) -> str:
+        return rel[len(prefix):] if prefix and rel.startswith(prefix) else rel
+
+    files: Dict[str, str] = {}
+    for rel, content in entries:
+        files[_strip(rel)] = content  # active tab is last: its live content wins
+    active_rel = _strip(active_rel)
+    main_content = files.get("main.md") if main_candidates else None
+    return files, active_rel, main_content
+
+
 @app.route("/api/generate_all", methods=["POST"])
 def generate_all():
     """
     Generates all artifacts for a threat model: reports, diagrams, metadata, etc.
     This is the complete 'Generate' button functionality.
     """
+    lock_held = False
     try:
         data = request.get_json()
         markdown_content = data.get("markdown", "")
@@ -1174,6 +1239,11 @@ def generate_all():
         
         if not markdown_content:
             return jsonify({"error": "Missing markdown content"}), 400
+        if len(submodels) > _MAX_SUBMODELS:
+            return jsonify({"error": f"Too many submodels (max {_MAX_SUBMODELS})"}), 413
+        if not _generate_all_lock.acquire(blocking=False):
+            return jsonify({"error": "A generation is already in progress"}), 429
+        lock_held = True
         
         # Ensure output directory exists
         os.makedirs(config.OUTPUT_BASE_DIR, exist_ok=True)
@@ -1188,15 +1258,22 @@ def generate_all():
         # We save every tab to its ACTUAL path.
         # The main entry point for the generator is ALWAYS main.md at the root of generation_dir.
         
-        # 1. Save all submodels (other tabs)
-        for submodel in submodels:
-            sub_path = submodel.get("path")
-            sub_content = submodel.get("content")
-            if sub_path and sub_content:
-                full_sub_path = os.path.join(generation_dir, sub_path.lstrip('./\\'))
-                os.makedirs(os.path.dirname(full_sub_path), exist_ok=True)
-                with open(full_sub_path, "w", encoding="utf-8") as f:
-                    f.write(sub_content)
+        # 1. Save every tab (sub-models and the active one) at its path relative to
+        # the project root — the directory holding main.md, which may be prefixed by
+        # the folder name when the project was opened with "Load project".
+        # Reject traversal / absolute paths up front with a 400, rather than letting
+        # _rebase_project_files silently drop them.
+        for raw_path in [active_path] + [s.get("path") for s in submodels]:
+            if raw_path:
+                safe_join(generation_dir, raw_path)
+        project_files, active_path, final_main_content = _rebase_project_files(
+            active_path, markdown_content, submodels
+        )
+        for rel_path, content in project_files.items():
+            full_sub_path = str(safe_join(generation_dir, rel_path))
+            os.makedirs(os.path.dirname(full_sub_path), exist_ok=True)
+            with open(full_sub_path, "w", encoding="utf-8") as f:
+                f.write(content)
 
         # 1b. Write extra files (BOM/*.yaml, context/*.yaml) sent directly by the client.
         # When the browser explicitly sends "extra_files" (even an empty list), it has taken
@@ -1205,10 +1282,10 @@ def generate_all():
         browser_managed_files = "extra_files" in data
         extra_files = data.get("extra_files", [])
         for ef in extra_files:
-            ef_path = ef.get("path", "").lstrip('./\\')
+            ef_path = ef.get("path", "")
             ef_content = ef.get("content", "")
             if ef_path and ef_content:
-                full_ef_path = os.path.join(generation_dir, ef_path)
+                full_ef_path = str(safe_join(generation_dir, ef_path))
                 os.makedirs(os.path.dirname(full_ef_path), exist_ok=True)
                 with open(full_ef_path, "w", encoding="utf-8") as f:
                     f.write(ef_content)
@@ -1274,16 +1351,13 @@ def generate_all():
                 "Received %d extra_files from browser.", len(extra_files)
             )
 
-        # 2. Save the active tab content to its ACTUAL path
-        full_active_path = os.path.join(generation_dir, active_path.lstrip('./\\'))
-        os.makedirs(os.path.dirname(full_active_path), exist_ok=True)
-        with open(full_active_path, "w", encoding="utf-8") as f:
-            f.write(markdown_content)
+        # 2. The active tab content was written to its ACTUAL path in step 1
+        full_active_path = str(safe_join(generation_dir, active_path))
 
         # 3. Handle Metadata/Positions for the active file
         # We use standard main.md for metadata if the active file IS main.md, otherwise we use its name
         metadata_filename = active_path.replace(".md", "_metadata.json")
-        metadata_path = os.path.join(generation_dir, metadata_filename)
+        metadata_path = str(safe_join(generation_dir, metadata_filename))
         # Note: save_model_with_metadata is used here to generate/save positions
         get_threat_model_service().save_model_with_metadata(
             markdown_content, full_active_path, positions_data
@@ -1292,15 +1366,7 @@ def generate_all():
         # 4. Ensure a main.md exists at the root for the generator.
         # We need the ACTUAL main.md content for the first argument of the service call.
         target_main_md = os.path.join(generation_dir, "main.md")
-        final_main_content = markdown_content if active_path == "main.md" else None
-        
-        if not final_main_content:
-            # Look for main.md in submodels
-            for sub in submodels:
-                if sub.get("path") == "main.md":
-                    final_main_content = sub.get("content")
-                    break
-        
+
         if not final_main_content:
             # Fallback: if no main.md found, use active tab as main
             final_main_content = markdown_content
@@ -1338,9 +1404,16 @@ def generate_all():
             "generated_files": generated_files,
             "message": "All artifacts generated successfully"
         })
+    except UnsafePathError:
+        logging.warning("generate_all: rejected a path escaping the generation directory")
+        return jsonify({"error": "Invalid file path"}), 400
     except Exception as e:
         logging.error(f"Error during complete generation: {e}", exc_info=True)
         return jsonify({"error": "An internal error occurred. Check server logs for details."}), 500
+    finally:
+        # Held only once past the guards above; release exactly when this call took it.
+        if lock_held:
+            _generate_all_lock.release()
 
 
 @app.route("/api/save_project", methods=["POST"])
@@ -1438,7 +1511,7 @@ def load_metadata():
             return jsonify({"error": "Metadata file not found"}), 404
         
         # Load and return the metadata
-        with open(metadata_path, "r") as f:
+        with open(full_metadata_path, "r", encoding="utf-8") as f:
             metadata = json.load(f)
         
         return jsonify({

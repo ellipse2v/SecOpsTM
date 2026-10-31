@@ -26,7 +26,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from threat_analysis.utils import _validate_path_within_project
+from threat_analysis.utils import safe_join
 from threat_analysis.core.model_factory import create_threat_model, pytm_build_lock
 from threat_analysis.core.models_module import ThreatModel
 from threat_analysis.generation.diagram_generator import DiagramGenerator
@@ -269,8 +269,13 @@ class ProjectReportMixin:
                 import re as _re
                 for match in _re.finditer(r'submodel\s*=\s*["\']?([^"\'\s,]+)["\']?', markdown_content):
                     sub_rel = match.group(1).strip()
-                    sub_path = (md_path.parent / sub_rel).resolve()
-                    if sub_path.exists() and sub_path.is_file():
+                    try:
+                        # `..` is legitimate up to the project root, never past it.
+                        sub_path = safe_join(md_path.parent, sub_rel, root=project_path)
+                    except ValueError:
+                        logging.warning(f"Ignoring submodel {sub_rel!r} in {md_path.name}: outside the project directory")
+                        continue
+                    if sub_path.is_file():
                         _visit(sub_path)
             except Exception as e:
                 logging.error(f"Error parsing model file {md_path}: {e}")
@@ -454,7 +459,9 @@ class ProjectReportMixin:
                 if 'submodel' in server_props:
                     submodel_path_str = server_props['submodel']
                     try:
-                        submodel_path = _validate_path_within_project(str(model_path.parent / submodel_path_str), base_dir=project_path)
+                        submodel_path = safe_join(model_path.parent, submodel_path_str, root=project_path)
+                        if not submodel_path.exists():
+                            raise ValueError(f"Path does not exist: {submodel_path_str}")
 
                         if submodel_path.is_file():
                             submodel_relative_parent = Path(submodel_path_str).parent

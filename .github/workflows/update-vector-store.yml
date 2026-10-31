@@ -14,9 +14,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
         with:
           lfs: true
+          persist-credentials: false
 
       - name: Check vector store exists
         run: |
@@ -35,8 +36,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release delete vector-store-latest --yes 2>/dev/null || true
-          git push origin :refs/tags/vector-store-latest 2>/dev/null || true
+          gh release delete vector-store-latest --yes --cleanup-tag 2>/dev/null || true
 
       - name: Create updated release
         env:

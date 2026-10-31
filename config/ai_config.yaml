@@ -65,8 +65,8 @@ ai_providers:
   # subscription; needs its own pay-as-you-go API key)
   # export ANTHROPIC_API_KEY=sk-ant-...
   anthropic:
-    enabled: false
-    model: "claude-haiku-4-5"   # fast/cheap for iteration; "claude-sonnet-5" for higher quality
+    enabled: true
+    model: "claude-haiku-4-5-20251001"   # fast/cheap for iteration; "claude-sonnet-5" for higher quality
     api_key_env: "ANTHROPIC_API_KEY"
     temperature: 0.2
     # 1024 truncated batch calls: the STRIDE schema asks for 3-5 threats per component
@@ -77,7 +77,12 @@ ai_providers:
     # on Haiku's verbose output — raised further. Haiku 4.5 supports up to 64K output,
     # so this only raises the ceiling, not actual usage/cost.
     max_tokens: 16000
-    timeout: 30
+    # 30s was too short for a 16000-max_tokens generation: a slow/long response hits
+    # the timeout mid-generation, litellm retries (num_retries: 3 below), each retry
+    # can itself run into the same wall — observed as a run silently stuck for 1h+
+    # with no error surfaced (2026-09-14). Raised so one real generation has room to
+    # finish before the timeout/retry loop kicks in.
+    timeout: 90
     ssl_verify: true
 
   # NVIDIA Integrate API (OpenAI-compatible) — https://build.nvidia.com/models

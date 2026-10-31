@@ -181,6 +181,96 @@ def _validate_path_within_project(input_path: str, base_dir: Optional[Path] = No
     return path_obj
 
 
+_XML_DECLARATION_RE = re.compile(r"<!\s*(DOCTYPE|ENTITY)", re.IGNORECASE)
+
+
+def safe_xml_fromstring(text: str):
+    """``ElementTree.fromstring`` that refuses documents declaring a DOCTYPE or ENTITY.
+
+    The stdlib parser does not fetch external entities, but it still expands internal
+    ones (entity-expansion bombs). Every SVG this project parses is plain Graphviz
+    output with neither declaration, so rejecting them outright costs nothing and needs
+    no extra dependency (offline-first). Raises ValueError on a rejected document.
+    """
+    import xml.etree.ElementTree as ET
+
+    if _XML_DECLARATION_RE.search(text):
+        raise ValueError("XML DOCTYPE/ENTITY declarations are not allowed")
+    return ET.fromstring(text)
+
+
+class UnsafePathError(ValueError):
+    """An untrusted path resolved outside the directory it must stay inside."""
+
+
+def safe_join(base_dir, untrusted_path: str, root=None) -> Path:
+    """Join an untrusted relative path under ``base_dir`` and return the resolved result.
+
+    ``root`` (default ``base_dir``) is the directory the result must stay inside; pass
+    a wider one when ``..`` is legitimate up to some ancestor (e.g. a project root).
+
+    Raises UnsafePathError (a ValueError) when the result escapes ``base_dir`` (``..`` segments, absolute
+    paths, symlinks pointing outside, NUL bytes). A leading ``/`` or ``\\`` is treated
+    as relative, so ``/etc/passwd`` becomes ``<base_dir>/etc/passwd`` rather than an
+    escape. Use for every path that comes from a request body or a model file.
+    """
+    base = Path(base_dir).resolve()
+    root_resolved = Path(root).resolve() if root is not None else base
+    rel = str(untrusted_path).replace("\\", "/").lstrip("/")
+    target = (base / rel).resolve()
+    if target != root_resolved and not target.is_relative_to(root_resolved):
+        raise UnsafePathError(f"Path escapes base directory: {untrusted_path!r}")
+    return target
+
+
+def safe_extract_tar(tf, dest) -> None:
+    """Extract an open ``tarfile.TarFile`` into ``dest`` after vetting every member.
+
+    Rejects members that would land outside ``dest`` (``..`` segments), absolute or
+    escaping symlink/hardlink targets, and device/FIFO entries. On Python versions that
+    ship tarfile's ``data`` extraction filter it is applied as a second layer.
+    Raises UnsafePathError on the first offending member, before anything is written.
+    """
+    import tarfile
+
+    dest_resolved = Path(dest).resolve()
+    for m in tf.getmembers():
+        safe_join(dest_resolved, m.name)
+        if m.isdev():
+            raise UnsafePathError(f"Device/FIFO entry in archive: {m.name!r}")
+        if m.issym() or m.islnk():
+            if os.path.isabs(m.linkname):
+                raise UnsafePathError(f"Absolute link target in archive: {m.name!r} -> {m.linkname!r}")
+            link_base = dest_resolved / Path(m.name).parent if m.issym() else dest_resolved
+            safe_join(link_base, m.linkname, root=dest_resolved)
+    if hasattr(tarfile, "data_filter"):
+        tf.extractall(dest_resolved, filter="data")
+    else:
+        tf.extractall(dest_resolved)
+
+
+def resolve_model_relative_path(dsl_path: str, model_path: Optional[str]) -> Optional[Path]:
+    """Resolve a path declared in a model's ``## Context`` section (gdaf_context,
+    bom_directory, vex_file, vex_directory).
+
+    The model file is untrusted input (PR contributor, AI-generated, uploaded), so the
+    declared path may only point inside the model's own directory (the working
+    directory when the model has no file). Returns None — after logging a warning —
+    when it tries to escape; callers then behave as if nothing was declared.
+    """
+    import logging
+
+    base = Path(model_path).parent if model_path else Path.cwd()
+    try:
+        return safe_join(base, dsl_path)
+    except ValueError:  # UnsafePathError, or a NUL byte in the path
+        logging.warning(
+            "Ignoring ## Context path %r: it resolves outside the model directory %s",
+            dsl_path, base,
+        )
+        return None
+
+
 def resolve_gdaf_context(threat_model) -> Optional[str]:
     """Resolve the GDAF context file path for a given threat model.
     
@@ -197,14 +287,8 @@ def resolve_gdaf_context(threat_model) -> Optional[str]:
     model_path = getattr(threat_model, "_model_file_path", None)
     
     if dsl_path:
-        # Resolve relative to model file directory first
-        if model_path:
-            p = Path(model_path).parent / dsl_path
-            if p.exists():
-                logging.info("GDAF: using context from DSL ## Context: %s", p)
-                return str(p)
-        p = Path(dsl_path)
-        if p.exists():
+        p = resolve_model_relative_path(dsl_path, model_path)
+        if p is not None and p.is_file():
             logging.info("GDAF: using context from DSL ## Context: %s", p)
             return str(p)
         logging.warning("GDAF: gdaf_context '%s' declared in ## Context but file not found", dsl_path)
@@ -230,14 +314,8 @@ def resolve_bom_directory(threat_model) -> Optional[str]:
     model_path = getattr(threat_model, "_model_file_path", None)
     
     if dsl_path:
-        # Resolve relative to model file directory first
-        if model_path:
-            p = Path(model_path).parent / dsl_path
-            if p.exists():
-                logging.info("BOM: using context from DSL ## Context: %s", p)
-                return str(p)
-        p = Path(dsl_path)
-        if p.exists():
+        p = resolve_model_relative_path(dsl_path, model_path)
+        if p is not None and p.is_dir():
             logging.info("BOM: using context from DSL ## Context: %s", p)
             return str(p)
         logging.warning("BOM: bom_directory '%s' declared in ## Context but not found", dsl_path)

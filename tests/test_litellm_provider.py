@@ -428,3 +428,29 @@ ai_providers:
             assert client.model_name == "openai/gpt-4"
 
     asyncio.run(_run())
+
+
+def test_enabled_scan_skips_null_body_provider_ordered_before_enabled_one():
+    """A null-bodied provider block (e.g. everything commented out) ordered
+    before an enabled provider in ai_providers must not raise AttributeError
+    on `.get('enabled')` — it must be skipped and the scan must continue to
+    the next, enabled provider."""
+    mock_config_yaml = """
+ai_providers:
+  groq:
+  openai:
+    enabled: true
+    model: "gpt-4"
+    api_key_env: "OPENAI_API_KEY"
+"""
+    async def _run():
+        with patch("builtins.open", mock_open(read_data=mock_config_yaml)), \
+             patch("threat_analysis.ai_engine.providers.litellm_client.PROJECT_ROOT", Path("/tmp")), \
+             patch("importlib.import_module"), \
+             patch.object(LiteLLMClient, "check_connection", return_value=True), \
+             patch("os.getenv", return_value="sk-test"):
+            client = LiteLLMClient()
+            await client._load_ai_config()
+            assert client.model_name == "openai/gpt-4"
+
+    asyncio.run(_run())

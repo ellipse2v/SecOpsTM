@@ -90,6 +90,11 @@ self.addEventListener('fetch', function(event) {
     if (event.request.method !== 'GET') {
         return;
     }
+
+    // Only same-origin requests: never fetch or cache a cross-origin URL through this worker.
+    if (new URL(event.request.url).origin !== self.location.origin) {
+        return;
+    }
     
     event.respondWith(
         caches.match(event.request)

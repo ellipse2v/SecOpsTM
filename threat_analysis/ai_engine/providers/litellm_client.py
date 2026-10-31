@@ -37,7 +37,7 @@ class LiteLLMClient:
         self._litellm_module = None
 
     @staticmethod
-    async def create(forced_provider: Optional[str] = None):
+    async def create(forced_provider: Optional[str] = None, config_path: Optional[Path] = None):
         """Creates and asynchronously initializes the LiteLLMClient.
 
         `forced_provider`, when given, takes precedence over the
@@ -45,17 +45,22 @@ class LiteLLMClient:
         cannot safely select a per-instance provider across concurrent threads
         (the evaluation harness's parallel_merge mode runs one thread per
         provider). Pass it explicitly there instead of relying on the env var.
+
+        `config_path` is the ai_config.yaml the caller selected (e.g. the action's
+        `ai-config-file` input). It must be honoured: falling back to the working
+        directory's config/ai_config.yaml would send prompts and the API key to
+        whatever endpoint the repository being analysed declares there.
         """
         client = LiteLLMClient()
-        await client._load_ai_config(forced_provider)
+        await client._load_ai_config(forced_provider, config_path)
         return client
 
-    async def _load_ai_config(self, forced_provider: Optional[str] = None):
+    async def _load_ai_config(self, forced_provider: Optional[str] = None, config_path: Optional[Path] = None):
         """Loads AI configuration from ai_config.yaml and initializes LiteLLM."""
         start_time = time.time()
         logging.info(f"[{time.time() - start_time:.4f}s] Loading AI configuration...")
         try:
-            with open(Path.cwd() / "config" / "ai_config.yaml", 'r') as f:
+            with open(Path(config_path) if config_path else Path.cwd() / "config" / "ai_config.yaml", 'r') as f:
                 self.ai_config = yaml.safe_load(f)
             logging.info(f"[{time.time() - start_time:.4f}s] AI configuration loaded.")
 

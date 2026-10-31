@@ -9,6 +9,8 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+from threat_analysis.utils import safe_xml_fromstring
+
 
 class GraphvizToKonvaConverter:
     """Convertit les SVG Graphviz en métadonnées Konva"""
@@ -22,8 +24,7 @@ class GraphvizToKonvaConverter:
         compatibles avec Konva
         """
         try:
-            tree = ET.parse(svg_path)
-            root = tree.getroot()
+            root = safe_xml_fromstring(Path(svg_path).read_text(encoding="utf-8"))
             
             metadata = {
                 'version': '1.0',

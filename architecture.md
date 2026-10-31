@@ -294,6 +294,36 @@ SECOPSTM_FORCE_PROVIDER      Pins LLM provider selection to a named ai_providers
                              tooling/eval. Unset → normal "first enabled wins".
 ```
 
+Path and output hardening (2026-09-21 scanner pass):
+
+```
+safe_join(base, untrusted, root=None)   utils.py — resolve()s the join and raises UnsafePathError
+                             when it leaves base (or `root`): `..`, symlinks, NUL bytes; an
+                             absolute path is re-based, never honoured. Used for every path taken
+                             from a request body (`/api/generate_all` submodels/extra_files/path,
+                             ExportService submodels) and from a model file.
+resolve_model_relative_path()  utils.py — `## Context` paths (gdaf_context, bom_directory,
+                             vex_file, vex_directory) may only point inside the model's own
+                             directory. Replaces 6 hand-rolled "model dir, then CWD" lookups.
+                             Sub-model links (`submodel=`) may use `..` up to the project root.
+safe_extract_tar()           utils.py — vets every tar member (dotdot, abs/escaping links, devices)
+                             before extraction; used by `init-rag` and `download-data`.
+safe_xml_fromstring()        utils.py — stdlib ElementTree minus DOCTYPE/ENTITY (no new dependency;
+                             offline-first). Used for Graphviz SVG in diagram_generator + konva.
+Jinja autoescape             `select_autoescape(['html','xml'])` on ReportGenerator.env and
+                             DiagramGenerator.template_env. The `.j2` DOT template stays raw
+                             (escaping would break DOT). JS-context values use `| tojson`, never
+                             `'{{ x | safe }}'`; innerHTML sinks build from escaped strings or DOM.
+/api/generate_all            16 MB request cap, ≤200 submodels, one generation at a time (429).
+?token= auth                 validated, then 302 to the same URL without it (cookie carries on).
+GDAF path search             max_hops ≤ 15, max_paths ≤ 50, 200k BFS expansions — the context YAML
+                             is model-controlled.
+LiteLLMClient / RAG          take the caller's ai_config path; never fall back to CWD's config
+                             when one was given (a PR's own config/ could redirect the API key).
+SECOPSTM_DISABLE_AI_CACHE    skips reading AND writing .secopstm_ai_cache.json; the Action sets it
+                             unless `trust-ai-cache: true`.
+```
+
 ### 3c. Lightweight Multi-User Workspaces
 
 ```

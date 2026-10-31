@@ -31,7 +31,7 @@ from threat_analysis.generation.attack_navigator_generator import AttackNavigato
 from threat_analysis.generation.stix_generator import StixGenerator
 from threat_analysis.generation.attack_flow_generator import AttackFlowGenerator
 from threat_analysis.generation.utils import get_enriched_threats
-from threat_analysis.utils import resolve_gdaf_context, resolve_bom_directory
+from threat_analysis.utils import resolve_gdaf_context, resolve_bom_directory, safe_join
 
 TIMESTAMP_FORMAT = "%Y-%m-%d_%H-%M-%S"
 OUTPUT_BASE_DIR_TPL = "output"
@@ -130,9 +130,9 @@ class ExportService:
                 cleanup_needed = True
                 (project_path / "main.md").write_text(markdown_content, encoding="utf-8")
                 for submodel in submodels:
-                    submodel_path_str = submodel.get('path', '').lstrip('./\\')
+                    submodel_path_str = submodel.get('path', '')
                     if not submodel_path_str: continue
-                    submodel_path = project_path / submodel_path_str
+                    submodel_path = safe_join(project_path, submodel_path_str)
                     submodel_path.parent.mkdir(parents=True, exist_ok=True)
                     submodel_path.write_text(submodel['content'], encoding="utf-8")
             

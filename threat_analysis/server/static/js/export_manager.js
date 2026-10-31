@@ -97,13 +97,15 @@ class ExportManager {
                     <h3 style="color: #2e7d32; margin-bottom: 10px;">✅ Export Successful!</h3>
                     <p style="margin-bottom: 10px;">Your ${this.getExportFormatName(format)} has been downloaded.</p>
                     <p style="margin-bottom: 10px;">
-                        <strong>📁 Saved in:</strong> <code>${outputDir}</code>
+                        <strong>📁 Saved in:</strong> <code></code>
                     </p>
                     <p style="font-size: 14px; color: #666;">
                         All exports are saved in timestamped directories for easy organization.
                     </p>
                 </div>
             `;
+            // outputDir comes from a response header — set as text, never as markup.
+            this.analysisResultContainer.querySelector('code').textContent = outputDir;
         })
         .catch(error => {
             console.error('Export error:', error);

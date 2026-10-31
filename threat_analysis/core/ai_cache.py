@@ -62,6 +62,7 @@ Usage
 import hashlib
 import json
 import logging
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -95,7 +96,12 @@ class AIThreatCache:
         self.hits: int = 0
         self.misses: int = 0
 
-        if model_file_path and isinstance(model_file_path, (str, Path)):
+        # CI on untrusted pull requests: a cache committed next to the model can carry
+        # `"threats": []` for every component and silence the AI findings the gate counts.
+        # With this set the cache is neither read nor written (in-memory only).
+        persistence_disabled = os.environ.get("SECOPSTM_DISABLE_AI_CACHE", "").lower() == "true"
+
+        if model_file_path and isinstance(model_file_path, (str, Path)) and not persistence_disabled:
             try:
                 model_path = Path(model_file_path).resolve()
                 if model_path.is_file():

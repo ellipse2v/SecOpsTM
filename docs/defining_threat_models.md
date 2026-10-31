@@ -119,8 +119,8 @@ gdaf_min_technique_score = 0.75
 
 | Attribute | Type | Default | Description |
 |---|---|---|---|
-| `gdaf_context` | string (path) | `None` | Path to the GDAF context YAML file. Relative to the model file directory. See [Project Directory Structure](#project-directory-structure). |
-| `bom_directory` | string (path) | `None` | Path to the BOM directory. Relative to the model file directory. |
+| `gdaf_context` | string (path) | `None` | Path to the GDAF context YAML file. Relative to the model file directory, and it must stay inside it: `..` and absolute paths are ignored with a warning. See [Project Directory Structure](#project-directory-structure). |
+| `bom_directory` | string (path) | `None` | Path to the BOM directory. Relative to the model file directory, and it must stay inside it (same rule as `gdaf_context`). |
 | `vex_file` | string (path) | `None` | Path to a standalone CycloneDX VEX file. Takes priority over BOM `known_cves` for CVE scoring. Relative to the model file directory. |
 | `vex_directory` | string (path) | `None` | Path to a directory of CycloneDX VEX files (one per component or a single global file). |
 | `gdaf_min_technique_score` | float 0.0–3.0 | `0.8` | Minimum `ScoredTechnique.score` required to render a technique as an OR-branch in `.afb` Attack Flow files. Overrides the value in the GDAF context YAML `risk_criteria` section. |
