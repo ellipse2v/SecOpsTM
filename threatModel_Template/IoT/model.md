@@ -19,6 +19,7 @@ bom_directory = BOM
 - **Actuator**: boundary="IoT Device"
 - **Device Administrator**: boundary="Mobile Application"
 - **Cloud Administrator**: boundary="Cloud Platform"
+- **Field Technician**: boundary="Physical Environment"
 
 ## Servers
 - **IoT Gateway Server**: boundary="IoT Gateway", type="iot_gateway"
@@ -35,12 +36,14 @@ bom_directory = BOM
 - **Command to Gateway**: from="Device Management Service", to="IoT Gateway Server", protocol="MQTT/CoAP"
 - **Gateway to Actuator**: from="IoT Gateway Server", to="Actuator", protocol="MQTT/CoAP"
 - **Admin to Device Mgmt**: from="Device Administrator", to="Device Management Service", protocol="HTTPS"
+- **Local Maintenance**: from="Field Technician", to="IoT Gateway Server", protocol="SSH"
 
 ## Protocol Styles
 - **MQTT/CoAP**: color=teal, line_style=dashed
 - **HTTPS/MQTT**: color=darkgreen, line_style=solid
 - **HTTPS**: color=darkgreen, line_style=solid
 - **Internal API**: color=blue, line_style=dashed
+- **SSH**: color=red, line_style=dotted
 
 ## Severity Multipliers
 - **IoT Hub**: 2.0

@@ -578,7 +578,10 @@ class ReportGenerator(ScoringMixin, AIAnalysisMixin, ProjectReportMixin):
         stix_generator = StixGenerator(threat_model, all_detailed_threats)
         stix_bundle = stix_generator.generate_stix_bundle()
 
-        output_file = output_dir / f"{threat_model.tm.name}_stix_attack_flow.json"
+        # The model name is free text (e.g. "CI/CD Pipeline"): strip path separators and
+        # other filesystem-unsafe characters so it cannot escape or nest under output_dir.
+        safe_name = re.sub(r"[^A-Za-z0-9._-]+", "_", str(threat_model.tm.name)).strip("._") or "threat_model"
+        output_file = output_dir / f"{safe_name}_stix_attack_flow.json"
 
         with open(output_file, "w", encoding="utf-8") as f:
             json.dump(stix_bundle, f, indent=4)
