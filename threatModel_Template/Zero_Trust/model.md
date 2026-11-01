@@ -24,9 +24,9 @@ bom_directory = BOM
 - **Administrator**: boundary="Trusted Network"
 
 ## Servers
-- **Authentication Service**: boundary="Identity Provider (IdP)", type="authentication_service"
-- **Authorization Service**: boundary="Identity Provider (IdP)", type="authorization_service"
-- **Policy Engine**: boundary="Policy Enforcement Point (PEP)", type="policy_engine"
+- **Authentication Service**: boundary="Identity Provider (IdP)", type="auth-server"
+- **Authorization Service**: boundary="Identity Provider (IdP)", type="auth-server"
+- **Policy Engine**: boundary="Policy Enforcement Point (PEP)", type="api-gateway"
 - **Microservice A**: boundary="Workload", type="microservice"
 - **Microservice B**: boundary="Workload", type="microservice"
 

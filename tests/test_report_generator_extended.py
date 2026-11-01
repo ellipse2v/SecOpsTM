@@ -193,6 +193,29 @@ def test_generate_stix_export(report_generator, tmp_path):
         mock_recompute.assert_called_once()
 
 
+@pytest.mark.parametrize("model_name, expected_stem", [
+    ("CI/CD Pipeline (Continuous Integration and Deployment)",
+     "CI_CD_Pipeline_Continuous_Integration_and_Deployment"),
+    ("Data Warehouse / Data Lake", "Data_Warehouse_Data_Lake"),
+    ("../../etc/passwd", "etc_passwd"),
+    ("///", "threat_model"),
+])
+def test_generate_stix_export_sanitizes_model_name(report_generator, tmp_path, model_name, expected_stem):
+    """A '/' (or other unsafe character) in the model name must not create a sub-directory."""
+    threat_model = MagicMock()
+    threat_model.tm.name = model_name
+    threat_model._report_all_detailed_threats = [{"id": "T-0001"}]
+
+    with patch("threat_analysis.generation.report_generator.StixGenerator") as mock_stix_gen:
+        mock_stix_gen.return_value.generate_stix_bundle.return_value = {"type": "bundle"}
+        output_dir = tmp_path / "stix"
+        result = report_generator.generate_stix_export(threat_model, {}, output_dir)
+
+    assert result == output_dir / f"{expected_stem}_stix_attack_flow.json"
+    assert result.parent == output_dir
+    assert result.exists()
+
+
 def test_generate_stix_export_reuses_ai_enriched_cache(report_generator, tmp_path):
     """generate_stix_export must reuse threat_model._report_all_detailed_threats (set by
     generate_html_report after AI enrichment) instead of recomputing pytm-only threats.
