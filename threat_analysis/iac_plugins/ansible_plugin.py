@@ -107,7 +107,7 @@ _INSTALL_MODULES: frozenset = frozenset([
 # Ansible firewall task module names
 _FIREWALL_MODULES: frozenset = frozenset([
     "iptables", "ansible.builtin.iptables",
-    "ufw", "ansible.builtin.ufw",
+    "ufw", "ansible.builtin.ufw", "community.general.ufw",
     "firewalld", "ansible.posix.firewalld",
 ])
 

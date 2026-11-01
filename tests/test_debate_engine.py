@@ -355,7 +355,7 @@ def test_afb_files_rewritten_after_debate_changes_scores():
          patch("threat_analysis.generation.report_generator.get_framework_mitigation_suggestions", return_value=[]), \
          patch("threat_analysis.generation.attack_flow_builder.AttackFlowBuilder") as mock_builder_cls:
         mock_get_template.return_value = MagicMock()
-        with patch("builtins.open", mock_open()):
+        with patch("threat_analysis.generation.report_generator.open", mock_open(), create=True):
             rg.generate_html_report(threat_model, {}, "output/run1/test_report.html")
 
     mock_builder_cls.assert_called_once_with(threat_model.gdaf_scenarios, model_name="Test Architecture")
@@ -376,7 +376,7 @@ def test_afb_files_not_rewritten_when_debate_disabled():
          patch("threat_analysis.generation.report_generator.get_framework_mitigation_suggestions", return_value=[]), \
          patch("threat_analysis.generation.attack_flow_builder.AttackFlowBuilder") as mock_builder_cls:
         mock_get_template.return_value = MagicMock()
-        with patch("builtins.open", mock_open()):
+        with patch("threat_analysis.generation.report_generator.open", mock_open(), create=True):
             rg.generate_html_report(threat_model, {}, "output/run1/test_report.html")
 
     mock_builder_cls.assert_not_called()
@@ -402,7 +402,7 @@ def test_threat_graph_gdaf_paths_reflect_debate_outcome():
          patch("threat_analysis.generation.attack_flow_builder.AttackFlowBuilder"):
         mock_template = MagicMock()
         mock_get_template.return_value = mock_template
-        with patch("builtins.open", mock_open()):
+        with patch("threat_analysis.generation.report_generator.open", mock_open(), create=True):
             rg.generate_html_report(threat_model, {}, "output/run1/test_report.html")
 
     render_kwargs = mock_template.render.call_args.kwargs

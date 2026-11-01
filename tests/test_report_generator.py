@@ -81,7 +81,7 @@ def test_generate_html_report(mock_get_framework_mitigations, report_generator):
     with patch.object(report_generator.env, 'get_template') as mock_get_template:
         mock_template = MagicMock()
         mock_get_template.return_value = mock_template
-        with patch("builtins.open", mock_open()) as mock_file:
+        with patch("threat_analysis.generation.report_generator.open", mock_open(), create=True) as mock_file:
             result = report_generator.generate_html_report(threat_model, grouped_threats, output_file)
             mock_file.assert_any_call(output_file, "w", encoding="utf-8")
 
@@ -121,7 +121,7 @@ def test_generate_html_report_assigns_stable_threat_ids(mock_get_framework_mitig
 
     with patch.object(report_generator.env, 'get_template') as mock_get_template:
         mock_get_template.return_value = MagicMock()
-        with patch("builtins.open", mock_open()):
+        with patch("threat_analysis.generation.report_generator.open", mock_open(), create=True):
             report_generator.generate_html_report(threat_model, grouped_threats, "test_report.html")
 
     cached = threat_model._report_all_detailed_threats
@@ -163,7 +163,7 @@ def test_generate_html_report_computes_discovered_attack_paths(mock_get_framewor
     with patch.object(report_generator.env, 'get_template') as mock_get_template:
         mock_template = MagicMock()
         mock_get_template.return_value = mock_template
-        with patch("builtins.open", mock_open()):
+        with patch("threat_analysis.generation.report_generator.open", mock_open(), create=True):
             report_generator.generate_html_report(threat_model, grouped_threats, "test_report.html")
 
     render_kwargs = mock_template.render.call_args.kwargs
@@ -205,7 +205,7 @@ def test_generate_html_report_skips_discovered_attack_paths_when_disabled(mock_g
     with patch.object(report_generator.env, 'get_template') as mock_get_template:
         mock_template = MagicMock()
         mock_get_template.return_value = mock_template
-        with patch("builtins.open", mock_open()):
+        with patch("threat_analysis.generation.report_generator.open", mock_open(), create=True):
             report_generator.generate_html_report(threat_model, grouped_threats, "test_report.html")
 
     assert mock_template.render.call_args.kwargs["discovered_attack_paths"] == []
@@ -252,7 +252,7 @@ def test_generate_json_export(report_generator):
     report_generator.mitre_mapping.configure_mock(capec_to_mitre_map={})
 
     output_file = "test_export.json"
-    with patch("builtins.open", mock_open()) as mock_file:
+    with patch("threat_analysis.generation.report_generator.open", mock_open(), create=True) as mock_file:
         result = report_generator.generate_json_export(threat_model, grouped_threats, output_file)
         mock_file.assert_called_once_with(output_file, "w", encoding="utf-8")
 
@@ -283,7 +283,7 @@ def test_generate_json_export_reuses_ai_enriched_cache(report_generator):
 
     with patch.object(report_generator, "_get_all_threats_with_mitre_info") as mock_recompute, \
          patch("threat_analysis.generation.report_generator.ReportSerializer") as mock_serializer, \
-         patch("builtins.open", mock_open()):
+         patch("threat_analysis.generation.report_generator.open", mock_open(), create=True):
         mock_serializer.serialize.return_value = {"threats": [cached_ai_threat]}
         report_generator.generate_json_export(threat_model, {}, "test_export.json")
 
