@@ -21,12 +21,23 @@ RUN apt-get update \
 RUN useradd --create-home --shell /bin/bash appuser
 WORKDIR /app
 
-# ── Layer 1: Python dependencies (rebuilt only when requirements.txt changes) ──
+# ── Layer 1: Python dependencies (rebuilt only when pyproject.toml changes) ──
 # Splitting deps from source code maximises Docker cache reuse on source-only
 # rebuilds, which is the most frequent case.
-COPY requirements.txt ./
+#
+# Only the runtime dependencies declared in pyproject.toml are installed.
+# requirements.txt also pulls langchain, unstructured[all] and jq, which only
+# the tooling (vector store build) uses: with them, pip had to resolve ~400
+# loosely pinned packages and the v1.2.0 build failed at this step.
+# torch comes from the CPU-only index: the image never uses a GPU, and the
+# default PyPI wheel drags in several GB of CUDA libraries on amd64.
+COPY pyproject.toml ./
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install -r requirements.txt
+    python -c "import tomllib; print('\\n'.join(tomllib.load(open('pyproject.toml', 'rb'))['project']['dependencies']))" \
+        > /tmp/runtime-requirements.txt && \
+    pip install --extra-index-url https://download.pytorch.org/whl/cpu \
+        -r /tmp/runtime-requirements.txt && \
+    rm /tmp/runtime-requirements.txt
 
 # ── Layer 2: embedding model (rebuilt only when sentence-transformers changes) ──
 RUN HF_HUB_DISABLE_SYMLINKS_WARNING=1 \
