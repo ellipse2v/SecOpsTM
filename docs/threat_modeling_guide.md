@@ -532,6 +532,12 @@ The HTML report contains:
 Click "Toggle Severity Heat Map" on the HTML diagram to color-code each component by its
 highest threat severity. Red = CRITICAL, orange = HIGH, yellow = MEDIUM, green = LOW.
 
+**Reading the threat layer on the diagram:**
+Each element that has threats carries a badge: the number is how many threats target it, the
+colour is the worst of them. Click a badge (or the element) to list its threats in a side panel,
+with a link to the full report. In the legend, "Show threat badges" hides the layer, and clicking
+Critical / High / Medium / Low hides or shows that severity.
+
 ---
 
 ## Common Mistakes and How to Avoid Them

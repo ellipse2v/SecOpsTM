@@ -1,0 +1,353 @@
+{#
+ Copyright 2025 ellipse2v
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+
+ Threat layer, shared by diagram_template.html and navigable_diagram_template.html.
+ Draws one severity badge per element that has threats (count of threats, coloured by
+ the worst one) and lists that element's threats in a side panel on click. Toggled and
+ filtered by severity from the "Threats" section of the legend.
+ Context: threat_layer_json (threat_layer.build_threat_layer), report_url.
+ Must be included after the page's main script: it runs after svg-pan-zoom is set up.
+#}
+<style>
+    .threat-layer .threat-badge { cursor: pointer; }
+    .threat-layer .threat-badge circle { stroke: #ffffff; stroke-width: 1.5px; }
+    .threat-layer .threat-badge text {
+        fill: #ffffff; font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 10px;
+        font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none;
+    }
+    .threat-layer .threat-badge:hover circle { stroke: #111827; }
+    .threat-layer .threat-badge.dimmed { opacity: 0.35; }
+    .threat-layer .threat-badge.active circle { stroke: #111827; stroke-width: 2.5px; }
+    .threat-sev-filter.off { opacity: 0.35; }
+    .threat-sev-filter.off span:first-of-type { text-decoration: line-through; }
+    #threat-panel {
+        display: none; position: absolute; top: 20px; left: 20px; z-index: 1500;
+        width: 340px; max-width: calc(100vw - 40px); max-height: calc(100vh - 110px);
+        overflow: auto; background: rgba(255, 255, 255, 0.98); border: 1px solid #ddd;
+        border-radius: 6px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+        font-size: 12px; color: #1f2937;
+    }
+    #threat-panel.open { display: block; }
+    #threat-panel .tp-header {
+        display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px 6px;
+        border-bottom: 1px solid #eee; position: sticky; top: 0; background: inherit;
+    }
+    #threat-panel .tp-title { flex: 1; font-weight: 700; font-size: 13px; word-break: break-word; }
+    #threat-panel .tp-kind { display: block; font-weight: 400; font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; }
+    #threat-panel .tp-close { border: none; background: none; font-size: 18px; line-height: 1; cursor: pointer; color: #6b7280; padding: 0 2px; }
+    #threat-panel .tp-summary { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 12px 4px; }
+    #threat-panel .tp-chip { border-radius: 10px; padding: 1px 8px; font-size: 10px; font-weight: 700; color: #fff; }
+    #threat-panel ul { list-style: none; margin: 0; padding: 4px 12px 8px; }
+    #threat-panel li { padding: 6px 0; border-bottom: 1px solid #f1f1f1; }
+    #threat-panel li:last-child { border-bottom: none; }
+    #threat-panel .tp-sev { display: inline-block; min-width: 54px; text-align: center; border-radius: 3px; padding: 0 4px; margin-right: 6px; font-size: 9px; font-weight: 700; color: #fff; }
+    #threat-panel .tp-meta { display: block; margin-top: 2px; font-size: 10px; color: #6b7280; }
+    #threat-panel .tp-footer { padding: 6px 12px 10px; font-size: 11px; color: #6b7280; }
+    #threat-panel .tp-footer a { color: #2563eb; }
+</style>
+
+<div id="threat-panel" role="dialog" aria-labelledby="threat-panel-title">
+    <div class="tp-header">
+        <div class="tp-title" id="threat-panel-title"></div>
+        <button class="tp-close" type="button" onclick="closeThreatPanel()" title="Close" aria-label="Close">×</button>
+    </div>
+    <div class="tp-summary" id="threat-panel-summary"></div>
+    <ul id="threat-panel-list"></ul>
+    <div class="tp-footer" id="threat-panel-footer"></div>
+</div>
+
+<script>
+(function () {
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+    const LEVELS = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
+    const COLORS = { CRITICAL: '#dc2626', HIGH: '#ea580c', MEDIUM: '#d97706', LOW: '#16a34a' };
+    const KIND_LABELS = { actor: 'Actor', server: 'Component', dataflow: 'Dataflow', boundary: 'Trust boundary' };
+    const LAYER_REPORT_URL = {{ report_url | default("") | tojson }};
+
+    const state = { layer: {}, visible: true, levels: new Set(LEVELS), openId: null, layerGroup: null };
+
+    function svgRoot() { return document.querySelector('#svg-container svg'); }
+
+    // Graphviz keeps the DOT id on nodes and edges; clusters get "clustN" with the
+    // DOT name in their <title>, so fall back to the title.
+    function findGroup(svg, id) {
+        const byId = svg.querySelector(`g[id="${CSS.escape(id)}"]`);
+        if (byId) return byId;
+        for (const g of svg.querySelectorAll('g.cluster, g.node, g.edge')) {
+            const t = g.querySelector(':scope > title');
+            if (t && t.textContent.trim() === id) return g;
+        }
+        return null;
+    }
+
+    // Maps a point of `node`'s user space into the layer's user space. Works whatever
+    // transforms sit in between (the generated SVG flips its y axis, pan-zoom scales).
+    function toLayer(node, layerGroup, x, y) {
+        const svg = svgRoot();
+        const m = layerGroup.getScreenCTM().inverse().multiply(node.getScreenCTM());
+        const p = svg.createSVGPoint();
+        p.x = x; p.y = y;
+        return p.matrixTransform(m);
+    }
+
+    function anchorPoint(g, kind, layerGroup) {
+        if (kind === 'dataflow') {
+            const path = g.querySelector('path');
+            if (path && path.getTotalLength) {
+                const mid = path.getPointAtLength(path.getTotalLength() / 2);
+                return toLayer(path, layerGroup, mid.x, mid.y);
+            }
+        }
+        // Element outline: its first own shape (icons are nested <svg>, skip them).
+        const shape = g.querySelector(':scope > polygon, :scope > ellipse, :scope > rect, :scope > path, :scope > a > polygon, :scope > a > ellipse, :scope > a > rect, :scope > a > path')
+            || g.querySelector('polygon, ellipse, rect, path') || g;
+        const bb = shape.getBBox();
+        const corners = [[bb.x, bb.y], [bb.x + bb.width, bb.y], [bb.x, bb.y + bb.height], [bb.x + bb.width, bb.y + bb.height]]
+            .map(([x, y]) => toLayer(shape, layerGroup, x, y));
+        const right = Math.max(...corners.map(c => c.x));
+        const top = Math.min(...corners.map(c => c.y));
+        if (kind === 'boundary') return { x: right - 14, y: top + 14 };
+        return { x: right - 2, y: top + 2 };
+    }
+
+    // Badges keep the same on-screen size whatever the zoom level.
+    function badgeScale(layerGroup) {
+        const ctm = layerGroup.getScreenCTM();
+        const zoom = ctm ? Math.hypot(ctm.a, ctm.b) : 1;
+        return zoom > 0 ? 1 / zoom : 1;
+    }
+
+    function visibleCount(entry) {
+        return LEVELS.reduce((n, lvl) => n + (state.levels.has(lvl) ? (entry.counts[lvl] || 0) : 0), 0);
+    }
+
+    function worstVisible(entry) {
+        return LEVELS.find(lvl => state.levels.has(lvl) && entry.counts[lvl] > 0) || null;
+    }
+
+    function plural(n, word) { return `${n} ${word}${n === 1 ? '' : 's'}`; }
+
+    function buildBadges() {
+        const svg = svgRoot();
+        if (!svg) return;
+        // Inside the pan-zoom viewport so badges pan with the diagram, on top of it.
+        const host = svg.querySelector('.svg-pan-zoom_viewport') || svg;
+        const layerGroup = document.createElementNS(SVG_NS, 'g');
+        // A class, not an id: the page fades every g[id] when it highlights an element.
+        layerGroup.setAttribute('class', 'threat-layer');
+        state.layerGroup = layerGroup;
+        host.appendChild(layerGroup);
+
+        Object.entries(state.layer).forEach(([id, entry]) => {
+            const target = findGroup(svg, id);
+            if (!target) return;
+            let pt;
+            try { pt = anchorPoint(target, entry.kind, layerGroup); } catch (e) { return; }
+            const badge = document.createElementNS(SVG_NS, 'g');
+            badge.setAttribute('class', 'threat-badge');
+            badge.dataset.elementId = id;
+            badge._target = target;
+            badge._pos = pt;
+            const circle = document.createElementNS(SVG_NS, 'circle');
+            const text = document.createElementNS(SVG_NS, 'text');
+            const title = document.createElementNS(SVG_NS, 'title');
+            badge.append(title, circle, text);
+            badge.addEventListener('click', (e) => {
+                // Keep the page's own click handler out of it: the badge does its own
+                // highlighting, the same toggle a click on the element does.
+                e.stopPropagation();
+                e.preventDefault();
+                if (entry.kind !== 'boundary' && typeof highlightElement === 'function') highlightElement(id);
+                toggleThreatPanel(id);
+            });
+            layerGroup.appendChild(badge);
+        });
+        if (typeof panZoomInstance !== 'undefined' && panZoomInstance && panZoomInstance.setOnZoom) {
+            panZoomInstance.setOnZoom(() => rescaleBadges());
+        }
+        window.addEventListener('resize', () => rescaleBadges());
+        refreshThreatBadges();
+    }
+
+    function rescaleBadges() {
+        const layerGroup = state.layerGroup;
+        if (!layerGroup) return;
+        const k = badgeScale(layerGroup);
+        layerGroup.querySelectorAll('.threat-badge').forEach(badge => {
+            badge.setAttribute('transform', `translate(${badge._pos.x},${badge._pos.y}) scale(${k})`);
+        });
+    }
+
+    function refreshThreatBadges() {
+        const layerGroup = state.layerGroup;
+        if (!layerGroup) return;
+        layerGroup.style.display = state.visible ? '' : 'none';
+        layerGroup.querySelectorAll('.threat-badge').forEach(badge => {
+            const entry = state.layer[badge.dataset.elementId];
+            const n = visibleCount(entry);
+            const worst = worstVisible(entry);
+            const hiddenTarget = badge._target && badge._target.closest('.svg-element-hidden');
+            if (!n || !worst || hiddenTarget) { badge.style.display = 'none'; return; }
+            badge.style.display = '';
+            const label = n > 99 ? '99+' : String(n);
+            const circle = badge.querySelector('circle');
+            circle.setAttribute('r', label.length > 1 ? 9 : 8);
+            circle.setAttribute('fill', COLORS[worst]);
+            badge.querySelector('text').textContent = label;
+            badge.querySelector('title').textContent =
+                `${entry.label}: ${plural(n, 'threat')} (worst: ${worst.toLowerCase()}). Click for details.`;
+            badge.classList.toggle('active', state.openId === badge.dataset.elementId);
+            badge.classList.toggle('dimmed', badge._target.classList.contains('faded'));
+        });
+        rescaleBadges();
+        document.querySelectorAll('.threat-sev-filter').forEach(item => {
+            item.classList.toggle('off', !state.levels.has(item.dataset.severity));
+        });
+        if (state.openId) renderPanel(state.openId);
+    }
+
+    function el(tag, cls, text) {
+        const node = document.createElement(tag);
+        if (cls) node.className = cls;
+        if (text !== undefined) node.textContent = text;
+        return node;
+    }
+
+    // Built with the DOM API only: labels and titles come from the model.
+    function renderPanel(id) {
+        const entry = state.layer[id];
+        if (!entry) return;
+        const title = document.getElementById('threat-panel-title');
+        title.textContent = entry.label;
+        title.appendChild(el('span', 'tp-kind', KIND_LABELS[entry.kind] || entry.kind));
+
+        const summary = document.getElementById('threat-panel-summary');
+        summary.textContent = '';
+        LEVELS.forEach(lvl => {
+            const n = entry.counts[lvl] || 0;
+            if (!n) return;
+            const chip = el('span', 'tp-chip', `${n} ${lvl.toLowerCase()}`);
+            chip.style.background = COLORS[lvl];
+            if (!state.levels.has(lvl)) chip.style.opacity = '0.35';
+            summary.appendChild(chip);
+        });
+
+        const list = document.getElementById('threat-panel-list');
+        list.textContent = '';
+        const shown = entry.threats.filter(t => state.levels.has(t.severity));
+        shown.forEach(t => {
+            const li = el('li');
+            const sev = el('span', 'tp-sev', t.score ? `${t.severity} ${t.score}` : t.severity);
+            sev.style.background = COLORS[t.severity];
+            li.appendChild(sev);
+            li.appendChild(document.createTextNode(t.title));
+            const meta = [t.stride, t.id, t.source && t.source !== 'pytm' ? t.source : ''].filter(Boolean).join(' · ');
+            if (meta) li.appendChild(el('span', 'tp-meta', meta));
+            list.appendChild(li);
+        });
+        if (!shown.length) list.appendChild(el('li', 'tp-meta', 'No threat at the selected severity levels.'));
+
+        const footer = document.getElementById('threat-panel-footer');
+        footer.textContent = '';
+        const listed = entry.threats.length;
+        if (entry.total > listed) footer.appendChild(document.createTextNode(`Showing the ${listed} worst of ${entry.total} threats. `));
+        // A report URL starting with a scheme ("javascript:...") is never a sibling file.
+        if (LAYER_REPORT_URL && !/^\s*[a-z][a-z0-9+.\-]*:/i.test(LAYER_REPORT_URL)) {
+            const link = el('a', '', 'Open in the full report →');
+            link.href = LAYER_REPORT_URL + '#' + entry.anchor;
+            link.target = '_top';
+            footer.appendChild(link);
+        }
+    }
+
+    function openThreatPanel(id) {
+        if (!state.layer[id]) return;
+        state.openId = id;
+        renderPanel(id);
+        document.getElementById('threat-panel').classList.add('open');
+        refreshThreatBadges();
+    }
+
+    // Same toggle as the page's highlighting: a second click on the element closes it.
+    function toggleThreatPanel(id) {
+        if (state.openId === id) closeThreatPanel(); else openThreatPanel(id);
+    }
+
+    function closeThreatPanel() {
+        state.openId = null;
+        document.getElementById('threat-panel').classList.remove('open');
+        refreshThreatBadges();
+    }
+
+    function setThreatLayerVisible(visible) {
+        state.visible = !!visible;
+        const box = document.getElementById('threat-layer-toggle');
+        if (box) box.checked = state.visible;
+        if (!state.visible) closeThreatPanel();
+        refreshThreatBadges();
+    }
+
+    function toggleThreatSeverity(level) {
+        if (state.levels.has(level)) state.levels.delete(level); else state.levels.add(level);
+        refreshThreatBadges();
+    }
+
+    window.refreshThreatBadges = refreshThreatBadges;
+    window.openThreatPanel = openThreatPanel;
+    window.closeThreatPanel = closeThreatPanel;
+    window.setThreatLayerVisible = setThreatLayerVisible;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        try { state.layer = JSON.parse({{ threat_layer_json | default("{}") | tojson }}) || {}; } catch (e) { state.layer = {}; }
+        const hasLayer = Object.keys(state.layer).length > 0;
+
+        if (!hasLayer) {
+            const row = document.getElementById('threat-layer-toggle-row');
+            if (row) row.style.display = 'none';
+            document.querySelectorAll('.threat-sev-filter').forEach(i => i.classList.remove('legend-item'));
+            return;
+        }
+        // The section is hidden by the page when it has no heat-map data; the layer needs it.
+        const section = document.getElementById('severity-legend-section');
+        if (section) section.style.display = '';
+
+        const totals = {};
+        LEVELS.forEach(lvl => { totals[lvl] = Object.values(state.layer).reduce((n, e) => n + (e.counts[lvl] || 0), 0); });
+        document.querySelectorAll('.threat-sev-count').forEach(span => { span.textContent = totals[span.dataset.severity] || 0; });
+        document.querySelectorAll('.threat-sev-filter').forEach(item => {
+            item.addEventListener('click', () => toggleThreatSeverity(item.dataset.severity));
+        });
+
+        buildBadges();
+
+        const svg = svgRoot();
+        if (svg) {
+            // Clicking a node or dataflow that has threats toggles its panel (in step with
+            // the page's highlighting); anything else closes it. Boundaries open from
+            // their badge only, so a click inside a boundary is not hijacked.
+            svg.addEventListener('click', (e) => {
+                if (!state.visible || e.target.closest('a')) return;
+                // Nearest enclosing element of the layer (icons nest their own <g id>).
+                let g = e.target;
+                while (g && g !== svg && !(g.id && state.layer[g.id])) g = g.parentNode;
+                const id = g && g !== svg ? g.id : null;
+                if (id && state.layer[id].kind !== 'boundary') toggleThreatPanel(id);
+                else closeThreatPanel();  // also re-syncs badge dimming with the highlight
+            });
+        }
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeThreatPanel(); });
+    });
+})();
+</script>

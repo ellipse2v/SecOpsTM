@@ -336,7 +336,11 @@
             const allSvgGroups = svg.querySelectorAll('g[id]');
 
             // Apply faded class to all elements first
-            allSvgGroups.forEach(g => g.classList.add('faded'));
+            // Not the pan-zoom viewport (svg-pan-zoom gives it an id): fading it would
+            // fade the selected element and the threat badges along with everything.
+            allSvgGroups.forEach(g => {
+                if (!g.classList.contains('svg-pan-zoom_viewport')) g.classList.add('faded');
+            });
 
             // Highlight the selected element
             const selectedSvgElement = svg.querySelector(`g[id="${CSS.escape(elementId)}"]`);
@@ -438,6 +442,8 @@
                     });
                 }
             }
+            // Badges of hidden dataflows follow them (threat layer, _threat_layer.html).
+            if (window.refreshThreatBadges) window.refreshThreatBadges();
         }
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -528,5 +534,6 @@
             }
         });
     </script>
+    {% include '_threat_layer.html' %}
 </body>
 </html>

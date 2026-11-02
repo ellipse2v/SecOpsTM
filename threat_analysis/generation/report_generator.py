@@ -38,6 +38,7 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 from threat_analysis.generation.diagram_generator import DiagramGenerator
+from threat_analysis.generation.threat_layer import build_threat_layer
 from threat_analysis.generation.stix_generator import StixGenerator
 from threat_analysis.generation.attack_flow_generator import AttackFlowGenerator
 from threat_analysis.core.models_module import ThreatModel
@@ -1037,6 +1038,7 @@ class ReportGenerator(ScoringMixin, AIAnalysisMixin, ProjectReportMixin):
             current_dir_depth=current_dir_depth,
             graph_metadata_json=json.dumps(graph_metadata),
             severity_map_json=json.dumps(severity_map),
+            threat_layer_json=json.dumps(build_threat_layer(threat_model)),
             report_url=report_url,
         )
 
