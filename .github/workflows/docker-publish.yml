@@ -4,6 +4,13 @@ on:
   push:
     tags:
       - 'v*'
+  # Rebuild an already-released version from the chosen branch (e.g. after a
+  # Dockerfile fix), without cutting a new release.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Image version tag to publish, without the leading v (e.g. 1.2.0)'
+        required: true
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -24,7 +31,13 @@ jobs:
         id: tag
         env:
           REF_NAME: ${{ github.ref_name }}
-        run: echo "VERSION=${REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ -n "$INPUT_VERSION" ]; then VERSION="${INPUT_VERSION#v}"; else VERSION="${REF_NAME#v}"; fi
+          case "$VERSION" in
+            *[!0-9A-Za-z.+-]*|'') echo "invalid version: $VERSION" >&2; exit 1 ;;
+          esac
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Set up QEMU (for arm64 cross-compilation)
         uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130  # v3
