@@ -19,6 +19,7 @@ This module generates config.js with all necessary configuration for the web int
 """
 
 import json
+import sys
 import datetime
 import logging
 from pathlib import Path
@@ -189,7 +190,7 @@ def generate_config_js(output_path: Path = None) -> bool:
                 
             # Compare with current configuration
             if existing_config == CONFIG_DATA:
-                print(f"Configuration is already up to date: {output_path}")
+                print(f"Configuration is already up to date: {output_path}", file=sys.stderr)
                 return True
         
         # Generate JavaScript code
@@ -205,11 +206,11 @@ def generate_config_js(output_path: Path = None) -> bool:
         
         # Write to file
         output_path.write_text(js_code)
-        print(f"Successfully generated configuration: {output_path}")
+        print(f"Successfully generated configuration: {output_path}", file=sys.stderr)
         return True
         
     except Exception as e:
-        print(f"Error generating configuration: {e}")
+        print(f"Error generating configuration: {e}", file=sys.stderr)
         return False
 
 
