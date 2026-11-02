@@ -536,7 +536,8 @@ highest threat severity. Red = CRITICAL, orange = HIGH, yellow = MEDIUM, green =
 Each element that has threats carries a badge: the number is how many threats target it, the
 colour is the worst of them. Click a badge (or the element) to list its threats in a side panel,
 with a link to the full report. In the legend, "Show threat badges" hides the layer, and clicking
-Critical / High / Medium / Low hides or shows that severity.
+Critical / High / Medium / Low hides or shows that severity. The S T R I D E letters isolate one STRIDE category
+(click again to show them all; Shift-click to combine categories).
 
 ---
 
