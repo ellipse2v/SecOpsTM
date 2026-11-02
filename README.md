@@ -1,8 +1,56 @@
-# STRIDE Threat Analysis Framework with MITRE ATT&CK Integration
+<p align="center">
+  <img src="https://raw.githubusercontent.com/ellipse2v/SecOpsTM/main/docs/images/logo.svg" alt="SecOpsTM logo" width="110">
+</p>
+
+<h1 align="center">SecOpsTM</h1>
+
+<p align="center">
+  <b>Threat modeling as code.</b> One Markdown file in, a STRIDE + MITRE ATT&amp;CK threat report out.<br>
+  Interactive diagrams, CAPEC / D3FEND / CVE mapping, attack paths, SARIF and STIX, ready for CI.
+</p>
+
+<p align="center">
+  <a href="https://ellipse2v.github.io/SecOpsTM/"><b>Live demo</b></a> ·
+  <a href="https://github.com/ellipse2v/SecOpsTM#quick-start--installation">Quick start</a> ·
+  <a href="https://github.com/ellipse2v/SecOpsTM/blob/main/docs/index.md">Docs</a> ·
+  <a href="https://owasp.org/www-project-secopstm/">OWASP project page</a>
+</p>
+
+<p align="center">
+  <a href="https://owasp.org/www-project-secopstm/"><img src="https://img.shields.io/badge/OWASP-project-000000?logo=owasp&logoColor=white" alt="OWASP project"></a>
+  <a href="https://pypi.org/project/SecOpsTM/"><img src="https://img.shields.io/pypi/v/SecOpsTM?label=PyPI&color=3775A9" alt="PyPI version"></a>
+  <a href="https://hub.docker.com/r/ellipse2v/secopstm"><img src="https://img.shields.io/docker/pulls/ellipse2v/secopstm?label=Docker%20pulls&color=2496ED" alt="Docker pulls"></a>
+  <a href="https://github.com/ellipse2v/SecOpsTM/actions/workflows/coverage_check.yml"><img src="https://github.com/ellipse2v/SecOpsTM/actions/workflows/coverage_check.yml/badge.svg" alt="Tests"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.11+-blue.svg" alt="Python 3.11+"></a>
+  <a href="https://github.com/ellipse2v/SecOpsTM/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License: Apache 2.0"></a>
+</p>
+
+<p align="center">
+  <a href="https://ellipse2v.github.io/SecOpsTM/">
+    <img src="https://raw.githubusercontent.com/ellipse2v/SecOpsTM/main/docs/images/threat-layer-demo.gif" alt="Interactive threat diagram: threat badges per element, threat panel, STRIDE filter, heat map and zoom" width="900">
+  </a>
+  <br>
+  <sub>The generated HTML diagram: click a badge to list its threats, isolate a STRIDE category, show the heat map. <a href="https://ellipse2v.github.io/SecOpsTM/">Try it live.</a></sub>
+</p>
+
+```bash
+pip install SecOpsTM          # or: docker run -p 127.0.0.1:5000:5000 ellipse2v/secopstm
+secopstm --model-file threat_model.md
+```
+
+<table>
+  <tr>
+    <td width="50%"><img src="https://raw.githubusercontent.com/ellipse2v/SecOpsTM/main/docs/images/threat-panel.png" alt="Threat panel opened on a dataflow"></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/ellipse2v/SecOpsTM/main/docs/images/stride-filter.png" alt="Threat layer filtered on Spoofing in a large enterprise network"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Every component and dataflow carries its threats, scored and mapped to ATT&amp;CK.</sub></td>
+    <td align="center"><sub>Scales to real networks: isolate one STRIDE category across 40+ elements.</sub></td>
+  </tr>
+</table>
 
 ## Overview
-This is an OWASP project : [SecOpsTM](https://owasp.org/www-project-secopstm/)  
-This project is a Python-based, end-to-end STRIDE threat modeling and analysis framework with MITRE ATT&CK mapping. It enables you to:
+SecOpsTM is an [OWASP project](https://owasp.org/www-project-secopstm/): a Python-based, end-to-end STRIDE threat modeling and analysis framework with MITRE ATT&CK mapping. It enables you to:
 
 -   **Model your system architecture** in Markdown (`threatModel_Template/threat_model.md`), including boundaries, actors, servers, data, and dataflows.
 -   **Automatically identify STRIDE threats** for each component and dataflow.
@@ -21,11 +69,6 @@ This project is a Python-based, end-to-end STRIDE threat modeling and analysis f
 -   **Versioned JSON output**: Every JSON export is stamped `schema_version: "1.0"` and validated against `threat_analysis/schemas/v1/threat_model_report.schema.json`.
 
 > **Based on [PyTM](https://github.com/OWASP/pytm) >= 1.4.0:** This framework leverages PyTM's modeling primitives and extends them with advanced reporting, MITRE mapping, and diagram generation.
-
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![PyTM 1.4.0+](https://img.shields.io/badge/pytm-1.4.0+-blue.svg)](https://github.com/OWASP/pytm)
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/ellipse2v/SecOpsTM/graphs/commit-activity)
 
 ---
 
