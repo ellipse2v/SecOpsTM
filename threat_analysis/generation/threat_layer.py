@@ -23,12 +23,20 @@ from the legend, and a side panel that lists the threats of a clicked element.
 import re
 from typing import Any, Dict, Iterable, Optional
 
+from threat_analysis.core.stride_constants import STRIDE_CATEGORIES
 from threat_analysis.generation.utils import get_enriched_threats
 
 SEVERITY_LEVELS = ("CRITICAL", "HIGH", "MEDIUM", "LOW")
 _ORDER = {level: rank for rank, level in enumerate(reversed(SEVERITY_LEVELS), start=1)}
 _IMPACT_TO_LEVEL = {5: "CRITICAL", 4: "HIGH", 3: "MEDIUM", 2: "LOW", 1: "LOW"}
 _ARROWS = ("→", "->")
+# Legend order of the STRIDE filter; anything else (AI free text, empty) is "Other".
+STRIDE_ORDER = ("Spoofing", "Tampering", "Repudiation", "Information Disclosure",
+                "Denial of Service", "Elevation of Privilege")
+OTHER_STRIDE = "Other"
+_STRIDE_LOOKUP = {c.lower().replace(" ", ""): c for c in STRIDE_CATEGORIES}
+_STRIDE_LOOKUP.update({"informationdisclosure": "Information Disclosure", "disclosure": "Information Disclosure",
+                       "dos": "Denial of Service", "elevationofprivileges": "Elevation of Privilege"})
 # Per element, the panel lists the worst threats only; the badge still counts them all.
 MAX_THREATS_PER_ELEMENT = 25
 _MAX_TITLE_LEN = 160
@@ -75,6 +83,11 @@ def _level_of(threat: Dict[str, Any]) -> str:
     return ""
 
 
+def _stride_of(threat: Dict[str, Any]) -> str:
+    raw = str(threat.get("stride_category") or "")
+    return _STRIDE_LOOKUP.get(re.sub(r"[\s_-]", "", raw).lower(), OTHER_STRIDE)
+
+
 def _score_of(threat: Dict[str, Any]) -> float:
     sev = threat.get("severity")
     if isinstance(sev, dict) and isinstance(sev.get("score"), (int, float)):
@@ -101,15 +114,25 @@ def _element_index(threat_model: Any) -> Dict[str, Dict[str, str]]:
             if name:
                 index[name] = {"id": sanitize_id(name), "kind": kind, "label": name}
 
+    drawn: Dict[tuple, Dict[str, str]] = {}
     for df in getattr(threat_model, "dataflows", []) or []:
         src, dst = _name(getattr(df, "source", None)), _name(getattr(df, "sink", None))
         if not src or not dst:
             continue
-        entry = {
-            "id": f"edge_{sanitize_id(src)}_{sanitize_id(dst)}",
-            "kind": "dataflow",
-            "label": f"{src} → {dst}",
-        }
+        protocol = getattr(df, "protocol", None)
+        reverse = drawn.get((dst, src, protocol))
+        if reverse is not None:
+            # The diagram merges A→B and B→A of the same protocol into one two-headed
+            # arrow that keeps the first flow's id: both flows' threats go on it.
+            reverse["label"] = f"{dst} ↔ {src}"
+            entry = reverse
+        else:
+            entry = {
+                "id": f"edge_{sanitize_id(src)}_{sanitize_id(dst)}",
+                "kind": "dataflow",
+                "label": f"{src} → {dst}",
+            }
+            drawn[(src, dst, protocol)] = entry
         df_name = _name(df)
         # A dataflow name never shadows a node or boundary of the same name.
         if df_name and df_name not in index:
@@ -141,7 +164,8 @@ def build_threat_layer(threat_model: Any, threats: Optional[Iterable[Dict[str, A
     ``threats`` defaults to :func:`get_enriched_threats`, so the layer shows exactly the
     threats of the report (AI-enriched ones included) when the report was generated first.
     Each entry: ``label``, ``kind``, ``anchor`` (report anchor), ``counts`` per severity,
-    ``total``, ``max`` (worst severity) and ``threats`` (worst first, capped).
+    ``by_stride`` (``{stride: {severity: n}}``, for the legend's STRIDE filter), ``total``,
+    ``max`` (worst severity) and ``threats`` (worst first, capped).
     """
     if threats is None:
         try:
@@ -164,11 +188,15 @@ def build_threat_layer(threat_model: Any, threats: Optional[Iterable[Dict[str, A
             "kind": element["kind"],
             "anchor": f"component-{sanitize_id(target)}",
             "counts": {lvl: 0 for lvl in SEVERITY_LEVELS},
+            "by_stride": {},
             "total": 0,
             "max": level,
             "threats": [],
         })
+        stride = _stride_of(threat)
         entry["counts"][level] += 1
+        per_level = entry["by_stride"].setdefault(stride, {})
+        per_level[level] = per_level.get(level, 0) + 1
         entry["total"] += 1
         if _ORDER[level] > _ORDER[entry["max"]]:
             entry["max"] = level
@@ -180,7 +208,7 @@ def build_threat_layer(threat_model: Any, threats: Optional[Iterable[Dict[str, A
             "title": title,
             "severity": level,
             "score": round(_score_of(threat), 1),
-            "stride": str(threat.get("stride_category") or ""),
+            "stride": stride,
             "source": str(threat.get("source") or ""),
         })
 

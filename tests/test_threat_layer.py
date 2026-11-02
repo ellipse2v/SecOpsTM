@@ -192,6 +192,40 @@ def test_boundary_keyed_lower_case_matches_its_cluster_and_original_name():
     assert layer["cluster_public_zone"]["label"] == "Public Zone"
 
 
+def test_by_stride_counts_threats_per_category_and_severity():
+    layer = build_threat_layer(_model(), [
+        _threat("Web Server", "HIGH", stride="Spoofing"),
+        _threat("Web Server", "LOW", stride="Spoofing"),
+        _threat("Web Server", "HIGH", stride="information_disclosure"),
+        _threat("Web Server", "MEDIUM", stride="Prompt injection"),
+        _threat("Web Server", "LOW", stride=""),
+    ])
+    entry = layer["Web_Server"]
+    assert entry["by_stride"] == {
+        "Spoofing": {"HIGH": 1, "LOW": 1},
+        "Information Disclosure": {"HIGH": 1},
+        "Other": {"MEDIUM": 1, "LOW": 1},
+    }
+    # The panel shows the normalized category, the one the legend filters on.
+    assert {t["stride"] for t in entry["threats"]} == {"Spoofing", "Information Disclosure", "Other"}
+
+
+def test_legend_has_one_stride_chip_per_category():
+    legend = DiagramGenerator()._generate_legend_html(_model())
+    chips = re.findall(r'class="threat-stride-filter" data-stride="([^"]+)"', legend)
+    assert chips == ["Spoofing", "Tampering", "Repudiation", "Information Disclosure",
+                     "Denial of Service", "Elevation of Privilege"]
+
+
+def test_reverse_flows_merged_into_one_arrow_share_its_badge():
+    model = _model()
+    user, web = model.dataflows[0].source, model.dataflows[0].sink
+    model.dataflows[0].protocol = "HTTPS"
+    model.dataflows.append(SimpleNamespace(name="Reply", source=web, sink=user, protocol="HTTPS"))
+    layer = build_threat_layer(model, [_threat("Login", "HIGH"), _threat("Reply", "LOW")])
+    assert list(layer) == ["edge_User_Web_Server"]
+    assert layer["edge_User_Web_Server"]["total"] == 2
+    assert layer["edge_User_Web_Server"]["label"] == "User ↔ Web Server"
 # --- svg-pan-zoom is inlined: the diagram HTML works offline and on its own ------------
 
 @pytest.mark.parametrize("template_name", ["diagram_template.html", "navigable_diagram_template.html"])

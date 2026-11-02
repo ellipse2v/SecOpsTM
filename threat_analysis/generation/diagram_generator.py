@@ -33,7 +33,7 @@ from threat_analysis.core.models_module import ThreatModel
 from threat_analysis.config_generator import CONFIG_DATA
 from threat_analysis.utils import minimal_subprocess_env, safe_xml_fromstring
 from threat_analysis.generation.utils import svg_pan_zoom_js
-from threat_analysis.generation.threat_layer import build_threat_layer
+from threat_analysis.generation.threat_layer import STRIDE_ORDER, build_threat_layer
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -1104,6 +1104,19 @@ class DiagramGenerator:
                     f'<span style="font-size:10px;flex:1;">{sev_label}</span>'
                     f'<span class="threat-sev-count" data-severity="{sev_key}" style="font-size:10px;color:#666;margin-left:6px;"></span></div>'
                 )
+            # STRIDE filter: one letter chip per category. A click isolates that
+            # category (click it again to show all); Shift/Ctrl-click combines several.
+            legend_items.append(
+                '<div id="threat-stride-row" style="margin:5px 0 2px;">'
+                '<div style="font-size:9px;color:#666;margin-bottom:3px;">STRIDE (click to isolate)</div>'
+                '<div style="display:flex;gap:3px;">'
+            )
+            for stride_name in STRIDE_ORDER:
+                legend_items.append(
+                    f'<button type="button" class="threat-stride-filter" data-stride="{stride_name}" '
+                    f'title="{stride_name}" aria-pressed="false">{stride_name[0]}</button>'
+                )
+            legend_items.append('</div></div>')
             legend_items.append(
                 '<div style="margin-top:4px;">'
                 '<button id="severity-overlay-btn" onclick="toggleSeverityOverlay()" '
