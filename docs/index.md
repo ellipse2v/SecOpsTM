@@ -36,6 +36,7 @@ cross-functional review.
 - [Goal-Driven Attack Flows (GDAF)](gdaf.md) — context YAML schema, scoring algorithm, asset type table
 - [Defining Your System Model](defining_threat_models.md) — Markdown DSL reference
 - [Enriching AI Threats](enriching_ai_threats.md) — DSL attributes, BOM, and context files that improve AI-generated threats
+- [Live demo](live_demo.md) — how the GitHub Pages demo is built and how to publish AI-enriched reports in it
 - [Data Collection Guide](data_collection_guide.md) — What information to gather before threat modeling
 - [Examples](examples.md) — Ready-to-use model templates
 - [Extensibility](extensibility.md) — Custom threats, IaC plugins, mappings
