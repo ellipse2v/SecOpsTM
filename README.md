@@ -10,7 +10,7 @@ This project is a Python-based, end-to-end STRIDE threat modeling and analysis f
 -   **Calculate severity** using customizable base scores, target multipliers, protocol adjustments, and VOC risk signals (CVE, CWE, network exposure, D3FEND mitigations).
 -   **Generate detailed reports** (HTML, JSON) and **visual diagrams** (DOT, SVG, HTML) with threat highlights.
 -   **⛓️ Attack Chain Analysis**: Automatically identifies multi-step attack paths that chain threats across dataflows; shown in a dedicated section of the HTML report.
--   **Trust Boundary Visualization**: Trusted zones rendered green solid, untrusted zones red dashed — baked into the DOT/SVG output, with an interactive severity heat map overlay in HTML diagrams.
+-   **Trust Boundary Visualization**: Trusted zones rendered green solid, untrusted zones red dashed — baked into the DOT/SVG output, with an interactive severity heat map overlay and a threat layer (per-element threat badges, filterable by severity from the legend) in HTML diagrams.
 -   **Generate MITRE ATT&CK Navigator layers** for visualizing identified techniques.
 -   **Generate optimized Attack Flow diagrams** for key objectives (Tampering, Spoofing, Information Disclosure, Repudiation).
 -   **Red/Blue adversarial debate** over the top GDAF attack paths (opt-in). A reproducible harness measures its effect on prioritisation — see [`docs/evaluation.md`](docs/evaluation.md) (first result: the debate moves the ranking meaningfully but not reproducibly; read its reasoning, not its score).

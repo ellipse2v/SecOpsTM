@@ -437,7 +437,13 @@ class SecOpsTMFramework:
                 if svg_path:
                     html_path = (
                         self.diagram_generator._generate_html_with_legend(
-                            Path(svg_path), Path(html_output_full_path), self.threat_model
+                            Path(svg_path), Path(html_output_full_path), self.threat_model,
+                            graph_metadata=self.report_generator._extract_graph_metadata_for_frontend(self.threat_model),
+                            severity_map=self.report_generator._compute_severity_map(self.threat_model),
+                            report_url=os.path.relpath(
+                                os.path.join(self.output_base_dir, self.html_report_filename),
+                                os.path.dirname(html_output_full_path),
+                            ).replace(os.sep, '/'),
                         )
                     )
             except Exception as e:

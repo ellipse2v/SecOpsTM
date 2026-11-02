@@ -32,6 +32,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from threat_analysis.core.models_module import ThreatModel
 from threat_analysis.config_generator import CONFIG_DATA
 from threat_analysis.utils import minimal_subprocess_env, safe_xml_fromstring
+from threat_analysis.generation.threat_layer import build_threat_layer
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -1076,21 +1077,31 @@ class DiagramGenerator:
         for label, color, border_style in boundary_types:
             legend_items.append(f'''<div style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 20px; height: 15px; border: {border_style} {color}; margin-right: 8px; border-radius: 2px;"></div><span style="font-size: 11px;">{label}</span></div>''')
 
-        # B2: Severity heat-map legend (omitted in editor/preview — threats not yet generated)
+        # Threats section: threat-badge layer toggle, per-severity filters and the B2
+        # heat-map button (omitted in editor/preview — threats not yet generated). The
+        # template hides it entirely when the model has no threat data.
         if show_severity_section:
             legend_items.append('<div id="severity-legend-section" style="margin-top: 5px; border-top: 1px solid #eee; padding-top: 5px;">')
-            legend_items.append('<div style="margin-bottom: 3px; font-weight: bold; font-size: 10px;">Severity Overlay:</div>')
+            legend_items.append('<div style="margin-bottom: 3px; font-weight: bold; font-size: 10px;">Threats:</div>')
+            legend_items.append(
+                '<label id="threat-layer-toggle-row" style="display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:10px;cursor:pointer;">'
+                '<input type="checkbox" id="threat-layer-toggle" checked onchange="setThreatLayerVisible(this.checked)" style="margin:0;">'
+                'Show threat badges</label>'
+            )
             severity_levels = [
-                ("Critical", "#dc2626"),
-                ("High",     "#ea580c"),
-                ("Medium",   "#d97706"),
-                ("Low",      "#16a34a"),
+                ("CRITICAL", "Critical", "#dc2626"),
+                ("HIGH",     "High",     "#ea580c"),
+                ("MEDIUM",   "Medium",   "#d97706"),
+                ("LOW",      "Low",      "#16a34a"),
             ]
-            for sev_label, sev_color in severity_levels:
+            for sev_key, sev_label, sev_color in severity_levels:
                 legend_items.append(
-                    f'<div style="display:flex;align-items:center;margin-bottom:3px;">'
+                    f'<div class="legend-item threat-sev-filter" data-severity="{sev_key}" '
+                    f'title="Click to show/hide {sev_label.lower()} threats" '
+                    f'style="display:flex;align-items:center;margin-bottom:3px;">'
                     f'<div style="width:12px;height:12px;border-radius:50%;background:{sev_color};margin-right:8px;"></div>'
-                    f'<span style="font-size:10px;">{sev_label}</span></div>'
+                    f'<span style="font-size:10px;flex:1;">{sev_label}</span>'
+                    f'<span class="threat-sev-count" data-severity="{sev_key}" style="font-size:10px;color:#666;margin-left:6px;"></span></div>'
                 )
             legend_items.append(
                 '<div style="margin-top:4px;">'
@@ -1117,13 +1128,19 @@ class DiagramGenerator:
         
         return ''.join(legend_items)
    
-    def _generate_html_with_legend(self, svg_path: Path, html_output_path: Path, threat_model, graph_metadata: Optional[dict] = None, severity_map: Optional[dict] = None, report_url: str = "") -> Optional[Path]:
-        """Generates HTML file with SVG and positioned legend."""
+    def _generate_html_with_legend(self, svg_path: Path, html_output_path: Path, threat_model, graph_metadata: Optional[dict] = None, severity_map: Optional[dict] = None, report_url: str = "", threat_layer: Optional[dict] = None) -> Optional[Path]:
+        """Generates HTML file with SVG and positioned legend.
+
+        ``threat_layer`` (see threat_layer.build_threat_layer) drives the threat badges;
+        when None it is built from the model's threats, if any were generated.
+        """
         try:
             with open(svg_path, 'r', encoding='utf-8') as f:
                 svg_content = f.read()
             legend_html = self._generate_legend_html(threat_model)
-            html_content = self._create_complete_html(svg_content, legend_html, threat_model, graph_metadata, severity_map, report_url)
+            if threat_layer is None:
+                threat_layer = build_threat_layer(threat_model)
+            html_content = self._create_complete_html(svg_content, legend_html, threat_model, graph_metadata, severity_map, report_url, threat_layer=threat_layer)
             with open(html_output_path, 'w', encoding='utf-8') as f:
                 f.write(html_content)
             return html_output_path
@@ -1131,7 +1148,7 @@ class DiagramGenerator:
             logging.error(f"❌ Error generating HTML with legend: {e}")
             return None
 
-    def _create_complete_html(self, svg_content: str, legend_html: str, threat_model, graph_metadata: Optional[dict] = None, severity_map: Optional[dict] = None, report_url: str = "") -> str:
+    def _create_complete_html(self, svg_content: str, legend_html: str, threat_model, graph_metadata: Optional[dict] = None, severity_map: Optional[dict] = None, report_url: str = "", threat_layer: Optional[dict] = None) -> str:
         """Creates the complete HTML document with SVG and legend."""
         template = self.template_env.get_template("diagram_template.html")
         model_name = threat_model.name if hasattr(threat_model, 'name') else 'Threat Model'
@@ -1141,6 +1158,7 @@ class DiagramGenerator:
             legend_html=legend_html,
             graph_metadata_json=json.dumps(graph_metadata) if graph_metadata else "{}",
             severity_map_json=json.dumps(severity_map or {}),
+            threat_layer_json=json.dumps(threat_layer or {}),
             report_url=report_url,
         )
 

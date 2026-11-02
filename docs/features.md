@@ -78,6 +78,7 @@ See [docs/gdaf.md](gdaf.md) for the complete reference including the context YAM
 - **Visual Diagrams**: DOT, SVG, and interactive HTML with threat highlights.
   - **Trust Boundary Colors**: Trusted zones rendered green solid (`#2e7d32`), untrusted zones red dashed (`#c62828`) — baked into the DOT template and exported SVG.
   - **Severity Heat Map Overlay**: Interactive toggle in diagram HTML. Applies per-component severity colour (CRITICAL → red, HIGH → orange, MEDIUM → yellow, LOW → teal) over the original diagram; hover tooltip shows severity + "View threats →" deep-link to the HTML report.
+  - **Threat Layer**: On by default in diagram HTML, toggled from the legend's "Threats" section. Each component, dataflow or boundary with threats gets a badge with its threat count, coloured by its worst severity. Clicking the badge (or the element) opens a side panel listing that element's threats, worst first (severity, score, STRIDE category, report ID), with a link to the full report. The Critical / High / Medium / Low rows of the legend filter the badges and the panel.
   - **Sub-model Drill-down**: Server nodes with a `submodel=` reference become hyperlinks in the parent diagram. Clicking navigates to the child diagram, which shows the server's internal architecture plus a ghost cluster of external connections from the parent model.
 
 ## GitHub Action
