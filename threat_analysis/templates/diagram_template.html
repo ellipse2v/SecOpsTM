@@ -19,7 +19,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }}</title>
-    <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom/dist/svg-pan-zoom.min.js"></script>
+    {# svg-pan-zoom is inlined so the HTML works offline and on its own (shared by mail, CI artifact...). #}
+    {% if svg_pan_zoom_js %}<script>{{ svg_pan_zoom_js | safe }}</script>
+    {% else %}<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.2/dist/svg-pan-zoom.min.js"></script>{% endif %}
     <style>
         body, html {
             margin: 0;

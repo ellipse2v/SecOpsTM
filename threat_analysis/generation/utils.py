@@ -15,7 +15,26 @@
 """
 Utility functions for threat analysis generation modules
 """
+import functools
+import logging
+from pathlib import Path
 from typing import Any, List, Union
+
+_SVG_PAN_ZOOM_JS = Path(__file__).resolve().parent.parent / "server" / "static" / "js" / "svg-pan-zoom.min.js"
+
+
+@functools.lru_cache(maxsize=1)
+def svg_pan_zoom_js() -> str:
+    """Source of the bundled svg-pan-zoom (v3.6.2, BSD-2-Clause), inlined into the
+    diagram HTML so a shared file zooms and pans with no CDN or static/ folder.
+    Empty string if the file is missing: the templates then fall back to the CDN."""
+    try:
+        source = _SVG_PAN_ZOOM_JS.read_text(encoding="utf-8")
+    except OSError:
+        logging.warning("svg-pan-zoom not found at %s; diagrams will load it from the CDN", _SVG_PAN_ZOOM_JS)
+        return ""
+    # Inside an inline <script>, "</script" would end the block early.
+    return source.replace("</script", "<\\/script")
 
 
 def get_enriched_threats(threat_model: Any) -> List[dict]:
