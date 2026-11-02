@@ -1126,7 +1126,9 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
         json_path = reports.get("json")
         if json_path and os.path.exists(json_path):
             with open(json_path, "r", encoding="utf-8") as _f:
-                sys.stdout.write(_f.read())
+                _out = _JSON_STDOUT or sys.stdout
+                _out.write(_f.read())
+                _out.flush()
         else:
             logging.error("--stdout requested but JSON report was not generated.")
 
@@ -1171,8 +1173,28 @@ class ColoredFormatter(logging.Formatter):
         return f"{color}{log_message}{self.RESET_CODE}"
 
 # --- Main entry point ---
+# Real stdout handle reserved for the JSON report when --stdout is used.
+# Everything else printed during the run is redirected to stderr so that
+# `secopstm ... --stdout | jq` / json.load() receive pure JSON.
+_JSON_STDOUT = None
+
+
 def main():
     """Entry point for the `secopstm` CLI command."""
+    global _JSON_STDOUT
+    if "--stdout" in sys.argv[1:]:
+        import contextlib
+        _JSON_STDOUT = sys.stdout
+        try:
+            with contextlib.redirect_stdout(sys.stderr):
+                return _main()
+        finally:
+            _JSON_STDOUT = None
+    return _main()
+
+
+def _main():
+    """CLI implementation (see main())."""
     # Early-exits: lightweight subcommands (no heavy imports needed)
     if len(sys.argv) > 1 and sys.argv[1] == "validate":
         from threat_analysis.validate import main as _validate_main
