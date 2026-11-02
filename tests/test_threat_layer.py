@@ -226,3 +226,31 @@ def test_reverse_flows_merged_into_one_arrow_share_its_badge():
     assert list(layer) == ["edge_User_Web_Server"]
     assert layer["edge_User_Web_Server"]["total"] == 2
     assert layer["edge_User_Web_Server"]["label"] == "User ↔ Web Server"
+# --- svg-pan-zoom is inlined: the diagram HTML works offline and on its own ------------
+
+@pytest.mark.parametrize("template_name", ["diagram_template.html", "navigable_diagram_template.html"])
+def test_svg_pan_zoom_is_inlined_not_fetched(template_name):
+    from threat_analysis.generation.utils import svg_pan_zoom_js
+
+    gen = DiagramGenerator()
+    html_out = gen.template_env.get_template(template_name).render(
+        title="t", svg_content="<svg></svg>", legend_html="", graph_metadata_json="{}",
+        severity_map_json="{}", threat_layer_json="{}", report_url="", breadcrumb=[],
+        parent_link=None, current_dir_depth=1, svg_pan_zoom_js=svg_pan_zoom_js(),
+    )
+    assert "svg-pan-zoom v3.6.2" in html_out
+    assert 'src="https://cdn.jsdelivr.net' not in html_out
+    assert "static/js/svg-pan-zoom" not in html_out
+
+
+def test_cdn_fallback_when_the_bundled_file_is_missing():
+    html_out = DiagramGenerator().template_env.get_template("diagram_template.html").render(
+        title="t", svg_content="<svg></svg>", legend_html="", graph_metadata_json="{}",
+        severity_map_json="{}", threat_layer_json="{}", report_url="", svg_pan_zoom_js="",
+    )
+    assert 'src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.2/' in html_out
+
+
+def test_complete_html_inlines_svg_pan_zoom():
+    html_out = DiagramGenerator()._create_complete_html("<svg></svg>", "", _model())
+    assert "svg-pan-zoom v3.6.2" in html_out

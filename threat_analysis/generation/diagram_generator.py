@@ -32,6 +32,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from threat_analysis.core.models_module import ThreatModel
 from threat_analysis.config_generator import CONFIG_DATA
 from threat_analysis.utils import minimal_subprocess_env, safe_xml_fromstring
+from threat_analysis.generation.utils import svg_pan_zoom_js
 from threat_analysis.generation.threat_layer import STRIDE_ORDER, build_threat_layer
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -1172,6 +1173,7 @@ class DiagramGenerator:
             graph_metadata_json=json.dumps(graph_metadata) if graph_metadata else "{}",
             severity_map_json=json.dumps(severity_map or {}),
             threat_layer_json=json.dumps(threat_layer or {}),
+            svg_pan_zoom_js=svg_pan_zoom_js(),
             report_url=report_url,
         )
 

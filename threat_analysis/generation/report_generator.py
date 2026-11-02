@@ -39,6 +39,7 @@ if str(project_root) not in sys.path:
 
 from threat_analysis.generation.diagram_generator import DiagramGenerator
 from threat_analysis.generation.threat_layer import build_threat_layer
+from threat_analysis.generation.utils import svg_pan_zoom_js
 from threat_analysis.generation.stix_generator import StixGenerator
 from threat_analysis.generation.attack_flow_generator import AttackFlowGenerator
 from threat_analysis.core.models_module import ThreatModel
@@ -1039,6 +1040,7 @@ class ReportGenerator(ScoringMixin, AIAnalysisMixin, ProjectReportMixin):
             graph_metadata_json=json.dumps(graph_metadata),
             severity_map_json=json.dumps(severity_map),
             threat_layer_json=json.dumps(build_threat_layer(threat_model)),
+            svg_pan_zoom_js=svg_pan_zoom_js(),
             report_url=report_url,
         )
 
