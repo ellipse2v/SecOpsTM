@@ -81,7 +81,10 @@ def _build_and_process(markdown, model_name, cve_service, barrier, use_lock, out
         tm = create_threat_model(markdown, model_name, "desc", cve_service, validate=False)
         grouped = tm.process_threats()
 
-    own_component_names = {s["name"] for s in tm.servers} | {a["name"] for a in tm.actors}
+    # Dataflows count too: rule threats now land on them (custom_threats uses the flow name).
+    own_component_names = (
+        {s["name"] for s in tm.servers} | {a["name"] for a in tm.actors} | {d.name for d in tm.dataflows}
+    )
     foreign_targets = []
     for threats in grouped.values():
         for threat, target in threats:
