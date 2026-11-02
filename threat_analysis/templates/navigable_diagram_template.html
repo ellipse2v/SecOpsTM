@@ -255,7 +255,9 @@
         </div>
     </div>
 
-    <script src="{{ '../' * current_dir_depth }}static/js/svg-pan-zoom.min.js"></script>
+    {# svg-pan-zoom is inlined so the HTML works offline and on its own (shared by mail, CI artifact...). #}
+    {% if svg_pan_zoom_js %}<script>{{ svg_pan_zoom_js | safe }}</script>
+    {% else %}<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.2/dist/svg-pan-zoom.min.js"></script>{% endif %}
     <!-- B2: severity tooltip -->
     <div id="severity-tooltip" style="display:none;position:fixed;z-index:2000;background:rgba(30,30,30,0.92);color:#fff;padding:6px 10px;border-radius:5px;font-size:12px;pointer-events:none;max-width:220px;line-height:1.4;"></div>
 
