@@ -131,10 +131,13 @@ class RuleBasedThreatGenerator:
             self._apply_rules(server_info, "servers", {"name": server_info['name']}, server_info['name'])
 
         for flow in self.threat_model.dataflows:
+            # The component must be the dataflow's own name: ThreatModel resolves it with
+            # get_element_by_name(), and a made-up "Flow from A to B" label resolved to
+            # nothing, so every dataflow rule threat was silently dropped.
             self._apply_rules(
                 flow, "dataflows",
                 {"source": flow.source, "sink": flow.sink},
-                f"Flow from {flow.source.name} to {flow.sink.name}",
+                str(getattr(flow, "name", "") or f"Flow from {flow.source.name} to {flow.sink.name}"),
             )
 
         for actor_info in self.threat_model.actors:

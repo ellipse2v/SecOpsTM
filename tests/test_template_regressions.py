@@ -76,3 +76,17 @@ def test_zero_trust_validate_passes(capsys):
 def test_zero_trust_policy_engine_uses_standard_type(capsys):
     failures = _cli_failures("Zero_Trust", capsys)
     assert not any("policy_engine" in m for m in failures)
+
+
+def test_dataflow_rule_threats_reach_the_threat_list():
+    """Rule threats on dataflows were labelled "Flow from A to B", a name
+    ThreatModel.get_element_by_name() cannot resolve, so all of them were dropped."""
+    from pytm import Dataflow
+
+    from unittest.mock import patch
+
+    tm = _load("Advanced_Cloud_WebApp")
+    with patch("sys.argv", [""]):  # pytm's tm.process() parses sys.argv
+        tm.process_threats()
+    flow_targets = [target for _, target in tm.threats_raw if isinstance(target, Dataflow)]
+    assert flow_targets, "no rule-based threat landed on a dataflow"
