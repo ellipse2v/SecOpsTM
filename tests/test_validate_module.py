@@ -187,3 +187,18 @@ def test_missing_bom_file_reported(tmp_path):
     # Deliberately do NOT create webapp.yaml
     failures, _ = validate_model_dir(str(tmp_path))
     assert failures >= 1
+
+
+def test_global_registry_type_accepted(tmp_path):
+    """A type declared only in the project-wide registry (no per-model config) is valid."""
+    model = MINIMAL_MODEL.replace("type=web-server", "type=api_gateway")
+    _write_model(tmp_path, model)
+    failures, _ = validate_model_dir(str(tmp_path))
+    assert failures == 0
+
+
+def test_example_1_validates():
+    """Regression: example_1 uses type=api_gateway for APIService."""
+    repo_root = Path(__file__).resolve().parents[1]
+    failures, _ = validate_model_dir(str(repo_root / "threatModel_Template" / "projects" / "example_1"))
+    assert failures == 0

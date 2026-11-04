@@ -170,6 +170,14 @@ class TestNormalizeType:
         m = AssetTechniqueMapper()
         assert m._normalize_type("web server") == "web-server"
 
+    def test_api_gateway_underscore(self):
+        m = AssetTechniqueMapper()
+        assert m._normalize_type("api_gateway") == "api_gateway"
+
+    def test_api_gateway_hyphen_unchanged(self):
+        m = AssetTechniqueMapper()
+        assert m._normalize_type("api-gateway") == "api-gateway"
+
     def test_mail_server(self):
         m = AssetTechniqueMapper()
         assert m._normalize_type("Mail Server") == "mail-server"
