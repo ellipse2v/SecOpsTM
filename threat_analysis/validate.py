@@ -54,6 +54,21 @@ from threat_analysis.core.dsl_constants import (
     SEVERITY_MULTIPLIER_MAX,
 )
 
+# Project-wide asset type registry (also read by AssetTechniqueMapper and
+# config_generator). Types declared there are valid Server.type values.
+_GLOBAL_ASSET_TYPES_YAML = Path(__file__).resolve().parent / "config" / "asset_types_community.yaml"
+
+
+def _load_registry_types(path: Path) -> set:
+    """Return the asset type keys declared in a registry file, or an empty set."""
+    try:
+        data = yaml.safe_load(path.read_text(encoding='utf-8'))
+    except (OSError, yaml.YAMLError):
+        return set()
+    types = data.get('asset_types') if isinstance(data, dict) else None
+    return set(types.keys()) if isinstance(types, dict) else set()
+
+
 _CJK_RE = re.compile(r'[一-鿿㐀-䶿]')
 
 
@@ -186,6 +201,7 @@ class ThreatModelValidator:
         self._model_content: str = ""
         self._model_file: Path = Path()
         self._custom_server_types: set = set()
+        self._registry_types: set = _load_registry_types(_GLOBAL_ASSET_TYPES_YAML)
 
     def _ok(self, message: str, **kw: Any) -> None:
         self.results.append(ValidationResult(passed=True, message=message, **kw))
@@ -252,11 +268,15 @@ class ThreatModelValidator:
 
     def _check_server_type(self, name: str, props: Dict[str, Any]) -> None:
         server_type = props.get('type', 'default')
-        valid_types = set(DSL_ENUMS['Server.type']) | self._custom_server_types
+        valid_types = (
+            set(DSL_ENUMS['Server.type'])
+            | self._registry_types
+            | self._custom_server_types
+        )
         if server_type not in valid_types:
             self._fail(
                 f"Server '{name}': type={server_type!r} not in standard types and "
-                f"not defined in config/asset_types_community.yaml",
+                f"not defined in an asset_types_community.yaml registry",
                 section="Servers",
             )
 

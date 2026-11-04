@@ -81,6 +81,18 @@ asset_types:
     fuzzy_matches: [api-gateway, api gateway]
     icon_url: "/static/resources/icons/api-gateway.svg"
 
+  # Underscore-style spelling used by the DSL templates, the Terraform plugin
+  # and diagram_generator.py. Without this entry, _normalize_type() resolved
+  # "api_gateway" to "default" and `secopstm validate` rejected it.
+  api_gateway:
+    description: "Managed or self-hosted API gateway (Kong, AWS API Gateway, Apigee, Azure APIM) exposing backend services"
+    category: server
+    platforms: [Linux, IaaS, Containers]
+    tactics: [initial-access, credential-access, execution, defense-evasion]
+    key_techniques: [T1190, T1528, T1550.001, T1110]
+    fuzzy_matches: [api_gateway, apigateway]
+    icon_url: "/static/resources/icons/api-gateway.svg"
+
   file-server:
     description: "File sharing server (SMB, NFS)"
     category: server
