@@ -1,11 +1,11 @@
   ## Supported Versions
 
-  SecOpsTM is currently in **alpha**. Only the latest published version receives security fixes.
+  Only the latest published minor version receives security fixes.
 
   | Version       | Supported          |
   | ------------- | ------------------ |
-  | 1.1.x (latest) | :white_check_mark: |
-  | < 1.1         | :x:                |
+  | 1.2.x (latest) | :white_check_mark: |
+  | < 1.2         | :x:                |
 
   ## Reporting a Vulnerability
 

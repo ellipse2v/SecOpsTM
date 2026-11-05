@@ -2,12 +2,12 @@
 
 SecOpsTM uses two YAML files as the single source of truth for MITRE ATT&CK mappings:
 
-- `config/asset_types_community.yaml` — asset type → platforms, tactics, key techniques
-- `config/protocols_community.yaml` — protocol → tactic boosts, key techniques
+- `threat_analysis/config/asset_types_community.yaml` — asset type → platforms, tactics, key techniques
+- `threat_analysis/config/protocols_community.yaml` — protocol → tactic boosts, key techniques
 
 ## Adding a New Asset Type
 
-Add an entry to `config/asset_types_community.yaml` under the `asset_types:` key:
+Add an entry to `threat_analysis/config/asset_types_community.yaml` under the `asset_types:` key:
 
 ```yaml
   my-custom-type:
@@ -48,7 +48,7 @@ patterns to avoid similar false positives.
 
 ## Adding a New Protocol
 
-Add an entry to `config/protocols_community.yaml` under the `protocols:` key:
+Add an entry to `threat_analysis/config/protocols_community.yaml` under the `protocols:` key:
 
 ```yaml
   my-protocol:

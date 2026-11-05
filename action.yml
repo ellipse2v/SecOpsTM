@@ -129,6 +129,9 @@ inputs:
 # ─── Outputs ─────────────────────────────────────────────────────────────────
 
 outputs:
+  output-dir:
+    description: 'Folder holding every file of this run (reports, diagrams, STIX, SARIF...).'
+    value: ${{ steps.analyse.outputs.output-dir }}
   report-json:
     description: 'Path to the generated JSON threat report.'
     value: ${{ steps.analyse.outputs.report-json }}
@@ -186,12 +189,13 @@ runs:
       run: |
         pip install --quiet --upgrade pip
         # Install from the action directory so the version always matches
-        # the tag referenced in uses: ellipse2v/SecOpsTM@<tag>
-        pip install --quiet "$ACTION_PATH"
-        # Install AI extras only when an ai-config-file is provided
-        if [ -n "$AI_CONFIG_FILE" ]; then
-          pip install --quiet "$ACTION_PATH[ai]"
-        fi
+        # the tag referenced in uses: ellipse2v/SecOpsTM@<tag>.
+        # torch (pulled in by sentence-transformers) comes from the CPU-only
+        # index, as in the Docker image: runners have no GPU and the default
+        # CUDA wheels add gigabytes and minutes to every run.
+        pip install --quiet \
+          --extra-index-url https://download.pytorch.org/whl/cpu \
+          "$ACTION_PATH"
 
     # ── 4. Run analysis ───────────────────────────────────────────────────────
     - name: Run SecOpsTM threat analysis
@@ -213,6 +217,10 @@ runs:
 
         # ── Build CLI command ──────────────────────────────────────────────
         SECOPSTM_ARGS=()
+        # Every run writes to output/<timestamp>/ under the working directory.
+        OUT_ROOT="$PWD/output"
+        mkdir -p "$OUT_ROOT"
+        BEFORE=$(ls -1 "$OUT_ROOT")
 
         if [ -n "$IN_TERRAFORM_PATH" ]; then
           SECOPSTM_ARGS+=(--terraform-path "$IN_TERRAFORM_PATH")
@@ -238,15 +246,30 @@ runs:
 
         if [ -n "$IN_AI_CONFIG_FILE" ]; then
           SECOPSTM_ARGS+=(--ai-config-file "$IN_AI_CONFIG_FILE")
+        else
+          # Rule engine only, as documented, even if the repository being
+          # analysed happens to have a config/ai_config.yaml enabling a provider.
+          SECOPSTM_ARGS+=(--no-ai)
         fi
-
-        # ── Always produce a JSON sidecar for stats + PR comment ───────────
-        JSON_SIDECAR="${RUNNER_TEMP}/secopstm_report.json"
-        SECOPSTM_ARGS+=(--output-format json --output-file "$JSON_SIDECAR")
 
         echo "::group::SecOpsTM analysis"
         secopstm "${SECOPSTM_ARGS[@]}"
         echo "::endgroup::"
+
+        # The run's own folder: the one output/ entry that was not there before.
+        OUT_DIR=$(comm -13 <(printf '%s\n' "$BEFORE" | sort) <(ls -1 "$OUT_ROOT" | sort) | tail -1)
+        if [ -z "$OUT_DIR" ]; then
+          echo "::error::SecOpsTM produced no output folder under $OUT_ROOT"
+          exit 1
+        fi
+        OUT_DIR="$OUT_ROOT/$OUT_DIR"
+
+        # Stats, the PR comment and the gate read the JSON report. The 'stix'
+        # format does not write one, so produce it with a second, JSON-only run.
+        if ! ls "$OUT_DIR"/mitre_analysis_*.json >/dev/null 2>&1; then
+          secopstm "${SECOPSTM_ARGS[@]}" --output-format json \
+            --output-file "$OUT_DIR/mitre_analysis_for_gate.json" >/dev/null
+        fi
 
         # ── Parse stats ───────────────────────────────────────────────────
         TOTAL=0; CRIT=0; HIGH=0; MED=0; LOW=0
@@ -255,19 +278,10 @@ runs:
         REPORT_SARIF=""
 
         if [ "$IN_SARIF" = "true" ]; then
-          REPORT_SARIF=$(find . -name "*.sarif.json" \
-            -not -path "*/.git/*" \
-            -newer "$ACTION_PATH/action.yml" \
-            2>/dev/null | head -1 || true)
+          REPORT_SARIF=$(ls "$OUT_DIR"/*.sarif.json 2>/dev/null | head -1 || true)
         fi
 
-        # Find the latest JSON report (sidecar or output dir)
-        REPORT_JSON=$(find . "${RUNNER_TEMP}" -name "*.json" \
-          -not -path "*/.git/*" \
-          -not -name "*.stix.json" \
-          -not -name "*.navigator.json" \
-          -newer "$ACTION_PATH/action.yml" \
-          2>/dev/null | sort -t/ -k3 | tail -1 || true)
+        REPORT_JSON=$(ls "$OUT_DIR"/mitre_analysis_*.json 2>/dev/null | head -1 || true)
 
         if [ -f "$REPORT_JSON" ]; then
           # NOTE: matches ReportSerializer's actual v1 schema keys — "total" and
@@ -279,12 +293,10 @@ runs:
           HIGH=$(jq  -r '.statistics.by_severity_level.HIGH // 0'     "$REPORT_JSON")
           MED=$(jq   -r '.statistics.by_severity_level.MEDIUM // 0'   "$REPORT_JSON")
           LOW=$(jq   -r '.statistics.by_severity_level.LOW // 0'      "$REPORT_JSON")
-          REPORT_HTML=$(find . -name "*.html" \
-            -not -path "*/.git/*" \
-            -newer "$ACTION_PATH/action.yml" \
-            2>/dev/null | head -1 || true)
         fi
+        REPORT_HTML=$(ls "$OUT_DIR"/stride_mitre_report_*.html 2>/dev/null | head -1 || true)
 
+        echo "output-dir=$OUT_DIR"        >> "$GITHUB_OUTPUT"
         echo "report-json=$REPORT_JSON"   >> "$GITHUB_OUTPUT"
         echo "report-html=$REPORT_HTML"   >> "$GITHUB_OUTPUT"
         echo "report-sarif=$REPORT_SARIF" >> "$GITHUB_OUTPUT"
@@ -365,7 +377,7 @@ runs:
         TOP_THREATS=""
         if [ -f "$REPORT_JSON" ]; then
           TOP_THREATS=$(jq -r '
-            .threats[:5][] |
+            .threats | sort_by(-(.severity.score // 0)) | .[:5][] |
             "| **\(.severity.level // "?")** | \(.description // .name // "") | `\(.target)` |"
           ' "$REPORT_JSON" 2>/dev/null || true)
         fi
@@ -386,7 +398,7 @@ runs:
 
         if [ -n "$TOP_THREATS" ]; then
           {
-            printf '\n<details><summary>Top threats (up to 5)</summary>\n\n'
+            printf '\n<details><summary>Most severe threats (up to 5)</summary>\n\n'
             printf 'Severity | Threat | Target\n'
             printf '---|---|---\n'
             printf '%s\n' "$TOP_THREATS"
@@ -406,9 +418,12 @@ runs:
         printf '\n_Generated by [SecOpsTM](https://github.com/ellipse2v/SecOpsTM)_\n' \
           >> "$BODY_FILE"
 
+        # A pull request from a fork gets a read-only token: the comment is then
+        # refused. Warn instead of failing, so the gate below still decides.
         gh pr comment "$PR_NUMBER" \
           --repo "$REPO" \
-          --body-file "$BODY_FILE"
+          --body-file "$BODY_FILE" \
+          || echo "::warning::Could not post the PR comment (read-only token on a fork PR?)"
 
     # ── 7. Upload artifacts ───────────────────────────────────────────────────
     - name: Upload threat reports
@@ -416,13 +431,7 @@ runs:
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
       with:
         name: ${{ inputs.artifact-name }}
-        path: |
-          **/*threat*report*.html
-          **/*threat*report*.json
-          **/*.stix.json
-          **/*.navigator.json
-          **/*.afb
-          **/*gdaf_summary*.json
+        path: ${{ steps.analyse.outputs.output-dir }}
         if-no-files-found: warn
         retention-days: 30
 
