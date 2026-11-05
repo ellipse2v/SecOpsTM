@@ -1,0 +1,61 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "device",
+      "name": "SCADA HMI"
+    }
+  },
+  "components": [
+    {
+      "type": "operating-system",
+      "name": "Windows 7 SP1 (EOL)",
+      "version": "6.1.7601",
+      "purl": "pkg:generic/microsoft/windows@6.1.7601"
+    },
+    {
+      "type": "application",
+      "name": "WinCC",
+      "version": "v7.3 SP1",
+      "purl": "pkg:generic/siemens/wincc@7.3-sp1"
+    },
+    {
+      "type": "application",
+      "name": "OPC DA",
+      "version": "2.0"
+    }
+  ],
+  "services": [
+    {"name": "RDP", "endpoints": ["tcp://0.0.0.0:3389"]},
+    {"name": "OPC-DA", "endpoints": ["tcp://0.0.0.0:135"]},
+    {"name": "HTTP", "endpoints": ["tcp://0.0.0.0:80"]}
+  ],
+  "vulnerabilities": [
+    {
+      "id": "CVE-2019-13945",
+      "description": "Siemens SIMATIC WinCC SQL injection enabling unauthenticated database access",
+      "ratings": [{"severity": "critical", "score": 9.8, "method": "CVSSv3"}],
+      "affects": [{"ref": "SCADA HMI"}]
+    },
+    {
+      "id": "CVE-2017-0144",
+      "description": "EternalBlue — Windows SMBv1 remote code execution (fully unpatched on EOL Windows 7)",
+      "ratings": [{"severity": "critical", "score": 9.8, "method": "CVSSv3"}],
+      "affects": [{"ref": "SCADA HMI"}]
+    },
+    {
+      "id": "CVE-2014-4114",
+      "description": "Windows OLE remote code execution via crafted file (Sandworm / BlackEnergy)",
+      "ratings": [{"severity": "high", "score": 9.3, "method": "CVSSv2"}],
+      "affects": [{"ref": "SCADA HMI"}]
+    }
+  ],
+  "properties": [
+    {"name": "secopstm:patch_level", "value": "critical"},
+    {"name": "secopstm:detection_level", "value": "none"},
+    {"name": "secopstm:credentials_stored", "value": "false"},
+    {"name": "secopstm:notes", "value": "End-of-life Windows 7. Cannot patch without OT vendor re-certification. EternalBlue fully exploitable. No AV."}
+  ]
+}

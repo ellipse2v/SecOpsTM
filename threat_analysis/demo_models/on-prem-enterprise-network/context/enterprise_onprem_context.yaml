@@ -1,0 +1,157 @@
+# System context
+system_description: "Large multinational enterprise with on-premises Active Directory infrastructure, financial ERP system, legacy OT/SCADA environment, and development pipeline. Approximately 2,000 employees. Industry: Manufacturing with financial operations."
+sector: "manufacturing"
+data_sensitivity: "CONFIDENTIAL"
+internet_facing: true
+compliance_requirements:
+  - "ISO 27001"
+  - "IEC 62443"
+  - "SOX"
+  - "GDPR"
+deployment_environment: "On-Premises"
+integrations:
+  - "SAP ERP"
+  - "Active Directory"
+  - "Siemens SCADA"
+  - "GitLab CI/CD"
+
+# Attack objectives (what the attacker wants to achieve)
+attack_objectives:
+  - id: "OBJ-FINANCIAL-EXFIL"
+    name: "Financial Data Exfiltration"
+    description: "Steal financial records, SAP data, and transaction history"
+    target_asset_names:
+      - "Financial ERP System"
+      - "Core Database Cluster"
+    target_types: ["database", "erp"]
+    attacker_intent: "Sell financial data or use for competitive intelligence / insider trading"
+    business_impact: "SOX violation, regulatory fines, competitive damage"
+    mitre_final_tactic: "exfiltration"
+    min_severity_score: 6.0
+
+  - id: "OBJ-DOMAIN-COMPROMISE"
+    name: "Full Domain Compromise"
+    description: "Gain Domain Admin privileges via Active Directory exploitation"
+    target_asset_names:
+      - "Primary Domain Controller"
+      - "Backup Domain Controller"
+    target_types: ["domain-controller", "auth-server"]
+    attacker_intent: "Complete control of the enterprise network for ransomware deployment or persistent access"
+    business_impact: "Full network takeover, ransomware deployment, complete business disruption"
+    mitre_final_tactic: "privilege-escalation"
+    min_severity_score: 7.0
+
+  - id: "OBJ-SCADA-SABOTAGE"
+    name: "OT/SCADA Sabotage"
+    description: "Compromise industrial control systems to disrupt manufacturing operations"
+    target_asset_names:
+      - "SCADA HMI"
+      - "PLC Controller"
+    target_types: ["plc", "scada"]
+    attacker_intent: "Operational disruption, physical damage, or state-sponsored sabotage"
+    business_impact: "Manufacturing downtime, potential physical damage, safety incidents"
+    mitre_final_tactic: "impact"
+    min_severity_score: 8.0
+
+  - id: "OBJ-SOURCE-CODE-THEFT"
+    name: "Intellectual Property Theft"
+    description: "Steal proprietary source code and product designs"
+    target_asset_names:
+      - "Source Code Repository"
+      - "Core Database Cluster"
+    target_types: ["repository", "database"]
+    attacker_intent: "Corporate espionage -- steal competitive IP for nation-state or competitor"
+    business_impact: "Loss of competitive advantage, IP litigation, product compromise"
+    mitre_final_tactic: "collection"
+    min_severity_score: 5.0
+
+# Threat actor profiles
+threat_actors:
+  - id: "TA-FIN-CRIMINAL"
+    name: "Financially Motivated Cybercriminal Group"
+    sophistication: "medium"
+    objectives: ["OBJ-FINANCIAL-EXFIL", "OBJ-DOMAIN-COMPROMISE"]
+    entry_preference: "internet-facing"
+    description: "Eastern European cybercriminal group specializing in financial fraud and ransomware. Typically uses phishing and exploitation of public-facing services."
+    known_ttps:
+      - "T1566.001"   # Spearphishing Attachment
+      - "T1190"       # Exploit Public-Facing Application
+      - "T1078"       # Valid Accounts
+      - "T1486"       # Data Encrypted for Impact
+      - "T1550.002"   # Pass-the-Hash
+      - "T1003.001"   # LSASS Memory
+      - "T1021.002"   # SMB/Windows Admin Shares
+    capable_tactics:
+      - "initial-access"
+      - "execution"
+      - "persistence"
+      - "credential-access"
+      - "lateral-movement"
+      - "collection"
+      - "exfiltration"
+      - "impact"
+
+  - id: "TA-NATION-STATE"
+    name: "Nation-State APT Group"
+    sophistication: "nation-state"
+    objectives: ["OBJ-DOMAIN-COMPROMISE", "OBJ-SOURCE-CODE-THEFT", "OBJ-SCADA-SABOTAGE"]
+    entry_preference: "supply-chain"
+    description: "State-sponsored group targeting manufacturing sector for industrial espionage and critical infrastructure disruption. Uses living-off-the-land and zero-day exploits."
+    known_ttps: []   # empty = all techniques eligible
+    capable_tactics:
+      - "initial-access"
+      - "execution"
+      - "persistence"
+      - "privilege-escalation"
+      - "defense-evasion"
+      - "credential-access"
+      - "discovery"
+      - "lateral-movement"
+      - "collection"
+      - "command-and-control"
+      - "exfiltration"
+      - "impact"
+
+  - id: "TA-INSIDER"
+    name: "Malicious Insider"
+    sophistication: "low"
+    objectives: ["OBJ-FINANCIAL-EXFIL", "OBJ-SOURCE-CODE-THEFT"]
+    entry_preference: "insider"
+    description: "Disgruntled employee or contractor with legitimate internal access. Limited technical skills but privileged network access."
+    known_ttps:
+      - "T1078"       # Valid Accounts
+      - "T1048"       # Exfiltration Over Alternative Protocol
+      - "T1052.001"   # Exfiltration over USB
+    capable_tactics:
+      - "initial-access"
+      - "collection"
+      - "exfiltration"
+
+# Risk criteria for scoring and prioritization
+risk_criteria:
+  likelihood_factors:
+    internet_exposure: 2.0
+    missing_authentication: 1.8
+    cleartext_protocol: 1.4
+    no_mfa: 1.3
+    legacy_system: 1.5
+  impact_data_sensitivity:
+    public: 0.3
+    restricted: 1.0
+    secret: 1.5
+    top_secret: 2.5
+  acceptable_risk_score: 5.0
+  max_hops: 8
+  max_paths_per_objective: 3
+  # Minimum ScoredTechnique score to include a technique as an OR branch in Attack Flow .afb files.
+  # Techniques below this threshold are computed for scoring but not rendered.
+  # Range: 0.0–3.0 (typical scores: 0.4 weak match, 1.0 platform+tactic, 1.5+ key technique)
+  gdaf_min_technique_score: 0.8
+
+# Business goals to protect
+business_goals_to_protect:
+  - "Financial data integrity and confidentiality (SOX, GDPR)"
+  - "Uninterrupted manufacturing operations (IEC 62443)"
+  - "Proprietary product IP and source code"
+  - "Active Directory infrastructure (forest root of all access control)"
+  - "OT/SCADA safety and availability (ICS security)"

@@ -1,0 +1,50 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "device",
+      "name": "Core Database Cluster"
+    }
+  },
+  "components": [
+    {
+      "type": "operating-system",
+      "name": "Windows Server 2019",
+      "version": "10.0.17763",
+      "purl": "pkg:generic/microsoft/windows-server@10.0.17763"
+    },
+    {
+      "type": "application",
+      "name": "Microsoft SQL Server 2019",
+      "version": "15.0.2080.9",
+      "purl": "pkg:generic/microsoft/sql-server@15.0.2080.9"
+    }
+  ],
+  "services": [
+    {"name": "SQL", "endpoints": ["tcp://0.0.0.0:1433"]},
+    {"name": "SQL-Browser", "endpoints": ["udp://0.0.0.0:1434"]},
+    {"name": "RPC", "endpoints": ["tcp://0.0.0.0:135"]}
+  ],
+  "vulnerabilities": [
+    {
+      "id": "CVE-2020-0618",
+      "description": "SQL Server Reporting Services remote code execution via deserialization of untrusted data",
+      "ratings": [{"severity": "critical", "score": 8.8, "method": "CVSSv3"}],
+      "affects": [{"ref": "Core Database Cluster"}]
+    },
+    {
+      "id": "CVE-2021-1636",
+      "description": "Microsoft SQL Server privilege escalation via improper permission check",
+      "ratings": [{"severity": "high", "score": 8.0, "method": "CVSSv3"}],
+      "affects": [{"ref": "Core Database Cluster"}]
+    }
+  ],
+  "properties": [
+    {"name": "secopstm:patch_level", "value": "outdated"},
+    {"name": "secopstm:detection_level", "value": "low"},
+    {"name": "secopstm:credentials_stored", "value": "true"},
+    {"name": "secopstm:notes", "value": "sa account enabled with weak password. xp_cmdshell available. Linked server to financial ERP."}
+  ]
+}

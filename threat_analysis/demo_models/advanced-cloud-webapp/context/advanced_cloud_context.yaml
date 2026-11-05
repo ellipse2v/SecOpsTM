@@ -1,0 +1,163 @@
+# GDAF Context: Advanced Cloud Web Application
+
+system_description: >
+  E-commerce SaaS platform deployed on containerized microservices (Kubernetes).
+  Traffic enters via a CDN/load balancer, passes through an API Gateway, and routes
+  to an OIDC-based Auth Service and a Product Microservice. The Product Microservice
+  communicates with a PostgreSQL database over unencrypted TCP (internal network).
+  A CI/CD server handles deployments via SSH. All components run in a cloud
+  provider VPC with security group segmentation into Public, Private App, and Secure
+  Data zones.
+sector: "E-commerce / SaaS"
+data_sensitivity: "critical"
+internet_facing: true
+compliance_requirements:
+  - "PCI DSS v4.0"
+  - "GDPR"
+  - "ISO 27001"
+  - "SOC 2 Type II"
+deployment_environment: "cloud (Kubernetes, containerized)"
+
+attack_objectives:
+  - id: "OBJ-ACW-001"
+    name: "Authentication Bypass via OIDC Misconfiguration"
+    description: >
+      Attacker exploits a misconfiguration in the OIDC/OAuth2 flow — such as an open
+      redirect in the auth callback, a weak state parameter validation, or a JWT algorithm
+      confusion attack (RS256 vs HS256) — to forge authentication tokens and impersonate
+      arbitrary users including administrators.
+    target_asset_names:
+      - "Auth Service"
+    target_types: ["auth-server", "identity_provider", "oidc"]
+    attacker_intent: "initial-access, privilege-escalation"
+    business_impact: "Unauthorized access to all customer accounts; admin account takeover; full data breach"
+    mitre_final_tactic: "initial-access"
+    min_severity_score: 8.5
+
+  - id: "OBJ-ACW-002"
+    name: "Unencrypted Database Connection Interception"
+    description: >
+      Attacker who has gained a foothold within the Private App Zone (e.g. via a compromised
+      container) can intercept or MITM the unencrypted TCP connection between the Product
+      Microservice and the Product Database to capture all SQL queries and responses,
+      including customer PII, payment data, and session tokens.
+    target_asset_names:
+      - "Product Database"
+    target_types: ["database", "sql", "postgresql"]
+    attacker_intent: "collection, exfiltration"
+    business_impact: "Mass PII/payment data exfiltration; PCI DSS breach; regulatory fines and customer notification"
+    mitre_final_tactic: "collection"
+    min_severity_score: 9.0
+
+  - id: "OBJ-ACW-003"
+    name: "CI/CD Server Pivot to Production Microservice"
+    description: >
+      Attacker compromises the CI/CD server (via RCE, credential theft, or supply chain)
+      and uses its SSH credentials and deployment pipeline access to push a backdoored
+      container image directly to the Product Microservice, bypassing code review and
+      security scanning.
+    target_asset_names:
+      - "CI/CD Server"
+      - "Product Microservice"
+    target_types: ["management-server", "ci_cd", "container"]
+    attacker_intent: "persistence, lateral-movement"
+    business_impact: "Persistent backdoor in production; all customer data processed by the compromised service at risk"
+    mitre_final_tactic: "persistence"
+    min_severity_score: 8.0
+
+  - id: "OBJ-ACW-004"
+    name: "API Gateway Bypass to Direct Microservice Access"
+    description: >
+      Attacker discovers that the Product Microservice is reachable directly (misconfigured
+      security group or load balancer rule) without going through the API Gateway, bypassing
+      rate limiting, WAF rules, and authentication token validation.
+    target_asset_names:
+      - "Product Microservice"
+    target_types: ["container", "microservice"]
+    attacker_intent: "initial-access, collection"
+    business_impact: "Unrestricted access to business logic and data endpoints; DoS and data scraping"
+    mitre_final_tactic: "initial-access"
+    min_severity_score: 7.0
+
+threat_actors:
+  - id: "TA-ACW-001"
+    name: "External Attacker (Credential Stuffing + OWASP Exploitation)"
+    sophistication: "medium"
+    objectives: ["OBJ-ACW-001", "OBJ-ACW-004"]
+    entry_preference: "internet-facing"
+    description: >
+      External attacker running automated credential stuffing campaigns against the login
+      endpoint and actively probing for OWASP Top 10 vulnerabilities (injection, broken
+      auth, IDOR, security misconfigurations). Uses Burp Suite, FFUF, and nuclei templates.
+      Motivated by financial fraud, data resale, or account takeover for gift card/payment abuse.
+    known_ttps:
+      - "T1190"  # Exploit Public-Facing Application
+      - "T1110"  # Brute Force (credential stuffing)
+      - "T1528"  # Steal Application Access Token
+      - "T1071"  # Application Layer Protocol (C2 over HTTPS)
+      - "T1059"  # Command and Scripting Interpreter
+    capable_tactics:
+      - "initial-access"
+      - "execution"
+      - "credential-access"
+      - "collection"
+      - "exfiltration"
+
+  - id: "TA-ACW-002"
+    name: "Rogue DevOps Engineer (Insider Threat)"
+    sophistication: "high"
+    objectives: ["OBJ-ACW-002", "OBJ-ACW-003"]
+    entry_preference: "insider"
+    description: >
+      DevOps engineer with SSH access to the CI/CD server and deployment credentials for
+      the production Kubernetes cluster. Has intimate knowledge of the infrastructure,
+      secret locations, and deployment procedures. May exfiltrate database connection
+      strings, abuse CI/CD pipelines to deploy backdoored images, or directly query the
+      database using legitimate credentials before departing the organization.
+    known_ttps:
+      - "T1078"  # Valid Accounts
+      - "T1098"  # Account Manipulation
+      - "T1552"  # Unsecured Credentials
+      - "T1048"  # Exfiltration Over Alternative Protocol
+      - "T1195"  # Supply Chain Compromise (pipeline manipulation)
+    capable_tactics:
+      - "initial-access"
+      - "execution"
+      - "persistence"
+      - "privilege-escalation"
+      - "credential-access"
+      - "lateral-movement"
+      - "collection"
+      - "exfiltration"
+
+  - id: "TA-ACW-003"
+    name: "Ransomware Operator"
+    sophistication: "medium"
+    objectives: ["OBJ-ACW-002", "OBJ-ACW-003"]
+    entry_preference: "internet-facing"
+    description: >
+      Ransomware group targeting SaaS providers for maximum business impact. Entry via
+      phishing or exposed RDP/SSH. Goal is to encrypt or exfiltrate the production database
+      for double-extortion. Targets backup systems first to prevent recovery.
+    known_ttps:
+      - "T1486"  # Data Encrypted for Impact
+      - "T1490"  # Inhibit System Recovery
+      - "T1566"  # Phishing
+      - "T1021"  # Remote Services
+    capable_tactics:
+      - "initial-access"
+      - "lateral-movement"
+      - "impact"
+
+risk_criteria:
+  acceptable_risk_score: 4.5
+  max_hops: 6
+  max_paths_per_objective: 3
+  gdaf_min_technique_score: 0.8
+
+business_goals_to_protect:
+  - "Customer authentication integrity (OIDC/OAuth2 flows must not be bypassable)"
+  - "Encryption of all data in transit — especially ProductSvcToDB (currently unencrypted)"
+  - "Isolation between CI/CD Server and production workloads (least-privilege deployment credentials)"
+  - "PCI DSS compliance for payment data processed by Product Microservice"
+  - "GDPR compliance for all EU customer PII stored in Product Database"

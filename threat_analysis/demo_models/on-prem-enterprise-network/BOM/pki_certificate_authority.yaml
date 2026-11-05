@@ -1,0 +1,14 @@
+asset: "PKI Certificate Authority"
+os_version: "windows_server_2016"
+software_version: "Microsoft Active Directory Certificate Services (AD CS) 8.0"
+patch_level: outdated
+known_cves:
+  - CVE-2022-26923
+  - CVE-2021-36968
+running_services:
+  - RPC
+  - HTTPS
+  - LDAP
+detection_level: low
+credentials_stored: true
+notes: "Enterprise root CA issuing certificates for domain users and computers. ESC1/ESC8 AD CS misconfigurations not remediated — certificate templates allow SAN manipulation. HSM not deployed — private key stored on disk."

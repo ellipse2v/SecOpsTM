@@ -1,0 +1,14 @@
+asset: "SIEM Server"
+os_version: "ubuntu_20.04"
+software_version: "Elasticsearch 7.17 / Kibana 7.17 / Logstash 7.17"
+patch_level: outdated
+known_cves:
+  - CVE-2021-44228
+  - CVE-2023-31419
+running_services:
+  - HTTPS
+  - SSH
+  - SYSLOG
+detection_level: high
+credentials_stored: false
+notes: "ELK stack SIEM. Elasticsearch exposed on internal network without authentication (CVE-2023-31419 unpatched). Log4Shell mitigated but Logstash Java runtime updated separately. Retention policy: 90 days."

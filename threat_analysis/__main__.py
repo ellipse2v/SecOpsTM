@@ -617,6 +617,7 @@ class CustomArgumentParser:
             description=(
                 "SecOpsTM — STRIDE threat modeling with MITRE ATT&CK mapping and AI-enhanced threat generation.\n"
                 "\nQuick start:\n"
+                "  secopstm demo                            # analyse a bundled example, open its diagram\n"
                 "  secopstm --model-file model.md           # full analysis\n"
                 "  secopstm --model-file model.md --stdout  # JSON to stdout (CI/SIEM)\n"
                 "  secopstm --server                        # launch web editor\n"
@@ -652,6 +653,13 @@ class CustomArgumentParser:
             help="Disable RAG (skip vector store load / chromadb+embeddings pre-warm) for this run, "
                  "even if rag.enabled: true in ai_config.yaml. Useful to test with/without RAG, or to "
                  "speed up iteration (RAG cold-start can take minutes).",
+        )
+        common.add_argument(
+            "--no-ai",
+            action="store_true",
+            dest="no_ai",
+            help="Rule engine only: skip every LLM and RAG call for this run, even if\n"
+                 "ai_config.yaml enables a provider (implies --no-rag).",
         )
         common.add_argument(
             "--server",
@@ -1057,6 +1065,9 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
 
     _ai_config_rel = args.ai_config_file if hasattr(args, "ai_config_file") else "config/ai_config.yaml"
     ai_config_path = Path(_ai_config_rel) if Path(_ai_config_rel).is_absolute() else Path.cwd() / _ai_config_rel
+    _no_ai = getattr(args, "no_ai", False)
+    if _no_ai:
+        ai_config_path = None  # ReportGenerator then builds no AI provider and no AIService
 
     from threat_analysis.server.server import get_model_name  # noqa: PLC0415
 
@@ -1070,7 +1081,7 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
         cve_service=cve_service,
         ai_config_path=ai_config_path,
         cve_definitions_path=cve_definitions_path,
-        disable_rag=getattr(args, "no_rag", False),
+        disable_rag=getattr(args, "no_rag", False) or _no_ai,
     )
 
     threats = framework.run_analysis()
@@ -1205,6 +1216,9 @@ def _main():
     if len(sys.argv) > 1 and sys.argv[1] == "validate":
         from threat_analysis.validate import main as _validate_main
         sys.exit(_validate_main(sys.argv[2:]))
+    if len(sys.argv) > 1 and sys.argv[1] == "demo":
+        from threat_analysis.demo import main as _demo_main
+        sys.exit(_demo_main(sys.argv[2:]))
     if len(sys.argv) > 1 and sys.argv[1] == "download-data":
         download_data()
     if len(sys.argv) > 1 and sys.argv[1] == "--init-rag":
@@ -1323,11 +1337,14 @@ def _main():
 
         _ai_config_rel = args.ai_config_file if hasattr(args, 'ai_config_file') else "config/ai_config.yaml"
         ai_config_path = Path(_ai_config_rel) if Path(_ai_config_rel).is_absolute() else Path.cwd() / _ai_config_rel
+        _no_ai = getattr(args, "no_ai", False)
+        if _no_ai:
+            ai_config_path = None
 
         # Lazy import ReportGenerator
         report_generator_module = importlib.import_module("threat_analysis.generation.report_generator")
         ReportGenerator = report_generator_module.ReportGenerator
-        _disable_rag = getattr(args, "no_rag", False)
+        _disable_rag = getattr(args, "no_rag", False) or _no_ai
         report_generator = ReportGenerator(
             severity_calculator,
             mitre_mapping,
@@ -1343,7 +1360,7 @@ def _main():
         # only runs it when given one. Without this, `secopstm --project` silently skips
         # cross-boundary RAG threats even with RAG enabled and AI online; only the web UI
         # (export_service.py) passed ai_service until now.
-        ai_service = _build_project_ai_service(ai_config_path, force_disable_rag=_disable_rag)
+        ai_service = None if _no_ai else _build_project_ai_service(ai_config_path, force_disable_rag=_disable_rag)
 
         project_threat_model = report_generator.generate_project_reports(project_path, output_dir, ai_service=ai_service)
 

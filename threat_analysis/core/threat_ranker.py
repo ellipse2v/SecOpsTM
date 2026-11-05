@@ -64,6 +64,10 @@ def _load_ranking_weights() -> Dict[str, float]:
             if weights:
                 _ranking_weights_cache = {**_DEFAULT_WEIGHTS, **{k: float(v) for k, v in weights.items()}}
                 return _ranking_weights_cache
+        except FileNotFoundError:
+            # No config/ai_config.yaml in the working directory (the usual case
+            # after `pip install`): the defaults apply, nothing to warn about.
+            pass
         except Exception as exc:
             logger.warning("Cannot load ranking weights from ai_config.yaml: %s", exc)
     _ranking_weights_cache = dict(_DEFAULT_WEIGHTS)
