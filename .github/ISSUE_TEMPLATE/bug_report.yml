@@ -1,0 +1,55 @@
+name: Bug report
+description: Something does not work as documented (crash, wrong threat, broken report or diagram).
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please do not paste a real customer
+        model: reduce it to the smallest model that still shows the problem.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you expected, and what you got instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: How to reproduce
+      description: The command you ran and, if possible, a minimal model.md.
+      placeholder: |
+        secopstm --model-file model.md
+      render: markdown
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log output
+      description: The end of the console output (add `--log-level DEBUG` if useful).
+      render: shell
+  - type: input
+    id: version
+    attributes:
+      label: SecOpsTM version
+      description: Output of `secopstm --version`.
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How you run it
+      options:
+        - pip / PyPI
+        - Docker image
+        - GitHub Action
+        - From source
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: OS and Python version
+      placeholder: Ubuntu 24.04, Python 3.12

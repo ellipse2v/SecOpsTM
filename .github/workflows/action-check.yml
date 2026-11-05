@@ -1,0 +1,65 @@
+name: GitHub Action check
+
+# Runs the repository's own action (action.yml) the way a user's workflow
+# would, on a bundled template, and checks what it produced. The action is
+# what gets listed on the GitHub Marketplace, so a change that breaks it must
+# fail here, not in users' pipelines.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'action.yml'
+      - 'threat_analysis/**'
+      - 'pyproject.toml'
+      - '.github/workflows/action-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  action:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+        with:
+          persist-credentials: false
+
+      - name: Run the action on a bundled template
+        id: secopstm
+        uses: ./
+        with:
+          model-file: threatModel_Template/Advanced_Cloud_WebApp/model.md
+          sarif: 'false'  # the upload needs security-events: write
+          navigator: 'true'
+          gate: 'none'
+          comment-on-pr: 'false'
+          artifact-name: secopstm-action-check
+
+      - name: Check the outputs
+        env:
+          OUT_DIR: ${{ steps.secopstm.outputs.output-dir }}
+          REPORT_JSON: ${{ steps.secopstm.outputs.report-json }}
+          REPORT_HTML: ${{ steps.secopstm.outputs.report-html }}
+          TOTAL: ${{ steps.secopstm.outputs.total-threats }}
+        run: |
+          set -euo pipefail
+          echo "output-dir=$OUT_DIR total=$TOTAL"
+          ls -1 "$OUT_DIR"
+          test -f "$REPORT_JSON"
+          test -f "$REPORT_HTML"
+          ls "$OUT_DIR"/tm_diagram_*.html
+          ls "$OUT_DIR"/attack_navigator_layer_*.json
+          test "$TOTAL" -gt 0
+
+      - name: The gate fails on CRITICAL threats
+        env:
+          REPORT_JSON: ${{ steps.secopstm.outputs.report-json }}
+        run: |
+          if secopstm --gate "$REPORT_JSON" --fail-on CRITICAL; then
+            echo "::error::the gate passed although the template has CRITICAL threats"
+            exit 1
+          fi
