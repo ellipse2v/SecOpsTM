@@ -202,3 +202,29 @@ def test_example_1_validates():
     repo_root = Path(__file__).resolve().parents[1]
     failures, _ = validate_model_dir(str(repo_root / "threatModel_Template" / "projects" / "example_1"))
     assert failures == 0
+
+
+def test_underscore_and_hyphen_types_are_equivalent(tmp_path):
+    """The diagram layer writes "web_server", the registry declares "web-server"."""
+    model = MINIMAL_MODEL.replace("type=web-server", "type=web_server")
+    _write_model(tmp_path, model)
+    failures, _ = validate_model_dir(str(tmp_path))
+    assert failures == 0
+
+
+def test_camelcase_server_matches_snake_case_bom(tmp_path):
+    model = MINIMAL_MODEL.replace("**WebApp**", "**CIServer**").replace("to=WebApp", "to=CIServer")
+    _write_model(tmp_path, model, bom=False)
+    (tmp_path / "BOM").mkdir()
+    (tmp_path / "BOM" / "ci_server.yaml").write_text("asset: CIServer\n", encoding="utf-8")
+    failures, _ = validate_model_dir(str(tmp_path))
+    assert failures == 0
+
+
+def test_submodel_server_needs_no_bom(tmp_path):
+    model = MINIMAL_MODEL.replace("type=web-server", "type=web-server, submodel=./sub/model.md")
+    _write_model(tmp_path, model, bom=False)
+    (tmp_path / "sub").mkdir()
+    (tmp_path / "sub" / "model.md").write_text("# Sub\n", encoding="utf-8")
+    failures, _ = validate_model_dir(str(tmp_path))
+    assert failures == 0

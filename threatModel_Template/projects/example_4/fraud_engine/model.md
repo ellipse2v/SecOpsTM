@@ -31,7 +31,7 @@ bom_directory = BOM
 ## Servers
 - **MLEngine**:
   boundary="Scoring Zone",
-  type=application-server,
+  type=app_server,
   machine=virtual,
   confidentiality=high,
   integrity=critical,
@@ -42,7 +42,7 @@ bom_directory = BOM
   entry_point=True
 - **RulesEngine**:
   boundary="Scoring Zone",
-  type=application-server,
+  type=app_server,
   machine=virtual,
   confidentiality=high,
   integrity=critical,
@@ -62,7 +62,7 @@ bom_directory = BOM
   businessValue="Redis Sentinel — 90-day behavioral aggregates and velocity counters per cardholder"
 - **AlertService**:
   boundary="Analytics Zone",
-  type=application-server,
+  type=app_server,
   machine=virtual,
   confidentiality=high,
   integrity=high,

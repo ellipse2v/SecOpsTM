@@ -40,32 +40,30 @@ bom_directory = BOM
   entry_point=True
 - **AuthService**:
   boundary="Payment Services Zone",
-  type=application-server,
+  type=app_server,
   machine=virtual,
   confidentiality=critical,
   integrity=critical,
   availability=critical,
   mfa_enabled=True,
   auth_protocol=oauth,
-  encryption=TLS,
   credentials_stored=True,
   tags=[oauth2, jwt, oidc, pci-dss],
   businessValue="Auth service — validates OAuth2 tokens, enforces scopes for payment operations"
 - **ChargeService**:
   boundary="Payment Services Zone",
-  type=application-server,
+  type=app_server,
   machine=virtual,
   confidentiality=critical,
   integrity=critical,
   availability=high,
   mfa_enabled=True,
   auth_protocol=oauth,
-  encryption=TLS,
   tags=[pci-dss, authorization, capture, refund, void],
   businessValue="Charge service — PCI-DSS L1 in-scope, handles authorize/capture/refund/void"
 - **MessageBroker**:
   boundary="Settlement Zone",
-  type=application-server,
+  type=message_broker,
   machine=virtual,
   confidentiality=high,
   integrity=critical,
@@ -75,7 +73,7 @@ bom_directory = BOM
   businessValue="Kafka 3-broker cluster — decouples charge events from settlement and notifications"
 - **SettlementService**:
   boundary="Settlement Zone",
-  type=application-server,
+  type=app_server,
   machine=virtual,
   confidentiality=high,
   integrity=critical,

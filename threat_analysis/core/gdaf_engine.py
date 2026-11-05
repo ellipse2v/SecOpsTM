@@ -251,13 +251,17 @@ class GDAFEngine:
 
         for objective in objectives:
             target_names = set(n.lower() for n in objective.get("target_asset_names", []))
-            target_types = set(t.lower() for t in objective.get("target_types", []))
+            # "_" and "-" are equivalent in type names ("app_server" == "app-server")
+            target_types = set(
+                str(t).lower().replace("_", "-") for t in objective.get("target_types", [])
+            )
 
-            # Identify target assets
+            # Identify target assets: match the declared type or its registry key
             target_nodes = [
                 name for name, node in graph.items()
                 if name.lower() in target_names
-                or self.mapper._normalize_type(node.get("type", "")) in target_types
+                or str(node.get("type", "")).lower().replace("_", "-") in target_types
+                or self.mapper._normalize_type(node.get("type", "")).replace("_", "-") in target_types
             ]
             if not target_nodes:
                 logger.debug("GDAF: no target nodes for objective %s", objective["id"])

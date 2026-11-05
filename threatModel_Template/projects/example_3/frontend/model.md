@@ -47,7 +47,6 @@ bom_directory = BOM
   ips=False,
   mfa_enabled=False,
   auth_protocol=none,
-  encryption=TLS,
   tags=[nginx, react, spa, static-assets],
   businessValue="nginx — serves React SPA, proxies API calls to DMZ"
 

@@ -24,7 +24,7 @@ bom_directory = BOM
 ## Servers
 - **IoT Gateway Server**: boundary="IoT Gateway", type="iot_gateway"
 - **IoT Hub**: boundary="Cloud Platform", type="iot_hub"
-- **Data Storage**: boundary="Cloud Platform", type="data_storage"
+- **Data Storage**: boundary="Cloud Platform", type="database"
 - **Analytics Engine**: boundary="Cloud Platform", type="analytics_engine"
 - **Device Management Service**: boundary="Cloud Platform", type="device_management_service"
 

@@ -77,6 +77,15 @@ def _normalize_asset_key(name: str) -> str:
     return key
 
 
+def _compact_asset_key(name: str) -> str:
+    """Normalized key without separators, so "CIServer" matches "ci_server.yaml".
+
+    Server names are often CamelCase while BOM files are snake_case; both
+    collapse to the same compact key ("ciserver").
+    """
+    return _normalize_asset_key(name).replace("_", "")
+
+
 def _get_secopstm_prop(properties: List[Dict[str, Any]], prop_name: str) -> Optional[str]:
     """Extract a secopstm: property value from a CycloneDX properties list."""
     full_key = f"secopstm:{prop_name}"
@@ -292,7 +301,14 @@ class BOMLoader:
         Returns an empty dict if no BOM file is found for this asset.
         """
         key = _normalize_asset_key(str(asset_name))
-        return self._data.get(key, {})
+        if key in self._data:
+            return self._data[key]
+        # Fallback: ignore separators (CamelCase name vs snake_case file name)
+        compact = key.replace("_", "")
+        for stored_key, data in self._data.items():
+            if stored_key.replace("_", "") == compact:
+                return data
+        return {}
 
     def __bool__(self) -> bool:
         return bool(self._data)

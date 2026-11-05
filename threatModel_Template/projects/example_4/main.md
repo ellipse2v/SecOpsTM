@@ -96,13 +96,12 @@ bom_directory = BOM
 - **PaymentAPI**:
   submodel=./payment_api/model.md,
   boundary="Payment Zone",
-  type=application-server,
+  type=app_server,
   confidentiality=critical,
   integrity=critical,
   availability=high,
   mfa_enabled=True,
   auth_protocol=oauth,
-  encryption=TLS,
   businessValue="Core payment processing microservices — charge, refund, settlement, authorization"
 - **CardVault**:
   submodel=./card_vault/model.md,
@@ -113,12 +112,12 @@ bom_directory = BOM
   availability=high,
   credentials_stored=True,
   mfa_enabled=True,
-  encryption=AES-256,
+  encryption=data-with-symmetric-shared-key,
   businessValue="PCI-DSS card data vault — HSM tokenization, encrypted PAN storage"
 - **FraudEngine**:
   submodel=./fraud_engine/model.md,
   boundary="Payment Zone",
-  type=application-server,
+  type=app_server,
   confidentiality=high,
   integrity=critical,
   availability=high,

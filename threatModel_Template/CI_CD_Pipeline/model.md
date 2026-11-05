@@ -24,9 +24,9 @@ bom_directory = BOM
 - **CI/CD System**: boundary="Build Server"
 
 ## Servers
-- **Git Repository**: boundary="Code Repository", type="git_repo"
-- **CIServer**: boundary="Build Server", type="ci_cd_server"
-- **ArtifactRegistry**: boundary="Artifact Registry", type="docker_registry"
+- **Git Repository**: boundary="Code Repository", type="repository"
+- **CIServer**: boundary="Build Server", type="cicd"
+- **ArtifactRegistry**: boundary="Artifact Registry", type="container_registry"
 - **KubeCluster**: boundary="Production Environment", type="kubernetes_cluster"
 
 ## Dataflows

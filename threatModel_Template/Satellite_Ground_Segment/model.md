@@ -56,11 +56,11 @@ bom_directory = BOM
 - **EGSE-to-OBC**: from="EGSE", to="OBC", protocol="JTAG", encrypted=False, authenticated=False
 
 ## Data
-- **Telecommands**: format="CCSDS", classification="sensitive"
-- **Telemetry**: format="CCSDS", classification="internal"
-- **Payload-Data**: format="raw", classification="confidential"
-- **GPS-Signal**: format="NMEA", classification="public"
-- **Firmware-Image**: format="binary", classification="confidential"
+- **Telecommands**: format="CCSDS", classification="SENSITIVE"
+- **Telemetry**: format="CCSDS", classification="INTERNAL"
+- **Payload-Data**: format="raw", classification="CONFIDENTIAL"
+- **GPS-Signal**: format="NMEA", classification="PUBLIC"
+- **Firmware-Image**: format="binary", classification="CONFIDENTIAL"
 
 ## Protocol Styles
 - **CCSDS**: color=purple, line_style=dashed
