@@ -34,8 +34,9 @@
 </p>
 
 ```bash
-pip install SecOpsTM          # or: docker run -p 127.0.0.1:5000:5000 ellipse2v/secopstm
-secopstm --model-file threat_model.md
+pip install SecOpsTM
+secopstm demo                          # analyses a bundled example and opens its diagram
+secopstm --model-file threat_model.md  # then your own model
 ```
 
 <table>
@@ -162,6 +163,7 @@ Other supported providers: `GEMINI_API_KEY`, `OPENAI_API_KEY`, `MISTRAL_API_KEY`
 
 ```bash
 pip install SecOpsTM
+secopstm demo     # check the install: analyses a bundled example and opens its diagram
 ```
 
 Install Graphviz for diagram generation:
@@ -192,8 +194,14 @@ After installation, restart your terminal or IDE.
 ### Basic CLI usage
 
 ```bash
+# Try it: analyse a bundled example (rule engine only, no API key) and open its diagram
+secopstm demo                # or: secopstm demo on-prem   (40+ elements)
+
 # Full analysis — HTML + JSON + SVG in output/
 secopstm --model-file threatModel_Template/threat_model.md
+
+# Rule engine only, even if config/ai_config.yaml enables an LLM provider
+secopstm --model-file model.md --no-ai
 
 # JSON only, printed to stdout — ideal for CI pipelines
 secopstm --model-file model.md --stdout

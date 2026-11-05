@@ -1,0 +1,22 @@
+# BOM: CI/CD Server
+asset: "CI/CD Server"
+software_version: "Jenkins 2.414.3 LTS"
+patch_level: outdated
+known_cves:
+  - CVE-2023-27898  # Jenkins stored XSS + CSRF via malicious Update Center plugin metadata
+  - CVE-2024-23897  # Jenkins arbitrary file read via CLI unauthenticated (critical)
+running_services:
+  - Jenkins Web UI (HTTPS 8443)
+  - Jenkins CLI (SSH agent 50022)
+  - Build agents (JNLP 50000)
+detection_level: low
+credentials_stored: true
+notes: >
+  CI/CD server with SSH deploy keys for Kubernetes cluster and container registry push credentials.
+  CVE-2024-23897 (arbitrary file read without authentication) has public exploits available
+  and allows reading /etc/passwd, Jenkins credentials.xml, and all build logs — upgrade to
+  Jenkins 2.442 LTS immediately or disable the CLI endpoint.
+  Jenkins Credentials Store contains: Kubernetes kubeconfig (cluster-admin), Docker registry
+  credentials, database admin password (used by migration jobs), and cloud provider API keys.
+  No SIEM integration — audit events only in local Jenkins audit log.
+  Access restricted to DevOps team via VPN + IP allowlist.

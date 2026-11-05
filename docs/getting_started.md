@@ -66,6 +66,9 @@ pip install SecOpsTM
 #   macOS:   brew install graphviz
 #   Linux:   sudo apt-get install graphviz
 
+# Check the install: analyse a bundled example and open its diagram (no API key)
+secopstm demo
+
 # Step 1 — Security knowledge base (~140 MB, required for MITRE/CVE mapping)
 secopstm download-data
 

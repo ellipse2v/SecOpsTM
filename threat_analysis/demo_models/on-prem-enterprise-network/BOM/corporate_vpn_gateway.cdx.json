@@ -1,0 +1,50 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "device",
+      "name": "Corporate VPN Gateway"
+    }
+  },
+  "components": [
+    {
+      "type": "operating-system",
+      "name": "Cisco ASA OS",
+      "version": "9.14.3",
+      "purl": "pkg:generic/cisco/asa-os@9.14.3"
+    },
+    {
+      "type": "application",
+      "name": "Cisco AnyConnect",
+      "version": "4.10",
+      "purl": "pkg:generic/cisco/anyconnect@4.10"
+    }
+  ],
+  "services": [
+    {"name": "IKEv2", "endpoints": ["udp://0.0.0.0:500"]},
+    {"name": "IPSEC-NAT-T", "endpoints": ["udp://0.0.0.0:4500"]},
+    {"name": "SSL-VPN", "endpoints": ["tcp://0.0.0.0:443"]}
+  ],
+  "vulnerabilities": [
+    {
+      "id": "CVE-2022-20828",
+      "description": "Cisco ASA remote code execution via CLI parser buffer overflow",
+      "ratings": [{"severity": "critical", "score": 9.1, "method": "CVSSv3"}],
+      "affects": [{"ref": "Corporate VPN Gateway"}]
+    },
+    {
+      "id": "CVE-2020-3259",
+      "description": "Cisco ASA/FTD information disclosure — VPN session tokens extractable from memory",
+      "ratings": [{"severity": "high", "score": 7.5, "method": "CVSSv3"}],
+      "affects": [{"ref": "Corporate VPN Gateway"}]
+    }
+  ],
+  "properties": [
+    {"name": "secopstm:patch_level", "value": "outdated"},
+    {"name": "secopstm:detection_level", "value": "medium"},
+    {"name": "secopstm:credentials_stored", "value": "true"},
+    {"name": "secopstm:notes", "value": "Stores VPN client certificates. Dual-factor not enforced for all groups."}
+  ]
+}

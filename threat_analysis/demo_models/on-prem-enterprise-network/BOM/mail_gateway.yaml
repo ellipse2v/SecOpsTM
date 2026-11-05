@@ -1,0 +1,15 @@
+asset: "Mail Gateway"
+os_version: "ubuntu_20.04"
+software_version: "Postfix 3.4.14 / Amavis 2.11"
+patch_level: outdated
+known_cves:
+  - CVE-2023-51764
+  - CVE-2021-38000
+running_services:
+  - SMTP
+  - IMAP
+  - HTTP
+  - SSH
+detection_level: medium
+credentials_stored: false
+notes: "Internet-facing mail relay. SMTP VRFY command enabled, allowing user enumeration. SPF/DKIM configured, DMARC in monitoring mode only. Postfix SMTP smuggling (CVE-2023-51764) unpatched."

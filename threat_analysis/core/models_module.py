@@ -120,7 +120,9 @@ class ThreatModel:
         self.mitre_mapper = MitreMapping(threat_model=self)
         self.mitre_analysis_results = {}
         self.threat_mitre_mapping = {}
-        self.severity_calculator = SeverityCalculator() # Instantiate SeverityCalculator
+        # Start empty: multipliers come from this model via add_severity_multiplier(),
+        # never from the bundled example template (the no-argument default).
+        self.severity_calculator = SeverityCalculator(markdown_content="")
 
         # CVE Service — lazy default (same fallback as ReportGenerator.__init__) so a
         # ThreatModel is constructible without one, e.g. for domain-only unit tests.

@@ -1,0 +1,51 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "device",
+      "name": "Edge Router"
+    }
+  },
+  "components": [
+    {
+      "type": "operating-system",
+      "name": "Cisco IOS",
+      "version": "15.7(3)M6",
+      "purl": "pkg:generic/cisco/ios@15.7(3)M6"
+    },
+    {
+      "type": "application",
+      "name": "Cisco IOS Software",
+      "version": "15.7(3)M6"
+    }
+  ],
+  "services": [
+    {"name": "BGP", "endpoints": ["tcp://0.0.0.0:179"]},
+    {"name": "OSPF", "endpoints": ["tcp://0.0.0.0:89"]},
+    {"name": "SNMP", "endpoints": ["udp://0.0.0.0:161"]},
+    {"name": "SSH", "endpoints": ["tcp://0.0.0.0:22"]},
+    {"name": "HTTP", "endpoints": ["tcp://0.0.0.0:80"]}
+  ],
+  "vulnerabilities": [
+    {
+      "id": "CVE-2020-3452",
+      "description": "Cisco ASA and FTD path traversal — read arbitrary files without authentication",
+      "ratings": [{"severity": "high", "score": 7.5, "method": "CVSSv3"}],
+      "affects": [{"ref": "Edge Router"}]
+    },
+    {
+      "id": "CVE-2019-1653",
+      "description": "Cisco RV320/RV325 unauthenticated remote code execution via diagnostic script",
+      "ratings": [{"severity": "critical", "score": 9.8, "method": "CVSSv3"}],
+      "affects": [{"ref": "Edge Router"}]
+    }
+  ],
+  "properties": [
+    {"name": "secopstm:patch_level", "value": "outdated"},
+    {"name": "secopstm:detection_level", "value": "low"},
+    {"name": "secopstm:credentials_stored", "value": "false"},
+    {"name": "secopstm:notes", "value": "Internet-facing Cisco router. Last patched 18 months ago. SNMP v2c with weak community strings."}
+  ]
+}

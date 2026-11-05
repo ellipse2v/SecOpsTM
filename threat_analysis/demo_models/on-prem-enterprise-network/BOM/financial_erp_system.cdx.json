@@ -1,0 +1,51 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "device",
+      "name": "Financial ERP System"
+    }
+  },
+  "components": [
+    {
+      "type": "operating-system",
+      "name": "Windows Server 2016",
+      "version": "10.0.14393",
+      "purl": "pkg:generic/microsoft/windows-server@10.0.14393"
+    },
+    {
+      "type": "application",
+      "name": "SAP ERP 6.0 Enhancement Package 8",
+      "version": "6.0 EhP8",
+      "purl": "pkg:generic/sap/erp@6.0-ehp8"
+    }
+  ],
+  "services": [
+    {"name": "SAP", "endpoints": ["tcp://0.0.0.0:3200"]},
+    {"name": "HTTP", "endpoints": ["tcp://0.0.0.0:8000"]},
+    {"name": "HTTPS", "endpoints": ["tcp://0.0.0.0:8443"]},
+    {"name": "SQL", "endpoints": ["tcp://0.0.0.0:1433"]}
+  ],
+  "vulnerabilities": [
+    {
+      "id": "CVE-2020-6287",
+      "description": "SAP RECON — unauthenticated creation of admin user via SAP NetWeaver AS Java /webdynpro/resources",
+      "ratings": [{"severity": "critical", "score": 10.0, "method": "CVSSv3"}],
+      "affects": [{"ref": "Financial ERP System"}]
+    },
+    {
+      "id": "CVE-2018-2380",
+      "description": "SAP CRM path traversal enabling read of arbitrary server files",
+      "ratings": [{"severity": "high", "score": 7.6, "method": "CVSSv3"}],
+      "affects": [{"ref": "Financial ERP System"}]
+    }
+  ],
+  "properties": [
+    {"name": "secopstm:patch_level", "value": "outdated"},
+    {"name": "secopstm:detection_level", "value": "low"},
+    {"name": "secopstm:credentials_stored", "value": "true"},
+    {"name": "secopstm:notes", "value": "SAP RECON /webdynpro/resources endpoint unauthenticated. SAP Solution Manager not patched. No MFA."}
+  ]
+}

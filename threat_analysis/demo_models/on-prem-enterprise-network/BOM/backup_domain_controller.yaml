@@ -1,0 +1,15 @@
+asset: "Backup Domain Controller"
+os_version: "windows_server_2019"
+software_version: "Windows Server 2019 Build 17763.2134"
+patch_level: outdated
+known_cves:
+  - CVE-2021-42278
+  - CVE-2021-42287
+running_services:
+  - LDAP
+  - Kerberos
+  - RPC
+  - WinRM
+detection_level: low
+credentials_stored: true
+notes: "Backup DC with read-write replica of AD. Patch level 6 months behind primary DC. Less monitored than PDC — SIEM alerts focused on PDC. Used for DR failover."

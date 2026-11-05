@@ -1,0 +1,18 @@
+# BOM: API Gateway
+asset: "API Gateway"
+software_version: "Kong Gateway 3.4.2 (OSS, deployed as container)"
+patch_level: current
+known_cves: []
+running_services:
+  - HTTPS proxy (8443)
+  - Admin API (8001 — internal only)
+  - Health check endpoint (8000)
+detection_level: high
+credentials_stored: false
+notes: >
+  Kong API Gateway handling all inbound API traffic. JWT validation plugin is enabled on
+  all consumer routes. Rate limiting plugin set to 1000 req/min per consumer.
+  Admin API is not exposed externally — accessible only from the management VLAN.
+  Request/response transformation plugins are in use; ensure no sensitive data is logged
+  by the file-log or http-log plugins. Kong's plugin sandbox prevents arbitrary code
+  execution in plugin configs. Logs forwarded to SIEM via Kong's logging plugin.

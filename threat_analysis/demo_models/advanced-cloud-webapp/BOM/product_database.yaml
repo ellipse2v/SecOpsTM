@@ -1,0 +1,21 @@
+# BOM: Product Database
+asset: "Product Database"
+software_version: "PostgreSQL 14.9"
+patch_level: outdated
+known_cves:
+  - CVE-2023-39417  # PostgreSQL extension script injection via CREATE OR REPLACE (requires CREATE privilege)
+  - CVE-2023-2454   # PostgreSQL row-level security bypass via custom SQL object types
+running_services:
+  - PostgreSQL (5432)
+  - pgBouncer connection pooler (6432 — internal)
+detection_level: medium
+credentials_stored: true
+notes: >
+  Primary relational database storing customer PII, product catalog, order history, and
+  hashed payment tokens. Data at rest is encrypted (disk-level AES-256 via cloud provider).
+  Connection from Product Microservice is unencrypted (ssl=off in pg_hba.conf) — this is
+  a critical finding; enable ssl_required immediately.
+  CVE-2023-39417 requires the attacker to have CREATE privilege — review pg_roles grants.
+  Daily automated backups retained for 30 days; backup credentials must be rotated.
+  pgBouncer uses md5 authentication — upgrade to SCRAM-SHA-256.
+  Upgrade to PostgreSQL 14.11+ or migrate to PostgreSQL 16.x.

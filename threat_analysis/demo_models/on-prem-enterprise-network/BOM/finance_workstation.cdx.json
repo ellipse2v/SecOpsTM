@@ -1,0 +1,48 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "device",
+      "name": "Finance Workstation"
+    }
+  },
+  "components": [
+    {
+      "type": "operating-system",
+      "name": "Windows 10",
+      "version": "21H1",
+      "purl": "pkg:generic/microsoft/windows@10.0.21H1"
+    },
+    {
+      "type": "application",
+      "name": "Microsoft Office 2019, SAP GUI",
+      "version": "7.60"
+    }
+  ],
+  "services": [
+    {"name": "RDP", "endpoints": ["tcp://0.0.0.0:3389"]},
+    {"name": "SMB", "endpoints": ["tcp://0.0.0.0:445"]}
+  ],
+  "vulnerabilities": [
+    {
+      "id": "CVE-2022-30190",
+      "description": "Follina — MSDT remote code execution triggered via Office documents",
+      "ratings": [{"severity": "high", "score": 7.8, "method": "CVSSv3"}],
+      "affects": [{"ref": "Finance Workstation"}]
+    },
+    {
+      "id": "CVE-2021-40444",
+      "description": "MSHTML remote code execution via crafted ActiveX control embedded in Office documents",
+      "ratings": [{"severity": "high", "score": 7.8, "method": "CVSSv3"}],
+      "affects": [{"ref": "Finance Workstation"}]
+    }
+  ],
+  "properties": [
+    {"name": "secopstm:patch_level", "value": "outdated"},
+    {"name": "secopstm:detection_level", "value": "low"},
+    {"name": "secopstm:credentials_stored", "value": "false"},
+    {"name": "secopstm:notes", "value": "Finance users have direct SAP GUI access with high-privilege accounts stored in credential manager."}
+  ]
+}

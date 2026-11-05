@@ -1,0 +1,50 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "device",
+      "name": "CI CD Pipeline"
+    }
+  },
+  "components": [
+    {
+      "type": "operating-system",
+      "name": "Ubuntu",
+      "version": "20.04",
+      "purl": "pkg:generic/canonical/ubuntu@20.04"
+    },
+    {
+      "type": "application",
+      "name": "Jenkins",
+      "version": "2.346.3",
+      "purl": "pkg:generic/jenkins/jenkins@2.346.3"
+    }
+  ],
+  "services": [
+    {"name": "HTTP", "endpoints": ["tcp://0.0.0.0:8080"]},
+    {"name": "HTTPS", "endpoints": ["tcp://0.0.0.0:8443"]},
+    {"name": "JNLP", "endpoints": ["tcp://0.0.0.0:50000"]}
+  ],
+  "vulnerabilities": [
+    {
+      "id": "CVE-2022-0538",
+      "description": "Jenkins remote code execution via crafted request to agent JNLP port",
+      "ratings": [{"severity": "critical", "score": 9.8, "method": "CVSSv3"}],
+      "affects": [{"ref": "CI CD Pipeline"}]
+    },
+    {
+      "id": "CVE-2019-1003000",
+      "description": "Jenkins Groovy sandbox bypass enabling arbitrary code execution via Pipeline scripts",
+      "ratings": [{"severity": "critical", "score": 9.8, "method": "CVSSv3"}],
+      "affects": [{"ref": "CI CD Pipeline"}]
+    }
+  ],
+  "properties": [
+    {"name": "secopstm:patch_level", "value": "outdated"},
+    {"name": "secopstm:detection_level", "value": "medium"},
+    {"name": "secopstm:credentials_stored", "value": "true"},
+    {"name": "secopstm:notes", "value": "Jenkins master stores deploy credentials for all environments. Script console enabled for admins."}
+  ]
+}

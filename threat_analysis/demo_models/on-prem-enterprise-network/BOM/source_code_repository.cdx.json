@@ -1,0 +1,50 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "device",
+      "name": "Source Code Repository"
+    }
+  },
+  "components": [
+    {
+      "type": "operating-system",
+      "name": "Ubuntu",
+      "version": "22.04",
+      "purl": "pkg:generic/canonical/ubuntu@22.04"
+    },
+    {
+      "type": "application",
+      "name": "GitLab CE",
+      "version": "15.6.1",
+      "purl": "pkg:generic/gitlab/gitlab-ce@15.6.1"
+    }
+  ],
+  "services": [
+    {"name": "SSH", "endpoints": ["tcp://0.0.0.0:22"]},
+    {"name": "HTTPS", "endpoints": ["tcp://0.0.0.0:443"]},
+    {"name": "HTTP", "endpoints": ["tcp://0.0.0.0:80"]}
+  ],
+  "vulnerabilities": [
+    {
+      "id": "CVE-2022-2884",
+      "description": "GitLab CE remote code execution via malicious project import from GitHub",
+      "ratings": [{"severity": "critical", "score": 9.9, "method": "CVSSv3"}],
+      "affects": [{"ref": "Source Code Repository"}]
+    },
+    {
+      "id": "CVE-2021-22205",
+      "description": "GitLab CE unauthenticated remote code execution via malicious image upload (ExifTool)",
+      "ratings": [{"severity": "critical", "score": 10.0, "method": "CVSSv3"}],
+      "affects": [{"ref": "Source Code Repository"}]
+    }
+  ],
+  "properties": [
+    {"name": "secopstm:patch_level", "value": "outdated"},
+    {"name": "secopstm:detection_level", "value": "medium"},
+    {"name": "secopstm:credentials_stored", "value": "true"},
+    {"name": "secopstm:notes", "value": "GitLab runner tokens stored in CI/CD variables. Old CVE-2021-22205 not confirmed patched."}
+  ]
+}
