@@ -213,6 +213,32 @@ secopstm --model-file model.md --output-format json --output-file report.json
 secopstm --server
 ```
 
+### In CI: the GitHub Action
+
+Threat-model every pull request: the action analyses your model, posts a summary comment on the PR, uploads the reports as an artifact and fails the job when threats at or above `gate` are found.
+
+```yaml
+# .github/workflows/threat-model.yml
+name: Threat model
+on: pull_request
+permissions:
+  contents: read
+  pull-requests: write      # PR comment
+jobs:
+  secopstm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ellipse2v/SecOpsTM@main
+        with:
+          model-file: threat_model.md
+          gate: HIGH                       # CRITICAL | HIGH | MEDIUM | LOW | none
+          # baseline: threat_baseline.json # only NEW threats fail the gate
+          # sarif: 'true'                  # Security > Code scanning (needs security-events: write)
+```
+
+Other inputs: `terraform-path` / `ansible-path` (analyse IaC instead of a model), `navigator`, `attack-flow`, `accepted-risks`, `ai-config-file`. Outputs: `output-dir`, `report-json`, `report-html`, `total-threats`, `critical-threats`... See [`action.yml`](action.yml) for the full list. Without `ai-config-file` the action uses the rule engine only: no API key, nothing leaves the runner.
+
 ---
 
 ## Server Configuration (Optional)
