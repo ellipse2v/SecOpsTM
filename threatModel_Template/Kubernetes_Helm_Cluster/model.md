@@ -53,7 +53,7 @@ gdaf_context = context/gdaf_context.yaml
   credentials_stored=True
 - **Cert-Manager**: boundary="Platform Namespace", type="pki",
   description="Issues and rotates TLS certificates via ACME / internal CA"
-- **Container Registry (Harbor)**: boundary="Platform Namespace", type="registry",
+- **Container Registry (Harbor)**: boundary="Platform Namespace", type="container_registry",
   description="Private OCI registry with vulnerability scanning; push requires OIDC token"
 - **Prometheus + Alertmanager**: boundary="Observability Namespace", type="monitoring",
   description="Metrics collection via ServiceMonitor CRDs; Alertmanager sends PagerDuty alerts"
@@ -69,7 +69,7 @@ gdaf_context = context/gdaf_context.yaml
 ## Data
 - **JWT / OIDC Tokens**: credentialsLife=SHORT, classification=SECRET,
   description="Short-lived tokens issued by OIDC provider for user and service authentication"
-- **Database Credentials (Vault dynamic)**: credentialsLife=SHORTLIVED, classification=SECRET,
+- **Database Credentials (Vault dynamic)**: credentialsLife=SHORT, classification=SECRET,
   description="Vault-issued Postgres credentials with TTL ≤ 1h"
 - **Kubernetes Secrets**: credentialsLife=UNKNOWN, classification=SECRET,
   description="Base64-encoded secrets mounted as env vars or volumes in pods"
@@ -129,11 +129,11 @@ gdaf_context = context/gdaf_context.yaml
 - **Message Broker (Kafka)**: 1.4
 
 ## Custom Mitre Mapping
-- **Container Escape via Privileged Pod**: tactics=["Privilege Escalation", "Defense Evasion"], techniques=[{"id": "T1611", "name": "Escape to Host"}]
-- **ServiceAccount Token Theft**: tactics=["Credential Access"], techniques=[{"id": "T1528", "name": "Steal Application Access Token"}]
-- **RBAC Privilege Escalation**: tactics=["Privilege Escalation"], techniques=[{"id": "T1078", "name": "Valid Accounts"}]
-- **Supply Chain — Malicious Image**: tactics=["Initial Access"], techniques=[{"id": "T1195", "name": "Supply Chain Compromise"}, {"id": "T1525", "name": "Implant Internal Image"}]
-- **SSRF to Cloud Metadata API**: tactics=["Discovery", "Credential Access"], techniques=[{"id": "T1552", "name": "Unsecured Credentials"}, {"id": "T1190", "name": "Exploit Public-Facing Application"}]
-- **Lateral Movement via Service Mesh**: tactics=["Lateral Movement"], techniques=[{"id": "T1210", "name": "Exploitation of Remote Services"}]
-- **Secret Exfiltration from etcd**: tactics=["Credential Access", "Collection"], techniques=[{"id": "T1552", "name": "Unsecured Credentials"}]
-- **Helm Chart Injection (CI/CD)**: tactics=["Persistence", "Initial Access"], techniques=[{"id": "T1195", "name": "Supply Chain Compromise"}]
+- **Container Escape via Privileged Pod**: {"tactics": ["Privilege Escalation", "Defense Evasion"], "techniques": [{"id": "T1611", "name": "Escape to Host"}]}
+- **ServiceAccount Token Theft**: {"tactics": ["Credential Access"], "techniques": [{"id": "T1528", "name": "Steal Application Access Token"}]}
+- **RBAC Privilege Escalation**: {"tactics": ["Privilege Escalation"], "techniques": [{"id": "T1078", "name": "Valid Accounts"}]}
+- **Supply Chain — Malicious Image**: {"tactics": ["Initial Access"], "techniques": [{"id": "T1195", "name": "Supply Chain Compromise"}, {"id": "T1525", "name": "Implant Internal Image"}]}
+- **SSRF to Cloud Metadata API**: {"tactics": ["Discovery", "Credential Access"], "techniques": [{"id": "T1552", "name": "Unsecured Credentials"}, {"id": "T1190", "name": "Exploit Public-Facing Application"}]}
+- **Lateral Movement via Service Mesh**: {"tactics": ["Lateral Movement"], "techniques": [{"id": "T1210", "name": "Exploitation of Remote Services"}]}
+- **Secret Exfiltration from etcd**: {"tactics": ["Credential Access", "Collection"], "techniques": [{"id": "T1552", "name": "Unsecured Credentials"}]}
+- **Helm Chart Injection (CI/CD)**: {"tactics": ["Persistence", "Initial Access"], "techniques": [{"id": "T1195", "name": "Supply Chain Compromise"}]}

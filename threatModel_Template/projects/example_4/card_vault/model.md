@@ -31,28 +31,28 @@ bom_directory = BOM
 ## Servers
 - **TokenProxy**:
   boundary="HSM Zone",
-  type=application-server,
+  type=app_server,
   machine=physical,
   confidentiality=critical,
   integrity=critical,
   availability=high,
   mfa_enabled=True,
   auth_protocol=client-certificate,
-  encryption=AES-256,
+  encryption=data-with-symmetric-shared-key,
   credentials_stored=True,
   tags=[tokenization, detokenization, pci-dss, fips, whitelist],
   businessValue="Tokenization proxy — sole entry into vault, IP whitelist + mTLS enforced",
   entry_point=True
 - **HSM**:
   boundary="HSM Zone",
-  type=application-server,
+  type=app_server,
   machine=physical,
   confidentiality=critical,
   integrity=critical,
   availability=critical,
   mfa_enabled=True,
   auth_protocol=client-certificate,
-  encryption=AES-256,
+  encryption=data-with-symmetric-shared-key,
   tags=[hsm, pkcs11, fips-140-2, pci-dss, key-management],
   businessValue="Thales Luna HSM — key generation, AES-256 encryption/decryption, PKCS11"
 - **VaultDB**:
@@ -65,7 +65,7 @@ bom_directory = BOM
   redundant=True,
   mfa_enabled=True,
   auth_protocol=credentials,
-  encryption=AES-256,
+  encryption=data-with-symmetric-shared-key,
   credentials_stored=True,
   tags=[postgresql, tde, pgaudit, pci-dss, pan-storage],
   businessValue="PostgreSQL with Transparent Data Encryption — stores tokenized PAN data"

@@ -23,7 +23,7 @@ attack_objectives:
       code in all downstream build and production environments.
     target_asset_names:
       - "Git Repository"
-    target_types: ["git_repo", "source_control"]
+    target_types: ["repository", "source_control"]
     attacker_intent: "persistence, defense-evasion, execution"
     business_impact: "Full supply chain compromise; malicious code shipped to all customers"
     mitre_final_tactic: "execution"
@@ -38,7 +38,7 @@ attack_objectives:
       output to a malicious registry.
     target_asset_names:
       - "CIServer"
-    target_types: ["ci_cd_server", "build_server"]
+    target_types: ["cicd", "build_server"]
     attacker_intent: "credential-access, collection, exfiltration"
     business_impact: "All pipeline secrets exposed; attacker can deploy arbitrary containers to production"
     mitre_final_tactic: "credential-access"
@@ -52,7 +52,7 @@ attack_objectives:
       API endpoint. All deployments pulling from this registry will execute attacker-controlled code.
     target_asset_names:
       - "ArtifactRegistry"
-    target_types: ["docker_registry", "artifact_store"]
+    target_types: ["container_registry", "artifact_store"]
     attacker_intent: "persistence, lateral-movement"
     business_impact: "Malicious containers deployed to Kubernetes production cluster at next release cycle"
     mitre_final_tactic: "persistence"

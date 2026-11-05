@@ -1,5 +1,5 @@
 // Threat Model Configuration - Web UI
-// Generated on: 2026-08-29 18:37:54
+// Generated on: 2026-11-05 10:15:09
 // This file contains configuration for the threat model web interface
 
 const ThreatModelConfig = {
@@ -41,7 +41,10 @@ const ThreatModelConfig = {
         "ttc_link": "/static/resources/icons/ttc-link.svg",
         "ttclink": "/static/resources/icons/ttc-link.svg",
         "onboard_computer": "/static/resources/icons/onboard-computer.svg",
-        "onboardcomputer": "/static/resources/icons/onboard-computer.svg"
+        "onboardcomputer": "/static/resources/icons/onboard-computer.svg",
+        "app_server": "/static/resources/icons/server.svg",
+        "appserver": "/static/resources/icons/server.svg",
+        "waf": "/static/resources/icons/firewall.svg"
     },
     "DEFAULT_PROPERTIES": {
         "BOUNDARY": {

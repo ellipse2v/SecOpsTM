@@ -90,3 +90,38 @@ def test_dataflow_rule_threats_reach_the_threat_list():
         tm.process_threats()
     flow_targets = [target for _, target in tm.threats_raw if isinstance(target, Dataflow)]
     assert flow_targets, "no rule-based threat landed on a dataflow"
+
+
+# Every directory holding a model.md / main.md, sub-models and projects included.
+ALL_MODEL_DIRS = sorted(
+    str(p.parent.relative_to(TEMPLATE_ROOT))
+    for p in TEMPLATE_ROOT.rglob("*.md")
+    if p.name in ("model.md", "main.md")
+)
+
+
+@pytest.mark.parametrize("model_dir", ALL_MODEL_DIRS)
+def test_every_model_passes_cli_validate(model_dir, capsys):
+    """`secopstm validate` must pass on every bundled model (types, enums, BOM)."""
+    assert _cli_failures(model_dir, capsys) == []
+
+
+@pytest.mark.parametrize("model_dir", ALL_MODEL_DIRS)
+def test_custom_mitre_mapping_entries_parse(model_dir):
+    """Custom Mitre Mapping entries must be dict literals; the Kubernetes and
+    Serverless templates used `tactics=[...], techniques=[...]`, which
+    ast.literal_eval rejects, so their mappings were silently dropped."""
+    import ast
+    import re
+
+    base = TEMPLATE_ROOT / model_dir
+    model = base / "model.md" if (base / "model.md").exists() else base / "main.md"
+    section = re.search(
+        r"## Custom Mitre Mapping\n(.*?)(\n## |$)", model.read_text(encoding="utf-8"), re.DOTALL
+    )
+    if not section:
+        return
+    for line in section.group(1).strip().split("\n"):
+        entry = re.match(r"- \*\*(.*?)\*\*:\s*(.*)", line.strip())
+        if entry:
+            assert isinstance(ast.literal_eval(entry.group(2).strip()), dict), entry.group(1)

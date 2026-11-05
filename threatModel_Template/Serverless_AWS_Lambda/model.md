@@ -64,7 +64,7 @@ gdaf_context = context/gdaf_context.yaml
   description="User-uploaded files; server-side KMS encryption, versioning, Object Lock for compliance"
 - **S3 — Deployment Artifacts**: boundary="Data Stores", type="object_storage",
   description="Lambda ZIPs and CloudFormation templates — MFA delete, bucket policy deny public"
-- **SQS Queue**: boundary="Messaging / Event Bus", type="message_queue",
+- **SQS Queue**: boundary="Messaging / Event Bus", type="message_broker",
   description="Standard SQS queue with DLQ; SSE-SQS encryption, VPC endpoint"
 - **SNS Topic**: boundary="Messaging / Event Bus", type="message_broker",
   description="Fan-out to SQS subscribers and email/SMS; message filtering by attribute"
@@ -81,15 +81,15 @@ gdaf_context = context/gdaf_context.yaml
   credentials_stored=True
 - **CloudWatch Logs + Metrics**: boundary="Observability", type="monitoring",
   description="Centralised log aggregation for all Lambda functions; metric alarms"
-- **CloudTrail**: boundary="Observability", type="audit",
+- **CloudTrail**: boundary="Observability", type="monitoring",
   description="API audit trail — all management and data events, S3 integrity validation"
-- **AWS Config**: boundary="Observability", type="compliance",
+- **AWS Config**: boundary="Observability", type="monitoring",
   description="Continuous compliance rules (no-public-S3, IAM-no-root-access-key, etc.)"
 
 ## Data
 - **JWT / Cognito Tokens**: credentialsLife=SHORT, classification=SECRET,
   description="Short-lived OIDC tokens — 1h expiry, rotated on refresh"
-- **IAM Temporary Credentials (STS)**: credentialsLife=SHORTLIVED, classification=SECRET,
+- **IAM Temporary Credentials (STS)**: credentialsLife=SHORT, classification=SECRET,
   description="AssumeRole session tokens — max 1h TTL on Lambda execution roles"
 - **Database Passwords (Secrets Manager)**: credentialsLife=LONG, classification=SECRET,
   description="Auto-rotated every 30 days; accessed at Lambda cold start"
@@ -147,12 +147,12 @@ gdaf_context = context/gdaf_context.yaml
 - **Amazon Cognito**: 1.4
 
 ## Custom Mitre Mapping
-- **IAM Privilege Escalation via Lambda Role**: tactics=["Privilege Escalation"], techniques=[{"id": "T1078", "name": "Valid Accounts"}, {"id": "T1098", "name": "Account Manipulation"}]
-- **Lambda Event Injection (SQS/SNS payload)**: tactics=["Execution"], techniques=[{"id": "T1059", "name": "Command and Scripting Interpreter"}]
-- **S3 Bucket Policy Misconfiguration**: tactics=["Collection", "Exfiltration"], techniques=[{"id": "T1530", "name": "Data from Cloud Storage Object"}]
-- **Secrets Manager Exfiltration via Compromised Role**: tactics=["Credential Access"], techniques=[{"id": "T1528", "name": "Steal Application Access Token"}, {"id": "T1552", "name": "Unsecured Credentials"}]
-- **SSRF to EC2 Metadata (IMDSv1)**: tactics=["Credential Access", "Discovery"], techniques=[{"id": "T1552", "name": "Unsecured Credentials"}, {"id": "T1190", "name": "Exploit Public-Facing Application"}]
-- **Supply Chain via Deployment Bucket**: tactics=["Initial Access", "Persistence"], techniques=[{"id": "T1195", "name": "Supply Chain Compromise"}]
-- **CloudTrail Disable / Log Tampering**: tactics=["Defense Evasion"], techniques=[{"id": "T1562", "name": "Impair Defenses"}]
-- **Cognito Account Takeover**: tactics=["Initial Access"], techniques=[{"id": "T1078", "name": "Valid Accounts"}, {"id": "T1110", "name": "Brute Force"}]
-- **Data Exfiltration via S3 Cross-Account Copy**: tactics=["Exfiltration"], techniques=[{"id": "T1537", "name": "Transfer Data to Cloud Account"}]
+- **IAM Privilege Escalation via Lambda Role**: {"tactics": ["Privilege Escalation"], "techniques": [{"id": "T1078", "name": "Valid Accounts"}, {"id": "T1098", "name": "Account Manipulation"}]}
+- **Lambda Event Injection (SQS/SNS payload)**: {"tactics": ["Execution"], "techniques": [{"id": "T1059", "name": "Command and Scripting Interpreter"}]}
+- **S3 Bucket Policy Misconfiguration**: {"tactics": ["Collection", "Exfiltration"], "techniques": [{"id": "T1530", "name": "Data from Cloud Storage Object"}]}
+- **Secrets Manager Exfiltration via Compromised Role**: {"tactics": ["Credential Access"], "techniques": [{"id": "T1528", "name": "Steal Application Access Token"}, {"id": "T1552", "name": "Unsecured Credentials"}]}
+- **SSRF to EC2 Metadata (IMDSv1)**: {"tactics": ["Credential Access", "Discovery"], "techniques": [{"id": "T1552", "name": "Unsecured Credentials"}, {"id": "T1190", "name": "Exploit Public-Facing Application"}]}
+- **Supply Chain via Deployment Bucket**: {"tactics": ["Initial Access", "Persistence"], "techniques": [{"id": "T1195", "name": "Supply Chain Compromise"}]}
+- **CloudTrail Disable / Log Tampering**: {"tactics": ["Defense Evasion"], "techniques": [{"id": "T1562", "name": "Impair Defenses"}]}
+- **Cognito Account Takeover**: {"tactics": ["Initial Access"], "techniques": [{"id": "T1078", "name": "Valid Accounts"}, {"id": "T1110", "name": "Brute Force"}]}
+- **Data Exfiltration via S3 Cross-Account Copy**: {"tactics": ["Exfiltration"], "techniques": [{"id": "T1537", "name": "Transfer Data to Cloud Account"}]}

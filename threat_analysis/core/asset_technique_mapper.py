@@ -460,6 +460,10 @@ class AssetTechniqueMapper:
         # Exact key match takes priority
         if t in asset_types:
             return t
+        # "web_server" → "web-server": registry keys use hyphens
+        hyphenated = t.replace("_", "-")
+        if hyphenated in asset_types:
+            return hyphenated
         # Fuzzy substring matching — YAML declaration order determines priority
         for type_key, entry in asset_types.items():
             for pattern in entry.get("fuzzy_matches", []):

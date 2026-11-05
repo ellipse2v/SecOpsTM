@@ -86,7 +86,7 @@ bom_directory = BOM
 - **BackendServices**:
   submodel=./backend/model.md,
   boundary="Application Zone",
-  type=application-server,
+  type=app_server,
   confidentiality=high,
   integrity=critical,
   availability=high,

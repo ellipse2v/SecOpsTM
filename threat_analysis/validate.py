@@ -47,7 +47,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from threat_analysis.core.bom_loader import _normalize_asset_key as _normalize_bom_key
+from threat_analysis.core.bom_loader import (
+    _compact_asset_key,
+    _normalize_asset_key as _normalize_bom_key,
+)
 from threat_analysis.core.dsl_constants import (
     DSL_ENUMS,
     SEVERITY_MULTIPLIER_MIN,
@@ -67,6 +70,10 @@ def _load_registry_types(path: Path) -> set:
         return set()
     types = data.get('asset_types') if isinstance(data, dict) else None
     return set(types.keys()) if isinstance(types, dict) else set()
+
+
+def _canonical_type(server_type: Any) -> str:
+    return str(server_type).strip().lower().replace('_', '-')
 
 
 _CJK_RE = re.compile(r'[一-鿿㐀-䶿]')
@@ -273,7 +280,10 @@ class ThreatModelValidator:
             | self._registry_types
             | self._custom_server_types
         )
-        if server_type not in valid_types:
+        # "web_server" and "web-server" name the same type: the diagram layer
+        # uses underscores, the registry uses hyphens.
+        canonical = {_canonical_type(t) for t in valid_types}
+        if _canonical_type(server_type) not in canonical:
             self._fail(
                 f"Server '{name}': type={server_type!r} not in standard types and "
                 f"not defined in an asset_types_community.yaml registry",
@@ -318,8 +328,14 @@ class ThreatModelValidator:
         context_bom = self._model.context.get('bom_directory')
         if context_bom:
             bom_dir = self.model_dir / context_bom
+        # A server with submodel= stands for a whole sub-model: its components
+        # carry their own BOM files in the sub-model directory.
+        bom_servers = [
+            name for name, props in self._model.servers.items()
+            if not props.get('submodel')
+        ]
         if not bom_dir.exists():
-            if self._model.servers:
+            if bom_servers:
                 self._fail(f"BOM directory not found: {bom_dir}")
             return
         # Collect normalised keys for all BOM file stems (YAML + CycloneDX JSON)
@@ -332,10 +348,10 @@ class ThreatModelValidator:
                 stem = f.stem
             else:
                 continue
-            existing_bom.add(_normalize_bom_key(stem))
-        for server_name in self._model.servers:
+            existing_bom.add(_compact_asset_key(stem))
+        for server_name in bom_servers:
             normalised = _normalize_bom_key(server_name)
-            if normalised not in existing_bom:
+            if _compact_asset_key(server_name) not in existing_bom:
                 self._fail(
                     f"Server '{server_name}': no BOM file found "
                     f"(expected BOM/{normalised}.yaml)",

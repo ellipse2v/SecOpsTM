@@ -43,7 +43,6 @@ bom_directory = BOM
   waf=True,
   mfa_enabled=True,
   auth_protocol=oauth,
-  encryption=TLS,
   tags=[kong, jwt-validation, rate-limiting, active],
   businessValue="Primary Kong instance — JWT validation, rate limiting, routing"
 - **GatewayInstance_2**:
@@ -57,7 +56,6 @@ bom_directory = BOM
   waf=True,
   mfa_enabled=True,
   auth_protocol=oauth,
-  encryption=TLS,
   tags=[kong, jwt-validation, rate-limiting, standby],
   businessValue="Secondary Kong instance — active-active for availability"
 

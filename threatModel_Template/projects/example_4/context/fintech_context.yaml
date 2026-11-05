@@ -28,7 +28,7 @@ attack_objectives:
       Exfiltrate cardholder data (PAN, CVV, expiry) stored in the vault or
       in-transit through the payment processing pipeline.
     target_asset_names: [CardVault, VaultDB, HSM, ChargeService]
-    target_types: [database, application-server]
+    target_types: [database, app_server]
     attacker_intent: financial_gain
     business_impact: "PCI-DSS breach, fines up to 20M EUR GDPR, card network de-certification"
     mitre_final_tactic: Exfiltration
@@ -40,7 +40,7 @@ attack_objectives:
       Bypass fraud detection to inject fraudulent transactions, manipulate
       authorization responses, or submit unauthorized charges.
     target_asset_names: [ChargeService, FraudEngine, MLEngine, RulesEngine]
-    target_types: [application-server]
+    target_types: [app_server]
     attacker_intent: financial_gain
     business_impact: "Direct financial loss, chargeback liability, merchant trust damage"
     mitre_final_tactic: Impact
@@ -52,7 +52,7 @@ attack_objectives:
       Disrupt payment processing availability through DoS against the API gateway,
       exhaustion of HSM capacity, or corruption of settlement batch processing.
     target_asset_names: [APIGateway, WAF, HSM, MessageBroker]
-    target_types: [web-server, firewall, application-server]
+    target_types: [web-server, firewall, app_server]
     attacker_intent: disruption
     business_impact: "Revenue loss ~2M USD/hour, SLA penalties, merchant churn"
     mitre_final_tactic: Impact
@@ -64,7 +64,7 @@ attack_objectives:
       Compromise HSM master keys or mTLS certificate private keys used for
       inter-service authentication to forge payment tokens or intercept transactions.
     target_asset_names: [HSM, TokenProxy, APIGateway]
-    target_types: [application-server, web-server]
+    target_types: [app_server, web-server]
     attacker_intent: financial_gain
     business_impact: "All historical tokenized cards compromised, full re-issuance required"
     mitre_final_tactic: Credential Access

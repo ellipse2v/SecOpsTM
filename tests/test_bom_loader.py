@@ -470,3 +470,15 @@ class TestParseCycloneDXVexStates:
         data = self._cdx([self._vuln("CVE-2021-9999", "resolved_with_pedigree")])
         result = _parse_cyclonedx(data)
         assert "CVE-2021-9999" in result["fixed_cves"]
+
+
+def test_camelcase_asset_finds_snake_case_bom(tmp_path):
+    """Templates name servers "CIServer" but BOM files "ci_server.yaml"; the
+    loader used to miss them, so their CVEs and services never reached GDAF."""
+    from threat_analysis.core.bom_loader import BOMLoader
+
+    (tmp_path / "ci_server.yaml").write_text("asset: CIServer\nknown_cves: [CVE-2024-23897]\n")
+    loader = BOMLoader(str(tmp_path))
+    assert loader.get("CIServer")["known_cves"] == ["CVE-2024-23897"]
+    assert loader.get("ci_server")["known_cves"] == ["CVE-2024-23897"]
+    assert loader.get("UnknownServer") == {}

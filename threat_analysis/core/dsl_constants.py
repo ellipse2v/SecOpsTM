@@ -79,6 +79,8 @@ DSL_ENUMS: Dict[str, List[Any]] = {
     # Authentication protocol
     "Server.auth_protocol": [
         "none", "ldap", "kerberos", "saml", "oauth", "oidc", "radius",
+        # Local password auth and mutual TLS (same vocabulary as Dataflow.authentication)
+        "credentials", "client-certificate",
     ],
     # Firewall-specific (validated only when type=firewall)
     "Server.waf": [True, False],

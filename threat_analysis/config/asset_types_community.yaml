@@ -350,6 +350,219 @@ asset_types:
     fuzzy_matches: [obc, flight computer, onboard computer, cdh, adcs, eps]
     icon_url: "/static/resources/icons/onboard-computer.svg"
 
+  # ── Generic and modern architecture types used by the templates ────────────
+  # Underscore spellings ("app_server", "object_storage") resolve to these
+  # hyphen keys: AssetTechniqueMapper and `secopstm validate` treat "_" and "-"
+  # as equivalent. Declared after the specialised types so their fuzzy_matches
+  # never take precedence over an existing entry.
+
+  server:
+    description: "Generic server with no more specific role"
+    category: server
+    platforms: [Windows, Linux]
+    tactics: [initial-access, execution, persistence, lateral-movement]
+    key_techniques: [T1190, T1078, T1021]
+    fuzzy_matches: []
+    icon_url: "/static/resources/icons/server.svg"
+
+  app-server:
+    description: "Application server or backend service running business logic"
+    category: server
+    platforms: [Linux, Windows, Containers]
+    tactics: [initial-access, execution, persistence, credential-access, lateral-movement]
+    key_techniques: [T1190, T1059, T1505.003, T1552.001]
+    fuzzy_matches: [app server, application server, appserver, backend service]
+    icon_url: "/static/resources/icons/server.svg"
+
+  switch:
+    description: "Network switch (L2/L3)"
+    category: network
+    platforms: [Network Devices]
+    tactics: [discovery, lateral-movement, defense-evasion, collection]
+    key_techniques: [T1557, T1040, T1599, T1601]
+    fuzzy_matches: []
+    icon_url: "/static/resources/icons/switch.svg"
+
+  client-browser:
+    description: "End-user web browser (client side of a web application)"
+    category: endpoint
+    platforms: [Windows, macOS, Linux]
+    tactics: [initial-access, execution, credential-access, collection]
+    key_techniques: [T1189, T1185, T1539, T1204.001]
+    fuzzy_matches: [browser]
+    icon_url: ""
+
+  mobile-application:
+    description: "Mobile application installed on end-user iOS or Android devices"
+    category: endpoint
+    platforms: [Android, iOS]
+    tactics: [initial-access, credential-access, collection, exfiltration]
+    key_techniques: [T1406, T1409, T1414, T1417]
+    fuzzy_matches: [mobile app, mobile application]
+    icon_url: ""
+
+  cdn:
+    description: "Content delivery network edge (CloudFront, Akamai, Cloudflare)"
+    category: cloud
+    platforms: [IaaS, SaaS]
+    tactics: [initial-access, defense-evasion, impact]
+    key_techniques: [T1190, T1090.004, T1584.004, T1498]
+    fuzzy_matches: [cdn, cloudfront, akamai]
+    icon_url: ""
+
+  waf:
+    description: "Web application firewall (managed or appliance)"
+    category: network
+    platforms: [Network Devices, IaaS]
+    tactics: [defense-evasion, initial-access]
+    key_techniques: [T1562.001, T1190, T1599]
+    fuzzy_matches: [waf, web application firewall]
+    icon_url: "/static/resources/icons/firewall.svg"
+
+  faas:
+    description: "Serverless function (AWS Lambda, Azure Functions, Google Cloud Functions)"
+    category: cloud
+    platforms: [IaaS]
+    tactics: [initial-access, execution, persistence, credential-access, privilege-escalation]
+    key_techniques: [T1190, T1648, T1552.005, T1078.004, T1525]
+    fuzzy_matches: [faas, lambda, serverless function, cloud function]
+    icon_url: ""
+
+  object-storage:
+    description: "Cloud object storage bucket (S3, Azure Blob, GCS)"
+    category: cloud
+    platforms: [IaaS]
+    tactics: [collection, exfiltration, impact, discovery]
+    key_techniques: [T1530, T1619, T1537, T1485, T1486]
+    fuzzy_matches: [object storage, bucket, blob storage]
+    icon_url: ""
+
+  scheduler:
+    description: "Job scheduler or cloud event scheduler (EventBridge Scheduler, cron service)"
+    category: cloud
+    platforms: [IaaS, Linux]
+    tactics: [execution, persistence, privilege-escalation]
+    key_techniques: [T1053, T1053.007, T1648]
+    fuzzy_matches: [scheduler, eventbridge]
+    icon_url: ""
+
+  identity-provider:
+    description: "Identity provider issuing user identities and tokens (Cognito, Okta, Entra ID, Keycloak)"
+    category: identity
+    platforms: [Identity Provider, SaaS]
+    tactics: [credential-access, initial-access, persistence, privilege-escalation]
+    key_techniques: [T1078.004, T1110, T1556.007, T1606.002, T1528]
+    fuzzy_matches: [identity provider, idp, cognito, okta, keycloak]
+    icon_url: ""
+
+  iam:
+    description: "Cloud identity and access management service (AWS IAM/STS, Azure RBAC, GCP IAM)"
+    category: identity
+    platforms: [IaaS, Identity Provider]
+    tactics: [privilege-escalation, persistence, credential-access, defense-evasion]
+    key_techniques: [T1078.004, T1098.001, T1098.003, T1550.001, T1552.005]
+    fuzzy_matches: []
+    icon_url: ""
+
+  kubernetes-cluster:
+    description: "Kubernetes cluster (control plane and worker nodes)"
+    category: cloud
+    platforms: [Containers, Linux]
+    tactics: [execution, persistence, privilege-escalation, lateral-movement, discovery]
+    key_techniques: [T1609, T1610, T1611, T1613, T1552.007]
+    fuzzy_matches: [kubernetes, k8s, kube cluster]
+    icon_url: ""
+
+  service-discovery:
+    description: "Service registry and discovery (Consul, Eureka, etcd)"
+    category: server
+    platforms: [Linux, Containers]
+    tactics: [discovery, defense-evasion, lateral-movement, credential-access]
+    key_techniques: [T1046, T1557, T1552.001]
+    fuzzy_matches: [service discovery, consul, eureka]
+    icon_url: ""
+
+  payment-gateway:
+    description: "Third-party or internal payment gateway processing card transactions"
+    category: cloud
+    platforms: [SaaS, Linux]
+    tactics: [initial-access, collection, exfiltration, impact]
+    key_techniques: [T1190, T1557, T1565.002, T1199]
+    fuzzy_matches: [payment gateway, payment processor, psp]
+    icon_url: ""
+
+  iot-hub:
+    description: "Cloud IoT hub brokering device telemetry and commands (AWS IoT Core, Azure IoT Hub)"
+    category: iot
+    platforms: [IaaS, SaaS]
+    tactics: [initial-access, command-and-control, collection, impact]
+    key_techniques: [T1190, T1078.004, T1071, T1565.002]
+    fuzzy_matches: [iot hub, iot core]
+    icon_url: ""
+
+  device-management-service:
+    description: "Fleet or device management service pushing configuration and firmware updates"
+    category: iot
+    platforms: [Linux, SaaS]
+    tactics: [initial-access, execution, persistence, lateral-movement]
+    key_techniques: [T1072, T1195.002, T1078, T1542]
+    fuzzy_matches: [device management, mdm, fleet management]
+    icon_url: ""
+
+  analytics-engine:
+    description: "Analytics or stream processing engine over collected data"
+    category: server
+    platforms: [Linux, IaaS]
+    tactics: [collection, exfiltration, execution]
+    key_techniques: [T1213, T1530, T1059]
+    fuzzy_matches: [analytics engine, stream processing]
+    icon_url: ""
+
+  data-warehouse:
+    description: "Analytical data warehouse (Snowflake, Redshift, BigQuery, Synapse)"
+    category: cloud
+    platforms: [IaaS, SaaS]
+    tactics: [collection, exfiltration, credential-access, impact]
+    key_techniques: [T1213, T1530, T1078.004, T1537, T1485]
+    fuzzy_matches: [data warehouse, snowflake, redshift, bigquery]
+    icon_url: ""
+
+  data-lakehouse:
+    description: "Data lake or lakehouse platform (Databricks, Delta Lake, Iceberg)"
+    category: cloud
+    platforms: [IaaS, SaaS]
+    tactics: [collection, exfiltration, impact, discovery]
+    key_techniques: [T1530, T1619, T1537, T1485]
+    fuzzy_matches: [data lake, lakehouse, databricks]
+    icon_url: ""
+
+  etl-tools:
+    description: "ETL / ELT pipeline moving data between sources and analytical stores"
+    category: server
+    platforms: [Linux, IaaS]
+    tactics: [execution, credential-access, collection, impact]
+    key_techniques: [T1552.001, T1059, T1565.001, T1530]
+    fuzzy_matches: [etl, elt, data pipeline]
+    icon_url: ""
+
+  bi-tools:
+    description: "Business intelligence and dashboarding tools (Tableau, Power BI, Looker)"
+    category: server
+    platforms: [SaaS, Windows, Linux]
+    tactics: [initial-access, credential-access, collection, exfiltration]
+    key_techniques: [T1078, T1213, T1567]
+    fuzzy_matches: [business intelligence, tableau, power bi, looker]
+    icon_url: ""
+
+  compute-cluster:
+    description: "Distributed compute cluster (Spark, Hadoop, Dask)"
+    category: server
+    platforms: [Linux, IaaS]
+    tactics: [execution, lateral-movement, impact, collection]
+    key_techniques: [T1059, T1609, T1496, T1530]
+    fuzzy_matches: [spark, hadoop, compute cluster]
+    icon_url: ""
+
   # ── Default ─────────────────────────────────────────────────────────────────
 
   default:
