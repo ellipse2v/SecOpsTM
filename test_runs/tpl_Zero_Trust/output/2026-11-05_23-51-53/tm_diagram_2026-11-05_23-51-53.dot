@@ -1,0 +1,145 @@
+digraph ThreatModel {
+  rankdir=LR;
+  node [shape=box];
+  edge [fontsize=10];
+  splines=true;
+  overlap=false;
+  nodesep=0.5;
+  ranksep=0.6;
+  charset="UTF-8";
+
+  
+
+  
+    
+  subgraph cluster_untrusted_network {
+    label="Untrusted Network";
+    "__hidden_node_untrusted_network" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,dashed";
+    
+    fillcolor="red";
+    
+    
+    color="#c62828";
+    penwidth=2;
+    
+    
+    "User" [fixedsize=shape, shape=circle, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>User</TD></TR></TABLE>>, id="User"];
+    
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_trusted_network {
+    label="Trusted Network";
+    "__hidden_node_trusted_network" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="green";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    "Administrator" [fixedsize=shape, shape=circle, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>Administrator</TD></TR></TABLE>>, id="Administrator"];
+    
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_identity_provider__idp_ {
+    label="Identity Provider (IdP)";
+    "__hidden_node_identity_provider__idp_" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="purple";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    
+    "Authentication Service" [shape=box, style=filled, fillcolor="lightblue", label="Authentication Service", id="Authentication_Service"];
+    
+    "Authorization Service" [shape=box, style=filled, fillcolor="lightblue", label="Authorization Service", id="Authorization_Service"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_policy_enforcement_point__pep_ {
+    label="Policy Enforcement Point (PEP)";
+    "__hidden_node_policy_enforcement_point__pep_" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="blue";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    
+    "Policy Engine" [shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/api-gateway.svg" SCALE="TRUE"/></TD></TR><TR><TD>Policy Engine</TD></TR></TABLE>>, id="Policy_Engine"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_workload {
+    label="Workload";
+    "__hidden_node_workload" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="lightblue";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    
+    "Microservice A" [shape=box, style=filled, fillcolor="lightblue", label="Microservice A", id="Microservice_A"];
+    
+    "Microservice B" [shape=box, style=filled, fillcolor="lightblue", label="Microservice B", id="Microservice_B"];
+    
+    
+  }
+  
+  
+
+  
+
+  
+
+  
+  "User" -> "Authentication Service" [dir="both", label="
+↔️ Bidirectional", color="darkgreen", style="solid", label=<Auth Request<BR/>Protocol: HTTPS>, id="edge_User_Authentication_Service", fontsize=7, class="protocol-HTTPS"];
+  
+  "User" -> "Policy Engine" [label="", color="darkgreen", style="solid", label=<Access Request<BR/>Protocol: HTTPS>, id="edge_User_Policy_Engine", fontsize=7, class="protocol-HTTPS"];
+  
+  "Policy Engine" -> "Authorization Service" [dir="both", label="
+↔️ Bidirectional", color="gray", style="dashed", label=<Policy Eval<BR/>Protocol: Internal API>, id="edge_Policy_Engine_Authorization_Service", fontsize=7, class="protocol-Internal_API"];
+  
+  "Policy Engine" -> "Microservice A" [label="", color="blue", style="solid", label=<Authorized Access<BR/>Protocol: Encrypted TLS>, id="edge_Policy_Engine_Microservice_A", fontsize=7, class="protocol-Encrypted_TLS"];
+  
+  "Microservice A" -> "Microservice B" [label="", color="blue", style="solid", label=<Inter-service<BR/>Protocol: Encrypted TLS>, id="edge_Microservice_A_Microservice_B", fontsize=7, class="protocol-Encrypted_TLS"];
+  
+  "Administrator" -> "Policy Engine" [label="", color="darkgreen", style="solid", label=<Admin Management<BR/>Protocol: HTTPS>, id="edge_Administrator_Policy_Engine", fontsize=7, class="protocol-HTTPS"];
+  
+
+  
+}

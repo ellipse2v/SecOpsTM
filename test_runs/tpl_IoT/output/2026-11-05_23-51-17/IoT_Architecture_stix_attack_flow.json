@@ -1,0 +1,2500 @@
+{
+    "type": "bundle",
+    "id": "bundle--42beea00-27df-4dc9-81d8-e7b27a899eac",
+    "spec_version": "2.1",
+    "objects": [
+        {
+            "type": "extension-definition",
+            "id": "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4",
+            "spec_version": "2.1",
+            "created": "2022-08-02T19:34:35.143Z",
+            "modified": "2022-08-02T19:34:35.143Z",
+            "name": "Attack Flow",
+            "description": "Extends STIX 2.1 with features to create Attack Flows.",
+            "created_by_ref": "identity--f3a9f41b-0e55-46fb-9786-fce25cb39079",
+            "schema": "https://center-for-threat-informed-defense.github.io/attack-flow/stix/attack-flow-schema-2.0.0.json",
+            "version": "2.0.0",
+            "extension_types": [
+                "new-sdo"
+            ]
+        },
+        {
+            "type": "identity",
+            "id": "identity--f3a9f41b-0e55-46fb-9786-fce25cb39079",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.823891Z",
+            "modified": "2026-11-05T23:51:19.823912Z",
+            "name": "Threat Model Analysis Tool",
+            "identity_class": "tool"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--375d0cf5-1cef-4bc2-b07c-f29ca543bc5a",
+            "created": "2026-11-05T23:51:19.823922Z",
+            "modified": "2026-11-05T23:51:19.823925Z",
+            "name": "Unpatched OS or software vulnerabilities on IoT Gateway Server leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on IoT Gateway Server leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--bd5879cf-d45f-43a8-b2c4-2d74b32f18a8"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--bd5879cf-d45f-43a8-b2c4-2d74b32f18a8",
+            "created": "2026-11-05T23:51:19.823935Z",
+            "modified": "2026-11-05T23:51:19.823937Z",
+            "name": "IoT Gateway Server",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on IoT Gateway Server leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--d97593e6-7227-4b97-8a3c-1875246a78a0",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.823946Z",
+            "modified": "2026-11-05T23:51:19.823950Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--375d0cf5-1cef-4bc2-b07c-f29ca543bc5a",
+            "target_ref": "attack-asset--bd5879cf-d45f-43a8-b2c4-2d74b32f18a8"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--69510724-8aff-4647-b60f-e627478b5e9f",
+            "created": "2026-11-05T23:51:19.823960Z",
+            "modified": "2026-11-05T23:51:19.823963Z",
+            "name": "Unauthorized privilege escalation on IoT Gateway Server due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on IoT Gateway Server due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--0d4ce99b-69ca-46cd-9581-531cfe202d18"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--0d4ce99b-69ca-46cd-9581-531cfe202d18",
+            "created": "2026-11-05T23:51:19.823971Z",
+            "modified": "2026-11-05T23:51:19.823974Z",
+            "name": "IoT Gateway Server",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on IoT Gateway Server due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--823af27b-f0df-4383-a83d-50f6c9a96ccf",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.823981Z",
+            "modified": "2026-11-05T23:51:19.823984Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--69510724-8aff-4647-b60f-e627478b5e9f",
+            "target_ref": "attack-asset--0d4ce99b-69ca-46cd-9581-531cfe202d18"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--0455db5a-547a-4f2c-b656-d8c97e790467",
+            "created": "2026-11-05T23:51:19.823991Z",
+            "modified": "2026-11-05T23:51:19.823993Z",
+            "name": "Potential for spoofing attacks on data crossing trust boundaries from IoT Gateway Server to IoT Hub without proper authentication",
+            "description": "Potential for spoofing attacks on data crossing trust boundaries from IoT Gateway Server to IoT Hub without proper authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--ab651277-2530-4257-a1da-f954814c325c"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--ab651277-2530-4257-a1da-f954814c325c",
+            "created": "2026-11-05T23:51:19.824000Z",
+            "modified": "2026-11-05T23:51:19.824002Z",
+            "name": "Gateway to Cloud",
+            "description": "Asset targeted by threat: Potential for spoofing attacks on data crossing trust boundaries from IoT Gateway Server to IoT Hub without proper authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--2e313a7e-1436-4c40-ac6d-d7942e0c7bd1",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824009Z",
+            "modified": "2026-11-05T23:51:19.824011Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--0455db5a-547a-4f2c-b656-d8c97e790467",
+            "target_ref": "attack-asset--ab651277-2530-4257-a1da-f954814c325c"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--f61f02d7-ed27-46bc-b66d-105c778f9bdb",
+            "created": "2026-11-05T23:51:19.824018Z",
+            "modified": "2026-11-05T23:51:19.824020Z",
+            "name": "Potential for spoofing attacks on data crossing trust boundaries from Device Management Service to IoT Gateway Server without proper authentication",
+            "description": "Potential for spoofing attacks on data crossing trust boundaries from Device Management Service to IoT Gateway Server without proper authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--b7ca847d-898f-43a1-afa2-31cf050cf7cc"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--b7ca847d-898f-43a1-afa2-31cf050cf7cc",
+            "created": "2026-11-05T23:51:19.824026Z",
+            "modified": "2026-11-05T23:51:19.824028Z",
+            "name": "Command to Gateway",
+            "description": "Asset targeted by threat: Potential for spoofing attacks on data crossing trust boundaries from Device Management Service to IoT Gateway Server without proper authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--c8dfca58-8b86-4f16-9f48-693984a26f77",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824035Z",
+            "modified": "2026-11-05T23:51:19.824037Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--f61f02d7-ed27-46bc-b66d-105c778f9bdb",
+            "target_ref": "attack-asset--b7ca847d-898f-43a1-afa2-31cf050cf7cc"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--86dd011b-ffb0-44f9-924b-71d8c63965c4",
+            "created": "2026-11-05T23:51:19.824045Z",
+            "modified": "2026-11-05T23:51:19.824047Z",
+            "name": "Potential for spoofing attacks on data crossing trust boundaries from Device Administrator to Device Management Service without proper authentication",
+            "description": "Potential for spoofing attacks on data crossing trust boundaries from Device Administrator to Device Management Service without proper authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--4ab0a082-082a-4e4d-af4c-6cc671669d15"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--4ab0a082-082a-4e4d-af4c-6cc671669d15",
+            "created": "2026-11-05T23:51:19.824054Z",
+            "modified": "2026-11-05T23:51:19.824056Z",
+            "name": "Admin to Device Mgmt",
+            "description": "Asset targeted by threat: Potential for spoofing attacks on data crossing trust boundaries from Device Administrator to Device Management Service without proper authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--fa0e9824-856e-4145-868d-af921e4c01c2",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824062Z",
+            "modified": "2026-11-05T23:51:19.824064Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--86dd011b-ffb0-44f9-924b-71d8c63965c4",
+            "target_ref": "attack-asset--4ab0a082-082a-4e4d-af4c-6cc671669d15"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--1089b44e-f0f5-453b-9834-0113163cf531",
+            "created": "2026-11-05T23:51:19.824072Z",
+            "modified": "2026-11-05T23:51:19.824075Z",
+            "name": "Unpatched OS or software vulnerabilities on IoT Hub leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on IoT Hub leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--d196e11d-1ebc-4098-89d3-7ff7bc5d1151"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--d196e11d-1ebc-4098-89d3-7ff7bc5d1151",
+            "created": "2026-11-05T23:51:19.824081Z",
+            "modified": "2026-11-05T23:51:19.824083Z",
+            "name": "IoT Hub",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on IoT Hub leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--2d564006-eca6-4db2-b2c1-7421a21b1a86",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824089Z",
+            "modified": "2026-11-05T23:51:19.824092Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--1089b44e-f0f5-453b-9834-0113163cf531",
+            "target_ref": "attack-asset--d196e11d-1ebc-4098-89d3-7ff7bc5d1151"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--c880be96-b143-4e6d-af9a-2dd9d441bd52",
+            "created": "2026-11-05T23:51:19.824100Z",
+            "modified": "2026-11-05T23:51:19.824102Z",
+            "name": "Unpatched OS or software vulnerabilities on Data Storage leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on Data Storage leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--5e5cd20e-668e-4d9c-b6b9-93c91c6be185"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--5e5cd20e-668e-4d9c-b6b9-93c91c6be185",
+            "created": "2026-11-05T23:51:19.824109Z",
+            "modified": "2026-11-05T23:51:19.824111Z",
+            "name": "Data Storage",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on Data Storage leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--e81527f2-737d-48be-bcb8-e819267eea7a",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824117Z",
+            "modified": "2026-11-05T23:51:19.824119Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--c880be96-b143-4e6d-af9a-2dd9d441bd52",
+            "target_ref": "attack-asset--5e5cd20e-668e-4d9c-b6b9-93c91c6be185"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--be534913-cf42-4dcf-a4aa-c2aa28a80200",
+            "created": "2026-11-05T23:51:19.824131Z",
+            "modified": "2026-11-05T23:51:19.824133Z",
+            "name": "Data corruption or tampering in Data Storage via unauthorized write access",
+            "description": "Data corruption or tampering in Data Storage via unauthorized write access",
+            "technique_id": "T1221",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--9caea1c5-c5fb-4133-8872-170b27874a36"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--9caea1c5-c5fb-4133-8872-170b27874a36",
+            "created": "2026-11-05T23:51:19.824141Z",
+            "modified": "2026-11-05T23:51:19.824144Z",
+            "name": "Data Storage",
+            "description": "Asset targeted by threat: Data corruption or tampering in Data Storage via unauthorized write access",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--5b133718-c646-4444-b578-012f57bb4b77",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824152Z",
+            "modified": "2026-11-05T23:51:19.824154Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--be534913-cf42-4dcf-a4aa-c2aa28a80200",
+            "target_ref": "attack-asset--9caea1c5-c5fb-4133-8872-170b27874a36"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--dba473d2-e60c-4282-b99f-450c91431381",
+            "created": "2026-11-05T23:51:19.824162Z",
+            "modified": "2026-11-05T23:51:19.824164Z",
+            "name": "Unpatched OS or software vulnerabilities on Analytics Engine leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on Analytics Engine leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--87bf0f25-7653-4217-a9ba-61ab49129d22"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--87bf0f25-7653-4217-a9ba-61ab49129d22",
+            "created": "2026-11-05T23:51:19.824171Z",
+            "modified": "2026-11-05T23:51:19.824173Z",
+            "name": "Analytics Engine",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on Analytics Engine leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--78253650-4d25-4cce-86ea-64cedf7cadca",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824179Z",
+            "modified": "2026-11-05T23:51:19.824181Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--dba473d2-e60c-4282-b99f-450c91431381",
+            "target_ref": "attack-asset--87bf0f25-7653-4217-a9ba-61ab49129d22"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--f95d6d82-c70b-4e40-86fa-c18b7e93648f",
+            "created": "2026-11-05T23:51:19.824188Z",
+            "modified": "2026-11-05T23:51:19.824190Z",
+            "name": "Unpatched OS or software vulnerabilities on Device Management Service leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on Device Management Service leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--9dca3438-c285-465a-8347-0dcc65304d25"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--9dca3438-c285-465a-8347-0dcc65304d25",
+            "created": "2026-11-05T23:51:19.824197Z",
+            "modified": "2026-11-05T23:51:19.824199Z",
+            "name": "Device Management Service",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on Device Management Service leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--01e94640-d403-4e21-8e07-e9c1a7c69790",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824206Z",
+            "modified": "2026-11-05T23:51:19.824209Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--f95d6d82-c70b-4e40-86fa-c18b7e93648f",
+            "target_ref": "attack-asset--9dca3438-c285-465a-8347-0dcc65304d25"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--834a7c07-7cbc-403b-8be3-5e66c30eaf10",
+            "created": "2026-11-05T23:51:19.824215Z",
+            "modified": "2026-11-05T23:51:19.824217Z",
+            "name": "Unauthorized access to sensitive data stored in Data Storage leading to data breach",
+            "description": "Unauthorized access to sensitive data stored in Data Storage leading to data breach",
+            "technique_id": "T1078",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--ada8065a-aefb-4426-8e86-e8616bcc1a64"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--ada8065a-aefb-4426-8e86-e8616bcc1a64",
+            "created": "2026-11-05T23:51:19.824224Z",
+            "modified": "2026-11-05T23:51:19.824226Z",
+            "name": "Data Storage",
+            "description": "Asset targeted by threat: Unauthorized access to sensitive data stored in Data Storage leading to data breach",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--09848331-4b6f-4ddd-bd3c-cbfb2446686c",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824232Z",
+            "modified": "2026-11-05T23:51:19.824233Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--834a7c07-7cbc-403b-8be3-5e66c30eaf10",
+            "target_ref": "attack-asset--ada8065a-aefb-4426-8e86-e8616bcc1a64"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--cbf44cad-d886-49ec-9941-91b0becd82e7",
+            "created": "2026-11-05T23:51:19.824240Z",
+            "modified": "2026-11-05T23:51:19.824242Z",
+            "name": "Unauthorized privilege escalation on IoT Hub due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on IoT Hub due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--c7af4f74-746b-4043-8c13-c2832bd58acd"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--c7af4f74-746b-4043-8c13-c2832bd58acd",
+            "created": "2026-11-05T23:51:19.824250Z",
+            "modified": "2026-11-05T23:51:19.824254Z",
+            "name": "IoT Hub",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on IoT Hub due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--13aebabb-3c66-449b-9814-227b602f79e0",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824261Z",
+            "modified": "2026-11-05T23:51:19.824263Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--cbf44cad-d886-49ec-9941-91b0becd82e7",
+            "target_ref": "attack-asset--c7af4f74-746b-4043-8c13-c2832bd58acd"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--36b15b6f-476e-4d50-b2bb-5123055e15e7",
+            "created": "2026-11-05T23:51:19.824269Z",
+            "modified": "2026-11-05T23:51:19.824271Z",
+            "name": "Unauthorized privilege escalation on Data Storage due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on Data Storage due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--edb0e03c-aa40-4813-bfb9-efc55250f3e1"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--edb0e03c-aa40-4813-bfb9-efc55250f3e1",
+            "created": "2026-11-05T23:51:19.824278Z",
+            "modified": "2026-11-05T23:51:19.824281Z",
+            "name": "Data Storage",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on Data Storage due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--349f98c9-3c55-48fe-8382-9582ea9fdaaa",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824286Z",
+            "modified": "2026-11-05T23:51:19.824289Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--36b15b6f-476e-4d50-b2bb-5123055e15e7",
+            "target_ref": "attack-asset--edb0e03c-aa40-4813-bfb9-efc55250f3e1"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--35156a20-662a-4c87-9d2b-bc6c6e98d53e",
+            "created": "2026-11-05T23:51:19.824296Z",
+            "modified": "2026-11-05T23:51:19.824298Z",
+            "name": "Unauthorized privilege escalation on Device Management Service due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on Device Management Service due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--09dc6ddf-2ac4-4c7d-92b6-aff8a06a831e"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--09dc6ddf-2ac4-4c7d-92b6-aff8a06a831e",
+            "created": "2026-11-05T23:51:19.824305Z",
+            "modified": "2026-11-05T23:51:19.824306Z",
+            "name": "Device Management Service",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on Device Management Service due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--e5929e16-fde2-4091-b823-cb5c74e27436",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824312Z",
+            "modified": "2026-11-05T23:51:19.824314Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--35156a20-662a-4c87-9d2b-bc6c6e98d53e",
+            "target_ref": "attack-asset--09dc6ddf-2ac4-4c7d-92b6-aff8a06a831e"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--a3fabeb5-5f0c-4d8e-ad7b-090da4b5127c",
+            "created": "2026-11-05T23:51:19.824321Z",
+            "modified": "2026-11-05T23:51:19.824323Z",
+            "name": "Lack of monitoring or logging on IoT Gateway Server, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on IoT Gateway Server, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--c5e2db2a-6932-4faa-b724-ea18c86d5b61"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--c5e2db2a-6932-4faa-b724-ea18c86d5b61",
+            "created": "2026-11-05T23:51:19.824330Z",
+            "modified": "2026-11-05T23:51:19.824332Z",
+            "name": "IoT Gateway Server",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on IoT Gateway Server, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--43555fc3-7d62-4c72-bc47-51329846f931",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824338Z",
+            "modified": "2026-11-05T23:51:19.824340Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--a3fabeb5-5f0c-4d8e-ad7b-090da4b5127c",
+            "target_ref": "attack-asset--c5e2db2a-6932-4faa-b724-ea18c86d5b61"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--3e997e16-cf90-4aa7-ab47-4bba588b1b1f",
+            "created": "2026-11-05T23:51:19.824346Z",
+            "modified": "2026-11-05T23:51:19.824348Z",
+            "name": "Spoofing of data from Sensor to IoT Gateway Server due to lack of authentication",
+            "description": "Spoofing of data from Sensor to IoT Gateway Server due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--f9c2c4c5-640c-4e40-9258-dbd18079fc38"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--f9c2c4c5-640c-4e40-9258-dbd18079fc38",
+            "created": "2026-11-05T23:51:19.824354Z",
+            "modified": "2026-11-05T23:51:19.824356Z",
+            "name": "Sensor Data",
+            "description": "Asset targeted by threat: Spoofing of data from Sensor to IoT Gateway Server due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--58a0c799-8980-47c4-a2c3-9bb1879da0e8",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824362Z",
+            "modified": "2026-11-05T23:51:19.824364Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--3e997e16-cf90-4aa7-ab47-4bba588b1b1f",
+            "target_ref": "attack-asset--f9c2c4c5-640c-4e40-9258-dbd18079fc38"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--dbdf3b83-0de5-47d6-9fed-10aa7c0b023d",
+            "created": "2026-11-05T23:51:19.824371Z",
+            "modified": "2026-11-05T23:51:19.824373Z",
+            "name": "Spoofing of data from IoT Gateway Server to IoT Hub due to lack of authentication",
+            "description": "Spoofing of data from IoT Gateway Server to IoT Hub due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--67c99086-fba2-4d01-85b4-d008f258e943"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--67c99086-fba2-4d01-85b4-d008f258e943",
+            "created": "2026-11-05T23:51:19.824380Z",
+            "modified": "2026-11-05T23:51:19.824382Z",
+            "name": "Gateway to Cloud",
+            "description": "Asset targeted by threat: Spoofing of data from IoT Gateway Server to IoT Hub due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--025692f1-4727-458e-b5bd-43eba2f9cff1",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824388Z",
+            "modified": "2026-11-05T23:51:19.824390Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--dbdf3b83-0de5-47d6-9fed-10aa7c0b023d",
+            "target_ref": "attack-asset--67c99086-fba2-4d01-85b4-d008f258e943"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--45d10f79-c610-4f24-8aa1-5c55202afe7c",
+            "created": "2026-11-05T23:51:19.824397Z",
+            "modified": "2026-11-05T23:51:19.824400Z",
+            "name": "Spoofing of data from IoT Hub to Data Storage due to lack of authentication",
+            "description": "Spoofing of data from IoT Hub to Data Storage due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--1516254e-d574-44e3-a7ad-4fa9c65d520d"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--1516254e-d574-44e3-a7ad-4fa9c65d520d",
+            "created": "2026-11-05T23:51:19.824405Z",
+            "modified": "2026-11-05T23:51:19.824407Z",
+            "name": "Cloud to Storage",
+            "description": "Asset targeted by threat: Spoofing of data from IoT Hub to Data Storage due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--6e6a57d2-a174-41be-bafb-6ccaadaa521c",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824412Z",
+            "modified": "2026-11-05T23:51:19.824415Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--45d10f79-c610-4f24-8aa1-5c55202afe7c",
+            "target_ref": "attack-asset--1516254e-d574-44e3-a7ad-4fa9c65d520d"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--63857163-de80-4949-9f53-c4d491a87a88",
+            "created": "2026-11-05T23:51:19.824421Z",
+            "modified": "2026-11-05T23:51:19.824424Z",
+            "name": "Spoofing of data from Data Storage to Analytics Engine due to lack of authentication",
+            "description": "Spoofing of data from Data Storage to Analytics Engine due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--bf848d45-aaf3-4ad6-9b8e-cea9425d2b22"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--bf848d45-aaf3-4ad6-9b8e-cea9425d2b22",
+            "created": "2026-11-05T23:51:19.824430Z",
+            "modified": "2026-11-05T23:51:19.824432Z",
+            "name": "Storage to Analytics",
+            "description": "Asset targeted by threat: Spoofing of data from Data Storage to Analytics Engine due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--7ae8b58c-7ae5-4aef-b872-bf6814d2ebfd",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824438Z",
+            "modified": "2026-11-05T23:51:19.824440Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--63857163-de80-4949-9f53-c4d491a87a88",
+            "target_ref": "attack-asset--bf848d45-aaf3-4ad6-9b8e-cea9425d2b22"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--a7a88823-512e-4a69-acea-db848afeda1a",
+            "created": "2026-11-05T23:51:19.824447Z",
+            "modified": "2026-11-05T23:51:19.824450Z",
+            "name": "Spoofing of data from Device Management Service to IoT Gateway Server due to lack of authentication",
+            "description": "Spoofing of data from Device Management Service to IoT Gateway Server due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--ae395f48-7f9c-45c7-ac9d-a7626310b9cc"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--ae395f48-7f9c-45c7-ac9d-a7626310b9cc",
+            "created": "2026-11-05T23:51:19.824456Z",
+            "modified": "2026-11-05T23:51:19.824458Z",
+            "name": "Command to Gateway",
+            "description": "Asset targeted by threat: Spoofing of data from Device Management Service to IoT Gateway Server due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--158797b1-1248-433b-b58a-185d19f06119",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824464Z",
+            "modified": "2026-11-05T23:51:19.824467Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--a7a88823-512e-4a69-acea-db848afeda1a",
+            "target_ref": "attack-asset--ae395f48-7f9c-45c7-ac9d-a7626310b9cc"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--2af09cf4-58e5-42b0-ab60-5ef2b003f3a8",
+            "created": "2026-11-05T23:51:19.824507Z",
+            "modified": "2026-11-05T23:51:19.824512Z",
+            "name": "Spoofing of data from IoT Gateway Server to Actuator due to lack of authentication",
+            "description": "Spoofing of data from IoT Gateway Server to Actuator due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--01df3f2d-34a7-4d21-9be3-2c46a9a77209"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--01df3f2d-34a7-4d21-9be3-2c46a9a77209",
+            "created": "2026-11-05T23:51:19.824522Z",
+            "modified": "2026-11-05T23:51:19.824524Z",
+            "name": "Gateway to Actuator",
+            "description": "Asset targeted by threat: Spoofing of data from IoT Gateway Server to Actuator due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--e35af53f-4b56-408b-ae2b-2ce39bb40c2a",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824531Z",
+            "modified": "2026-11-05T23:51:19.824534Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--2af09cf4-58e5-42b0-ab60-5ef2b003f3a8",
+            "target_ref": "attack-asset--01df3f2d-34a7-4d21-9be3-2c46a9a77209"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--3b9a3c93-1222-426f-9de0-2c2d44bb3a62",
+            "created": "2026-11-05T23:51:19.824542Z",
+            "modified": "2026-11-05T23:51:19.824544Z",
+            "name": "Spoofing of data from Device Administrator to Device Management Service due to lack of authentication",
+            "description": "Spoofing of data from Device Administrator to Device Management Service due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--e1d033d9-3ef2-4da4-b0c5-656f0926a0a0"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--e1d033d9-3ef2-4da4-b0c5-656f0926a0a0",
+            "created": "2026-11-05T23:51:19.824551Z",
+            "modified": "2026-11-05T23:51:19.824553Z",
+            "name": "Admin to Device Mgmt",
+            "description": "Asset targeted by threat: Spoofing of data from Device Administrator to Device Management Service due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--72374916-b49d-4f10-8567-477ec47f258f",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824559Z",
+            "modified": "2026-11-05T23:51:19.824562Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--3b9a3c93-1222-426f-9de0-2c2d44bb3a62",
+            "target_ref": "attack-asset--e1d033d9-3ef2-4da4-b0c5-656f0926a0a0"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--e8819896-5e77-4726-b501-ac1c22010400",
+            "created": "2026-11-05T23:51:19.824569Z",
+            "modified": "2026-11-05T23:51:19.824572Z",
+            "name": "Spoofing of data from Field Technician to IoT Gateway Server due to lack of authentication",
+            "description": "Spoofing of data from Field Technician to IoT Gateway Server due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--21b9685e-aa6e-4bef-8a7a-4f4ec07a7f6e"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--21b9685e-aa6e-4bef-8a7a-4f4ec07a7f6e",
+            "created": "2026-11-05T23:51:19.824579Z",
+            "modified": "2026-11-05T23:51:19.824581Z",
+            "name": "Local Maintenance",
+            "description": "Asset targeted by threat: Spoofing of data from Field Technician to IoT Gateway Server due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--d675bb5f-c987-4bc6-ab11-e10b6f7a4bd3",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824588Z",
+            "modified": "2026-11-05T23:51:19.824590Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--e8819896-5e77-4726-b501-ac1c22010400",
+            "target_ref": "attack-asset--21b9685e-aa6e-4bef-8a7a-4f4ec07a7f6e"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--e5da483a-36d1-4a3f-a521-de1bcecbaac7",
+            "created": "2026-11-05T23:51:19.824597Z",
+            "modified": "2026-11-05T23:51:19.824600Z",
+            "name": "Identity spoofing of the actor Sensor via phishing or credential theft",
+            "description": "Identity spoofing of the actor Sensor via phishing or credential theft",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--c06311aa-df1f-4ae3-b98e-e18ece8ed97f"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--c06311aa-df1f-4ae3-b98e-e18ece8ed97f",
+            "created": "2026-11-05T23:51:19.824607Z",
+            "modified": "2026-11-05T23:51:19.824609Z",
+            "name": "Sensor",
+            "description": "Asset targeted by threat: Identity spoofing of the actor Sensor via phishing or credential theft",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--c127b73b-7be5-4cd6-9df1-dfffff1922b7",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824615Z",
+            "modified": "2026-11-05T23:51:19.824616Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--e5da483a-36d1-4a3f-a521-de1bcecbaac7",
+            "target_ref": "attack-asset--c06311aa-df1f-4ae3-b98e-e18ece8ed97f"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--e6d99ac4-2de6-4249-869d-e255a78bef92",
+            "created": "2026-11-05T23:51:19.824623Z",
+            "modified": "2026-11-05T23:51:19.824625Z",
+            "name": "Identity spoofing of the actor Actuator via phishing or credential theft",
+            "description": "Identity spoofing of the actor Actuator via phishing or credential theft",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--ca0ad99c-1e74-4d99-b577-508680f5f331"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--ca0ad99c-1e74-4d99-b577-508680f5f331",
+            "created": "2026-11-05T23:51:19.824631Z",
+            "modified": "2026-11-05T23:51:19.824633Z",
+            "name": "Actuator",
+            "description": "Asset targeted by threat: Identity spoofing of the actor Actuator via phishing or credential theft",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--b41b4972-2f43-484b-a7be-9c683f67ec8a",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824638Z",
+            "modified": "2026-11-05T23:51:19.824640Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--e6d99ac4-2de6-4249-869d-e255a78bef92",
+            "target_ref": "attack-asset--ca0ad99c-1e74-4d99-b577-508680f5f331"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--57812ad0-b780-4940-a443-d5ff7f6fafd2",
+            "created": "2026-11-05T23:51:19.824647Z",
+            "modified": "2026-11-05T23:51:19.824649Z",
+            "name": "Identity spoofing of the actor Device Administrator via phishing or credential theft",
+            "description": "Identity spoofing of the actor Device Administrator via phishing or credential theft",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--517f2a85-61af-4817-a8fa-2dea8bc9e4ea"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--517f2a85-61af-4817-a8fa-2dea8bc9e4ea",
+            "created": "2026-11-05T23:51:19.824654Z",
+            "modified": "2026-11-05T23:51:19.824656Z",
+            "name": "Device Administrator",
+            "description": "Asset targeted by threat: Identity spoofing of the actor Device Administrator via phishing or credential theft",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--46e5db57-e8e5-4711-a3fb-9437c5b5fac1",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824662Z",
+            "modified": "2026-11-05T23:51:19.824664Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--57812ad0-b780-4940-a443-d5ff7f6fafd2",
+            "target_ref": "attack-asset--517f2a85-61af-4817-a8fa-2dea8bc9e4ea"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--41707d52-2f8b-4abc-add8-247ef9ebfb39",
+            "created": "2026-11-05T23:51:19.824671Z",
+            "modified": "2026-11-05T23:51:19.824673Z",
+            "name": "Identity spoofing of the actor Field Technician via phishing or credential theft",
+            "description": "Identity spoofing of the actor Field Technician via phishing or credential theft",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--a6fd552e-597a-4184-b625-daa66cf507de"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--a6fd552e-597a-4184-b625-daa66cf507de",
+            "created": "2026-11-05T23:51:19.824679Z",
+            "modified": "2026-11-05T23:51:19.824681Z",
+            "name": "Field Technician",
+            "description": "Asset targeted by threat: Identity spoofing of the actor Field Technician via phishing or credential theft",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--7e17ad66-281e-412b-b099-e717c340f21f",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824687Z",
+            "modified": "2026-11-05T23:51:19.824689Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--41707d52-2f8b-4abc-add8-247ef9ebfb39",
+            "target_ref": "attack-asset--a6fd552e-597a-4184-b625-daa66cf507de"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--b5521118-90cd-498a-acd0-5b31ce3c9160",
+            "created": "2026-11-05T23:51:19.824696Z",
+            "modified": "2026-11-05T23:51:19.824698Z",
+            "name": "Insecure security configuration or hardening on IoT Gateway Server leading to information exposure",
+            "description": "Insecure security configuration or hardening on IoT Gateway Server leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--3aba88de-d24e-4204-b625-41caad4afac6"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--3aba88de-d24e-4204-b625-41caad4afac6",
+            "created": "2026-11-05T23:51:19.824704Z",
+            "modified": "2026-11-05T23:51:19.824706Z",
+            "name": "IoT Gateway Server",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on IoT Gateway Server leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--f6d2fece-7352-4e88-a64b-e8e237559ab5",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824711Z",
+            "modified": "2026-11-05T23:51:19.824713Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--b5521118-90cd-498a-acd0-5b31ce3c9160",
+            "target_ref": "attack-asset--3aba88de-d24e-4204-b625-41caad4afac6"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--02c2181d-7af5-4a61-88cd-56d80b132f48",
+            "created": "2026-11-05T23:51:19.824720Z",
+            "modified": "2026-11-05T23:51:19.824722Z",
+            "name": "Lack of monitoring or logging on IoT Hub, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on IoT Hub, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--988d3cbc-b872-4108-b5a5-80d0d9756273"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--988d3cbc-b872-4108-b5a5-80d0d9756273",
+            "created": "2026-11-05T23:51:19.824727Z",
+            "modified": "2026-11-05T23:51:19.824730Z",
+            "name": "IoT Hub",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on IoT Hub, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--bdfa84c4-28ff-4d8d-aeb4-3d5635b6f91c",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824735Z",
+            "modified": "2026-11-05T23:51:19.824737Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--02c2181d-7af5-4a61-88cd-56d80b132f48",
+            "target_ref": "attack-asset--988d3cbc-b872-4108-b5a5-80d0d9756273"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--82ff53a7-9f0e-4457-a765-1c316a6fce7e",
+            "created": "2026-11-05T23:51:19.824743Z",
+            "modified": "2026-11-05T23:51:19.824750Z",
+            "name": "Lack of monitoring or logging on Device Management Service, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on Device Management Service, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--3f30dd1a-9534-4665-a0f8-159108338c5a"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--3f30dd1a-9534-4665-a0f8-159108338c5a",
+            "created": "2026-11-05T23:51:19.824756Z",
+            "modified": "2026-11-05T23:51:19.824759Z",
+            "name": "Device Management Service",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on Device Management Service, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--8e3bbdc5-b336-4b2a-a924-3877df0346f6",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824765Z",
+            "modified": "2026-11-05T23:51:19.824767Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--82ff53a7-9f0e-4457-a765-1c316a6fce7e",
+            "target_ref": "attack-asset--3f30dd1a-9534-4665-a0f8-159108338c5a"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--883aec03-e37c-4ac5-8e08-602d8a10a015",
+            "created": "2026-11-05T23:51:19.824773Z",
+            "modified": "2026-11-05T23:51:19.824775Z",
+            "name": "Data interception on an unencrypted channel from Sensor to IoT Gateway Server (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from Sensor to IoT Gateway Server (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--e72de0e7-c094-47e9-b22b-40f2dcf172e5"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--e72de0e7-c094-47e9-b22b-40f2dcf172e5",
+            "created": "2026-11-05T23:51:19.824780Z",
+            "modified": "2026-11-05T23:51:19.824782Z",
+            "name": "Sensor Data",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from Sensor to IoT Gateway Server (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--087551e7-5c7b-4c22-86ae-50482db710e4",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824788Z",
+            "modified": "2026-11-05T23:51:19.824791Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--883aec03-e37c-4ac5-8e08-602d8a10a015",
+            "target_ref": "attack-asset--e72de0e7-c094-47e9-b22b-40f2dcf172e5"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--a65fb289-5ab8-4999-82f8-3ecb3fd5d240",
+            "created": "2026-11-05T23:51:19.824798Z",
+            "modified": "2026-11-05T23:51:19.824800Z",
+            "name": "Data interception on an unencrypted channel from IoT Gateway Server to IoT Hub (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from IoT Gateway Server to IoT Hub (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--f9605fde-a65b-4583-a075-e5b873901039"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--f9605fde-a65b-4583-a075-e5b873901039",
+            "created": "2026-11-05T23:51:19.824806Z",
+            "modified": "2026-11-05T23:51:19.824808Z",
+            "name": "Gateway to Cloud",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from IoT Gateway Server to IoT Hub (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--688a36b5-b3f8-4b5e-978b-212e41110157",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824814Z",
+            "modified": "2026-11-05T23:51:19.824816Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--a65fb289-5ab8-4999-82f8-3ecb3fd5d240",
+            "target_ref": "attack-asset--f9605fde-a65b-4583-a075-e5b873901039"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--307250ff-b41a-4a6f-8cdc-c8d18718394e",
+            "created": "2026-11-05T23:51:19.824822Z",
+            "modified": "2026-11-05T23:51:19.824824Z",
+            "name": "Data interception on an unencrypted channel from IoT Hub to Data Storage (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from IoT Hub to Data Storage (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--ef675fce-aba2-47a9-abf5-6807c54b68c9"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--ef675fce-aba2-47a9-abf5-6807c54b68c9",
+            "created": "2026-11-05T23:51:19.824829Z",
+            "modified": "2026-11-05T23:51:19.824831Z",
+            "name": "Cloud to Storage",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from IoT Hub to Data Storage (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--4550efc7-339e-4848-a1fa-d3a5910f4e18",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824837Z",
+            "modified": "2026-11-05T23:51:19.824838Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--307250ff-b41a-4a6f-8cdc-c8d18718394e",
+            "target_ref": "attack-asset--ef675fce-aba2-47a9-abf5-6807c54b68c9"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--3aabf2f1-cee9-42ca-a9e7-88fea28cf2dc",
+            "created": "2026-11-05T23:51:19.824844Z",
+            "modified": "2026-11-05T23:51:19.824846Z",
+            "name": "Data interception on an unencrypted channel from Data Storage to Analytics Engine (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from Data Storage to Analytics Engine (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--b5829675-51f7-49b9-8d39-248ceed3b453"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--b5829675-51f7-49b9-8d39-248ceed3b453",
+            "created": "2026-11-05T23:51:19.824851Z",
+            "modified": "2026-11-05T23:51:19.824853Z",
+            "name": "Storage to Analytics",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from Data Storage to Analytics Engine (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--c330b16b-69c2-4900-b2e3-43e7da91c173",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824859Z",
+            "modified": "2026-11-05T23:51:19.824861Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--3aabf2f1-cee9-42ca-a9e7-88fea28cf2dc",
+            "target_ref": "attack-asset--b5829675-51f7-49b9-8d39-248ceed3b453"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--af7aa6ca-9b49-48f2-ae59-c43f5c557eca",
+            "created": "2026-11-05T23:51:19.824867Z",
+            "modified": "2026-11-05T23:51:19.824869Z",
+            "name": "Data interception on an unencrypted channel from Device Management Service to IoT Gateway Server (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from Device Management Service to IoT Gateway Server (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--00893ce0-3b9a-4a8b-82fe-a8245cc4347b"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--00893ce0-3b9a-4a8b-82fe-a8245cc4347b",
+            "created": "2026-11-05T23:51:19.824876Z",
+            "modified": "2026-11-05T23:51:19.824878Z",
+            "name": "Command to Gateway",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from Device Management Service to IoT Gateway Server (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--71688496-e8ef-4b76-a5f9-4156b3d70964",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824883Z",
+            "modified": "2026-11-05T23:51:19.824885Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--af7aa6ca-9b49-48f2-ae59-c43f5c557eca",
+            "target_ref": "attack-asset--00893ce0-3b9a-4a8b-82fe-a8245cc4347b"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--9b530d33-3376-4399-b384-9623d5ae9d0a",
+            "created": "2026-11-05T23:51:19.824891Z",
+            "modified": "2026-11-05T23:51:19.824893Z",
+            "name": "Data interception on an unencrypted channel from IoT Gateway Server to Actuator (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from IoT Gateway Server to Actuator (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--ed8e82bd-84db-46d1-bf4d-4ab5392d611e"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--ed8e82bd-84db-46d1-bf4d-4ab5392d611e",
+            "created": "2026-11-05T23:51:19.824900Z",
+            "modified": "2026-11-05T23:51:19.824902Z",
+            "name": "Gateway to Actuator",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from IoT Gateway Server to Actuator (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--e7ede35d-f0f0-49ec-9ebe-038530957888",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824907Z",
+            "modified": "2026-11-05T23:51:19.824909Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--9b530d33-3376-4399-b384-9623d5ae9d0a",
+            "target_ref": "attack-asset--ed8e82bd-84db-46d1-bf4d-4ab5392d611e"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--cf26d7d6-86b4-471f-931a-9fd6bed8cc4e",
+            "created": "2026-11-05T23:51:19.824917Z",
+            "modified": "2026-11-05T23:51:19.824919Z",
+            "name": "Data interception on an unencrypted channel from Device Administrator to Device Management Service (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from Device Administrator to Device Management Service (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--361e9bb6-8b3b-4ec5-b4f0-27356fb071b3"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--361e9bb6-8b3b-4ec5-b4f0-27356fb071b3",
+            "created": "2026-11-05T23:51:19.824925Z",
+            "modified": "2026-11-05T23:51:19.824927Z",
+            "name": "Admin to Device Mgmt",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from Device Administrator to Device Management Service (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--b0094578-a259-437d-944f-31d5e2e263d3",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824933Z",
+            "modified": "2026-11-05T23:51:19.824935Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--cf26d7d6-86b4-471f-931a-9fd6bed8cc4e",
+            "target_ref": "attack-asset--361e9bb6-8b3b-4ec5-b4f0-27356fb071b3"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--5d1731cd-fbf2-4882-9b57-bace93283725",
+            "created": "2026-11-05T23:51:19.824942Z",
+            "modified": "2026-11-05T23:51:19.824944Z",
+            "name": "Data interception on an unencrypted channel from Field Technician to IoT Gateway Server (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from Field Technician to IoT Gateway Server (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--121374e5-cffb-4886-9566-b7d0bf74e926"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--121374e5-cffb-4886-9566-b7d0bf74e926",
+            "created": "2026-11-05T23:51:19.824950Z",
+            "modified": "2026-11-05T23:51:19.824952Z",
+            "name": "Local Maintenance",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from Field Technician to IoT Gateway Server (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--db7b2383-1002-4c9f-8572-5b48b5463e76",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824957Z",
+            "modified": "2026-11-05T23:51:19.824960Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--5d1731cd-fbf2-4882-9b57-bace93283725",
+            "target_ref": "attack-asset--121374e5-cffb-4886-9566-b7d0bf74e926"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--b62f4f04-813c-417d-8975-ed8e0c1c2aff",
+            "created": "2026-11-05T23:51:19.824967Z",
+            "modified": "2026-11-05T23:51:19.824969Z",
+            "name": "Unauthorized privilege escalation on Analytics Engine due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on Analytics Engine due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--0a1000d2-b53b-43dc-ad30-63033307fb79"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--0a1000d2-b53b-43dc-ad30-63033307fb79",
+            "created": "2026-11-05T23:51:19.824974Z",
+            "modified": "2026-11-05T23:51:19.824977Z",
+            "name": "Analytics Engine",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on Analytics Engine due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--3635de4b-b36b-415e-9fc9-7eb68aaa218f",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.824982Z",
+            "modified": "2026-11-05T23:51:19.824985Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--b62f4f04-813c-417d-8975-ed8e0c1c2aff",
+            "target_ref": "attack-asset--0a1000d2-b53b-43dc-ad30-63033307fb79"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--e157cc5b-4795-4099-b430-b84b22602302",
+            "created": "2026-11-05T23:51:19.824991Z",
+            "modified": "2026-11-05T23:51:19.824993Z",
+            "name": "Lack of monitoring or logging on Data Storage, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on Data Storage, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--2115c63c-70a3-4fe7-b9fd-a8c8be0c85c3"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--2115c63c-70a3-4fe7-b9fd-a8c8be0c85c3",
+            "created": "2026-11-05T23:51:19.824998Z",
+            "modified": "2026-11-05T23:51:19.825000Z",
+            "name": "Data Storage",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on Data Storage, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--1edde8dd-7b8a-455d-b15e-56ee85865210",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.825005Z",
+            "modified": "2026-11-05T23:51:19.825008Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--e157cc5b-4795-4099-b430-b84b22602302",
+            "target_ref": "attack-asset--2115c63c-70a3-4fe7-b9fd-a8c8be0c85c3"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--e404ceaf-fcf4-42ff-8415-fc2d5f00ae7f",
+            "created": "2026-11-05T23:51:19.825014Z",
+            "modified": "2026-11-05T23:51:19.825016Z",
+            "name": "Denial of Service against Data Storage through resource-intensive queries or excessive connections",
+            "description": "Denial of Service against Data Storage through resource-intensive queries or excessive connections",
+            "technique_id": "T1499",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--10badeea-16a6-4093-9be5-ea7eede6de03"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--10badeea-16a6-4093-9be5-ea7eede6de03",
+            "created": "2026-11-05T23:51:19.825022Z",
+            "modified": "2026-11-05T23:51:19.825024Z",
+            "name": "Data Storage",
+            "description": "Asset targeted by threat: Denial of Service against Data Storage through resource-intensive queries or excessive connections",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--72365693-3562-4c79-a671-45d9a1b4edba",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.825030Z",
+            "modified": "2026-11-05T23:51:19.825032Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--e404ceaf-fcf4-42ff-8415-fc2d5f00ae7f",
+            "target_ref": "attack-asset--10badeea-16a6-4093-9be5-ea7eede6de03"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--3df0c669-4ac7-467b-bc0d-4e0d4d3683a5",
+            "created": "2026-11-05T23:51:19.825038Z",
+            "modified": "2026-11-05T23:51:19.825040Z",
+            "name": "Insecure security configuration or hardening on IoT Hub leading to information exposure",
+            "description": "Insecure security configuration or hardening on IoT Hub leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--8df2ce74-27f3-4bea-9f97-45c5efa2dad4"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--8df2ce74-27f3-4bea-9f97-45c5efa2dad4",
+            "created": "2026-11-05T23:51:19.825046Z",
+            "modified": "2026-11-05T23:51:19.825048Z",
+            "name": "IoT Hub",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on IoT Hub leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--d7ececbc-1439-4162-a000-c8c46c8bdcab",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.825053Z",
+            "modified": "2026-11-05T23:51:19.825056Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--3df0c669-4ac7-467b-bc0d-4e0d4d3683a5",
+            "target_ref": "attack-asset--8df2ce74-27f3-4bea-9f97-45c5efa2dad4"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--b2d2410e-c180-4085-99e0-bb90a230cb45",
+            "created": "2026-11-05T23:51:19.825062Z",
+            "modified": "2026-11-05T23:51:19.825065Z",
+            "name": "Insecure security configuration or hardening on Device Management Service leading to information exposure",
+            "description": "Insecure security configuration or hardening on Device Management Service leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--a87b1d68-edeb-4337-bce4-5ee99e601584"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--a87b1d68-edeb-4337-bce4-5ee99e601584",
+            "created": "2026-11-05T23:51:19.825070Z",
+            "modified": "2026-11-05T23:51:19.825073Z",
+            "name": "Device Management Service",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on Device Management Service leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--95fde0bf-814e-4af3-8f1b-f5f67b41b27b",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.825078Z",
+            "modified": "2026-11-05T23:51:19.825081Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--b2d2410e-c180-4085-99e0-bb90a230cb45",
+            "target_ref": "attack-asset--a87b1d68-edeb-4337-bce4-5ee99e601584"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--9b944133-eea8-4c3b-a96c-473e535b024f",
+            "created": "2026-11-05T23:51:19.825088Z",
+            "modified": "2026-11-05T23:51:19.825090Z",
+            "name": "Identity spoofing of the actor Cloud Administrator via phishing or credential theft",
+            "description": "Identity spoofing of the actor Cloud Administrator via phishing or credential theft",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--37e12112-f49c-4e43-bf7b-2f7797e79a87"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--37e12112-f49c-4e43-bf7b-2f7797e79a87",
+            "created": "2026-11-05T23:51:19.825095Z",
+            "modified": "2026-11-05T23:51:19.825098Z",
+            "name": "Cloud Administrator",
+            "description": "Asset targeted by threat: Identity spoofing of the actor Cloud Administrator via phishing or credential theft",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--a6a7f2d6-4219-4df3-81c6-b4fe55fdb683",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.825104Z",
+            "modified": "2026-11-05T23:51:19.825106Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--9b944133-eea8-4c3b-a96c-473e535b024f",
+            "target_ref": "attack-asset--37e12112-f49c-4e43-bf7b-2f7797e79a87"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--047d0023-4403-4b53-bda8-0b33664ac62b",
+            "created": "2026-11-05T23:51:19.825112Z",
+            "modified": "2026-11-05T23:51:19.825114Z",
+            "name": "Privilege abuse by actor Sensor to gain unauthorized access or perform unauthorized actions",
+            "description": "Privilege abuse by actor Sensor to gain unauthorized access or perform unauthorized actions",
+            "technique_id": "T1548",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--50068895-11ce-4a24-a3d7-3783e5eca1cf"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--50068895-11ce-4a24-a3d7-3783e5eca1cf",
+            "created": "2026-11-05T23:51:19.825120Z",
+            "modified": "2026-11-05T23:51:19.825122Z",
+            "name": "Sensor",
+            "description": "Asset targeted by threat: Privilege abuse by actor Sensor to gain unauthorized access or perform unauthorized actions",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--f76694ba-e447-48c4-874e-4e4ced2217d9",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.825128Z",
+            "modified": "2026-11-05T23:51:19.825130Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--047d0023-4403-4b53-bda8-0b33664ac62b",
+            "target_ref": "attack-asset--50068895-11ce-4a24-a3d7-3783e5eca1cf"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--4065d31d-6d4b-46c9-a10c-85942f4f9699",
+            "created": "2026-11-05T23:51:19.825137Z",
+            "modified": "2026-11-05T23:51:19.825139Z",
+            "name": "Privilege abuse by actor Actuator to gain unauthorized access or perform unauthorized actions",
+            "description": "Privilege abuse by actor Actuator to gain unauthorized access or perform unauthorized actions",
+            "technique_id": "T1548",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--c4fa3ca9-8611-4b82-8d13-df201f6a5a66"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--c4fa3ca9-8611-4b82-8d13-df201f6a5a66",
+            "created": "2026-11-05T23:51:19.825145Z",
+            "modified": "2026-11-05T23:51:19.825147Z",
+            "name": "Actuator",
+            "description": "Asset targeted by threat: Privilege abuse by actor Actuator to gain unauthorized access or perform unauthorized actions",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--7f15d704-793c-46ed-b983-289f289f438e",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.825154Z",
+            "modified": "2026-11-05T23:51:19.825155Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--4065d31d-6d4b-46c9-a10c-85942f4f9699",
+            "target_ref": "attack-asset--c4fa3ca9-8611-4b82-8d13-df201f6a5a66"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--7deab4bc-a27f-475e-bc33-780455659ab3",
+            "created": "2026-11-05T23:51:19.825162Z",
+            "modified": "2026-11-05T23:51:19.825164Z",
+            "name": "Privilege abuse by actor Device Administrator to gain unauthorized access or perform unauthorized actions",
+            "description": "Privilege abuse by actor Device Administrator to gain unauthorized access or perform unauthorized actions",
+            "technique_id": "T1548",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--25f37cbf-fd15-4a43-8800-c6938fcf93ef"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--25f37cbf-fd15-4a43-8800-c6938fcf93ef",
+            "created": "2026-11-05T23:51:19.825169Z",
+            "modified": "2026-11-05T23:51:19.825172Z",
+            "name": "Device Administrator",
+            "description": "Asset targeted by threat: Privilege abuse by actor Device Administrator to gain unauthorized access or perform unauthorized actions",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--2961b8dc-0371-4aca-8a83-eae9a48fe56c",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.825177Z",
+            "modified": "2026-11-05T23:51:19.825180Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--7deab4bc-a27f-475e-bc33-780455659ab3",
+            "target_ref": "attack-asset--25f37cbf-fd15-4a43-8800-c6938fcf93ef"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--de0848f2-8155-44cd-96b2-19d063993902",
+            "created": "2026-11-05T23:51:19.825186Z",
+            "modified": "2026-11-05T23:51:19.825188Z",
+            "name": "Privilege abuse by actor Field Technician to gain unauthorized access or perform unauthorized actions",
+            "description": "Privilege abuse by actor Field Technician to gain unauthorized access or perform unauthorized actions",
+            "technique_id": "T1548",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--fa25eff5-1de5-4928-a624-0db8d7b21e7f"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--fa25eff5-1de5-4928-a624-0db8d7b21e7f",
+            "created": "2026-11-05T23:51:19.825194Z",
+            "modified": "2026-11-05T23:51:19.825197Z",
+            "name": "Field Technician",
+            "description": "Asset targeted by threat: Privilege abuse by actor Field Technician to gain unauthorized access or perform unauthorized actions",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--36dc3522-4f72-45de-acf6-4a9a8293f6f6",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.825203Z",
+            "modified": "2026-11-05T23:51:19.825205Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--de0848f2-8155-44cd-96b2-19d063993902",
+            "target_ref": "attack-asset--fa25eff5-1de5-4928-a624-0db8d7b21e7f"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--bd532cd4-af64-4f48-857f-ad727f28dd71",
+            "created": "2026-11-05T23:51:19.825211Z",
+            "modified": "2026-11-05T23:51:19.825213Z",
+            "name": "Insecure security configuration or hardening on Data Storage leading to information exposure",
+            "description": "Insecure security configuration or hardening on Data Storage leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--4fa85a5b-5dff-43f8-884f-1635e0642e37"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--4fa85a5b-5dff-43f8-884f-1635e0642e37",
+            "created": "2026-11-05T23:51:19.825221Z",
+            "modified": "2026-11-05T23:51:19.825223Z",
+            "name": "Data Storage",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on Data Storage leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--3c2b86e3-5ab3-4d1a-b5b7-6ece96858dd5",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.825230Z",
+            "modified": "2026-11-05T23:51:19.825232Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--bd532cd4-af64-4f48-857f-ad727f28dd71",
+            "target_ref": "attack-asset--4fa85a5b-5dff-43f8-884f-1635e0642e37"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--be81ca88-517b-44cc-9838-e08f29727801",
+            "created": "2026-11-05T23:51:19.825239Z",
+            "modified": "2026-11-05T23:51:19.825241Z",
+            "name": "Repudiation of critical actions performed by Sensor due to insufficient logging or non-repudiation controls",
+            "description": "Repudiation of critical actions performed by Sensor due to insufficient logging or non-repudiation controls",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--47851bc4-090c-43ab-84c4-2b11bc79a73f"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--47851bc4-090c-43ab-84c4-2b11bc79a73f",
+            "created": "2026-11-05T23:51:19.825246Z",
+            "modified": "2026-11-05T23:51:19.825249Z",
+            "name": "Sensor",
+            "description": "Asset targeted by threat: Repudiation of critical actions performed by Sensor due to insufficient logging or non-repudiation controls",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--81fb7902-4242-4c85-9e74-25f9ad22716c",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.825255Z",
+            "modified": "2026-11-05T23:51:19.825258Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--be81ca88-517b-44cc-9838-e08f29727801",
+            "target_ref": "attack-asset--47851bc4-090c-43ab-84c4-2b11bc79a73f"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--78aa6e96-ae1c-45e0-8706-3e5069b265a4",
+            "created": "2026-11-05T23:51:19.825265Z",
+            "modified": "2026-11-05T23:51:19.825267Z",
+            "name": "Repudiation of critical actions performed by Actuator due to insufficient logging or non-repudiation controls",
+            "description": "Repudiation of critical actions performed by Actuator due to insufficient logging or non-repudiation controls",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--97cfa73e-a481-4db3-a9d6-e8a3893f188f"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--97cfa73e-a481-4db3-a9d6-e8a3893f188f",
+            "created": "2026-11-05T23:51:19.825273Z",
+            "modified": "2026-11-05T23:51:19.825275Z",
+            "name": "Actuator",
+            "description": "Asset targeted by threat: Repudiation of critical actions performed by Actuator due to insufficient logging or non-repudiation controls",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--b442f977-e885-490a-b4a8-ff8b47e098ab",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.825281Z",
+            "modified": "2026-11-05T23:51:19.825283Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--78aa6e96-ae1c-45e0-8706-3e5069b265a4",
+            "target_ref": "attack-asset--97cfa73e-a481-4db3-a9d6-e8a3893f188f"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--712abf4e-1073-462d-8077-813e4f88f236",
+            "created": "2026-11-05T23:51:19.825289Z",
+            "modified": "2026-11-05T23:51:19.825292Z",
+            "name": "Repudiation of critical actions performed by Device Administrator due to insufficient logging or non-repudiation controls",
+            "description": "Repudiation of critical actions performed by Device Administrator due to insufficient logging or non-repudiation controls",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--8ad840e2-483e-4e49-a7b0-d0d542ff6d73"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--8ad840e2-483e-4e49-a7b0-d0d542ff6d73",
+            "created": "2026-11-05T23:51:19.825298Z",
+            "modified": "2026-11-05T23:51:19.825300Z",
+            "name": "Device Administrator",
+            "description": "Asset targeted by threat: Repudiation of critical actions performed by Device Administrator due to insufficient logging or non-repudiation controls",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--17b1320c-c422-470d-bc74-7e5348acdf13",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.825306Z",
+            "modified": "2026-11-05T23:51:19.825309Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--712abf4e-1073-462d-8077-813e4f88f236",
+            "target_ref": "attack-asset--8ad840e2-483e-4e49-a7b0-d0d542ff6d73"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--ceef760e-d537-4999-b23d-b9ae6f33f401",
+            "created": "2026-11-05T23:51:19.825315Z",
+            "modified": "2026-11-05T23:51:19.825318Z",
+            "name": "Repudiation of critical actions performed by Field Technician due to insufficient logging or non-repudiation controls",
+            "description": "Repudiation of critical actions performed by Field Technician due to insufficient logging or non-repudiation controls",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--88415e48-df4f-4e9d-8c04-3b37d2349698"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--88415e48-df4f-4e9d-8c04-3b37d2349698",
+            "created": "2026-11-05T23:51:19.825323Z",
+            "modified": "2026-11-05T23:51:19.825325Z",
+            "name": "Field Technician",
+            "description": "Asset targeted by threat: Repudiation of critical actions performed by Field Technician due to insufficient logging or non-repudiation controls",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--2091ff77-14f7-4cd2-a75d-8b713b663044",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.825331Z",
+            "modified": "2026-11-05T23:51:19.825333Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--ceef760e-d537-4999-b23d-b9ae6f33f401",
+            "target_ref": "attack-asset--88415e48-df4f-4e9d-8c04-3b37d2349698"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--5893938c-eb0d-4d7f-9b6e-1760a921a607",
+            "created": "2026-11-05T23:51:19.825339Z",
+            "modified": "2026-11-05T23:51:19.825341Z",
+            "name": "Privilege abuse by actor Cloud Administrator to gain unauthorized access or perform unauthorized actions",
+            "description": "Privilege abuse by actor Cloud Administrator to gain unauthorized access or perform unauthorized actions",
+            "technique_id": "T1548",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--f1564b6a-66f3-4065-a986-ecb3009b6e97"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--f1564b6a-66f3-4065-a986-ecb3009b6e97",
+            "created": "2026-11-05T23:51:19.825347Z",
+            "modified": "2026-11-05T23:51:19.825349Z",
+            "name": "Cloud Administrator",
+            "description": "Asset targeted by threat: Privilege abuse by actor Cloud Administrator to gain unauthorized access or perform unauthorized actions",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--620c9ebd-58a5-4916-ae4c-54bb74843ffd",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.825354Z",
+            "modified": "2026-11-05T23:51:19.825356Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--5893938c-eb0d-4d7f-9b6e-1760a921a607",
+            "target_ref": "attack-asset--f1564b6a-66f3-4065-a986-ecb3009b6e97"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--ce3d884d-cec4-42c2-9b75-8b46fc3b249b",
+            "created": "2026-11-05T23:51:19.825362Z",
+            "modified": "2026-11-05T23:51:19.825364Z",
+            "name": "Lack of monitoring or logging on Analytics Engine, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on Analytics Engine, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--20a345c5-bbfb-4f8a-a399-e3917becb798"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--20a345c5-bbfb-4f8a-a399-e3917becb798",
+            "created": "2026-11-05T23:51:19.825370Z",
+            "modified": "2026-11-05T23:51:19.825372Z",
+            "name": "Analytics Engine",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on Analytics Engine, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--9d93c238-19a4-4fc5-a850-cd9753c49e6c",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.825378Z",
+            "modified": "2026-11-05T23:51:19.825380Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--ce3d884d-cec4-42c2-9b75-8b46fc3b249b",
+            "target_ref": "attack-asset--20a345c5-bbfb-4f8a-a399-e3917becb798"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--663bfda3-7d09-481e-bfa2-4fa1daae8d10",
+            "created": "2026-11-05T23:51:19.825387Z",
+            "modified": "2026-11-05T23:51:19.825388Z",
+            "name": "Insecure security configuration or hardening on Analytics Engine leading to information exposure",
+            "description": "Insecure security configuration or hardening on Analytics Engine leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--5f51ece1-fc18-478b-8dae-70b7194092dc"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--5f51ece1-fc18-478b-8dae-70b7194092dc",
+            "created": "2026-11-05T23:51:19.825394Z",
+            "modified": "2026-11-05T23:51:19.825396Z",
+            "name": "Analytics Engine",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on Analytics Engine leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--94d3463d-82b3-4873-b986-e3f22f729a37",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.825403Z",
+            "modified": "2026-11-05T23:51:19.825405Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--663bfda3-7d09-481e-bfa2-4fa1daae8d10",
+            "target_ref": "attack-asset--5f51ece1-fc18-478b-8dae-70b7194092dc"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--c6da9796-33c3-481f-946f-ece0f045af96",
+            "created": "2026-11-05T23:51:19.825411Z",
+            "modified": "2026-11-05T23:51:19.825413Z",
+            "name": "Repudiation of critical actions performed by Cloud Administrator due to insufficient logging or non-repudiation controls",
+            "description": "Repudiation of critical actions performed by Cloud Administrator due to insufficient logging or non-repudiation controls",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--9f1d616b-cbc0-4ed3-839e-d20b7b02934f"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--9f1d616b-cbc0-4ed3-839e-d20b7b02934f",
+            "created": "2026-11-05T23:51:19.825419Z",
+            "modified": "2026-11-05T23:51:19.825422Z",
+            "name": "Cloud Administrator",
+            "description": "Asset targeted by threat: Repudiation of critical actions performed by Cloud Administrator due to insufficient logging or non-repudiation controls",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--d08f2d37-280e-48a1-b89c-3bbc1f944b5b",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:19.825428Z",
+            "modified": "2026-11-05T23:51:19.825431Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--c6da9796-33c3-481f-946f-ece0f045af96",
+            "target_ref": "attack-asset--9f1d616b-cbc0-4ed3-839e-d20b7b02934f"
+        },
+        {
+            "type": "attack-flow",
+            "spec_version": "2.1",
+            "id": "attack-flow--8cd4dd43-6d64-4970-a35c-113fbe99736d",
+            "created_by_ref": "identity--f3a9f41b-0e55-46fb-9786-fce25cb39079",
+            "created": "2026-11-05T23:51:19.825439Z",
+            "modified": "2026-11-05T23:51:19.825442Z",
+            "name": "Attack Flow for IoT Architecture",
+            "description": "This Attack Flow was generated from the threat model 'IoT Architecture'.",
+            "scope": "attack-tree",
+            "start_refs": [
+                "attack-action--375d0cf5-1cef-4bc2-b07c-f29ca543bc5a",
+                "attack-action--69510724-8aff-4647-b60f-e627478b5e9f",
+                "attack-action--0455db5a-547a-4f2c-b656-d8c97e790467",
+                "attack-action--f61f02d7-ed27-46bc-b66d-105c778f9bdb",
+                "attack-action--86dd011b-ffb0-44f9-924b-71d8c63965c4",
+                "attack-action--1089b44e-f0f5-453b-9834-0113163cf531",
+                "attack-action--c880be96-b143-4e6d-af9a-2dd9d441bd52",
+                "attack-action--be534913-cf42-4dcf-a4aa-c2aa28a80200",
+                "attack-action--dba473d2-e60c-4282-b99f-450c91431381",
+                "attack-action--f95d6d82-c70b-4e40-86fa-c18b7e93648f",
+                "attack-action--834a7c07-7cbc-403b-8be3-5e66c30eaf10",
+                "attack-action--cbf44cad-d886-49ec-9941-91b0becd82e7",
+                "attack-action--36b15b6f-476e-4d50-b2bb-5123055e15e7",
+                "attack-action--35156a20-662a-4c87-9d2b-bc6c6e98d53e",
+                "attack-action--a3fabeb5-5f0c-4d8e-ad7b-090da4b5127c",
+                "attack-action--3e997e16-cf90-4aa7-ab47-4bba588b1b1f",
+                "attack-action--dbdf3b83-0de5-47d6-9fed-10aa7c0b023d",
+                "attack-action--45d10f79-c610-4f24-8aa1-5c55202afe7c",
+                "attack-action--63857163-de80-4949-9f53-c4d491a87a88",
+                "attack-action--a7a88823-512e-4a69-acea-db848afeda1a",
+                "attack-action--2af09cf4-58e5-42b0-ab60-5ef2b003f3a8",
+                "attack-action--3b9a3c93-1222-426f-9de0-2c2d44bb3a62",
+                "attack-action--e8819896-5e77-4726-b501-ac1c22010400",
+                "attack-action--e5da483a-36d1-4a3f-a521-de1bcecbaac7",
+                "attack-action--e6d99ac4-2de6-4249-869d-e255a78bef92",
+                "attack-action--57812ad0-b780-4940-a443-d5ff7f6fafd2",
+                "attack-action--41707d52-2f8b-4abc-add8-247ef9ebfb39",
+                "attack-action--b5521118-90cd-498a-acd0-5b31ce3c9160",
+                "attack-action--02c2181d-7af5-4a61-88cd-56d80b132f48",
+                "attack-action--82ff53a7-9f0e-4457-a765-1c316a6fce7e",
+                "attack-action--883aec03-e37c-4ac5-8e08-602d8a10a015",
+                "attack-action--a65fb289-5ab8-4999-82f8-3ecb3fd5d240",
+                "attack-action--307250ff-b41a-4a6f-8cdc-c8d18718394e",
+                "attack-action--3aabf2f1-cee9-42ca-a9e7-88fea28cf2dc",
+                "attack-action--af7aa6ca-9b49-48f2-ae59-c43f5c557eca",
+                "attack-action--9b530d33-3376-4399-b384-9623d5ae9d0a",
+                "attack-action--cf26d7d6-86b4-471f-931a-9fd6bed8cc4e",
+                "attack-action--5d1731cd-fbf2-4882-9b57-bace93283725",
+                "attack-action--b62f4f04-813c-417d-8975-ed8e0c1c2aff",
+                "attack-action--e157cc5b-4795-4099-b430-b84b22602302",
+                "attack-action--e404ceaf-fcf4-42ff-8415-fc2d5f00ae7f",
+                "attack-action--3df0c669-4ac7-467b-bc0d-4e0d4d3683a5",
+                "attack-action--b2d2410e-c180-4085-99e0-bb90a230cb45",
+                "attack-action--9b944133-eea8-4c3b-a96c-473e535b024f",
+                "attack-action--047d0023-4403-4b53-bda8-0b33664ac62b",
+                "attack-action--4065d31d-6d4b-46c9-a10c-85942f4f9699",
+                "attack-action--7deab4bc-a27f-475e-bc33-780455659ab3",
+                "attack-action--de0848f2-8155-44cd-96b2-19d063993902",
+                "attack-action--bd532cd4-af64-4f48-857f-ad727f28dd71",
+                "attack-action--be81ca88-517b-44cc-9838-e08f29727801",
+                "attack-action--78aa6e96-ae1c-45e0-8706-3e5069b265a4",
+                "attack-action--712abf4e-1073-462d-8077-813e4f88f236",
+                "attack-action--ceef760e-d537-4999-b23d-b9ae6f33f401",
+                "attack-action--5893938c-eb0d-4d7f-9b6e-1760a921a607",
+                "attack-action--ce3d884d-cec4-42c2-9b75-8b46fc3b249b",
+                "attack-action--663bfda3-7d09-481e-bfa2-4fa1daae8d10",
+                "attack-action--c6da9796-33c3-481f-946f-ece0f045af96"
+            ],
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        }
+    ]
+}

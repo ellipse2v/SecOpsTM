@@ -1,0 +1,192 @@
+{
+  "model": "GDAF Summary",
+  "scenarios": [
+    {
+      "scenario_id": "GDAF-B2B36365",
+      "objective": "Authentication Bypass via OIDC Misconfiguration",
+      "actor": "External Attacker (Credential Stuffing + OWASP Exploitation)",
+      "entry_point": "End User",
+      "target": "Auth Service",
+      "hops": 2,
+      "path_score": 3.72,
+      "risk_level": "HIGH",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "API Gateway",
+          "tech_id": "T1190",
+          "tech_name": "Exploit Public-Facing Application"
+        },
+        {
+          "hop": "Auth Service",
+          "tech_id": "T1110",
+          "tech_name": "Brute Force"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-74EA3363",
+      "objective": "Unencrypted Database Connection Interception",
+      "actor": "Rogue DevOps Engineer (Insider Threat)",
+      "entry_point": "DevOps Engineer",
+      "target": "Product Database",
+      "hops": 3,
+      "path_score": 4.16,
+      "risk_level": "CRITICAL",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "CI/CD Server",
+          "tech_id": "T1078",
+          "tech_name": "Valid Accounts"
+        },
+        {
+          "hop": "Product Microservice",
+          "tech_id": "T1078",
+          "tech_name": "Valid Accounts"
+        },
+        {
+          "hop": "Product Database",
+          "tech_id": "T1048",
+          "tech_name": "Exfiltration Over Alternative Protocol"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-6EB4C9B3",
+      "objective": "Unencrypted Database Connection Interception",
+      "actor": "Ransomware Operator",
+      "entry_point": "End User",
+      "target": "Product Database",
+      "hops": 3,
+      "path_score": 3.11,
+      "risk_level": "HIGH",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "API Gateway",
+          "tech_id": "T1566",
+          "tech_name": "Phishing"
+        },
+        {
+          "hop": "Product Microservice",
+          "tech_id": "T1021",
+          "tech_name": "Remote Services"
+        },
+        {
+          "hop": "Product Database",
+          "tech_id": "T1486",
+          "tech_name": "Data Encrypted for Impact"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-77FCFE51",
+      "objective": "CI/CD Server Pivot to Production Microservice",
+      "actor": "Rogue DevOps Engineer (Insider Threat)",
+      "entry_point": "DevOps Engineer",
+      "target": "Product Microservice",
+      "hops": 2,
+      "path_score": 3.8,
+      "risk_level": "HIGH",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "CI/CD Server",
+          "tech_id": "T1078",
+          "tech_name": "Valid Accounts"
+        },
+        {
+          "hop": "Product Microservice",
+          "tech_id": "T1078",
+          "tech_name": "Valid Accounts"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-D6767346",
+      "objective": "CI/CD Server Pivot to Production Microservice",
+      "actor": "Rogue DevOps Engineer (Insider Threat)",
+      "entry_point": "DevOps Engineer",
+      "target": "CI/CD Server",
+      "hops": 1,
+      "path_score": 4.23,
+      "risk_level": "CRITICAL",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "CI/CD Server",
+          "tech_id": "T1078",
+          "tech_name": "Valid Accounts"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-53EFDA43",
+      "objective": "CI/CD Server Pivot to Production Microservice",
+      "actor": "Ransomware Operator",
+      "entry_point": "End User",
+      "target": "Product Microservice",
+      "hops": 2,
+      "path_score": 3.15,
+      "risk_level": "HIGH",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "API Gateway",
+          "tech_id": "T1566",
+          "tech_name": "Phishing"
+        },
+        {
+          "hop": "Product Microservice",
+          "tech_id": "T1021",
+          "tech_name": "Remote Services"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-DD31E3BB",
+      "objective": "API Gateway Bypass to Direct Microservice Access",
+      "actor": "External Attacker (Credential Stuffing + OWASP Exploitation)",
+      "entry_point": "End User",
+      "target": "Product Microservice",
+      "hops": 2,
+      "path_score": 3.06,
+      "risk_level": "HIGH",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "API Gateway",
+          "tech_id": "T1190",
+          "tech_name": "Exploit Public-Facing Application"
+        },
+        {
+          "hop": "Product Microservice",
+          "tech_id": "T1190",
+          "tech_name": "Exploit Public-Facing Application"
+        }
+      ]
+    }
+  ],
+  "files": {
+    "OBJ-ACW-001/TA-ACW-001": [
+      "TA-ACW-001_GDAF-B2B36365.afb"
+    ],
+    "OBJ-ACW-002/TA-ACW-002": [
+      "TA-ACW-002_GDAF-74EA3363.afb"
+    ],
+    "OBJ-ACW-002/TA-ACW-003": [
+      "TA-ACW-003_GDAF-6EB4C9B3.afb"
+    ],
+    "OBJ-ACW-003/TA-ACW-002": [
+      "TA-ACW-002_GDAF-77FCFE51.afb",
+      "TA-ACW-002_GDAF-D6767346.afb"
+    ],
+    "OBJ-ACW-003/TA-ACW-003": [
+      "TA-ACW-003_GDAF-53EFDA43.afb"
+    ],
+    "OBJ-ACW-004/TA-ACW-001": [
+      "TA-ACW-001_GDAF-DD31E3BB.afb"
+    ]
+  }
+}

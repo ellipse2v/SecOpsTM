@@ -1,0 +1,2027 @@
+{
+    "type": "bundle",
+    "id": "bundle--ee88bc5d-dac4-445c-be1d-8290c8110e02",
+    "spec_version": "2.1",
+    "objects": [
+        {
+            "type": "extension-definition",
+            "id": "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4",
+            "spec_version": "2.1",
+            "created": "2022-08-02T19:34:35.143Z",
+            "modified": "2022-08-02T19:34:35.143Z",
+            "name": "Attack Flow",
+            "description": "Extends STIX 2.1 with features to create Attack Flows.",
+            "created_by_ref": "identity--465031c2-6166-4cdd-a6ca-d88ddb38cd56",
+            "schema": "https://center-for-threat-informed-defense.github.io/attack-flow/stix/attack-flow-schema-2.0.0.json",
+            "version": "2.0.0",
+            "extension_types": [
+                "new-sdo"
+            ]
+        },
+        {
+            "type": "identity",
+            "id": "identity--465031c2-6166-4cdd-a6ca-d88ddb38cd56",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.951645Z",
+            "modified": "2026-11-05T23:52:04.951659Z",
+            "name": "Threat Model Analysis Tool",
+            "identity_class": "tool"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--db4bc4b4-c754-4bf7-b1d8-44ef295a1018",
+            "created": "2026-11-05T23:52:04.951669Z",
+            "modified": "2026-11-05T23:52:04.951672Z",
+            "name": "Credentials in dataflow from OrderService to DBSwitch are sent over an unencrypted channel.",
+            "description": "Credentials in dataflow from OrderService to DBSwitch are sent over an unencrypted channel.",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--b4b79efd-92f8-4be4-ac65-95601171f6f1"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--b4b79efd-92f8-4be4-ac65-95601171f6f1",
+            "created": "2026-11-05T23:52:04.951680Z",
+            "modified": "2026-11-05T23:52:04.951683Z",
+            "name": "OrdersToDBSwitch",
+            "description": "Asset targeted by threat: Credentials in dataflow from OrderService to DBSwitch are sent over an unencrypted channel.",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--e0118621-873a-465b-9579-c79916e2b252",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.951690Z",
+            "modified": "2026-11-05T23:52:04.951693Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--db4bc4b4-c754-4bf7-b1d8-44ef295a1018",
+            "target_ref": "attack-asset--b4b79efd-92f8-4be4-ac65-95601171f6f1"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--30f9913b-b0d2-441d-8d40-6f8d217409db",
+            "created": "2026-11-05T23:52:04.951700Z",
+            "modified": "2026-11-05T23:52:04.951703Z",
+            "name": "Credentials in dataflow from DBFirewall to ProductDB are sent over an unencrypted channel.",
+            "description": "Credentials in dataflow from DBFirewall to ProductDB are sent over an unencrypted channel.",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--ffd49057-9a29-4ce1-b17d-ae3102bb4fdc"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--ffd49057-9a29-4ce1-b17d-ae3102bb4fdc",
+            "created": "2026-11-05T23:52:04.951709Z",
+            "modified": "2026-11-05T23:52:04.951712Z",
+            "name": "FirewallToDB",
+            "description": "Asset targeted by threat: Credentials in dataflow from DBFirewall to ProductDB are sent over an unencrypted channel.",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--55ca0272-34ec-4a8d-89ad-b79e26bd6751",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.951718Z",
+            "modified": "2026-11-05T23:52:04.951720Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--30f9913b-b0d2-441d-8d40-6f8d217409db",
+            "target_ref": "attack-asset--ffd49057-9a29-4ce1-b17d-ae3102bb4fdc"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--991bcfc0-d824-422f-9af6-c41ad55c79e8",
+            "created": "2026-11-05T23:52:04.951728Z",
+            "modified": "2026-11-05T23:52:04.951730Z",
+            "name": "Unpatched OS or software vulnerabilities on CoreSwitch leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on CoreSwitch leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--52162d85-84b2-4693-8874-fc26e5b973c4"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--52162d85-84b2-4693-8874-fc26e5b973c4",
+            "created": "2026-11-05T23:52:04.951736Z",
+            "modified": "2026-11-05T23:52:04.951739Z",
+            "name": "CoreSwitch",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on CoreSwitch leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--d85cf054-5f7c-45e9-8be9-09253d807631",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.951745Z",
+            "modified": "2026-11-05T23:52:04.951747Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--991bcfc0-d824-422f-9af6-c41ad55c79e8",
+            "target_ref": "attack-asset--52162d85-84b2-4693-8874-fc26e5b973c4"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--8dbde076-030f-488c-8b95-f61d1e533cb2",
+            "created": "2026-11-05T23:52:04.951756Z",
+            "modified": "2026-11-05T23:52:04.951758Z",
+            "name": "Unpatched OS or software vulnerabilities on AuthService leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on AuthService leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--54078d4c-f2d4-4b8f-97cb-e11b6fd9e45e"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--54078d4c-f2d4-4b8f-97cb-e11b6fd9e45e",
+            "created": "2026-11-05T23:52:04.951764Z",
+            "modified": "2026-11-05T23:52:04.951767Z",
+            "name": "AuthService",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on AuthService leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--f60e53b8-4266-4959-909e-9363f33e62f6",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.951773Z",
+            "modified": "2026-11-05T23:52:04.951775Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--8dbde076-030f-488c-8b95-f61d1e533cb2",
+            "target_ref": "attack-asset--54078d4c-f2d4-4b8f-97cb-e11b6fd9e45e"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--a768aee0-2bfd-4567-8edc-e254227f62a4",
+            "created": "2026-11-05T23:52:04.951782Z",
+            "modified": "2026-11-05T23:52:04.951784Z",
+            "name": "Unpatched OS or software vulnerabilities on OrderService leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on OrderService leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--015276b6-f119-43e5-a77b-f561416a30d2"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--015276b6-f119-43e5-a77b-f561416a30d2",
+            "created": "2026-11-05T23:52:04.951791Z",
+            "modified": "2026-11-05T23:52:04.951793Z",
+            "name": "OrderService",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on OrderService leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--41477c4e-927d-46fe-bc84-81dca57b52bd",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.951799Z",
+            "modified": "2026-11-05T23:52:04.951802Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--a768aee0-2bfd-4567-8edc-e254227f62a4",
+            "target_ref": "attack-asset--015276b6-f119-43e5-a77b-f561416a30d2"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--1b79f132-1241-41fe-84c3-07cf323124da",
+            "created": "2026-11-05T23:52:04.951812Z",
+            "modified": "2026-11-05T23:52:04.951814Z",
+            "name": "Unpatched OS or software vulnerabilities on DBSwitch leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on DBSwitch leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--3777840a-ce3b-4641-8360-88192a709cbc"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--3777840a-ce3b-4641-8360-88192a709cbc",
+            "created": "2026-11-05T23:52:04.951821Z",
+            "modified": "2026-11-05T23:52:04.951823Z",
+            "name": "DBSwitch",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on DBSwitch leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--9d8f38fe-36c7-4e9b-98d7-3fdb08099564",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.951830Z",
+            "modified": "2026-11-05T23:52:04.951833Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--1b79f132-1241-41fe-84c3-07cf323124da",
+            "target_ref": "attack-asset--3777840a-ce3b-4641-8360-88192a709cbc"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--21db4302-d395-4995-8b3d-e88616ede935",
+            "created": "2026-11-05T23:52:04.951839Z",
+            "modified": "2026-11-05T23:52:04.951842Z",
+            "name": "Unpatched OS or software vulnerabilities on DBFirewall leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on DBFirewall leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--ea7d8173-dab5-4e52-9f18-646b0a83b92f"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--ea7d8173-dab5-4e52-9f18-646b0a83b92f",
+            "created": "2026-11-05T23:52:04.951848Z",
+            "modified": "2026-11-05T23:52:04.951850Z",
+            "name": "DBFirewall",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on DBFirewall leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--9d98392a-cd03-429e-b28c-33c5fb427c77",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.951856Z",
+            "modified": "2026-11-05T23:52:04.951858Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--21db4302-d395-4995-8b3d-e88616ede935",
+            "target_ref": "attack-asset--ea7d8173-dab5-4e52-9f18-646b0a83b92f"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--006509cc-da47-4383-afa3-b0f97cb1dd1d",
+            "created": "2026-11-05T23:52:04.951865Z",
+            "modified": "2026-11-05T23:52:04.951868Z",
+            "name": "Unpatched OS or software vulnerabilities on ProductDB leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on ProductDB leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--71ccd2f3-8e94-4522-a601-8ba947fdb966"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--71ccd2f3-8e94-4522-a601-8ba947fdb966",
+            "created": "2026-11-05T23:52:04.951874Z",
+            "modified": "2026-11-05T23:52:04.951876Z",
+            "name": "ProductDB",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on ProductDB leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--216302bc-952d-4f75-86d0-9df8c438747f",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.951883Z",
+            "modified": "2026-11-05T23:52:04.951885Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--006509cc-da47-4383-afa3-b0f97cb1dd1d",
+            "target_ref": "attack-asset--71ccd2f3-8e94-4522-a601-8ba947fdb966"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--b50f4234-d251-4e7e-8209-cf5cfb04a824",
+            "created": "2026-11-05T23:52:04.951891Z",
+            "modified": "2026-11-05T23:52:04.951893Z",
+            "name": "Data corruption or tampering in ProductDB via unauthorized write access",
+            "description": "Data corruption or tampering in ProductDB via unauthorized write access",
+            "technique_id": "T1221",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--4da0183a-9e4e-48b7-82af-ccac352e29f6"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--4da0183a-9e4e-48b7-82af-ccac352e29f6",
+            "created": "2026-11-05T23:52:04.951899Z",
+            "modified": "2026-11-05T23:52:04.951902Z",
+            "name": "ProductDB",
+            "description": "Asset targeted by threat: Data corruption or tampering in ProductDB via unauthorized write access",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--6abb1c15-e33e-4289-89a4-baa4df5daff2",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.951907Z",
+            "modified": "2026-11-05T23:52:04.951910Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--b50f4234-d251-4e7e-8209-cf5cfb04a824",
+            "target_ref": "attack-asset--4da0183a-9e4e-48b7-82af-ccac352e29f6"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--5ef43075-07d1-4696-b293-68eef567926a",
+            "created": "2026-11-05T23:52:04.951916Z",
+            "modified": "2026-11-05T23:52:04.951918Z",
+            "name": "Unauthorized access to sensitive data stored in ProductDB leading to data breach",
+            "description": "Unauthorized access to sensitive data stored in ProductDB leading to data breach",
+            "technique_id": "T1078",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--810c131b-f74e-4e97-a9c6-93bc1f33ffba"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--810c131b-f74e-4e97-a9c6-93bc1f33ffba",
+            "created": "2026-11-05T23:52:04.951924Z",
+            "modified": "2026-11-05T23:52:04.951926Z",
+            "name": "ProductDB",
+            "description": "Asset targeted by threat: Unauthorized access to sensitive data stored in ProductDB leading to data breach",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--ac26f2d8-7322-4abc-b826-a72f926af69c",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.951932Z",
+            "modified": "2026-11-05T23:52:04.951934Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--5ef43075-07d1-4696-b293-68eef567926a",
+            "target_ref": "attack-asset--810c131b-f74e-4e97-a9c6-93bc1f33ffba"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--60aef98b-ba82-4a84-849a-6175fb668946",
+            "created": "2026-11-05T23:52:04.951941Z",
+            "modified": "2026-11-05T23:52:04.951944Z",
+            "name": "Unauthorized privilege escalation on AuthService due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on AuthService due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--fafd3f56-a00b-4d6a-ba77-688655d4b341"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--fafd3f56-a00b-4d6a-ba77-688655d4b341",
+            "created": "2026-11-05T23:52:04.951950Z",
+            "modified": "2026-11-05T23:52:04.951952Z",
+            "name": "AuthService",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on AuthService due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--69993508-4527-447e-8220-91e2e88aeaa7",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.951958Z",
+            "modified": "2026-11-05T23:52:04.951960Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--60aef98b-ba82-4a84-849a-6175fb668946",
+            "target_ref": "attack-asset--fafd3f56-a00b-4d6a-ba77-688655d4b341"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--2eb15801-b29c-4baf-92cc-69aa80ba2b55",
+            "created": "2026-11-05T23:52:04.951967Z",
+            "modified": "2026-11-05T23:52:04.951969Z",
+            "name": "Unauthorized privilege escalation on OrderService due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on OrderService due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--9f1a222d-b9b3-407b-a9ef-cf5a4dbc6215"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--9f1a222d-b9b3-407b-a9ef-cf5a4dbc6215",
+            "created": "2026-11-05T23:52:04.951975Z",
+            "modified": "2026-11-05T23:52:04.951978Z",
+            "name": "OrderService",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on OrderService due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--8705ef98-7773-42fd-b929-a07c2f2ac5bc",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.951984Z",
+            "modified": "2026-11-05T23:52:04.951987Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--2eb15801-b29c-4baf-92cc-69aa80ba2b55",
+            "target_ref": "attack-asset--9f1a222d-b9b3-407b-a9ef-cf5a4dbc6215"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--1a8e46fe-29a3-4ec2-a9b3-8edff152b49a",
+            "created": "2026-11-05T23:52:04.951994Z",
+            "modified": "2026-11-05T23:52:04.951996Z",
+            "name": "Unauthorized privilege escalation on DBFirewall due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on DBFirewall due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--4dd7b285-8676-4732-bdd8-7d438474fc0b"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--4dd7b285-8676-4732-bdd8-7d438474fc0b",
+            "created": "2026-11-05T23:52:04.952003Z",
+            "modified": "2026-11-05T23:52:04.952006Z",
+            "name": "DBFirewall",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on DBFirewall due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--ceae6cc2-48e2-4ab5-90f1-e1c58616f4f4",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952012Z",
+            "modified": "2026-11-05T23:52:04.952014Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--1a8e46fe-29a3-4ec2-a9b3-8edff152b49a",
+            "target_ref": "attack-asset--4dd7b285-8676-4732-bdd8-7d438474fc0b"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--756d87e3-5d91-45bb-b806-0af548fcf0ff",
+            "created": "2026-11-05T23:52:04.952021Z",
+            "modified": "2026-11-05T23:52:04.952024Z",
+            "name": "Vulnerability in the management interface of DBFirewall leading to critical privilege escalation",
+            "description": "Vulnerability in the management interface of DBFirewall leading to critical privilege escalation",
+            "technique_id": "T1556",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--5f737909-5d57-43c0-844a-c42c5217d91b"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--5f737909-5d57-43c0-844a-c42c5217d91b",
+            "created": "2026-11-05T23:52:04.952030Z",
+            "modified": "2026-11-05T23:52:04.952033Z",
+            "name": "DBFirewall",
+            "description": "Asset targeted by threat: Vulnerability in the management interface of DBFirewall leading to critical privilege escalation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--04adc060-f503-4231-a065-4bd4a55d2bba",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952038Z",
+            "modified": "2026-11-05T23:52:04.952041Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--756d87e3-5d91-45bb-b806-0af548fcf0ff",
+            "target_ref": "attack-asset--5f737909-5d57-43c0-844a-c42c5217d91b"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--7854e6ae-a78d-4742-9085-10b7622ef8c3",
+            "created": "2026-11-05T23:52:04.952047Z",
+            "modified": "2026-11-05T23:52:04.952050Z",
+            "name": "Unauthorized privilege escalation on ProductDB due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on ProductDB due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--f1709b1e-3c42-49d2-800d-7be3445cfd22"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--f1709b1e-3c42-49d2-800d-7be3445cfd22",
+            "created": "2026-11-05T23:52:04.952056Z",
+            "modified": "2026-11-05T23:52:04.952059Z",
+            "name": "ProductDB",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on ProductDB due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--af776078-be1f-406d-9400-e462619cc9b0",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952065Z",
+            "modified": "2026-11-05T23:52:04.952067Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--7854e6ae-a78d-4742-9085-10b7622ef8c3",
+            "target_ref": "attack-asset--f1709b1e-3c42-49d2-800d-7be3445cfd22"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--254b9576-314b-4ee6-a50b-9ceb79e29a55",
+            "created": "2026-11-05T23:52:04.952074Z",
+            "modified": "2026-11-05T23:52:04.952077Z",
+            "name": "Firewall rule misconfiguration allowing unintended traffic to bypass DBFirewall and reach internal networks",
+            "description": "Firewall rule misconfiguration allowing unintended traffic to bypass DBFirewall and reach internal networks",
+            "technique_id": "T1547",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--949c214c-7349-4cc5-b553-3f45c247bb10"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--949c214c-7349-4cc5-b553-3f45c247bb10",
+            "created": "2026-11-05T23:52:04.952083Z",
+            "modified": "2026-11-05T23:52:04.952085Z",
+            "name": "DBFirewall",
+            "description": "Asset targeted by threat: Firewall rule misconfiguration allowing unintended traffic to bypass DBFirewall and reach internal networks",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--fa85dc8e-9c59-418e-b92a-fe33f41e0718",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952091Z",
+            "modified": "2026-11-05T23:52:04.952093Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--254b9576-314b-4ee6-a50b-9ceb79e29a55",
+            "target_ref": "attack-asset--949c214c-7349-4cc5-b553-3f45c247bb10"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--29535d68-0605-47c7-9242-ac1d0fd3107a",
+            "created": "2026-11-05T23:52:04.952100Z",
+            "modified": "2026-11-05T23:52:04.952103Z",
+            "name": "Lack of monitoring or logging on AuthService, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on AuthService, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--47ad6b81-4f9e-4dec-acd0-127d9e7c0c4e"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--47ad6b81-4f9e-4dec-acd0-127d9e7c0c4e",
+            "created": "2026-11-05T23:52:04.952109Z",
+            "modified": "2026-11-05T23:52:04.952112Z",
+            "name": "AuthService",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on AuthService, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--d65efab2-be85-43da-9243-968fcfc107a6",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952117Z",
+            "modified": "2026-11-05T23:52:04.952120Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--29535d68-0605-47c7-9242-ac1d0fd3107a",
+            "target_ref": "attack-asset--47ad6b81-4f9e-4dec-acd0-127d9e7c0c4e"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--99aed129-bfce-4a66-bfe4-9b1da9f253ea",
+            "created": "2026-11-05T23:52:04.952127Z",
+            "modified": "2026-11-05T23:52:04.952129Z",
+            "name": "Lack of monitoring or logging on ProductDB, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on ProductDB, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--c245dd54-2c98-4a02-9635-eefeefca2b63"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--c245dd54-2c98-4a02-9635-eefeefca2b63",
+            "created": "2026-11-05T23:52:04.952136Z",
+            "modified": "2026-11-05T23:52:04.952138Z",
+            "name": "ProductDB",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on ProductDB, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--6c691c10-4330-4adb-b07d-a22aa468511c",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952144Z",
+            "modified": "2026-11-05T23:52:04.952146Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--99aed129-bfce-4a66-bfe4-9b1da9f253ea",
+            "target_ref": "attack-asset--c245dd54-2c98-4a02-9635-eefeefca2b63"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--3a4daae2-5f9c-4e4e-a6c2-f73d91af4b03",
+            "created": "2026-11-05T23:52:04.952152Z",
+            "modified": "2026-11-05T23:52:04.952155Z",
+            "name": "Denial of Service against ProductDB through resource-intensive queries or excessive connections",
+            "description": "Denial of Service against ProductDB through resource-intensive queries or excessive connections",
+            "technique_id": "T1499",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--792dee31-d4a4-4252-9905-b7f8da2d6efd"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--792dee31-d4a4-4252-9905-b7f8da2d6efd",
+            "created": "2026-11-05T23:52:04.952161Z",
+            "modified": "2026-11-05T23:52:04.952164Z",
+            "name": "ProductDB",
+            "description": "Asset targeted by threat: Denial of Service against ProductDB through resource-intensive queries or excessive connections",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--866524de-bd5c-418d-9a5e-cf5f1c4a6adb",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952174Z",
+            "modified": "2026-11-05T23:52:04.952177Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--3a4daae2-5f9c-4e4e-a6c2-f73d91af4b03",
+            "target_ref": "attack-asset--792dee31-d4a4-4252-9905-b7f8da2d6efd"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--289a715a-1245-4d8e-be50-a51b97b89910",
+            "created": "2026-11-05T23:52:04.952184Z",
+            "modified": "2026-11-05T23:52:04.952186Z",
+            "name": "Spoofing of data from CoreSwitch to AuthService due to lack of authentication",
+            "description": "Spoofing of data from CoreSwitch to AuthService due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--ea26962b-6842-48a3-9518-5af96566dedb"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--ea26962b-6842-48a3-9518-5af96566dedb",
+            "created": "2026-11-05T23:52:04.952192Z",
+            "modified": "2026-11-05T23:52:04.952195Z",
+            "name": "SwitchToAuth",
+            "description": "Asset targeted by threat: Spoofing of data from CoreSwitch to AuthService due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--a51effc7-b6d0-4595-87f7-17691523f6a1",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952201Z",
+            "modified": "2026-11-05T23:52:04.952204Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--289a715a-1245-4d8e-be50-a51b97b89910",
+            "target_ref": "attack-asset--ea26962b-6842-48a3-9518-5af96566dedb"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--89995e09-0d8c-4b1e-964d-3dd9ea7fda5f",
+            "created": "2026-11-05T23:52:04.952211Z",
+            "modified": "2026-11-05T23:52:04.952214Z",
+            "name": "Spoofing of data from CoreSwitch to OrderService due to lack of authentication",
+            "description": "Spoofing of data from CoreSwitch to OrderService due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--54e719b0-d6b5-4616-9a54-fa94a1f6512c"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--54e719b0-d6b5-4616-9a54-fa94a1f6512c",
+            "created": "2026-11-05T23:52:04.952220Z",
+            "modified": "2026-11-05T23:52:04.952222Z",
+            "name": "SwitchToOrders",
+            "description": "Asset targeted by threat: Spoofing of data from CoreSwitch to OrderService due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--fb0ce812-8fb6-4e5d-be3f-2992ce178d6a",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952228Z",
+            "modified": "2026-11-05T23:52:04.952231Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--89995e09-0d8c-4b1e-964d-3dd9ea7fda5f",
+            "target_ref": "attack-asset--54e719b0-d6b5-4616-9a54-fa94a1f6512c"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--29d5e32f-d3db-4d36-b95a-ac2898ccf939",
+            "created": "2026-11-05T23:52:04.952238Z",
+            "modified": "2026-11-05T23:52:04.952240Z",
+            "name": "Spoofing of data from OrderService to DBSwitch due to lack of authentication",
+            "description": "Spoofing of data from OrderService to DBSwitch due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--e013a350-ba09-4537-9398-1600ac364d8c"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--e013a350-ba09-4537-9398-1600ac364d8c",
+            "created": "2026-11-05T23:52:04.952275Z",
+            "modified": "2026-11-05T23:52:04.952280Z",
+            "name": "OrdersToDBSwitch",
+            "description": "Asset targeted by threat: Spoofing of data from OrderService to DBSwitch due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--d43fcb36-1bcb-4f65-9f15-82ac114ccc30",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952290Z",
+            "modified": "2026-11-05T23:52:04.952292Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--29d5e32f-d3db-4d36-b95a-ac2898ccf939",
+            "target_ref": "attack-asset--e013a350-ba09-4537-9398-1600ac364d8c"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--d67eb845-1e9e-4372-9560-b2dfc3869c54",
+            "created": "2026-11-05T23:52:04.952299Z",
+            "modified": "2026-11-05T23:52:04.952308Z",
+            "name": "Spoofing of data from DBSwitch to DBFirewall due to lack of authentication",
+            "description": "Spoofing of data from DBSwitch to DBFirewall due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--4c1e0131-b4d3-457f-8209-9afea12b36c1"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--4c1e0131-b4d3-457f-8209-9afea12b36c1",
+            "created": "2026-11-05T23:52:04.952314Z",
+            "modified": "2026-11-05T23:52:04.952317Z",
+            "name": "DBSwitchToFirewall",
+            "description": "Asset targeted by threat: Spoofing of data from DBSwitch to DBFirewall due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--efa32858-279a-400b-b40e-6104fa8a12dd",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952322Z",
+            "modified": "2026-11-05T23:52:04.952324Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--d67eb845-1e9e-4372-9560-b2dfc3869c54",
+            "target_ref": "attack-asset--4c1e0131-b4d3-457f-8209-9afea12b36c1"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--2efc0b42-e60e-48ef-8cf1-7ed2acafe8cc",
+            "created": "2026-11-05T23:52:04.952330Z",
+            "modified": "2026-11-05T23:52:04.952332Z",
+            "name": "Spoofing of data from DBFirewall to ProductDB due to lack of authentication",
+            "description": "Spoofing of data from DBFirewall to ProductDB due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--61adacca-4182-4c88-88d2-a03085ab827d"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--61adacca-4182-4c88-88d2-a03085ab827d",
+            "created": "2026-11-05T23:52:04.952338Z",
+            "modified": "2026-11-05T23:52:04.952340Z",
+            "name": "FirewallToDB",
+            "description": "Asset targeted by threat: Spoofing of data from DBFirewall to ProductDB due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--82ff29c4-990c-49a5-b738-9ee909e43623",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952345Z",
+            "modified": "2026-11-05T23:52:04.952347Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--2efc0b42-e60e-48ef-8cf1-7ed2acafe8cc",
+            "target_ref": "attack-asset--61adacca-4182-4c88-88d2-a03085ab827d"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--f941e968-d066-46d3-8dd4-2ff27dd7529d",
+            "created": "2026-11-05T23:52:04.952353Z",
+            "modified": "2026-11-05T23:52:04.952354Z",
+            "name": "Lack of monitoring or logging on OrderService, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on OrderService, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--fbfb41d3-659f-41f9-ad38-a074e252ac3b"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--fbfb41d3-659f-41f9-ad38-a074e252ac3b",
+            "created": "2026-11-05T23:52:04.952360Z",
+            "modified": "2026-11-05T23:52:04.952362Z",
+            "name": "OrderService",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on OrderService, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--85345283-0be3-43dc-ae05-6359a4bb193d",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952367Z",
+            "modified": "2026-11-05T23:52:04.952369Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--f941e968-d066-46d3-8dd4-2ff27dd7529d",
+            "target_ref": "attack-asset--fbfb41d3-659f-41f9-ad38-a074e252ac3b"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--934a4dc7-afcc-4ca9-965b-dfd4f86a9827",
+            "created": "2026-11-05T23:52:04.952376Z",
+            "modified": "2026-11-05T23:52:04.952378Z",
+            "name": "Insecure security configuration or hardening on AuthService leading to information exposure",
+            "description": "Insecure security configuration or hardening on AuthService leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--834e9c86-ecc3-45af-9141-6569b495a2b5"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--834e9c86-ecc3-45af-9141-6569b495a2b5",
+            "created": "2026-11-05T23:52:04.952383Z",
+            "modified": "2026-11-05T23:52:04.952385Z",
+            "name": "AuthService",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on AuthService leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--ee6b9401-cec8-40c1-b16b-813b7066a17b",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952390Z",
+            "modified": "2026-11-05T23:52:04.952392Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--934a4dc7-afcc-4ca9-965b-dfd4f86a9827",
+            "target_ref": "attack-asset--834e9c86-ecc3-45af-9141-6569b495a2b5"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--b63c20a0-315d-4c15-9826-dbc11c90c4d3",
+            "created": "2026-11-05T23:52:04.952398Z",
+            "modified": "2026-11-05T23:52:04.952400Z",
+            "name": "Insecure security configuration or hardening on ProductDB leading to information exposure",
+            "description": "Insecure security configuration or hardening on ProductDB leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--4c7288bd-80fd-43c5-b5e2-8b377c7f1a9f"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--4c7288bd-80fd-43c5-b5e2-8b377c7f1a9f",
+            "created": "2026-11-05T23:52:04.952405Z",
+            "modified": "2026-11-05T23:52:04.952407Z",
+            "name": "ProductDB",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on ProductDB leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--4943a198-b750-4518-94d7-5a79a073ab0f",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952412Z",
+            "modified": "2026-11-05T23:52:04.952414Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--b63c20a0-315d-4c15-9826-dbc11c90c4d3",
+            "target_ref": "attack-asset--4c7288bd-80fd-43c5-b5e2-8b377c7f1a9f"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--581279e3-9a5b-46b9-a2bc-36c00ae5e38e",
+            "created": "2026-11-05T23:52:04.952419Z",
+            "modified": "2026-11-05T23:52:04.952421Z",
+            "name": "Lack of monitoring or logging on DBFirewall, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on DBFirewall, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--c05a34bd-2168-4251-b175-1ab0a8ee13a7"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--c05a34bd-2168-4251-b175-1ab0a8ee13a7",
+            "created": "2026-11-05T23:52:04.952427Z",
+            "modified": "2026-11-05T23:52:04.952429Z",
+            "name": "DBFirewall",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on DBFirewall, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--d580c47f-8702-4dc5-8d7e-5d2370dcd45e",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952435Z",
+            "modified": "2026-11-05T23:52:04.952437Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--581279e3-9a5b-46b9-a2bc-36c00ae5e38e",
+            "target_ref": "attack-asset--c05a34bd-2168-4251-b175-1ab0a8ee13a7"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--6768e4cc-6fbe-47f8-bc18-3c0e72bb54e5",
+            "created": "2026-11-05T23:52:04.952443Z",
+            "modified": "2026-11-05T23:52:04.952445Z",
+            "name": "Data interception on an unencrypted channel from CoreSwitch to AuthService (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from CoreSwitch to AuthService (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--6797d88f-3d02-4335-962b-b57a9263473a"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--6797d88f-3d02-4335-962b-b57a9263473a",
+            "created": "2026-11-05T23:52:04.952450Z",
+            "modified": "2026-11-05T23:52:04.952452Z",
+            "name": "SwitchToAuth",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from CoreSwitch to AuthService (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--7be93d5f-29c2-4ee9-bf7d-c35eb6524fec",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952458Z",
+            "modified": "2026-11-05T23:52:04.952460Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--6768e4cc-6fbe-47f8-bc18-3c0e72bb54e5",
+            "target_ref": "attack-asset--6797d88f-3d02-4335-962b-b57a9263473a"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--aef0b31e-1e2f-46a1-ae09-dd41d01d51e0",
+            "created": "2026-11-05T23:52:04.952465Z",
+            "modified": "2026-11-05T23:52:04.952467Z",
+            "name": "Data interception on an unencrypted channel from CoreSwitch to OrderService (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from CoreSwitch to OrderService (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--0c3b8422-0449-4222-93ab-a2049831c337"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--0c3b8422-0449-4222-93ab-a2049831c337",
+            "created": "2026-11-05T23:52:04.952474Z",
+            "modified": "2026-11-05T23:52:04.952476Z",
+            "name": "SwitchToOrders",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from CoreSwitch to OrderService (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--e23bba88-2f1d-4513-b86b-9bc7455a5730",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952481Z",
+            "modified": "2026-11-05T23:52:04.952483Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--aef0b31e-1e2f-46a1-ae09-dd41d01d51e0",
+            "target_ref": "attack-asset--0c3b8422-0449-4222-93ab-a2049831c337"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--4e2bf5a8-72cb-4d1c-b4cb-157d9b395ce4",
+            "created": "2026-11-05T23:52:04.952490Z",
+            "modified": "2026-11-05T23:52:04.952492Z",
+            "name": "Data interception on an unencrypted channel from OrderService to DBSwitch (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from OrderService to DBSwitch (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--43a652fd-e768-4ae1-a198-43a2b915fe20"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--43a652fd-e768-4ae1-a198-43a2b915fe20",
+            "created": "2026-11-05T23:52:04.952497Z",
+            "modified": "2026-11-05T23:52:04.952499Z",
+            "name": "OrdersToDBSwitch",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from OrderService to DBSwitch (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--73b2fd5c-d0ac-4f81-bbbf-ac13a33d9677",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952505Z",
+            "modified": "2026-11-05T23:52:04.952507Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--4e2bf5a8-72cb-4d1c-b4cb-157d9b395ce4",
+            "target_ref": "attack-asset--43a652fd-e768-4ae1-a198-43a2b915fe20"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--064ce0ed-0f5f-4efc-9c9e-58d8fb99a12c",
+            "created": "2026-11-05T23:52:04.952513Z",
+            "modified": "2026-11-05T23:52:04.952515Z",
+            "name": "Data interception on an unencrypted channel from DBSwitch to DBFirewall (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from DBSwitch to DBFirewall (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--4c9bda7d-f7c9-437c-b30b-ac989588d3d4"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--4c9bda7d-f7c9-437c-b30b-ac989588d3d4",
+            "created": "2026-11-05T23:52:04.952521Z",
+            "modified": "2026-11-05T23:52:04.952523Z",
+            "name": "DBSwitchToFirewall",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from DBSwitch to DBFirewall (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--d4c17ca6-5605-4ee0-a6c5-729ac6d630d6",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952528Z",
+            "modified": "2026-11-05T23:52:04.952530Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--064ce0ed-0f5f-4efc-9c9e-58d8fb99a12c",
+            "target_ref": "attack-asset--4c9bda7d-f7c9-437c-b30b-ac989588d3d4"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--2c8e2927-bbcf-4a05-97b7-67f714e372ef",
+            "created": "2026-11-05T23:52:04.952535Z",
+            "modified": "2026-11-05T23:52:04.952537Z",
+            "name": "Data interception on an unencrypted channel from DBFirewall to ProductDB (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from DBFirewall to ProductDB (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--76ab4d57-1c15-4379-aa33-59c3fb3b3a2d"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--76ab4d57-1c15-4379-aa33-59c3fb3b3a2d",
+            "created": "2026-11-05T23:52:04.952542Z",
+            "modified": "2026-11-05T23:52:04.952544Z",
+            "name": "FirewallToDB",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from DBFirewall to ProductDB (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--3c724405-282c-4912-b52d-528f534defc2",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952549Z",
+            "modified": "2026-11-05T23:52:04.952551Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--2c8e2927-bbcf-4a05-97b7-67f714e372ef",
+            "target_ref": "attack-asset--76ab4d57-1c15-4379-aa33-59c3fb3b3a2d"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--245acf5a-91a7-414f-90f2-f8eaba0c2fc8",
+            "created": "2026-11-05T23:52:04.952557Z",
+            "modified": "2026-11-05T23:52:04.952559Z",
+            "name": "Unauthorized privilege escalation on CoreSwitch due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on CoreSwitch due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--a9d7d763-5859-4567-91ef-d10ad94c5bc4"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--a9d7d763-5859-4567-91ef-d10ad94c5bc4",
+            "created": "2026-11-05T23:52:04.952564Z",
+            "modified": "2026-11-05T23:52:04.952566Z",
+            "name": "CoreSwitch",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on CoreSwitch due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--9955ad3e-07b6-4dae-a801-44999f3b9c2c",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952571Z",
+            "modified": "2026-11-05T23:52:04.952573Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--245acf5a-91a7-414f-90f2-f8eaba0c2fc8",
+            "target_ref": "attack-asset--a9d7d763-5859-4567-91ef-d10ad94c5bc4"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--f30ecbfa-e7b3-4793-bc30-e37089729b2d",
+            "created": "2026-11-05T23:52:04.952579Z",
+            "modified": "2026-11-05T23:52:04.952581Z",
+            "name": "Unauthorized privilege escalation on DBSwitch due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on DBSwitch due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--af69387c-f874-4822-9d3a-c8b3df6ce459"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--af69387c-f874-4822-9d3a-c8b3df6ce459",
+            "created": "2026-11-05T23:52:04.952586Z",
+            "modified": "2026-11-05T23:52:04.952587Z",
+            "name": "DBSwitch",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on DBSwitch due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--959a7bab-4999-4d15-9bb5-26dc168d8ce9",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952592Z",
+            "modified": "2026-11-05T23:52:04.952594Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--f30ecbfa-e7b3-4793-bc30-e37089729b2d",
+            "target_ref": "attack-asset--af69387c-f874-4822-9d3a-c8b3df6ce459"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--e166cf7d-a28d-4d8e-a6f2-2fe5478d4a05",
+            "created": "2026-11-05T23:52:04.952600Z",
+            "modified": "2026-11-05T23:52:04.952601Z",
+            "name": "Lack of redundancy for mission-critical server DBSwitch creates a single point of failure, increasing Denial of Service risk.",
+            "description": "Lack of redundancy for mission-critical server DBSwitch creates a single point of failure, increasing Denial of Service risk.",
+            "technique_id": "T1499",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--ece02d7c-9e29-46b3-9136-281a7aa6a2ef"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--ece02d7c-9e29-46b3-9136-281a7aa6a2ef",
+            "created": "2026-11-05T23:52:04.952606Z",
+            "modified": "2026-11-05T23:52:04.952608Z",
+            "name": "DBSwitch",
+            "description": "Asset targeted by threat: Lack of redundancy for mission-critical server DBSwitch creates a single point of failure, increasing Denial of Service risk.",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--58ee4945-032e-43d9-9f12-17b4b9c995a1",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952613Z",
+            "modified": "2026-11-05T23:52:04.952615Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--e166cf7d-a28d-4d8e-a6f2-2fe5478d4a05",
+            "target_ref": "attack-asset--ece02d7c-9e29-46b3-9136-281a7aa6a2ef"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--b480e594-484d-49d0-af1d-f29af51fe297",
+            "created": "2026-11-05T23:52:04.952621Z",
+            "modified": "2026-11-05T23:52:04.952623Z",
+            "name": "Insecure security configuration or hardening on OrderService leading to information exposure",
+            "description": "Insecure security configuration or hardening on OrderService leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--51c214b1-e370-4098-8e02-ece0d5da4c10"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--51c214b1-e370-4098-8e02-ece0d5da4c10",
+            "created": "2026-11-05T23:52:04.952628Z",
+            "modified": "2026-11-05T23:52:04.952630Z",
+            "name": "OrderService",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on OrderService leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--9fb9ec64-ac7f-46b6-bdd1-8bbe3f975cdb",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952635Z",
+            "modified": "2026-11-05T23:52:04.952637Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--b480e594-484d-49d0-af1d-f29af51fe297",
+            "target_ref": "attack-asset--51c214b1-e370-4098-8e02-ece0d5da4c10"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--0bd3366b-5e65-4ac8-9596-23624e3114b4",
+            "created": "2026-11-05T23:52:04.952642Z",
+            "modified": "2026-11-05T23:52:04.952644Z",
+            "name": "Insecure security configuration or hardening on DBFirewall leading to information exposure",
+            "description": "Insecure security configuration or hardening on DBFirewall leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--ac45d0b0-e286-436a-a506-757fabf30db9"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--ac45d0b0-e286-436a-a506-757fabf30db9",
+            "created": "2026-11-05T23:52:04.952649Z",
+            "modified": "2026-11-05T23:52:04.952651Z",
+            "name": "DBFirewall",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on DBFirewall leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--26983222-22ed-4555-bd94-85eed2370e12",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952656Z",
+            "modified": "2026-11-05T23:52:04.952658Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--0bd3366b-5e65-4ac8-9596-23624e3114b4",
+            "target_ref": "attack-asset--ac45d0b0-e286-436a-a506-757fabf30db9"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--677eea71-8a0b-453f-bfbd-f24d7f7b7f69",
+            "created": "2026-11-05T23:52:04.952663Z",
+            "modified": "2026-11-05T23:52:04.952665Z",
+            "name": "VLAN hopping attack to gain access to unauthorized network segments through CoreSwitch for privilege escalation",
+            "description": "VLAN hopping attack to gain access to unauthorized network segments through CoreSwitch for privilege escalation",
+            "technique_id": "T1548",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--4e0d726c-e2bb-4e40-8a0c-35f7d48b880e"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--4e0d726c-e2bb-4e40-8a0c-35f7d48b880e",
+            "created": "2026-11-05T23:52:04.952671Z",
+            "modified": "2026-11-05T23:52:04.952673Z",
+            "name": "CoreSwitch",
+            "description": "Asset targeted by threat: VLAN hopping attack to gain access to unauthorized network segments through CoreSwitch for privilege escalation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--a814cdfd-b55a-48e0-bb0f-0fcc8e6501c2",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952678Z",
+            "modified": "2026-11-05T23:52:04.952680Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--677eea71-8a0b-453f-bfbd-f24d7f7b7f69",
+            "target_ref": "attack-asset--4e0d726c-e2bb-4e40-8a0c-35f7d48b880e"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--01c0f5dc-1b92-4326-b7d7-9e4c7c901e71",
+            "created": "2026-11-05T23:52:04.952685Z",
+            "modified": "2026-11-05T23:52:04.952687Z",
+            "name": "VLAN hopping attack to gain access to unauthorized network segments through DBSwitch for privilege escalation",
+            "description": "VLAN hopping attack to gain access to unauthorized network segments through DBSwitch for privilege escalation",
+            "technique_id": "T1548",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--d9be9f49-e5bb-4179-aa05-749203460178"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--d9be9f49-e5bb-4179-aa05-749203460178",
+            "created": "2026-11-05T23:52:04.952693Z",
+            "modified": "2026-11-05T23:52:04.952695Z",
+            "name": "DBSwitch",
+            "description": "Asset targeted by threat: VLAN hopping attack to gain access to unauthorized network segments through DBSwitch for privilege escalation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--44d7eb9f-893c-4a80-9a06-82c42263bdc4",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952700Z",
+            "modified": "2026-11-05T23:52:04.952702Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--01c0f5dc-1b92-4326-b7d7-9e4c7c901e71",
+            "target_ref": "attack-asset--d9be9f49-e5bb-4179-aa05-749203460178"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--4f59b626-1595-4262-8ac7-7381c7d85e15",
+            "created": "2026-11-05T23:52:04.952707Z",
+            "modified": "2026-11-05T23:52:04.952709Z",
+            "name": "Lack of monitoring or logging on CoreSwitch, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on CoreSwitch, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--4af0141f-172b-4d55-a776-0591d33bc4cf"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--4af0141f-172b-4d55-a776-0591d33bc4cf",
+            "created": "2026-11-05T23:52:04.952714Z",
+            "modified": "2026-11-05T23:52:04.952716Z",
+            "name": "CoreSwitch",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on CoreSwitch, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--3456236d-77d8-4b23-a259-f971233477b2",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952721Z",
+            "modified": "2026-11-05T23:52:04.952723Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--4f59b626-1595-4262-8ac7-7381c7d85e15",
+            "target_ref": "attack-asset--4af0141f-172b-4d55-a776-0591d33bc4cf"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--53190e23-ed8d-49c4-8ddc-1e7f721047b3",
+            "created": "2026-11-05T23:52:04.952728Z",
+            "modified": "2026-11-05T23:52:04.952730Z",
+            "name": "Lack of monitoring or logging on DBSwitch, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on DBSwitch, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--6c62ee39-30ae-4332-acd0-0db8fa3a4b84"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--6c62ee39-30ae-4332-acd0-0db8fa3a4b84",
+            "created": "2026-11-05T23:52:04.952735Z",
+            "modified": "2026-11-05T23:52:04.952737Z",
+            "name": "DBSwitch",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on DBSwitch, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--61b4e556-56f3-4c82-85b8-3ad2b92fee97",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952743Z",
+            "modified": "2026-11-05T23:52:04.952744Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--53190e23-ed8d-49c4-8ddc-1e7f721047b3",
+            "target_ref": "attack-asset--6c62ee39-30ae-4332-acd0-0db8fa3a4b84"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--34388f16-609a-4160-a0d5-dc634347d76f",
+            "created": "2026-11-05T23:52:04.952750Z",
+            "modified": "2026-11-05T23:52:04.952752Z",
+            "name": "Insecure security configuration or hardening on CoreSwitch leading to information exposure",
+            "description": "Insecure security configuration or hardening on CoreSwitch leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--a77270f1-95b5-4ddb-8581-95b2a7f1d6b0"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--a77270f1-95b5-4ddb-8581-95b2a7f1d6b0",
+            "created": "2026-11-05T23:52:04.952757Z",
+            "modified": "2026-11-05T23:52:04.952759Z",
+            "name": "CoreSwitch",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on CoreSwitch leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--c7eacc44-6dda-4592-9fb5-dd44e9333b41",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952764Z",
+            "modified": "2026-11-05T23:52:04.952766Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--34388f16-609a-4160-a0d5-dc634347d76f",
+            "target_ref": "attack-asset--a77270f1-95b5-4ddb-8581-95b2a7f1d6b0"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--65e8565d-bd5e-4dc6-b669-e9bdd3132556",
+            "created": "2026-11-05T23:52:04.952771Z",
+            "modified": "2026-11-05T23:52:04.952773Z",
+            "name": "MAC flooding attack on CoreSwitch to force it into a hub-like state, enabling network sniffing and information disclosure",
+            "description": "MAC flooding attack on CoreSwitch to force it into a hub-like state, enabling network sniffing and information disclosure",
+            "technique_id": "T1040",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--bf52ab5f-5fc1-423b-9ea9-3a67d6c292be"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--bf52ab5f-5fc1-423b-9ea9-3a67d6c292be",
+            "created": "2026-11-05T23:52:04.952779Z",
+            "modified": "2026-11-05T23:52:04.952781Z",
+            "name": "CoreSwitch",
+            "description": "Asset targeted by threat: MAC flooding attack on CoreSwitch to force it into a hub-like state, enabling network sniffing and information disclosure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--64d19e34-98ec-4029-b64b-ff473ac9ee31",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952786Z",
+            "modified": "2026-11-05T23:52:04.952788Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--65e8565d-bd5e-4dc6-b669-e9bdd3132556",
+            "target_ref": "attack-asset--bf52ab5f-5fc1-423b-9ea9-3a67d6c292be"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--e55b4dbd-2bd9-4f9b-bfff-21ffba18f12f",
+            "created": "2026-11-05T23:52:04.952793Z",
+            "modified": "2026-11-05T23:52:04.952795Z",
+            "name": "Insecure security configuration or hardening on DBSwitch leading to information exposure",
+            "description": "Insecure security configuration or hardening on DBSwitch leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--fdabcc5a-059b-4b06-a2ea-3373fc5e2733"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--fdabcc5a-059b-4b06-a2ea-3373fc5e2733",
+            "created": "2026-11-05T23:52:04.952800Z",
+            "modified": "2026-11-05T23:52:04.952802Z",
+            "name": "DBSwitch",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on DBSwitch leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--541c0e9f-abca-487a-b11d-0e6763fe30d1",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952810Z",
+            "modified": "2026-11-05T23:52:04.952812Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--e55b4dbd-2bd9-4f9b-bfff-21ffba18f12f",
+            "target_ref": "attack-asset--fdabcc5a-059b-4b06-a2ea-3373fc5e2733"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--05a90879-dd95-46a9-9eb9-42ba851c134a",
+            "created": "2026-11-05T23:52:04.952817Z",
+            "modified": "2026-11-05T23:52:04.952819Z",
+            "name": "MAC flooding attack on DBSwitch to force it into a hub-like state, enabling network sniffing and information disclosure",
+            "description": "MAC flooding attack on DBSwitch to force it into a hub-like state, enabling network sniffing and information disclosure",
+            "technique_id": "T1040",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--c0eac0e9-8dae-4bd6-936b-cb7292ac6178"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--c0eac0e9-8dae-4bd6-936b-cb7292ac6178",
+            "created": "2026-11-05T23:52:04.952825Z",
+            "modified": "2026-11-05T23:52:04.952826Z",
+            "name": "DBSwitch",
+            "description": "Asset targeted by threat: MAC flooding attack on DBSwitch to force it into a hub-like state, enabling network sniffing and information disclosure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--80169a88-2f94-4777-a827-e17bd2b01df7",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.952831Z",
+            "modified": "2026-11-05T23:52:04.952833Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--05a90879-dd95-46a9-9eb9-42ba851c134a",
+            "target_ref": "attack-asset--c0eac0e9-8dae-4bd6-936b-cb7292ac6178"
+        },
+        {
+            "type": "attack-flow",
+            "spec_version": "2.1",
+            "id": "attack-flow--030f2a39-a120-4413-af75-ef16458abcbf",
+            "created_by_ref": "identity--465031c2-6166-4cdd-a6ca-d88ddb38cd56",
+            "created": "2026-11-05T23:52:04.952840Z",
+            "modified": "2026-11-05T23:52:04.952842Z",
+            "name": "Attack Flow for model",
+            "description": "This Attack Flow was generated from the threat model 'model'.",
+            "scope": "attack-tree",
+            "start_refs": [
+                "attack-action--db4bc4b4-c754-4bf7-b1d8-44ef295a1018",
+                "attack-action--30f9913b-b0d2-441d-8d40-6f8d217409db",
+                "attack-action--991bcfc0-d824-422f-9af6-c41ad55c79e8",
+                "attack-action--8dbde076-030f-488c-8b95-f61d1e533cb2",
+                "attack-action--a768aee0-2bfd-4567-8edc-e254227f62a4",
+                "attack-action--1b79f132-1241-41fe-84c3-07cf323124da",
+                "attack-action--21db4302-d395-4995-8b3d-e88616ede935",
+                "attack-action--006509cc-da47-4383-afa3-b0f97cb1dd1d",
+                "attack-action--b50f4234-d251-4e7e-8209-cf5cfb04a824",
+                "attack-action--5ef43075-07d1-4696-b293-68eef567926a",
+                "attack-action--60aef98b-ba82-4a84-849a-6175fb668946",
+                "attack-action--2eb15801-b29c-4baf-92cc-69aa80ba2b55",
+                "attack-action--1a8e46fe-29a3-4ec2-a9b3-8edff152b49a",
+                "attack-action--756d87e3-5d91-45bb-b806-0af548fcf0ff",
+                "attack-action--7854e6ae-a78d-4742-9085-10b7622ef8c3",
+                "attack-action--254b9576-314b-4ee6-a50b-9ceb79e29a55",
+                "attack-action--29535d68-0605-47c7-9242-ac1d0fd3107a",
+                "attack-action--99aed129-bfce-4a66-bfe4-9b1da9f253ea",
+                "attack-action--3a4daae2-5f9c-4e4e-a6c2-f73d91af4b03",
+                "attack-action--289a715a-1245-4d8e-be50-a51b97b89910",
+                "attack-action--89995e09-0d8c-4b1e-964d-3dd9ea7fda5f",
+                "attack-action--29d5e32f-d3db-4d36-b95a-ac2898ccf939",
+                "attack-action--d67eb845-1e9e-4372-9560-b2dfc3869c54",
+                "attack-action--2efc0b42-e60e-48ef-8cf1-7ed2acafe8cc",
+                "attack-action--f941e968-d066-46d3-8dd4-2ff27dd7529d",
+                "attack-action--934a4dc7-afcc-4ca9-965b-dfd4f86a9827",
+                "attack-action--b63c20a0-315d-4c15-9826-dbc11c90c4d3",
+                "attack-action--581279e3-9a5b-46b9-a2bc-36c00ae5e38e",
+                "attack-action--6768e4cc-6fbe-47f8-bc18-3c0e72bb54e5",
+                "attack-action--aef0b31e-1e2f-46a1-ae09-dd41d01d51e0",
+                "attack-action--4e2bf5a8-72cb-4d1c-b4cb-157d9b395ce4",
+                "attack-action--064ce0ed-0f5f-4efc-9c9e-58d8fb99a12c",
+                "attack-action--2c8e2927-bbcf-4a05-97b7-67f714e372ef",
+                "attack-action--245acf5a-91a7-414f-90f2-f8eaba0c2fc8",
+                "attack-action--f30ecbfa-e7b3-4793-bc30-e37089729b2d",
+                "attack-action--e166cf7d-a28d-4d8e-a6f2-2fe5478d4a05",
+                "attack-action--b480e594-484d-49d0-af1d-f29af51fe297",
+                "attack-action--0bd3366b-5e65-4ac8-9596-23624e3114b4",
+                "attack-action--677eea71-8a0b-453f-bfbd-f24d7f7b7f69",
+                "attack-action--01c0f5dc-1b92-4326-b7d7-9e4c7c901e71",
+                "attack-action--4f59b626-1595-4262-8ac7-7381c7d85e15",
+                "attack-action--53190e23-ed8d-49c4-8ddc-1e7f721047b3",
+                "attack-action--34388f16-609a-4160-a0d5-dc634347d76f",
+                "attack-action--65e8565d-bd5e-4dc6-b669-e9bdd3132556",
+                "attack-action--e55b4dbd-2bd9-4f9b-bfff-21ffba18f12f",
+                "attack-action--05a90879-dd95-46a9-9eb9-42ba851c134a"
+            ],
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        }
+    ]
+}

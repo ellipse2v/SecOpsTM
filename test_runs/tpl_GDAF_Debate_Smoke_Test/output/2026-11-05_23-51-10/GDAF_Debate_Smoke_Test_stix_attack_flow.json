@@ -1,0 +1,479 @@
+{
+    "type": "bundle",
+    "id": "bundle--e382d324-e692-4df9-ab3f-cb253189f2fa",
+    "spec_version": "2.1",
+    "objects": [
+        {
+            "type": "extension-definition",
+            "id": "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4",
+            "spec_version": "2.1",
+            "created": "2022-08-02T19:34:35.143Z",
+            "modified": "2022-08-02T19:34:35.143Z",
+            "name": "Attack Flow",
+            "description": "Extends STIX 2.1 with features to create Attack Flows.",
+            "created_by_ref": "identity--416a9d8a-7772-4c11-a2b5-a8e6f675e594",
+            "schema": "https://center-for-threat-informed-defense.github.io/attack-flow/stix/attack-flow-schema-2.0.0.json",
+            "version": "2.0.0",
+            "extension_types": [
+                "new-sdo"
+            ]
+        },
+        {
+            "type": "identity",
+            "id": "identity--416a9d8a-7772-4c11-a2b5-a8e6f675e594",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:13.271616Z",
+            "modified": "2026-11-05T23:51:13.271635Z",
+            "name": "Threat Model Analysis Tool",
+            "identity_class": "tool"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--b6e2a6ae-6218-44f8-a80a-44220ed5c887",
+            "created": "2026-11-05T23:51:13.271645Z",
+            "modified": "2026-11-05T23:51:13.271647Z",
+            "name": "Potential for spoofing attacks on data crossing trust boundaries from External Attacker to Target Server without proper authentication",
+            "description": "Potential for spoofing attacks on data crossing trust boundaries from External Attacker to Target Server without proper authentication",
+            "technique_id": null,
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--55f351e5-b036-4a4f-813b-a959de1087f4"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--55f351e5-b036-4a4f-813b-a959de1087f4",
+            "created": "2026-11-05T23:51:13.271656Z",
+            "modified": "2026-11-05T23:51:13.271658Z",
+            "name": "AttackerToServer",
+            "description": "Asset targeted by threat: Potential for spoofing attacks on data crossing trust boundaries from External Attacker to Target Server without proper authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--284f27c9-c4cb-400d-b328-88724a249c23",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:13.271666Z",
+            "modified": "2026-11-05T23:51:13.271670Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--b6e2a6ae-6218-44f8-a80a-44220ed5c887",
+            "target_ref": "attack-asset--55f351e5-b036-4a4f-813b-a959de1087f4"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--c2712b03-23f3-4a90-9a3e-4be8509dae05",
+            "created": "2026-11-05T23:51:13.271678Z",
+            "modified": "2026-11-05T23:51:13.271681Z",
+            "name": "Spoofing of data from External Attacker to Target Server due to lack of authentication",
+            "description": "Spoofing of data from External Attacker to Target Server due to lack of authentication",
+            "technique_id": null,
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--89fdb529-a071-4ffc-9012-ad00f2137479"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--89fdb529-a071-4ffc-9012-ad00f2137479",
+            "created": "2026-11-05T23:51:13.271688Z",
+            "modified": "2026-11-05T23:51:13.271691Z",
+            "name": "AttackerToServer",
+            "description": "Asset targeted by threat: Spoofing of data from External Attacker to Target Server due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--ee804870-b0f9-4a9c-89b3-22516a13a760",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:13.271698Z",
+            "modified": "2026-11-05T23:51:13.271700Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--c2712b03-23f3-4a90-9a3e-4be8509dae05",
+            "target_ref": "attack-asset--89fdb529-a071-4ffc-9012-ad00f2137479"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--619f40ec-a5c0-44da-91ab-ed25b60ae748",
+            "created": "2026-11-05T23:51:13.271707Z",
+            "modified": "2026-11-05T23:51:13.271710Z",
+            "name": "Untrusted actor External Attacker may attempt to inject malicious data or exploit vulnerabilities in connected systems.",
+            "description": "Untrusted actor External Attacker may attempt to inject malicious data or exploit vulnerabilities in connected systems.",
+            "technique_id": "T1221",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--9469a4a0-b3c5-414d-a22e-36faf5e2e477"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--9469a4a0-b3c5-414d-a22e-36faf5e2e477",
+            "created": "2026-11-05T23:51:13.271716Z",
+            "modified": "2026-11-05T23:51:13.271719Z",
+            "name": "External Attacker",
+            "description": "Asset targeted by threat: Untrusted actor External Attacker may attempt to inject malicious data or exploit vulnerabilities in connected systems.",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--237697d7-ae1d-43bc-a9a3-abe9f0d5abeb",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:13.271725Z",
+            "modified": "2026-11-05T23:51:13.271727Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--619f40ec-a5c0-44da-91ab-ed25b60ae748",
+            "target_ref": "attack-asset--9469a4a0-b3c5-414d-a22e-36faf5e2e477"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--4bd19480-3dba-457d-9bdb-b8c19f559270",
+            "created": "2026-11-05T23:51:13.271735Z",
+            "modified": "2026-11-05T23:51:13.271737Z",
+            "name": "Unpatched OS or software vulnerabilities on Target Server leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on Target Server leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--79983f57-52e8-4553-905d-fc98803daab9"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--79983f57-52e8-4553-905d-fc98803daab9",
+            "created": "2026-11-05T23:51:13.271745Z",
+            "modified": "2026-11-05T23:51:13.271747Z",
+            "name": "Target Server",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on Target Server leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--61158249-0c7f-47f3-aac5-34a7d914a47c",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:13.271754Z",
+            "modified": "2026-11-05T23:51:13.271756Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--4bd19480-3dba-457d-9bdb-b8c19f559270",
+            "target_ref": "attack-asset--79983f57-52e8-4553-905d-fc98803daab9"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--605e197f-dcbe-48c6-92f4-583d6d4f01c6",
+            "created": "2026-11-05T23:51:13.271763Z",
+            "modified": "2026-11-05T23:51:13.271766Z",
+            "name": "Identity spoofing of the actor External Attacker via phishing or credential theft",
+            "description": "Identity spoofing of the actor External Attacker via phishing or credential theft",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--275ba0a4-4625-477a-b2a6-60921ac1dbac"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--275ba0a4-4625-477a-b2a6-60921ac1dbac",
+            "created": "2026-11-05T23:51:13.271772Z",
+            "modified": "2026-11-05T23:51:13.271774Z",
+            "name": "External Attacker",
+            "description": "Asset targeted by threat: Identity spoofing of the actor External Attacker via phishing or credential theft",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--4198c752-f4ca-4e16-99f1-b0c18b5147a8",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:13.271780Z",
+            "modified": "2026-11-05T23:51:13.271782Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--605e197f-dcbe-48c6-92f4-583d6d4f01c6",
+            "target_ref": "attack-asset--275ba0a4-4625-477a-b2a6-60921ac1dbac"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--452322c0-e16b-4419-af57-a3108c9fb13d",
+            "created": "2026-11-05T23:51:13.271789Z",
+            "modified": "2026-11-05T23:51:13.271791Z",
+            "name": "Unauthorized privilege escalation on Target Server due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on Target Server due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--1317a02f-9d9d-4d23-8dee-df5b8c30d9df"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--1317a02f-9d9d-4d23-8dee-df5b8c30d9df",
+            "created": "2026-11-05T23:51:13.271798Z",
+            "modified": "2026-11-05T23:51:13.271801Z",
+            "name": "Target Server",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on Target Server due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--7e18712a-717d-4dd1-bec8-86273f99b734",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:13.271806Z",
+            "modified": "2026-11-05T23:51:13.271809Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--452322c0-e16b-4419-af57-a3108c9fb13d",
+            "target_ref": "attack-asset--1317a02f-9d9d-4d23-8dee-df5b8c30d9df"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--bfd4aa26-c0a7-49db-862e-f38976c56629",
+            "created": "2026-11-05T23:51:13.271816Z",
+            "modified": "2026-11-05T23:51:13.271818Z",
+            "name": "Privilege abuse by actor External Attacker to gain unauthorized access or perform unauthorized actions",
+            "description": "Privilege abuse by actor External Attacker to gain unauthorized access or perform unauthorized actions",
+            "technique_id": "T1548",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--20ed2433-1e70-44a3-8971-9e9f8193484f"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--20ed2433-1e70-44a3-8971-9e9f8193484f",
+            "created": "2026-11-05T23:51:13.271824Z",
+            "modified": "2026-11-05T23:51:13.271826Z",
+            "name": "External Attacker",
+            "description": "Asset targeted by threat: Privilege abuse by actor External Attacker to gain unauthorized access or perform unauthorized actions",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--e6989013-d54b-4993-9f0d-dd52b9e87c6b",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:13.271833Z",
+            "modified": "2026-11-05T23:51:13.271835Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--bfd4aa26-c0a7-49db-862e-f38976c56629",
+            "target_ref": "attack-asset--20ed2433-1e70-44a3-8971-9e9f8193484f"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--2f3d0fb7-96a7-4cf3-a29b-94bf395779c7",
+            "created": "2026-11-05T23:51:13.271845Z",
+            "modified": "2026-11-05T23:51:13.271848Z",
+            "name": "Repudiation of critical actions performed by External Attacker due to insufficient logging or non-repudiation controls",
+            "description": "Repudiation of critical actions performed by External Attacker due to insufficient logging or non-repudiation controls",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--9465e617-bf44-4c95-b0c3-22e577a8cfe7"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--9465e617-bf44-4c95-b0c3-22e577a8cfe7",
+            "created": "2026-11-05T23:51:13.271855Z",
+            "modified": "2026-11-05T23:51:13.271858Z",
+            "name": "External Attacker",
+            "description": "Asset targeted by threat: Repudiation of critical actions performed by External Attacker due to insufficient logging or non-repudiation controls",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--b064b33a-a200-4319-a29c-542fda430162",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:13.271866Z",
+            "modified": "2026-11-05T23:51:13.271869Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--2f3d0fb7-96a7-4cf3-a29b-94bf395779c7",
+            "target_ref": "attack-asset--9465e617-bf44-4c95-b0c3-22e577a8cfe7"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--8db0cea9-1422-4781-a8e6-20c1f13c5cf2",
+            "created": "2026-11-05T23:51:13.271876Z",
+            "modified": "2026-11-05T23:51:13.271878Z",
+            "name": "Lack of monitoring or logging on Target Server, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on Target Server, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--c70a31d1-9621-45b6-a0e9-ce8a79dfdf55"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--c70a31d1-9621-45b6-a0e9-ce8a79dfdf55",
+            "created": "2026-11-05T23:51:13.271884Z",
+            "modified": "2026-11-05T23:51:13.271886Z",
+            "name": "Target Server",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on Target Server, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--af52eff3-766f-4466-82ac-5272915c3c8d",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:13.271893Z",
+            "modified": "2026-11-05T23:51:13.271895Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--8db0cea9-1422-4781-a8e6-20c1f13c5cf2",
+            "target_ref": "attack-asset--c70a31d1-9621-45b6-a0e9-ce8a79dfdf55"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--ff07bd39-eef9-4950-98b8-6ca9bb18c844",
+            "created": "2026-11-05T23:51:13.271902Z",
+            "modified": "2026-11-05T23:51:13.271904Z",
+            "name": "Insecure security configuration or hardening on Target Server leading to information exposure",
+            "description": "Insecure security configuration or hardening on Target Server leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--e31c8eda-e23a-4094-96c3-2d6869141abe"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--e31c8eda-e23a-4094-96c3-2d6869141abe",
+            "created": "2026-11-05T23:51:13.271910Z",
+            "modified": "2026-11-05T23:51:13.271912Z",
+            "name": "Target Server",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on Target Server leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--d2750965-e76c-4dab-995f-e133e9e513d3",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:13.271918Z",
+            "modified": "2026-11-05T23:51:13.271920Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--ff07bd39-eef9-4950-98b8-6ca9bb18c844",
+            "target_ref": "attack-asset--e31c8eda-e23a-4094-96c3-2d6869141abe"
+        },
+        {
+            "type": "attack-flow",
+            "spec_version": "2.1",
+            "id": "attack-flow--9280a912-3317-4c9e-ac9d-3efd60ae6e5b",
+            "created_by_ref": "identity--416a9d8a-7772-4c11-a2b5-a8e6f675e594",
+            "created": "2026-11-05T23:51:13.271927Z",
+            "modified": "2026-11-05T23:51:13.271929Z",
+            "name": "Attack Flow for GDAF Debate Smoke Test",
+            "description": "This Attack Flow was generated from the threat model 'GDAF Debate Smoke Test'.",
+            "scope": "attack-tree",
+            "start_refs": [
+                "attack-action--b6e2a6ae-6218-44f8-a80a-44220ed5c887",
+                "attack-action--c2712b03-23f3-4a90-9a3e-4be8509dae05",
+                "attack-action--619f40ec-a5c0-44da-91ab-ed25b60ae748",
+                "attack-action--4bd19480-3dba-457d-9bdb-b8c19f559270",
+                "attack-action--605e197f-dcbe-48c6-92f4-583d6d4f01c6",
+                "attack-action--452322c0-e16b-4419-af57-a3108c9fb13d",
+                "attack-action--bfd4aa26-c0a7-49db-862e-f38976c56629",
+                "attack-action--2f3d0fb7-96a7-4cf3-a29b-94bf395779c7",
+                "attack-action--8db0cea9-1422-4781-a8e6-20c1f13c5cf2",
+                "attack-action--ff07bd39-eef9-4950-98b8-6ca9bb18c844"
+            ],
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        }
+    ]
+}

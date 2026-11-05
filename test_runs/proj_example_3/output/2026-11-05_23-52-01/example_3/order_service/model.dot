@@ -1,0 +1,129 @@
+digraph ThreatModel {
+  rankdir=LR;
+  node [shape=box];
+  edge [fontsize=10];
+  splines=true;
+  overlap=false;
+  nodesep=0.5;
+  ranksep=0.6;
+  charset="UTF-8";
+
+  
+
+  
+    
+  subgraph cluster_order_processing_zone {
+    label="Order Processing Zone";
+    "__hidden_node_order_processing_zone" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="lightcyan";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    
+    "OrderQueue" [shape=box, style=filled, fillcolor="lightblue", label="OrderQueue", id="OrderQueue"];
+    
+    "ShippingService_1" [width=1.5, height=0.75, shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/server.svg" SCALE="TRUE"/></TD><TD ALIGN="LEFT">ShippingService_1</TD></TR></TABLE>>, id="ShippingService_1"];
+    
+    "ShippingService_2" [width=1.5, height=0.75, shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/server.svg" SCALE="TRUE"/></TD><TD ALIGN="LEFT">ShippingService_2</TD></TR></TABLE>>, id="ShippingService_2"];
+    
+    "NotificationService" [width=1.5, height=0.75, shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/server.svg" SCALE="TRUE"/></TD><TD ALIGN="LEFT">NotificationService</TD></TR></TABLE>>, id="NotificationService"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_payment_zone {
+    label="Payment Zone";
+    "__hidden_node_payment_zone" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="lightyellow";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    
+    "PaymentService_1" [width=1.5, height=0.75, shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/server.svg" SCALE="TRUE"/></TD><TD ALIGN="LEFT">PaymentService_1</TD></TR></TABLE>>, id="PaymentService_1"];
+    
+    "PaymentService_2" [width=1.5, height=0.75, shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/server.svg" SCALE="TRUE"/></TD><TD ALIGN="LEFT">PaymentService_2</TD></TR></TABLE>>, id="PaymentService_2"];
+    
+    
+  }
+  
+  
+
+  
+
+  
+
+  
+  "OrderQueue" -> "PaymentService_1" [label="", color="darkorange", style="dashed", label=<QueueToPayment1<BR/>Protocol: AMQP<BR/>Data: Order>, id="edge_OrderQueue_PaymentService_1", fontsize=7, class="protocol-AMQP"];
+  
+  "OrderQueue" -> "PaymentService_2" [label="", color="darkorange", style="dashed", label=<QueueToPayment2<BR/>Protocol: AMQP<BR/>Data: Order>, id="edge_OrderQueue_PaymentService_2", fontsize=7, class="protocol-AMQP"];
+  
+  "PaymentService_1" -> "ShippingService_1" [label="", color="darkorange", style="dashed", label=<Payment1ToShipping1<BR/>Protocol: AMQP<BR/>Data: PaymentInfo>, id="edge_PaymentService_1_ShippingService_1", fontsize=7, class="protocol-AMQP"];
+  
+  "PaymentService_2" -> "ShippingService_2" [label="", color="darkorange", style="dashed", label=<Payment2ToShipping2<BR/>Protocol: AMQP<BR/>Data: PaymentInfo>, id="edge_PaymentService_2_ShippingService_2", fontsize=7, class="protocol-AMQP"];
+  
+  "ShippingService_1" -> "NotificationService" [label="", color="darkorange", style="dashed", label=<Shipping1ToNotify<BR/>Protocol: AMQP<BR/>Data: ShippingDetails>, id="edge_ShippingService_1_NotificationService", fontsize=7, class="protocol-AMQP"];
+  
+  "ShippingService_2" -> "NotificationService" [label="", color="darkorange", style="dashed", label=<Shipping2ToNotify<BR/>Protocol: AMQP<BR/>Data: ShippingDetails>, id="edge_ShippingService_2_NotificationService", fontsize=7, class="protocol-AMQP"];
+  
+
+  
+  
+  
+  
+  subgraph cluster__external_parent_in {
+    label="External connections in (parent model)";
+    style="dashed,filled";
+    fillcolor="#e8f5e9";
+    color="#66bb6a";
+    penwidth=1;
+    fontsize=9;
+    fontcolor="#2e7d32";
+    
+    
+    
+    
+    "__ghost_CoreSwitch" [label="CoreSwitch", shape=ellipse, style="dashed,filled", fillcolor="#c8e6c9", color="#66bb6a", fontcolor="#1b5e20", fontsize=9];
+    
+    
+  }
+  
+  "__ghost_CoreSwitch" -> "OrderQueue" [style=dashed, color="#66bb6a", label="gRPC", fontsize=7, arrowsize=0.7];
+  
+  
+  
+  subgraph cluster__external_parent_out {
+    label="External connections out (parent model)";
+    style="dashed,filled";
+    fillcolor="#fff3e0";
+    color="#ffa726";
+    penwidth=1;
+    fontsize=9;
+    fontcolor="#e65100";
+    
+    
+    
+    
+    "__ghost_DBSwitch" [label="DBSwitch", shape=ellipse, style="dashed,filled", fillcolor="#ffe0b2", color="#ffa726", fontcolor="#bf360c", fontsize=9];
+    
+    
+  }
+  
+  "OrderQueue" -> "__ghost_DBSwitch" [style=dashed, color="#ffa726", label="TCP", fontsize=7, arrowsize=0.7];
+  
+  
+  
+}

@@ -1,0 +1,270 @@
+digraph ThreatModel {
+  rankdir=LR;
+  node [shape=box];
+  edge [fontsize=10];
+  splines=true;
+  overlap=false;
+  nodesep=0.5;
+  ranksep=0.6;
+  charset="UTF-8";
+
+  
+
+  
+    
+  subgraph cluster_internet___clients {
+    label="Internet / Clients";
+    "__hidden_node_internet___clients" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,dashed";
+    
+    fillcolor="lightcoral";
+    
+    
+    color="#c62828";
+    penwidth=2;
+    
+    
+    "End User (Browser/Mobile)" [fixedsize=shape, shape=circle, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>End User (Browser/Mobile)</TD></TR></TABLE>>, id="End_User__Browser_Mobile_"];
+    
+    "Third-Party Webhook" [fixedsize=shape, shape=circle, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>Third-Party Webhook</TD></TR></TABLE>>, id="Third_Party_Webhook"];
+    
+    "Developer / DevOps" [fixedsize=shape, shape=circle, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>Developer / DevOps</TD></TR></TABLE>>, id="Developer___DevOps"];
+    
+    "Attacker" [fixedsize=shape, shape=circle, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>Attacker</TD></TR></TABLE>>, id="Attacker"];
+    
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_edge___cdn {
+    label="Edge / CDN";
+    "__hidden_node_edge___cdn" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,dashed";
+    
+    fillcolor="lightyellow";
+    
+    
+    color="#c62828";
+    penwidth=2;
+    
+    
+    
+    "CloudFront (CDN)" [shape=box, style=filled, fillcolor="lightblue", label="CloudFront (CDN)", id="CloudFront__CDN_"];
+    
+    "AWS WAF" [shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/firewall.svg" SCALE="TRUE"/></TD></TR><TR><TD>AWS WAF</TD></TR></TABLE>>, id="AWS_WAF"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_api_layer {
+    label="API Layer";
+    "__hidden_node_api_layer" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,dashed";
+    
+    fillcolor="orange";
+    
+    
+    color="#c62828";
+    penwidth=2;
+    
+    
+    
+    "API Gateway (REST)" [width=1.5, height=0.75, shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/api-gateway.svg" SCALE="TRUE"/></TD><TD ALIGN="LEFT">API Gateway (REST)</TD></TR></TABLE>>, id="API_Gateway__REST_"];
+    
+    "API Gateway (WebSocket)" [width=1.5, height=0.75, shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/api-gateway.svg" SCALE="TRUE"/></TD><TD ALIGN="LEFT">API Gateway (WebSocket)</TD></TR></TABLE>>, id="API_Gateway__WebSocket_"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_compute__lambda_vpc_ {
+    label="Compute (Lambda VPC)";
+    "__hidden_node_compute__lambda_vpc_" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="lightgreen";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    
+    "Lambda — Auth Authorizer" [shape=box, style=filled, fillcolor="lightblue", label="Lambda — Auth Authorizer", id="Lambda___Auth_Authorizer"];
+    
+    "Lambda — API Handler" [shape=box, style=filled, fillcolor="lightblue", label="Lambda — API Handler", id="Lambda___API_Handler"];
+    
+    "Lambda — Event Consumer" [shape=box, style=filled, fillcolor="lightblue", label="Lambda — Event Consumer", id="Lambda___Event_Consumer"];
+    
+    "Lambda — S3 Trigger" [shape=box, style=filled, fillcolor="lightblue", label="Lambda — S3 Trigger", id="Lambda___S3_Trigger"];
+    
+    "Lambda — Scheduled Job" [shape=box, style=filled, fillcolor="lightblue", label="Lambda — Scheduled Job", id="Lambda___Scheduled_Job"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_data_stores {
+    label="Data Stores";
+    "__hidden_node_data_stores" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="lightblue";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    
+    "DynamoDB" [shape=cylinder, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/database.svg" SCALE="TRUE"/></TD></TR><TR><TD>DynamoDB</TD></TR></TABLE>>, id="DynamoDB"];
+    
+    "Aurora Serverless v2 (PostgreSQL)" [shape=cylinder, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/database.svg" SCALE="TRUE"/></TD></TR><TR><TD>Aurora Serverless v2 (PostgreSQL)</TD></TR></TABLE>>, id="Aurora_Serverless_v2__PostgreSQL_"];
+    
+    "S3 — Application Data" [shape=box, style=filled, fillcolor="lightblue", label="S3 — Application Data", id="S3___Application_Data"];
+    
+    "S3 — Deployment Artifacts" [shape=box, style=filled, fillcolor="lightblue", label="S3 — Deployment Artifacts", id="S3___Deployment_Artifacts"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_messaging___event_bus {
+    label="Messaging / Event Bus";
+    "__hidden_node_messaging___event_bus" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="lightsalmon";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    
+    "SQS Queue" [shape=box, style=filled, fillcolor="lightblue", label="SQS Queue", id="SQS_Queue"];
+    
+    "SNS Topic" [shape=box, style=filled, fillcolor="lightblue", label="SNS Topic", id="SNS_Topic"];
+    
+    "EventBridge (Scheduler)" [shape=box, style=filled, fillcolor="lightblue", label="EventBridge (Scheduler)", id="EventBridge__Scheduler_"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_security___identity {
+    label="Security &amp; Identity";
+    "__hidden_node_security___identity" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="mediumpurple";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    
+    "AWS Secrets Manager" [shape=box, style=filled, fillcolor="lightblue", label="AWS Secrets Manager", id="AWS_Secrets_Manager"];
+    
+    "AWS IAM / STS" [shape=box, style=filled, fillcolor="lightblue", label="AWS IAM / STS", id="AWS_IAM___STS"];
+    
+    "Amazon Cognito" [shape=box, style=filled, fillcolor="lightblue", label="Amazon Cognito", id="Amazon_Cognito"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_observability {
+    label="Observability";
+    "__hidden_node_observability" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="lightgray";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    
+    "CloudWatch Logs + Metrics" [shape=box, style=filled, fillcolor="lightblue", label="CloudWatch Logs + Metrics", id="CloudWatch_Logs___Metrics"];
+    
+    "CloudTrail" [shape=box, style=filled, fillcolor="lightblue", label="CloudTrail", id="CloudTrail"];
+    
+    "AWS Config" [shape=box, style=filled, fillcolor="lightblue", label="AWS Config", id="AWS_Config"];
+    
+    
+  }
+  
+  
+
+  
+
+  
+
+  
+  "End User (Browser/Mobile)" -> "AWS WAF" [label="", color="darkgreen", style="solid", label=<User API Request<BR/>Protocol: HTTPS>, id="edge_End_User__Browser_Mobile__AWS_WAF", fontsize=7, class="protocol-HTTPS"];
+  
+  "AWS WAF" -> "API Gateway (REST)" [label="", color="darkgreen", style="solid", label=<WAF to API GW REST<BR/>Protocol: HTTPS>, id="edge_AWS_WAF_API_Gateway__REST_", fontsize=7, class="protocol-HTTPS"];
+  
+  "API Gateway (REST)" -> "Lambda — Auth Authorizer" [label="", color="steelblue", style="dashed", label=<API GW to Authorizer<BR/>Protocol: Lambda Invoke>, id="edge_API_Gateway__REST__Lambda___Auth_Authorizer", fontsize=7, class="protocol-Lambda_Invoke"];
+  
+  "Lambda — Auth Authorizer" -> "Amazon Cognito" [label="", color="darkgreen", style="solid", label=<Authorizer to Cognito<BR/>Protocol: HTTPS>, id="edge_Lambda___Auth_Authorizer_Amazon_Cognito", fontsize=7, class="protocol-HTTPS"];
+  
+  "API Gateway (REST)" -> "Lambda — API Handler" [label="", color="steelblue", style="dashed", label=<API GW to Handler<BR/>Protocol: Lambda Invoke>, id="edge_API_Gateway__REST__Lambda___API_Handler", fontsize=7, class="protocol-Lambda_Invoke"];
+  
+  "Lambda — API Handler" -> "DynamoDB" [label="", color="darkgreen", style="solid", label=<Handler to DynamoDB<BR/>Protocol: HTTPS/AWS SDK>, id="edge_Lambda___API_Handler_DynamoDB", fontsize=7, class="protocol-HTTPS_AWS_SDK"];
+  
+  "Lambda — API Handler" -> "Aurora Serverless v2 (PostgreSQL)" [label="", color="purple", style="solid", label=<Handler to Aurora<BR/>Protocol: PostgreSQL/TLS>, id="edge_Lambda___API_Handler_Aurora_Serverless_v2__PostgreSQL_", fontsize=7, class="protocol-PostgreSQL_TLS"];
+  
+  "Lambda — API Handler" -> "SQS Queue" [label="", color="darkgreen", style="solid", label=<Handler to SQS<BR/>Protocol: HTTPS/AWS SDK>, id="edge_Lambda___API_Handler_SQS_Queue", fontsize=7, class="protocol-HTTPS_AWS_SDK"];
+  
+  "Lambda — API Handler" -> "AWS Secrets Manager" [label="", color="darkgreen", style="solid", label=<Handler to Secrets Manager<BR/>Protocol: HTTPS/AWS SDK>, id="edge_Lambda___API_Handler_AWS_Secrets_Manager", fontsize=7, class="protocol-HTTPS_AWS_SDK"];
+  
+  "SQS Queue" -> "Lambda — Event Consumer" [label="", color="steelblue", style="dashed", label=<SQS to Consumer<BR/>Protocol: Lambda Invoke>, id="edge_SQS_Queue_Lambda___Event_Consumer", fontsize=7, class="protocol-Lambda_Invoke"];
+  
+  "SNS Topic" -> "SQS Queue" [label="", color="darkgreen", style="solid", label=<SNS fan-out to SQS<BR/>Protocol: HTTPS/AWS SDK>, id="edge_SNS_Topic_SQS_Queue", fontsize=7, class="protocol-HTTPS_AWS_SDK"];
+  
+  "S3 — Application Data" -> "Lambda — S3 Trigger" [label="", color="steelblue", style="dashed", label=<S3 Event to Trigger Lambda<BR/>Protocol: Lambda Invoke>, id="edge_S3___Application_Data_Lambda___S3_Trigger", fontsize=7, class="protocol-Lambda_Invoke"];
+  
+  "EventBridge (Scheduler)" -> "Lambda — Scheduled Job" [label="", color="steelblue", style="dashed", label=<EventBridge to Scheduled Job<BR/>Protocol: Lambda Invoke>, id="edge_EventBridge__Scheduler__Lambda___Scheduled_Job", fontsize=7, class="protocol-Lambda_Invoke"];
+  
+  "End User (Browser/Mobile)" -> "API Gateway (WebSocket)" [label="", color="teal", style="solid", label=<WebSocket Client<BR/>Protocol: WSS>, id="edge_End_User__Browser_Mobile__API_Gateway__WebSocket_", fontsize=7, class="protocol-WSS"];
+  
+  "API Gateway (WebSocket)" -> "Lambda — API Handler" [label="", color="steelblue", style="dashed", label=<WebSocket to Handler<BR/>Protocol: Lambda Invoke>, id="edge_API_Gateway__WebSocket__Lambda___API_Handler", fontsize=7, class="protocol-Lambda_Invoke"];
+  
+  "Third-Party Webhook" -> "AWS WAF" [label="", color="darkgreen", style="solid", label=<Webhook from Third Party<BR/>Protocol: HTTPS>, id="edge_Third_Party_Webhook_AWS_WAF", fontsize=7, class="protocol-HTTPS"];
+  
+  "Lambda — API Handler" -> "AWS IAM / STS" [label="", color="darkgreen", style="solid", label=<Lambda to IAM/STS<BR/>Protocol: HTTPS/AWS SDK>, id="edge_Lambda___API_Handler_AWS_IAM___STS", fontsize=7, class="protocol-HTTPS_AWS_SDK"];
+  
+  "Lambda — API Handler" -> "CloudWatch Logs + Metrics" [label="", color="grey", style="dotted", label=<Lambda logs to CloudWatch<BR/>Protocol: Internal AWS>, id="edge_Lambda___API_Handler_CloudWatch_Logs___Metrics", fontsize=7, class="protocol-Internal_AWS"];
+  
+  "API Gateway (REST)" -> "CloudTrail" [label="", color="grey", style="dotted", label=<CloudTrail audit<BR/>Protocol: Internal AWS>, id="edge_API_Gateway__REST__CloudTrail", fontsize=7, class="protocol-Internal_AWS"];
+  
+  "Developer / DevOps" -> "S3 — Deployment Artifacts" [label="", color="darkgreen", style="solid", label=<Developer Deploy<BR/>Protocol: HTTPS>, id="edge_Developer___DevOps_S3___Deployment_Artifacts", fontsize=7, class="protocol-HTTPS"];
+  
+  "Attacker" -> "AWS WAF" [label="", color="darkgreen", style="solid", label=<Attacker brute-force API<BR/>Protocol: HTTPS>, id="edge_Attacker_AWS_WAF", fontsize=7, class="protocol-HTTPS"];
+  
+  "Attacker" -> "Lambda — API Handler" [label="", color="steelblue", style="dashed", label=<Attacker SSRF Lambda<BR/>Protocol: Lambda Invoke>, id="edge_Attacker_Lambda___API_Handler", fontsize=7, class="protocol-Lambda_Invoke"];
+  
+
+  
+}

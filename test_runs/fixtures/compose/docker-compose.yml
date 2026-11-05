@@ -1,0 +1,17 @@
+services:
+  web:
+    image: nginx:1.25-alpine
+    ports: ["80:80", "443:443"]
+    depends_on: [app]
+  app:
+    image: myorg/webapp:latest
+    environment:
+      DB_PASSWORD: secret
+    depends_on: [db, cache]
+  db:
+    image: postgres:15
+    volumes: ["dbdata:/var/lib/postgresql/data"]
+  cache:
+    image: redis:7-alpine
+volumes:
+  dbdata: {}

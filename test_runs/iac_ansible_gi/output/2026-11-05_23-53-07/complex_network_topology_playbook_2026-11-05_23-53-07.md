@@ -1,0 +1,95 @@
+## Boundaries
+- **infra_boundary**: type=DMZ, isTrusted=true, traversal_difficulty=medium
+  - **main**: type=Internal, isTrusted=true, traversal_difficulty=medium
+  - **fallback**: type=Internal, isTrusted=true, traversal_difficulty=medium
+
+## Actors
+- **Operator**: isHuman=true, boundary=infra_boundary
+- **Admin**: isHuman=true, boundary=infra_boundary
+
+## Servers
+- **RIE**: stereotype=Server
+- **Router_RIE_InfraBoundary**: stereotype=Router
+- **Switch_Main_Fallback**: stereotype=Switch, boundary=infra_boundary
+- **Switch_Main**: stereotype=Switch, boundary=main
+- **Frontend_1**: stereotype=Server, boundary=main
+- **Frontend_2**: stereotype=Server, boundary=main
+- **Frontend_3**: stereotype=Server, boundary=main
+- **Frontend_4**: stereotype=Server, boundary=main
+- **Frontend_5**: stereotype=Server, boundary=main
+- **Server_1**: stereotype=Server, boundary=main
+- **Server_2**: stereotype=Server, boundary=main
+- **Server_3**: stereotype=Server, boundary=main
+- **Server_4**: stereotype=Server, boundary=main
+- **Server_5**: stereotype=Server, boundary=main
+- **Switch_Fallback**: stereotype=Switch, boundary=fallback
+- **Frontend_1_Fallback**: stereotype=Server, boundary=fallback
+- **Frontend_2_Fallback**: stereotype=Server, boundary=fallback
+- **Frontend_3_Fallback**: stereotype=Server, boundary=fallback
+- **Frontend_4_Fallback**: stereotype=Server, boundary=fallback
+- **Frontend_5_Fallback**: stereotype=Server, boundary=fallback
+- **Server_1_Fallback**: stereotype=Server, boundary=fallback
+- **Server_2_Fallback**: stereotype=Server, boundary=fallback
+- **Server_3_Fallback**: stereotype=Server, boundary=fallback
+- **Server_4_Fallback**: stereotype=Server, boundary=fallback
+- **Server_5_Fallback**: stereotype=Server, boundary=fallback
+
+## Data
+- **Web Traffic**: classification=PUBLIC, lifetime=TRANSIENT
+- **SSH Traffic**: classification=RESTRICTED, lifetime=TRANSIENT
+- **Internal Traffic**: classification=RESTRICTED, lifetime=TRANSIENT
+- **Any Traffic**: classification=PUBLIC, lifetime=TRANSIENT
+
+## Dataflows
+- **Operator to Main_Fallback Switch**: from="Operator", to="Switch_Main_Fallback", protocol="HTTPS", data="Web Traffic"
+- **Admin to Main_Fallback Switch**: from="Admin", to="Switch_Main_Fallback", protocol="SSH", data="SSH Traffic"
+- **Switch_Main_Fallback to Switch_Main HTTPS**: from="Switch_Main_Fallback", to="Switch_Main", protocol="HTTPS", data="Web Traffic"
+- **Switch_Main_Fallback to Switch_Main SSH**: from="Switch_Main_Fallback", to="Switch_Main", protocol="SSH", data="SSH Traffic"
+- **Switch_Main to Switch_Main_Fallback HTTPS**: from="Switch_Main", to="Switch_Main_Fallback", protocol="HTTPS", data="Web Traffic"
+- **Switch_Main to Switch_Main_Fallback SSH**: from="Switch_Main", to="Switch_Main_Fallback", protocol="SSH", data="SSH Traffic"
+- **Switch_Main_Fallback to Switch_Fallback HTTPS**: from="Switch_Main_Fallback", to="Switch_Fallback", protocol="HTTPS", data="Web Traffic"
+- **Switch_Main_Fallback to Switch_Fallback SSH**: from="Switch_Main_Fallback", to="Switch_Fallback", protocol="SSH", data="SSH Traffic"
+- **Switch_Fallback to Switch_Main_Fallback HTTPS**: from="Switch_Fallback", to="Switch_Main_Fallback", protocol="HTTPS", data="Web Traffic"
+- **Switch_Fallback to Switch_Main_Fallback SSH**: from="Switch_Fallback", to="Switch_Main_Fallback", protocol="SSH", data="SSH Traffic"
+- **Frontend_1 to Switch_Main**: from="Frontend_1", to="Switch_Main", protocol="Any", data="Internal Traffic"
+- **Frontend_2 to Switch_Main**: from="Frontend_2", to="Switch_Main", protocol="Any", data="Internal Traffic"
+- **Frontend_3 to Switch_Main**: from="Frontend_3", to="Switch_Main", protocol="Any", data="Internal Traffic"
+- **Frontend_4 to Switch_Main**: from="Frontend_4", to="Switch_Main", protocol="Any", data="Internal Traffic"
+- **Frontend_5 to Switch_Main**: from="Frontend_5", to="Switch_Main", protocol="Any", data="Internal Traffic"
+- **Server_1 to Switch_Main**: from="Server_1", to="Switch_Main", protocol="Any", data="Internal Traffic"
+- **Server_2 to Switch_Main**: from="Server_2", to="Switch_Main", protocol="Any", data="Internal Traffic"
+- **Server_3 to Switch_Main**: from="Server_3", to="Switch_Main", protocol="Any", data="Internal Traffic"
+- **Server_4 to Switch_Main**: from="Server_4", to="Switch_Main", protocol="Any", data="Internal Traffic"
+- **Server_5 to Switch_Main**: from="Server_5", to="Switch_Main", protocol="Any", data="Internal Traffic"
+- **Switch_Main to Frontend_1**: from="Switch_Main", to="Frontend_1", protocol="Any", data="Internal Traffic"
+- **Switch_Main to Frontend_2**: from="Switch_Main", to="Frontend_2", protocol="Any", data="Internal Traffic"
+- **Switch_Main to Frontend_3**: from="Switch_Main", to="Frontend_3", protocol="Any", data="Internal Traffic"
+- **Switch_Main to Frontend_4**: from="Switch_Main", to="Frontend_4", protocol="Any", data="Internal Traffic"
+- **Switch_Main to Frontend_5**: from="Switch_Main", to="Frontend_5", protocol="Any", data="Internal Traffic"
+- **Switch_Main to Server_1**: from="Switch_Main", to="Server_1", protocol="Any", data="Internal Traffic"
+- **Switch_Main to Server_2**: from="Switch_Main", to="Server_2", protocol="Any", data="Internal Traffic"
+- **Switch_Main to Server_3**: from="Switch_Main", to="Server_3", protocol="Any", data="Internal Traffic"
+- **Switch_Main to Server_4**: from="Switch_Main", to="Server_4", protocol="Any", data="Internal Traffic"
+- **Switch_Main to Server_5**: from="Switch_Main", to="Server_5", protocol="Any", data="Internal Traffic"
+- **Frontend_1_Fallback to Switch_Fallback**: from="Frontend_1_Fallback", to="Switch_Fallback", protocol="Any", data="Internal Traffic"
+- **Frontend_2_Fallback to Switch_Fallback**: from="Frontend_2_Fallback", to="Switch_Fallback", protocol="Any", data="Internal Traffic"
+- **Frontend_3_Fallback to Switch_Fallback**: from="Frontend_3_Fallback", to="Switch_Fallback", protocol="Any", data="Internal Traffic"
+- **Frontend_4_Fallback to Switch_Fallback**: from="Frontend_4_Fallback", to="Switch_Fallback", protocol="Any", data="Internal Traffic"
+- **Frontend_5_Fallback to Switch_Fallback**: from="Frontend_5_Fallback", to="Switch_Fallback", protocol="Any", data="Internal Traffic"
+- **Server_1_Fallback to Switch_Fallback**: from="Server_1_Fallback", to="Switch_Fallback", protocol="Any", data="Internal Traffic"
+- **Server_2_Fallback to Switch_Fallback**: from="Server_2_Fallback", to="Switch_Fallback", protocol="Any", data="Internal Traffic"
+- **Server_3_Fallback to Switch_Fallback**: from="Server_3_Fallback", to="Switch_Fallback", protocol="Any", data="Internal Traffic"
+- **Server_4_Fallback to Switch_Fallback**: from="Server_4_Fallback", to="Switch_Fallback", protocol="Any", data="Internal Traffic"
+- **Server_5_Fallback to Switch_Fallback**: from="Server_5_Fallback", to="Switch_Fallback", protocol="Any", data="Internal Traffic"
+- **Switch_Fallback to Frontend_1_Fallback**: from="Switch_Fallback", to="Frontend_1_Fallback", protocol="Any", data="Internal Traffic"
+- **Switch_Fallback to Frontend_2_Fallback**: from="Switch_Fallback", to="Frontend_2_Fallback", protocol="Any", data="Internal Traffic"
+- **Switch_Fallback to Frontend_3_Fallback**: from="Switch_Fallback", to="Frontend_3_Fallback", protocol="Any", data="Internal Traffic"
+- **Switch_Fallback to Frontend_4_Fallback**: from="Switch_Fallback", to="Frontend_4_Fallback", protocol="Any", data="Internal Traffic"
+- **Switch_Fallback to Frontend_5_Fallback**: from="Switch_Fallback", to="Frontend_5_Fallback", protocol="Any", data="Internal Traffic"
+- **Switch_Fallback to Server_1_Fallback**: from="Switch_Fallback", to="Server_1_Fallback", protocol="Any", data="Internal Traffic"
+- **Switch_Fallback to Server_2_Fallback**: from="Switch_Fallback", to="Server_2_Fallback", protocol="Any", data="Internal Traffic"
+- **Switch_Fallback to Server_3_Fallback**: from="Switch_Fallback", to="Server_3_Fallback", protocol="Any", data="Internal Traffic"
+- **Switch_Fallback to Server_4_Fallback**: from="Switch_Fallback", to="Server_4_Fallback", protocol="Any", data="Internal Traffic"
+- **Switch_Fallback to Server_5_Fallback**: from="Switch_Fallback", to="Server_5_Fallback", protocol="Any", data="Internal Traffic"
+- **RIE to Router_RIE_InfraBoundary**: from="RIE", to="Router_RIE_InfraBoundary", protocol="Any", data="Any Traffic", description="Traffic from RIE to the Router at the InfraBoundary"
+- **Router_RIE_InfraBoundary to Infra_Boundary Switch**: from="Router_RIE_InfraBoundary", to="Switch_Main_Fallback", protocol="Any", data="Any Traffic", description="Traffic from Router to the main switch in InfraBoundary"

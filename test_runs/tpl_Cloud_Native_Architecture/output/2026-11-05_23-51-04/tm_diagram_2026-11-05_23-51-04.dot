@@ -1,0 +1,143 @@
+digraph ThreatModel {
+  rankdir=LR;
+  node [shape=box];
+  edge [fontsize=10];
+  splines=true;
+  overlap=false;
+  nodesep=0.5;
+  ranksep=0.6;
+  charset="UTF-8";
+
+  
+
+  
+    
+  subgraph cluster_client__browser_mobile_ {
+    label="Client (Browser/Mobile)";
+    "__hidden_node_client__browser_mobile_" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,dashed";
+    
+    fillcolor="lightblue";
+    
+    
+    color="#c62828";
+    penwidth=2;
+    
+    
+    "End User" [fixedsize=shape, shape=circle, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>End User</TD></TR></TABLE>>, id="End_User"];
+    
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_api_gateway {
+    label="API Gateway";
+    "__hidden_node_api_gateway" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,dashed";
+    
+    fillcolor="orange";
+    
+    
+    color="#c62828";
+    penwidth=2;
+    
+    
+    
+    "APIGateway" [width=1.5, height=0.75, shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/api-gateway.svg" SCALE="TRUE"/></TD><TD ALIGN="LEFT">APIGateway</TD></TR></TABLE>>, id="APIGateway"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_faas_function__lambda_cloud_functions_ {
+    label="FaaS Function (Lambda/Cloud Functions)";
+    "__hidden_node_faas_function__lambda_cloud_functions_" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="green";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    
+    "LambdaFunction" [shape=box, style=filled, fillcolor="lightblue", label="LambdaFunction", id="LambdaFunction"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_nosql_database__dynamodb_firestore_ {
+    label="NoSQL Database (DynamoDB/Firestore)";
+    "__hidden_node_nosql_database__dynamodb_firestore_" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="purple";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    
+    "NoSQLDatabase" [shape=cylinder, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/database.svg" SCALE="TRUE"/></TD></TR><TR><TD>NoSQLDatabase</TD></TR></TABLE>>, id="NoSQLDatabase"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_object_storage__s3_cloud_storage_ {
+    label="Object Storage (S3/Cloud Storage)";
+    "__hidden_node_object_storage__s3_cloud_storage_" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="blue";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    
+    "ObjectStorage" [shape=box, style=filled, fillcolor="lightblue", label="ObjectStorage", id="ObjectStorage"];
+    
+    
+  }
+  
+  
+
+  
+  "Developer/Cloud Operator" [fixedsize=shape, shape=circle, style=filled, fillcolor="gray", color="gray", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>Developer/Cloud Operator</TD></TR></TABLE>>, id="Developer_Cloud_Operator"];
+  
+
+  
+  "CDNEdge" [shape=box, style=filled, fillcolor="lightblue", label="CDNEdge", id="CDNEdge"];
+  
+
+  
+  "End User" -> "CDNEdge" [label="", color="darkgreen", style="solid", label=<Client Request<BR/>Protocol: HTTPS>, id="edge_End_User_CDNEdge", fontsize=7, class="protocol-HTTPS"];
+  
+  "CDNEdge" -> "APIGateway" [label="", color="darkgreen", style="solid", label=<API Request<BR/>Protocol: HTTPS>, id="edge_CDNEdge_APIGateway", fontsize=7, class="protocol-HTTPS"];
+  
+  "APIGateway" -> "LambdaFunction" [label="", color="blue", style="dashed", label=<Function Invocation<BR/>Protocol: Internal API>, id="edge_APIGateway_LambdaFunction", fontsize=7, class="protocol-Internal_API"];
+  
+  "LambdaFunction" -> "NoSQLDatabase" [label="", color="blue", style="dashed", label=<Database Access<BR/>Protocol: Internal API>, id="edge_LambdaFunction_NoSQLDatabase", fontsize=7, class="protocol-Internal_API"];
+  
+  "LambdaFunction" -> "ObjectStorage" [label="", color="blue", style="dashed", label=<Object Storage Access<BR/>Protocol: Internal API>, id="edge_LambdaFunction_ObjectStorage", fontsize=7, class="protocol-Internal_API"];
+  
+  "Developer/Cloud Operator" -> "APIGateway" [label="", label=<Developer Access<BR/>Protocol: API>, id="edge_Developer_Cloud_Operator_APIGateway", fontsize=7, class="protocol-API"];
+  
+
+  
+}

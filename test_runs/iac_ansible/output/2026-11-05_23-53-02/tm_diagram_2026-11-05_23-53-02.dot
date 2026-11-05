@@ -1,0 +1,68 @@
+digraph ThreatModel {
+  rankdir=LR;
+  node [shape=box];
+  edge [fontsize=10];
+  splines=true;
+  overlap=false;
+  nodesep=0.5;
+  ranksep=0.6;
+  charset="UTF-8";
+
+  
+
+  
+    
+  subgraph cluster_internet {
+    label="Internet";
+    "__hidden_node_internet" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,dashed";
+    
+    fillcolor="lightgray";
+    
+    
+    color="#c62828";
+    penwidth=2;
+    
+    
+    "External User" [fixedsize=shape, shape=circle, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>External User</TD></TR></TABLE>>, id="External_User"];
+    
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_dmz {
+    label="DMZ";
+    "__hidden_node_dmz" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="lightgray";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    
+    "WebServer" [width=1.5, height=0.75, shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/server.svg" SCALE="TRUE"/></TD><TD ALIGN="LEFT">WebServer</TD></TR></TABLE>>, id="WebServer"];
+    
+    
+  }
+  
+  
+
+  
+
+  
+
+  
+  "External User" -> "WebServer" [label="", label=<User to WebServer HTTP<BR/>Protocol: HTTP<BR/>Data: Web Traffic>, id="edge_External_User_WebServer", fontsize=7, class="protocol-HTTP"];
+  
+  "External User" -> "WebServer" [label="", label=<User to WebServer HTTPS<BR/>Protocol: HTTPS<BR/>Data: Web Traffic>, id="edge_External_User_WebServer", fontsize=7, class="protocol-HTTPS"];
+  
+
+  
+}

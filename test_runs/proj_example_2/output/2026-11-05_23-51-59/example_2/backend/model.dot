@@ -1,0 +1,61 @@
+digraph ThreatModel {
+  rankdir=LR;
+  node [shape=box];
+  edge [fontsize=10];
+  splines=true;
+  overlap=false;
+  nodesep=0.5;
+  ranksep=0.6;
+  charset="UTF-8";
+
+  
+
+  
+
+  
+
+  
+  "APIGateway" [width=1.5, height=0.75, shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/api-gateway.svg" SCALE="TRUE"/></TD><TD ALIGN="LEFT">APIGateway</TD></TR></TABLE>>, id="APIGateway"];
+  
+  "AuthService" [width=1.5, height=0.75, shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/server.svg" SCALE="TRUE"/></TD><TD ALIGN="LEFT">AuthService</TD></TR></TABLE>>, id="AuthService"];
+  
+  "OrderService" [width=1.5, height=0.75, shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/server.svg" SCALE="TRUE"/></TD><TD ALIGN="LEFT">OrderService</TD></TR></TABLE>>, id="OrderService"];
+  
+  "ProductDB" [shape=cylinder, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/database.svg" SCALE="TRUE"/></TD></TR><TR><TD>ProductDB</TD></TR></TABLE>>, id="ProductDB"];
+  
+
+  
+  "APIGateway" -> "AuthService" [label="", color="blue", style="dashed", label=<GatewayToAuth<BR/>Protocol: gRPC>, id="edge_APIGateway_AuthService", fontsize=7, class="protocol-gRPC"];
+  
+  "APIGateway" -> "OrderService" [label="", color="blue", style="dashed", label=<GatewayToOrders<BR/>Protocol: gRPC>, id="edge_APIGateway_OrderService", fontsize=7, class="protocol-gRPC"];
+  
+  "OrderService" -> "ProductDB" [label="", color="black", style="dotted", label=<OrdersToDB<BR/>Protocol: TCP>, id="edge_OrderService_ProductDB", fontsize=7, class="protocol-TCP"];
+  
+
+  
+  
+  
+  
+  subgraph cluster__external_parent_in {
+    label="External connections in (parent model)";
+    style="dashed,filled";
+    fillcolor="#e8f5e9";
+    color="#66bb6a";
+    penwidth=1;
+    fontsize=9;
+    fontcolor="#2e7d32";
+    
+    
+    
+    
+    "__ghost_WebApp" [label="WebApp", shape=ellipse, style="dashed,filled", fillcolor="#c8e6c9", color="#66bb6a", fontcolor="#1b5e20", fontsize=9];
+    
+    
+  }
+  
+  "__ghost_WebApp" -> "APIGateway" [style=dashed, color="#66bb6a", label="HTTP", fontsize=7, arrowsize=0.7];
+  
+  
+  
+  
+}

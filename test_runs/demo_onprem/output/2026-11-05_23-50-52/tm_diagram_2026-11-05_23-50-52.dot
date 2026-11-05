@@ -1,0 +1,312 @@
+digraph ThreatModel {
+  rankdir=LR;
+  node [shape=box];
+  edge [fontsize=10];
+  splines=true;
+  overlap=false;
+  nodesep=0.5;
+  ranksep=0.6;
+  charset="UTF-8";
+
+  
+
+  
+    
+  subgraph cluster_internet {
+    label="Internet";
+    "__hidden_node_internet" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,dashed";
+    
+    fillcolor="red";
+    
+    
+    color="#c62828";
+    penwidth=2;
+    
+    
+    "External Attacker" [fixedsize=shape, shape=circle, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>External Attacker</TD></TR></TABLE>>, id="External_Attacker"];
+    
+    "Remote Employee" [fixedsize=shape, shape=circle, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>Remote Employee</TD></TR></TABLE>>, id="Remote_Employee"];
+    
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_dmz {
+    label="DMZ";
+    "__hidden_node_dmz" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,dashed";
+    
+    fillcolor="orange";
+    
+    
+    color="#c62828";
+    penwidth=2;
+    
+    
+    
+    "Edge Router" [fixedsize=shape, shape=hexagon, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/firewall.svg" SCALE="TRUE"/></TD></TR><TR><TD>Edge Router</TD></TR></TABLE>>, id="Edge_Router"];
+    
+    "Web Application Firewall" [fixedsize=shape, shape=hexagon, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/firewall.svg" SCALE="TRUE"/></TD></TR><TR><TD>Web Application Firewall</TD></TR></TABLE>>, id="Web_Application_Firewall"];
+    
+    "Reverse Proxy" [shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/web-server.svg" SCALE="TRUE"/></TD></TR><TR><TD>Reverse Proxy</TD></TR></TABLE>>, id="Reverse_Proxy"];
+    
+    "Mail Gateway" [shape=box, style=filled, fillcolor="lightblue", label="Mail Gateway", id="Mail_Gateway"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_vpn_perimeter {
+    label="VPN Perimeter";
+    "__hidden_node_vpn_perimeter" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,dashed";
+    
+    fillcolor="orangered";
+    
+    
+    color="#c62828";
+    penwidth=2;
+    
+    
+    
+    "Corporate VPN Gateway" [shape=box, style=filled, fillcolor="lightblue", label="Corporate VPN Gateway", id="Corporate_VPN_Gateway"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_internal_network {
+    label="Internal Network";
+    "__hidden_node_internal_network" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="lightgreen";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    "Corporate Employee" [fixedsize=shape, shape=circle, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>Corporate Employee</TD></TR></TABLE>>, id="Corporate_Employee"];
+    
+    
+    "Internal Firewall" [fixedsize=shape, shape=hexagon, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/firewall.svg" SCALE="TRUE"/></TD></TR><TR><TD>Internal Firewall</TD></TR></TABLE>>, id="Internal_Firewall"];
+    
+    "Internal DNS Server" [shape=box, style=filled, fillcolor="lightblue", label="Internal DNS Server", id="Internal_DNS_Server"];
+    
+    "Employee Workstation" [shape=box, style=filled, fillcolor="lightblue", label="Employee Workstation", id="Employee_Workstation"];
+    
+    "File Server" [shape=box, style=filled, fillcolor="lightblue", label="File Server", id="File_Server"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_it_infrastructure_zone {
+    label="IT Infrastructure Zone";
+    "__hidden_node_it_infrastructure_zone" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="lightblue";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    "IT Administrator" [fixedsize=shape, shape=circle, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>IT Administrator</TD></TR></TABLE>>, id="IT_Administrator"];
+    
+    
+    "Primary Domain Controller" [shape=box, style=filled, fillcolor="lightblue", label="Primary Domain Controller", id="Primary_Domain_Controller"];
+    
+    "Backup Domain Controller" [shape=box, style=filled, fillcolor="lightblue", label="Backup Domain Controller", id="Backup_Domain_Controller"];
+    
+    "PKI Certificate Authority" [shape=box, style=filled, fillcolor="lightblue", label="PKI Certificate Authority", id="PKI_Certificate_Authority"];
+    
+    "SIEM Server" [shape=box, style=filled, fillcolor="lightblue", label="SIEM Server", id="SIEM_Server"];
+    
+    "Jump Server" [shape=box, style=filled, fillcolor="lightblue", label="Jump Server", id="Jump_Server"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_finance_zone {
+    label="Finance Zone";
+    "__hidden_node_finance_zone" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="lightyellow";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    "Finance Employee" [fixedsize=shape, shape=circle, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>Finance Employee</TD></TR></TABLE>>, id="Finance_Employee"];
+    
+    
+    "Financial ERP System" [shape=cylinder, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/database.svg" SCALE="TRUE"/></TD></TR><TR><TD>Financial ERP System</TD></TR></TABLE>>, id="Financial_ERP_System"];
+    
+    "Finance Workstation" [shape=box, style=filled, fillcolor="lightblue", label="Finance Workstation", id="Finance_Workstation"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_development_zone {
+    label="Development Zone";
+    "__hidden_node_development_zone" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="lightcyan";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    "Developer" [fixedsize=shape, shape=circle, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>Developer</TD></TR></TABLE>>, id="Developer"];
+    
+    
+    "Source Code Repository" [shape=box, style=filled, fillcolor="lightblue", label="Source Code Repository", id="Source_Code_Repository"];
+    
+    "CI CD Pipeline" [shape=box, style=filled, fillcolor="lightblue", label="CI CD Pipeline", id="CI_CD_Pipeline"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_restricted_data_zone {
+    label="Restricted Data Zone";
+    "__hidden_node_restricted_data_zone" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="lavender";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    
+    "Core Database Cluster" [shape=cylinder, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/database.svg" SCALE="TRUE"/></TD></TR><TR><TD>Core Database Cluster</TD></TR></TABLE>>, id="Core_Database_Cluster"];
+    
+    "Backup Server" [shape=box, style=filled, fillcolor="lightblue", label="Backup Server", id="Backup_Server"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_ot_scada_zone {
+    label="OT SCADA Zone";
+    "__hidden_node_ot_scada_zone" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="mistyrose";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    "SCADA Operator" [fixedsize=shape, shape=circle, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>SCADA Operator</TD></TR></TABLE>>, id="SCADA_Operator"];
+    
+    
+    "SCADA HMI" [shape=box, style=filled, fillcolor="lightblue", label="SCADA HMI", id="SCADA_HMI"];
+    
+    "PLC Controller" [shape=box, style=filled, fillcolor="lightblue", label="PLC Controller", id="PLC_Controller"];
+    
+    
+  }
+  
+  
+
+  
+
+  
+
+  
+  "External Attacker" -> "Edge Router" [label="", color="gray", label=<ExternalToRouter<BR/>Protocol: TCP>, id="edge_External_Attacker_Edge_Router", fontsize=7, class="protocol-TCP"];
+  
+  "Remote Employee" -> "Corporate VPN Gateway" [label="", color="darkblue", style="dashed", label=<RemoteToVPN<BR/>Protocol: IPSEC<BR/>🔒 Encrypted>, id="edge_Remote_Employee_Corporate_VPN_Gateway", fontsize=7, class="protocol-IPSEC"];
+  
+  "External Attacker" -> "Mail Gateway" [label="", color="gray", label=<ExternalToMail<BR/>Protocol: SMTP>, id="edge_External_Attacker_Mail_Gateway", fontsize=7, class="protocol-SMTP"];
+  
+  "Edge Router" -> "Web Application Firewall" [label="", color="red", style="solid", label=<RouterToWAF<BR/>Protocol: HTTP>, id="edge_Edge_Router_Web_Application_Firewall", fontsize=7, class="protocol-HTTP"];
+  
+  "Web Application Firewall" -> "Reverse Proxy" [label="", color="red", style="solid", label=<WAFToProxy<BR/>Protocol: HTTP>, id="edge_Web_Application_Firewall_Reverse_Proxy", fontsize=7, class="protocol-HTTP"];
+  
+  "Reverse Proxy" -> "Internal Firewall" [label="", color="red", style="solid", label=<ProxyToInternalFW<BR/>Protocol: HTTP>, id="edge_Reverse_Proxy_Internal_Firewall", fontsize=7, class="protocol-HTTP"];
+  
+  "Mail Gateway" -> "Employee Workstation" [label="", color="gray", label=<MailToWorkstation<BR/>Protocol: SMTP>, id="edge_Mail_Gateway_Employee_Workstation", fontsize=7, class="protocol-SMTP"];
+  
+  "Corporate VPN Gateway" -> "Internal Firewall" [label="", color="darkblue", style="dashed", label=<VPNToInternalFW<BR/>Protocol: IPSEC<BR/>🔒 Encrypted>, id="edge_Corporate_VPN_Gateway_Internal_Firewall", fontsize=7, class="protocol-IPSEC"];
+  
+  "Internal Firewall" -> "Employee Workstation" [label="", color="gray", label=<InternalFWToWorkstation<BR/>Protocol: TCP>, id="edge_Internal_Firewall_Employee_Workstation", fontsize=7, class="protocol-TCP"];
+  
+  "Corporate Employee" -> "Employee Workstation" [label="", color="steelblue", style="dashed", label=<EmployeeToWorkstation<BR/>Protocol: RDP>, id="edge_Corporate_Employee_Employee_Workstation", fontsize=7, class="protocol-RDP"];
+  
+  "Employee Workstation" -> "Primary Domain Controller" [label="", color="purple", style="solid", label=<WorkstationToAD<BR/>Protocol: LDAP>, id="edge_Employee_Workstation_Primary_Domain_Controller", fontsize=7, class="protocol-LDAP"];
+  
+  "Employee Workstation" -> "File Server" [label="", color="orange", label=<WorkstationToFile<BR/>Protocol: SMB>, id="edge_Employee_Workstation_File_Server", fontsize=7, class="protocol-SMB"];
+  
+  "Employee Workstation" -> "SIEM Server" [label="", color="gray", style="dotted", label=<WorkstationToSIEM<BR/>Protocol: SYSLOG>, id="edge_Employee_Workstation_SIEM_Server", fontsize=7, class="protocol-SYSLOG"];
+  
+  "Primary Domain Controller" -> "Backup Domain Controller" [label="", color="darkorange", label=<ADToBackupAD<BR/>Protocol: RPC>, id="edge_Primary_Domain_Controller_Backup_Domain_Controller", fontsize=7, class="protocol-RPC"];
+  
+  "Primary Domain Controller" -> "PKI Certificate Authority" [label="", color="darkorange", label=<ADToPKI<BR/>Protocol: RPC<BR/>🔒 Encrypted>, id="edge_Primary_Domain_Controller_PKI_Certificate_Authority", fontsize=7, class="protocol-RPC"];
+  
+  "SIEM Server" -> "Primary Domain Controller" [label="", color="purple", style="solid", label=<SIEMToAD<BR/>Protocol: LDAP>, id="edge_SIEM_Server_Primary_Domain_Controller", fontsize=7, class="protocol-LDAP"];
+  
+  "IT Administrator" -> "Jump Server" [label="", color="steelblue", style="dashed", label=<ITAdminToJump<BR/>Protocol: RDP<BR/>🔒 Encrypted>, id="edge_IT_Administrator_Jump_Server", fontsize=7, class="protocol-RDP"];
+  
+  "Jump Server" -> "Primary Domain Controller" [dir="both", label="
+↔️ Bidirectional", color="steelblue", label=<JumpToAD<BR/>Protocol: WinRM<BR/>🔒 Encrypted>, id="edge_Jump_Server_Primary_Domain_Controller", fontsize=7, class="protocol-WinRM"];
+  
+  "Jump Server" -> "SCADA HMI" [label="", color="steelblue", style="dashed", label=<JumpToSCADA<BR/>Protocol: RDP>, id="edge_Jump_Server_SCADA_HMI", fontsize=7, class="protocol-RDP"];
+  
+  "Jump Server" -> "Financial ERP System" [label="", color="orange", label=<JumpToERP<BR/>Protocol: SAP>, id="edge_Jump_Server_Financial_ERP_System", fontsize=7, class="protocol-SAP"];
+  
+  "Finance Employee" -> "Financial ERP System" [label="", color="gray", label=<FinanceEmpToERP<BR/>Protocol: TCP>, id="edge_Finance_Employee_Financial_ERP_System", fontsize=7, class="protocol-TCP"];
+  
+  "Financial ERP System" -> "Core Database Cluster" [label="", color="purple", label=<ERPToCoreDB<BR/>Protocol: SQL>, id="edge_Financial_ERP_System_Core_Database_Cluster", fontsize=7, class="protocol-SQL"];
+  
+  "Developer" -> "Source Code Repository" [label="", color="blue", style="dashed", label=<DevToGitLab<BR/>Protocol: SSH<BR/>🔒 Encrypted>, id="edge_Developer_Source_Code_Repository", fontsize=7, class="protocol-SSH"];
+  
+  "Developer" -> "CI CD Pipeline" [label="", color="darkgreen", style="solid", label=<DevToCICD<BR/>Protocol: HTTPS<BR/>🔒 Encrypted>, id="edge_Developer_CI_CD_Pipeline", fontsize=7, class="protocol-HTTPS"];
+  
+  "Source Code Repository" -> "CI CD Pipeline" [label="", color="darkgreen", style="solid", label=<GitLabToCICD<BR/>Protocol: HTTPS<BR/>🔒 Encrypted>, id="edge_Source_Code_Repository_CI_CD_Pipeline", fontsize=7, class="protocol-HTTPS"];
+  
+  "CI CD Pipeline" -> "Core Database Cluster" [label="", color="purple", label=<CICDToCoreDB<BR/>Protocol: SQL>, id="edge_CI_CD_Pipeline_Core_Database_Cluster", fontsize=7, class="protocol-SQL"];
+  
+  "Core Database Cluster" -> "Backup Server" [label="", color="gray", label=<CoreDBToBackup<BR/>Protocol: TCP>, id="edge_Core_Database_Cluster_Backup_Server", fontsize=7, class="protocol-TCP"];
+  
+  "SCADA Operator" -> "SCADA HMI" [label="", color="steelblue", style="dashed", label=<SCADAOpToHMI<BR/>Protocol: RDP>, id="edge_SCADA_Operator_SCADA_HMI", fontsize=7, class="protocol-RDP"];
+  
+  "SCADA HMI" -> "PLC Controller" [label="", color="crimson", style="solid", label=<HMIToPLC<BR/>Protocol: Modbus>, id="edge_SCADA_HMI_PLC_Controller", fontsize=7, class="protocol-Modbus"];
+  
+  "Internal DNS Server" -> "Primary Domain Controller" [label="", color="teal", label=<InternalDNSToAD<BR/>Protocol: DNS>, id="edge_Internal_DNS_Server_Primary_Domain_Controller", fontsize=7, class="protocol-DNS"];
+  
+
+  
+}

@@ -1,0 +1,2414 @@
+{
+    "type": "bundle",
+    "id": "bundle--99b19442-cf15-4e97-a13c-3cbb5b0b07f6",
+    "spec_version": "2.1",
+    "objects": [
+        {
+            "type": "extension-definition",
+            "id": "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4",
+            "spec_version": "2.1",
+            "created": "2022-08-02T19:34:35.143Z",
+            "modified": "2022-08-02T19:34:35.143Z",
+            "name": "Attack Flow",
+            "description": "Extends STIX 2.1 with features to create Attack Flows.",
+            "created_by_ref": "identity--cf2a4844-488c-40a1-b507-4c81c7a992c9",
+            "schema": "https://center-for-threat-informed-defense.github.io/attack-flow/stix/attack-flow-schema-2.0.0.json",
+            "version": "2.0.0",
+            "extension_types": [
+                "new-sdo"
+            ]
+        },
+        {
+            "type": "identity",
+            "id": "identity--cf2a4844-488c-40a1-b507-4c81c7a992c9",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.689768Z",
+            "modified": "2026-11-05T23:51:00.689790Z",
+            "name": "Threat Model Analysis Tool",
+            "identity_class": "tool"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--51fdc835-fc81-4176-ae56-99a227fdcc7e",
+            "created": "2026-11-05T23:51:00.689801Z",
+            "modified": "2026-11-05T23:51:00.689803Z",
+            "name": "Unpatched OS or software vulnerabilities on CDN Load Balancer leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on CDN Load Balancer leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--18e28698-eb08-42ba-934b-44b2e27011c7"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--18e28698-eb08-42ba-934b-44b2e27011c7",
+            "created": "2026-11-05T23:51:00.689813Z",
+            "modified": "2026-11-05T23:51:00.689815Z",
+            "name": "CDN Load Balancer",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on CDN Load Balancer leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--f12da015-6fb0-4789-a91c-b8ac15b890e8",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.689824Z",
+            "modified": "2026-11-05T23:51:00.689827Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--51fdc835-fc81-4176-ae56-99a227fdcc7e",
+            "target_ref": "attack-asset--18e28698-eb08-42ba-934b-44b2e27011c7"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--261b9854-6e8e-45e8-bee1-d948d4273bff",
+            "created": "2026-11-05T23:51:00.689837Z",
+            "modified": "2026-11-05T23:51:00.689839Z",
+            "name": "Unpatched OS or software vulnerabilities on API Gateway leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on API Gateway leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--29d2c60b-4537-4031-9159-3c55c9f2c09d"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--29d2c60b-4537-4031-9159-3c55c9f2c09d",
+            "created": "2026-11-05T23:51:00.689846Z",
+            "modified": "2026-11-05T23:51:00.689848Z",
+            "name": "API Gateway",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on API Gateway leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--e62d401c-9ca3-4dd4-b52b-4c40415beecc",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.689855Z",
+            "modified": "2026-11-05T23:51:00.689858Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--261b9854-6e8e-45e8-bee1-d948d4273bff",
+            "target_ref": "attack-asset--29d2c60b-4537-4031-9159-3c55c9f2c09d"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--e29d9365-5732-42ed-96bb-e4cc1ddcf8cb",
+            "created": "2026-11-05T23:51:00.689865Z",
+            "modified": "2026-11-05T23:51:00.689867Z",
+            "name": "Event injection vulnerability in serverless function API Gateway, leading to arbitrary code execution.",
+            "description": "Event injection vulnerability in serverless function API Gateway, leading to arbitrary code execution.",
+            "technique_id": "T1553",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--d2423727-6fbb-4b85-8ea3-83fbda747b0b"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--d2423727-6fbb-4b85-8ea3-83fbda747b0b",
+            "created": "2026-11-05T23:51:00.689873Z",
+            "modified": "2026-11-05T23:51:00.689876Z",
+            "name": "API Gateway",
+            "description": "Asset targeted by threat: Event injection vulnerability in serverless function API Gateway, leading to arbitrary code execution.",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--deeddd50-94ca-457c-a8de-20646e7d31b4",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.689884Z",
+            "modified": "2026-11-05T23:51:00.689887Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--e29d9365-5732-42ed-96bb-e4cc1ddcf8cb",
+            "target_ref": "attack-asset--d2423727-6fbb-4b85-8ea3-83fbda747b0b"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--0107348f-ea16-4088-a5ea-babc8eb81b9c",
+            "created": "2026-11-05T23:51:00.689894Z",
+            "modified": "2026-11-05T23:51:00.689896Z",
+            "name": "Untrusted actor End User may attempt to inject malicious data or exploit vulnerabilities in connected systems.",
+            "description": "Untrusted actor End User may attempt to inject malicious data or exploit vulnerabilities in connected systems.",
+            "technique_id": "T1221",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--fc253c7e-df06-42d6-8774-d7bc5471760e"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--fc253c7e-df06-42d6-8774-d7bc5471760e",
+            "created": "2026-11-05T23:51:00.689902Z",
+            "modified": "2026-11-05T23:51:00.689904Z",
+            "name": "End User",
+            "description": "Asset targeted by threat: Untrusted actor End User may attempt to inject malicious data or exploit vulnerabilities in connected systems.",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--d9fb5542-fa49-4917-9731-4fa4a97b734d",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.689910Z",
+            "modified": "2026-11-05T23:51:00.689912Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--0107348f-ea16-4088-a5ea-babc8eb81b9c",
+            "target_ref": "attack-asset--fc253c7e-df06-42d6-8774-d7bc5471760e"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--6992e23c-6a0f-4f6f-a4b1-3c8db8291ab0",
+            "created": "2026-11-05T23:51:00.689919Z",
+            "modified": "2026-11-05T23:51:00.689922Z",
+            "name": "Credentials in dataflow from Product Microservice to Product Database are sent over an unencrypted channel.",
+            "description": "Credentials in dataflow from Product Microservice to Product Database are sent over an unencrypted channel.",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--bfffacaa-d10a-4a1f-b4d3-06bf70e81f89"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--bfffacaa-d10a-4a1f-b4d3-06bf70e81f89",
+            "created": "2026-11-05T23:51:00.689929Z",
+            "modified": "2026-11-05T23:51:00.689931Z",
+            "name": "ProductSvcToDB",
+            "description": "Asset targeted by threat: Credentials in dataflow from Product Microservice to Product Database are sent over an unencrypted channel.",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--e7711149-f411-4505-9c80-5f96e1619512",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.689937Z",
+            "modified": "2026-11-05T23:51:00.689939Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--6992e23c-6a0f-4f6f-a4b1-3c8db8291ab0",
+            "target_ref": "attack-asset--bfffacaa-d10a-4a1f-b4d3-06bf70e81f89"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--ef4213f6-abcb-4507-ae4e-ff17abaabe18",
+            "created": "2026-11-05T23:51:00.689947Z",
+            "modified": "2026-11-05T23:51:00.689949Z",
+            "name": "Weak or missing authentication on routes managed by API Gateway API Gateway, allowing unauthorized access to backend services.",
+            "description": "Weak or missing authentication on routes managed by API Gateway API Gateway, allowing unauthorized access to backend services.",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--040444d0-26ca-440f-81a7-0160337472af"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--040444d0-26ca-440f-81a7-0160337472af",
+            "created": "2026-11-05T23:51:00.689956Z",
+            "modified": "2026-11-05T23:51:00.689958Z",
+            "name": "API Gateway",
+            "description": "Asset targeted by threat: Weak or missing authentication on routes managed by API Gateway API Gateway, allowing unauthorized access to backend services.",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--884b6225-1d17-4fc8-abab-d9be0165f42b",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.689964Z",
+            "modified": "2026-11-05T23:51:00.689966Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--ef4213f6-abcb-4507-ae4e-ff17abaabe18",
+            "target_ref": "attack-asset--040444d0-26ca-440f-81a7-0160337472af"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--575c4005-f3dc-41ab-aad2-22efa10ea958",
+            "created": "2026-11-05T23:51:00.689973Z",
+            "modified": "2026-11-05T23:51:00.689975Z",
+            "name": "Potential for spoofing attacks on data crossing trust boundaries from API Gateway to Auth Service without proper authentication",
+            "description": "Potential for spoofing attacks on data crossing trust boundaries from API Gateway to Auth Service without proper authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--37baf711-832f-41d8-ae63-7a2260938160"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--37baf711-832f-41d8-ae63-7a2260938160",
+            "created": "2026-11-05T23:51:00.689981Z",
+            "modified": "2026-11-05T23:51:00.689983Z",
+            "name": "GatewayToAuth",
+            "description": "Asset targeted by threat: Potential for spoofing attacks on data crossing trust boundaries from API Gateway to Auth Service without proper authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--6324437e-42f9-4192-8d23-3e8ab56cfea7",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.689989Z",
+            "modified": "2026-11-05T23:51:00.689991Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--575c4005-f3dc-41ab-aad2-22efa10ea958",
+            "target_ref": "attack-asset--37baf711-832f-41d8-ae63-7a2260938160"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--400ab988-6b9f-49b7-a9ca-902619753e37",
+            "created": "2026-11-05T23:51:00.690001Z",
+            "modified": "2026-11-05T23:51:00.690003Z",
+            "name": "Potential for spoofing attacks on data crossing trust boundaries from API Gateway to Product Microservice without proper authentication",
+            "description": "Potential for spoofing attacks on data crossing trust boundaries from API Gateway to Product Microservice without proper authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--a154ed01-bc49-4bcf-9cf0-baaac6a4eb77"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--a154ed01-bc49-4bcf-9cf0-baaac6a4eb77",
+            "created": "2026-11-05T23:51:00.690010Z",
+            "modified": "2026-11-05T23:51:00.690012Z",
+            "name": "GatewayToProductSvc",
+            "description": "Asset targeted by threat: Potential for spoofing attacks on data crossing trust boundaries from API Gateway to Product Microservice without proper authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--499a79fd-bee0-4766-ba12-88c3b14a77be",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690020Z",
+            "modified": "2026-11-05T23:51:00.690022Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--400ab988-6b9f-49b7-a9ca-902619753e37",
+            "target_ref": "attack-asset--a154ed01-bc49-4bcf-9cf0-baaac6a4eb77"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--67468cc3-06d8-4bd4-ac6a-14788be300ee",
+            "created": "2026-11-05T23:51:00.690029Z",
+            "modified": "2026-11-05T23:51:00.690031Z",
+            "name": "Potential for spoofing attacks on data crossing trust boundaries from DevOps Engineer to CI/CD Server without proper authentication",
+            "description": "Potential for spoofing attacks on data crossing trust boundaries from DevOps Engineer to CI/CD Server without proper authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--d1c6948e-4db3-4940-8fbc-8d52fcbb1839"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--d1c6948e-4db3-4940-8fbc-8d52fcbb1839",
+            "created": "2026-11-05T23:51:00.690038Z",
+            "modified": "2026-11-05T23:51:00.690040Z",
+            "name": "DevOpsToCICD",
+            "description": "Asset targeted by threat: Potential for spoofing attacks on data crossing trust boundaries from DevOps Engineer to CI/CD Server without proper authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--6044da57-98b4-4649-9be0-f01dec4e67c4",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690046Z",
+            "modified": "2026-11-05T23:51:00.690048Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--67468cc3-06d8-4bd4-ac6a-14788be300ee",
+            "target_ref": "attack-asset--d1c6948e-4db3-4940-8fbc-8d52fcbb1839"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--991cc7d7-3efd-4ac7-956d-e7d125ca3453",
+            "created": "2026-11-05T23:51:00.690054Z",
+            "modified": "2026-11-05T23:51:00.690057Z",
+            "name": "Actor End User uses single-factor authentication (credentials only), increasing risk from phishing and credential stuffing.",
+            "description": "Actor End User uses single-factor authentication (credentials only), increasing risk from phishing and credential stuffing.",
+            "technique_id": "T1534",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--1580255e-ca2f-4956-a936-aed2feb923f2"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--1580255e-ca2f-4956-a936-aed2feb923f2",
+            "created": "2026-11-05T23:51:00.690063Z",
+            "modified": "2026-11-05T23:51:00.690065Z",
+            "name": "End User",
+            "description": "Asset targeted by threat: Actor End User uses single-factor authentication (credentials only), increasing risk from phishing and credential stuffing.",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--9b84c2f4-41f8-4a2a-8463-df5819848a9f",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690070Z",
+            "modified": "2026-11-05T23:51:00.690072Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--991cc7d7-3efd-4ac7-956d-e7d125ca3453",
+            "target_ref": "attack-asset--1580255e-ca2f-4956-a936-aed2feb923f2"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--0fe31ed3-a3a5-4580-a76e-0af9126ec58b",
+            "created": "2026-11-05T23:51:00.690079Z",
+            "modified": "2026-11-05T23:51:00.690081Z",
+            "name": "Unpatched OS or software vulnerabilities on Auth Service leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on Auth Service leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--f978fd5f-1bc7-4407-a55f-35524ca9b692"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--f978fd5f-1bc7-4407-a55f-35524ca9b692",
+            "created": "2026-11-05T23:51:00.690087Z",
+            "modified": "2026-11-05T23:51:00.690089Z",
+            "name": "Auth Service",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on Auth Service leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--9118b545-9eb7-48f1-9f90-b22ddc033226",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690094Z",
+            "modified": "2026-11-05T23:51:00.690096Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--0fe31ed3-a3a5-4580-a76e-0af9126ec58b",
+            "target_ref": "attack-asset--f978fd5f-1bc7-4407-a55f-35524ca9b692"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--0dd53f6d-0a0b-48e5-a69b-8388f5c02839",
+            "created": "2026-11-05T23:51:00.690104Z",
+            "modified": "2026-11-05T23:51:00.690106Z",
+            "name": "Unpatched OS or software vulnerabilities on Product Microservice leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on Product Microservice leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--dd9a68ef-f502-40f4-8dcd-363c726ffa46"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--dd9a68ef-f502-40f4-8dcd-363c726ffa46",
+            "created": "2026-11-05T23:51:00.690111Z",
+            "modified": "2026-11-05T23:51:00.690114Z",
+            "name": "Product Microservice",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on Product Microservice leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--551cee48-c2bc-4f4a-ab27-810516bf4665",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690121Z",
+            "modified": "2026-11-05T23:51:00.690123Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--0dd53f6d-0a0b-48e5-a69b-8388f5c02839",
+            "target_ref": "attack-asset--dd9a68ef-f502-40f4-8dcd-363c726ffa46"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--a707c8cc-9a96-4f16-880e-6bfd3b433ae8",
+            "created": "2026-11-05T23:51:00.690129Z",
+            "modified": "2026-11-05T23:51:00.690131Z",
+            "name": "Unpatched OS or software vulnerabilities on Product Database leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on Product Database leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--c377e5af-d9dc-4f69-97ad-b1a4dad75ca4"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--c377e5af-d9dc-4f69-97ad-b1a4dad75ca4",
+            "created": "2026-11-05T23:51:00.690137Z",
+            "modified": "2026-11-05T23:51:00.690139Z",
+            "name": "Product Database",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on Product Database leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--18d52368-e9bc-4215-9236-850adc2af7fd",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690146Z",
+            "modified": "2026-11-05T23:51:00.690148Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--a707c8cc-9a96-4f16-880e-6bfd3b433ae8",
+            "target_ref": "attack-asset--c377e5af-d9dc-4f69-97ad-b1a4dad75ca4"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--4c76a079-5c11-4b0c-8601-5c90aec9b299",
+            "created": "2026-11-05T23:51:00.690156Z",
+            "modified": "2026-11-05T23:51:00.690158Z",
+            "name": "Data corruption or tampering in Product Database via unauthorized write access",
+            "description": "Data corruption or tampering in Product Database via unauthorized write access",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--2d42bf80-507e-42e5-bb33-1f00b95b7031"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--2d42bf80-507e-42e5-bb33-1f00b95b7031",
+            "created": "2026-11-05T23:51:00.690164Z",
+            "modified": "2026-11-05T23:51:00.690166Z",
+            "name": "Product Database",
+            "description": "Asset targeted by threat: Data corruption or tampering in Product Database via unauthorized write access",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--dd2a8fac-cd49-43c3-b1ad-87a3e40f3053",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690171Z",
+            "modified": "2026-11-05T23:51:00.690174Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--4c76a079-5c11-4b0c-8601-5c90aec9b299",
+            "target_ref": "attack-asset--2d42bf80-507e-42e5-bb33-1f00b95b7031"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--54d2ffc9-9cb4-4608-ae32-2f905be1e55e",
+            "created": "2026-11-05T23:51:00.690180Z",
+            "modified": "2026-11-05T23:51:00.690182Z",
+            "name": "SQL injection vulnerability on Product Database allowing command execution or data manipulation",
+            "description": "SQL injection vulnerability on Product Database allowing command execution or data manipulation",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--5b6035bb-486c-494b-92f9-ac2bac0d7d5b"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--5b6035bb-486c-494b-92f9-ac2bac0d7d5b",
+            "created": "2026-11-05T23:51:00.690188Z",
+            "modified": "2026-11-05T23:51:00.690190Z",
+            "name": "Product Database",
+            "description": "Asset targeted by threat: SQL injection vulnerability on Product Database allowing command execution or data manipulation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--a4495114-d708-4d25-bc06-fba553cf4b8e",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690196Z",
+            "modified": "2026-11-05T23:51:00.690198Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--54d2ffc9-9cb4-4608-ae32-2f905be1e55e",
+            "target_ref": "attack-asset--5b6035bb-486c-494b-92f9-ac2bac0d7d5b"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--6d519b6e-f713-4cd1-b1ed-7016450feea5",
+            "created": "2026-11-05T23:51:00.690204Z",
+            "modified": "2026-11-05T23:51:00.690206Z",
+            "name": "Unpatched OS or software vulnerabilities on CI/CD Server leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on CI/CD Server leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--59259c70-e199-4758-acd6-fe4b0fcb0fac"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--59259c70-e199-4758-acd6-fe4b0fcb0fac",
+            "created": "2026-11-05T23:51:00.690211Z",
+            "modified": "2026-11-05T23:51:00.690213Z",
+            "name": "CI/CD Server",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on CI/CD Server leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--54a5c61e-4df1-4656-9e8d-3492fd9c5b00",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690218Z",
+            "modified": "2026-11-05T23:51:00.690220Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--6d519b6e-f713-4cd1-b1ed-7016450feea5",
+            "target_ref": "attack-asset--59259c70-e199-4758-acd6-fe4b0fcb0fac"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--5c5b6707-81b4-42b3-b8ef-255d8024cf93",
+            "created": "2026-11-05T23:51:00.690226Z",
+            "modified": "2026-11-05T23:51:00.690228Z",
+            "name": "Unauthorized access to sensitive data stored in Product Database leading to data breach",
+            "description": "Unauthorized access to sensitive data stored in Product Database leading to data breach",
+            "technique_id": "T1078",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--d7e974e2-0b86-47c0-96b8-76d1b2f8fb6b"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--d7e974e2-0b86-47c0-96b8-76d1b2f8fb6b",
+            "created": "2026-11-05T23:51:00.690233Z",
+            "modified": "2026-11-05T23:51:00.690235Z",
+            "name": "Product Database",
+            "description": "Asset targeted by threat: Unauthorized access to sensitive data stored in Product Database leading to data breach",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--03135fcf-e98f-4f71-a7e0-4a814626c95e",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690241Z",
+            "modified": "2026-11-05T23:51:00.690243Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--5c5b6707-81b4-42b3-b8ef-255d8024cf93",
+            "target_ref": "attack-asset--d7e974e2-0b86-47c0-96b8-76d1b2f8fb6b"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--e30abce5-af71-48d2-bfd6-bc816607a6b2",
+            "created": "2026-11-05T23:51:00.690249Z",
+            "modified": "2026-11-05T23:51:00.690251Z",
+            "name": "Unauthorized privilege escalation on Auth Service due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on Auth Service due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--1fb379d7-e5ad-4f92-8f06-8222d7ef6768"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--1fb379d7-e5ad-4f92-8f06-8222d7ef6768",
+            "created": "2026-11-05T23:51:00.690256Z",
+            "modified": "2026-11-05T23:51:00.690258Z",
+            "name": "Auth Service",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on Auth Service due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--36664e9e-639e-4099-9a8a-1d66842e7d80",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690264Z",
+            "modified": "2026-11-05T23:51:00.690274Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--e30abce5-af71-48d2-bfd6-bc816607a6b2",
+            "target_ref": "attack-asset--1fb379d7-e5ad-4f92-8f06-8222d7ef6768"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--14642a37-cbdf-4987-a219-a9a24d0a753b",
+            "created": "2026-11-05T23:51:00.690280Z",
+            "modified": "2026-11-05T23:51:00.690282Z",
+            "name": "Container escape vulnerability on Auth Service, allowing an attacker to gain access to the underlying host.",
+            "description": "Container escape vulnerability on Auth Service, allowing an attacker to gain access to the underlying host.",
+            "technique_id": "T1611",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--23f0a9df-a0bc-47c9-8a0f-e4b4350bb0c6"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--23f0a9df-a0bc-47c9-8a0f-e4b4350bb0c6",
+            "created": "2026-11-05T23:51:00.690288Z",
+            "modified": "2026-11-05T23:51:00.690291Z",
+            "name": "Auth Service",
+            "description": "Asset targeted by threat: Container escape vulnerability on Auth Service, allowing an attacker to gain access to the underlying host.",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--b9a9b530-708f-4dc7-a622-89fe7c359994",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690296Z",
+            "modified": "2026-11-05T23:51:00.690299Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--14642a37-cbdf-4987-a219-a9a24d0a753b",
+            "target_ref": "attack-asset--23f0a9df-a0bc-47c9-8a0f-e4b4350bb0c6"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--dab9aa9a-7324-44d1-8eb9-7c1b71cb578c",
+            "created": "2026-11-05T23:51:00.690306Z",
+            "modified": "2026-11-05T23:51:00.690309Z",
+            "name": "Unauthorized privilege escalation on Product Microservice due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on Product Microservice due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--f950de66-3630-42c7-bd68-b89e41867681"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--f950de66-3630-42c7-bd68-b89e41867681",
+            "created": "2026-11-05T23:51:00.690315Z",
+            "modified": "2026-11-05T23:51:00.690317Z",
+            "name": "Product Microservice",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on Product Microservice due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--3aecc581-e7fe-4937-992b-04cbd215c6ef",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690324Z",
+            "modified": "2026-11-05T23:51:00.690326Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--dab9aa9a-7324-44d1-8eb9-7c1b71cb578c",
+            "target_ref": "attack-asset--f950de66-3630-42c7-bd68-b89e41867681"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--ef93dce0-c869-4dd5-aebf-c525593588fa",
+            "created": "2026-11-05T23:51:00.690333Z",
+            "modified": "2026-11-05T23:51:00.690335Z",
+            "name": "Unauthorized privilege escalation on Product Database due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on Product Database due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--a7f942b5-a857-4568-9209-b598d3871c56"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--a7f942b5-a857-4568-9209-b598d3871c56",
+            "created": "2026-11-05T23:51:00.690341Z",
+            "modified": "2026-11-05T23:51:00.690342Z",
+            "name": "Product Database",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on Product Database due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--86ea1860-ae6e-4161-85ed-960d309e3ece",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690348Z",
+            "modified": "2026-11-05T23:51:00.690351Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--ef93dce0-c869-4dd5-aebf-c525593588fa",
+            "target_ref": "attack-asset--a7f942b5-a857-4568-9209-b598d3871c56"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--b2c3d0bb-aa13-43d0-b439-9f39fa81a260",
+            "created": "2026-11-05T23:51:00.690358Z",
+            "modified": "2026-11-05T23:51:00.690360Z",
+            "name": "Unauthorized privilege escalation on CI/CD Server due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on CI/CD Server due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--42491ea7-32d2-4171-a6cd-5ff2fe04e9df"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--42491ea7-32d2-4171-a6cd-5ff2fe04e9df",
+            "created": "2026-11-05T23:51:00.690366Z",
+            "modified": "2026-11-05T23:51:00.690369Z",
+            "name": "CI/CD Server",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on CI/CD Server due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--ba93cc99-44b5-4f8a-9e24-97430487f91c",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690375Z",
+            "modified": "2026-11-05T23:51:00.690377Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--b2c3d0bb-aa13-43d0-b439-9f39fa81a260",
+            "target_ref": "attack-asset--42491ea7-32d2-4171-a6cd-5ff2fe04e9df"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--be59b105-b92d-4f73-830c-3667e72f7333",
+            "created": "2026-11-05T23:51:00.690384Z",
+            "modified": "2026-11-05T23:51:00.690386Z",
+            "name": "Unauthorized privilege escalation on CDN Load Balancer due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on CDN Load Balancer due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--15bff9b3-2c97-4515-9df4-d9cb21e66aff"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--15bff9b3-2c97-4515-9df4-d9cb21e66aff",
+            "created": "2026-11-05T23:51:00.690392Z",
+            "modified": "2026-11-05T23:51:00.690394Z",
+            "name": "CDN Load Balancer",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on CDN Load Balancer due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--4090bd63-e6da-407d-bdd1-3bb9097fe077",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690399Z",
+            "modified": "2026-11-05T23:51:00.690401Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--be59b105-b92d-4f73-830c-3667e72f7333",
+            "target_ref": "attack-asset--15bff9b3-2c97-4515-9df4-d9cb21e66aff"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--adb7c9a6-9950-462b-b205-ead978fa8606",
+            "created": "2026-11-05T23:51:00.690407Z",
+            "modified": "2026-11-05T23:51:00.690409Z",
+            "name": "Unauthorized privilege escalation on API Gateway due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on API Gateway due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--71714d66-89f7-4764-afc5-4490c440dea3"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--71714d66-89f7-4764-afc5-4490c440dea3",
+            "created": "2026-11-05T23:51:00.690414Z",
+            "modified": "2026-11-05T23:51:00.690416Z",
+            "name": "API Gateway",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on API Gateway due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--9dcc606f-28bf-41d5-bb07-e20c499ed6f9",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690423Z",
+            "modified": "2026-11-05T23:51:00.690425Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--adb7c9a6-9950-462b-b205-ead978fa8606",
+            "target_ref": "attack-asset--71714d66-89f7-4764-afc5-4490c440dea3"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--0b6dcfe0-3c0d-499e-85fe-f31862e4b14d",
+            "created": "2026-11-05T23:51:00.690431Z",
+            "modified": "2026-11-05T23:51:00.690433Z",
+            "name": "Lateral movement from management server CI/CD Server to other systems in the network for further compromise.",
+            "description": "Lateral movement from management server CI/CD Server to other systems in the network for further compromise.",
+            "technique_id": "T1021",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--3b712504-34c4-4e3a-9c34-a7f93b68a310"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--3b712504-34c4-4e3a-9c34-a7f93b68a310",
+            "created": "2026-11-05T23:51:00.690439Z",
+            "modified": "2026-11-05T23:51:00.690441Z",
+            "name": "CI/CD Server",
+            "description": "Asset targeted by threat: Lateral movement from management server CI/CD Server to other systems in the network for further compromise.",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--b575ad18-1f31-4ce2-b9d1-3b578aae14dc",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690447Z",
+            "modified": "2026-11-05T23:51:00.690450Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--0b6dcfe0-3c0d-499e-85fe-f31862e4b14d",
+            "target_ref": "attack-asset--3b712504-34c4-4e3a-9c34-a7f93b68a310"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--870caa74-4da4-438d-8318-264380412b73",
+            "created": "2026-11-05T23:51:00.690456Z",
+            "modified": "2026-11-05T23:51:00.690458Z",
+            "name": "Lack of monitoring or logging on Auth Service, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on Auth Service, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--43b23618-9334-4aa4-a1a6-3e4222f585a2"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--43b23618-9334-4aa4-a1a6-3e4222f585a2",
+            "created": "2026-11-05T23:51:00.690464Z",
+            "modified": "2026-11-05T23:51:00.690466Z",
+            "name": "Auth Service",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on Auth Service, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--7fda3b49-7b74-41e2-93b6-f24a8feb8256",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690471Z",
+            "modified": "2026-11-05T23:51:00.690473Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--870caa74-4da4-438d-8318-264380412b73",
+            "target_ref": "attack-asset--43b23618-9334-4aa4-a1a6-3e4222f585a2"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--bccfebab-dc6c-4506-9756-b53c98b90fc3",
+            "created": "2026-11-05T23:51:00.690479Z",
+            "modified": "2026-11-05T23:51:00.690481Z",
+            "name": "Container escape vulnerability on Product Microservice, allowing an attacker to gain access to the underlying host.",
+            "description": "Container escape vulnerability on Product Microservice, allowing an attacker to gain access to the underlying host.",
+            "technique_id": "T1611",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--5b43a2d2-506c-4b29-bedc-b50828963210"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--5b43a2d2-506c-4b29-bedc-b50828963210",
+            "created": "2026-11-05T23:51:00.690486Z",
+            "modified": "2026-11-05T23:51:00.690488Z",
+            "name": "Product Microservice",
+            "description": "Asset targeted by threat: Container escape vulnerability on Product Microservice, allowing an attacker to gain access to the underlying host.",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--943bcb1d-1d30-42f3-92d2-a2248a932c5e",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690493Z",
+            "modified": "2026-11-05T23:51:00.690495Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--bccfebab-dc6c-4506-9756-b53c98b90fc3",
+            "target_ref": "attack-asset--5b43a2d2-506c-4b29-bedc-b50828963210"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--90e0ff73-50af-4dee-8ad6-1cb478e67a7f",
+            "created": "2026-11-05T23:51:00.690501Z",
+            "modified": "2026-11-05T23:51:00.690503Z",
+            "name": "Session hijacking or fixation attack against the CDN Load Balancer leading to unauthorized access",
+            "description": "Session hijacking or fixation attack against the CDN Load Balancer leading to unauthorized access",
+            "technique_id": "T1547",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--d07bddb9-fb2a-41c1-9db0-9badbbd7dbfd"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--d07bddb9-fb2a-41c1-9db0-9badbbd7dbfd",
+            "created": "2026-11-05T23:51:00.690509Z",
+            "modified": "2026-11-05T23:51:00.690510Z",
+            "name": "CDN Load Balancer",
+            "description": "Asset targeted by threat: Session hijacking or fixation attack against the CDN Load Balancer leading to unauthorized access",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--cdf66cd7-f98f-4111-9a29-b6a57f274c74",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690516Z",
+            "modified": "2026-11-05T23:51:00.690518Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--90e0ff73-50af-4dee-8ad6-1cb478e67a7f",
+            "target_ref": "attack-asset--d07bddb9-fb2a-41c1-9db0-9badbbd7dbfd"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--f90629ea-5082-4315-95c5-d5b2d36a2d6f",
+            "created": "2026-11-05T23:51:00.690524Z",
+            "modified": "2026-11-05T23:51:00.690526Z",
+            "name": "Spoofing of data from End User to API Gateway due to lack of authentication",
+            "description": "Spoofing of data from End User to API Gateway due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--fab3b7bd-d7e8-4ca0-a273-ecc4daebd591"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--fab3b7bd-d7e8-4ca0-a273-ecc4daebd591",
+            "created": "2026-11-05T23:51:00.690532Z",
+            "modified": "2026-11-05T23:51:00.690534Z",
+            "name": "UserToGateway",
+            "description": "Asset targeted by threat: Spoofing of data from End User to API Gateway due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--1cdbaf70-7626-439b-a54e-9c405530be4f",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690539Z",
+            "modified": "2026-11-05T23:51:00.690541Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--f90629ea-5082-4315-95c5-d5b2d36a2d6f",
+            "target_ref": "attack-asset--fab3b7bd-d7e8-4ca0-a273-ecc4daebd591"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--0ae7c4a3-60ad-4f25-a230-8ad11bf82338",
+            "created": "2026-11-05T23:51:00.690548Z",
+            "modified": "2026-11-05T23:51:00.690550Z",
+            "name": "Spoofing of data from API Gateway to Auth Service due to lack of authentication",
+            "description": "Spoofing of data from API Gateway to Auth Service due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--196a6674-14af-4da1-9649-a1832dcaacd4"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--196a6674-14af-4da1-9649-a1832dcaacd4",
+            "created": "2026-11-05T23:51:00.690555Z",
+            "modified": "2026-11-05T23:51:00.690557Z",
+            "name": "GatewayToAuth",
+            "description": "Asset targeted by threat: Spoofing of data from API Gateway to Auth Service due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--f781a5ed-8253-4614-a569-8441bd8112f2",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690563Z",
+            "modified": "2026-11-05T23:51:00.690565Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--0ae7c4a3-60ad-4f25-a230-8ad11bf82338",
+            "target_ref": "attack-asset--196a6674-14af-4da1-9649-a1832dcaacd4"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--0ca8121e-3909-4037-be1f-f57b117ab187",
+            "created": "2026-11-05T23:51:00.690598Z",
+            "modified": "2026-11-05T23:51:00.690603Z",
+            "name": "Spoofing of data from API Gateway to Product Microservice due to lack of authentication",
+            "description": "Spoofing of data from API Gateway to Product Microservice due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--f3cd8b74-2bf6-41d8-ab92-c442f4f8aa22"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--f3cd8b74-2bf6-41d8-ab92-c442f4f8aa22",
+            "created": "2026-11-05T23:51:00.690612Z",
+            "modified": "2026-11-05T23:51:00.690614Z",
+            "name": "GatewayToProductSvc",
+            "description": "Asset targeted by threat: Spoofing of data from API Gateway to Product Microservice due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--1d1c04c7-c280-487b-aa24-329f99c957fd",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690621Z",
+            "modified": "2026-11-05T23:51:00.690623Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--0ca8121e-3909-4037-be1f-f57b117ab187",
+            "target_ref": "attack-asset--f3cd8b74-2bf6-41d8-ab92-c442f4f8aa22"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--1aa264d9-1b9b-4c83-967e-d8bf76f6709e",
+            "created": "2026-11-05T23:51:00.690629Z",
+            "modified": "2026-11-05T23:51:00.690631Z",
+            "name": "Spoofing of data from Product Microservice to Product Database due to lack of authentication",
+            "description": "Spoofing of data from Product Microservice to Product Database due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--e3ee8a97-38fa-4d38-a7ac-4afa0b360817"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--e3ee8a97-38fa-4d38-a7ac-4afa0b360817",
+            "created": "2026-11-05T23:51:00.690636Z",
+            "modified": "2026-11-05T23:51:00.690638Z",
+            "name": "ProductSvcToDB",
+            "description": "Asset targeted by threat: Spoofing of data from Product Microservice to Product Database due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--5ad1e129-9f13-4c36-990a-1164383d2c94",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690644Z",
+            "modified": "2026-11-05T23:51:00.690646Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--1aa264d9-1b9b-4c83-967e-d8bf76f6709e",
+            "target_ref": "attack-asset--e3ee8a97-38fa-4d38-a7ac-4afa0b360817"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--c4978c0b-1c29-462c-808d-68f0829b672e",
+            "created": "2026-11-05T23:51:00.690652Z",
+            "modified": "2026-11-05T23:51:00.690654Z",
+            "name": "Spoofing of data from DevOps Engineer to CI/CD Server due to lack of authentication",
+            "description": "Spoofing of data from DevOps Engineer to CI/CD Server due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--54326341-8a33-4eea-b16b-8c956e300d5e"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--54326341-8a33-4eea-b16b-8c956e300d5e",
+            "created": "2026-11-05T23:51:00.690659Z",
+            "modified": "2026-11-05T23:51:00.690661Z",
+            "name": "DevOpsToCICD",
+            "description": "Asset targeted by threat: Spoofing of data from DevOps Engineer to CI/CD Server due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--96e51213-06fa-44f5-9920-33851f933326",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690666Z",
+            "modified": "2026-11-05T23:51:00.690668Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--c4978c0b-1c29-462c-808d-68f0829b672e",
+            "target_ref": "attack-asset--54326341-8a33-4eea-b16b-8c956e300d5e"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--f8e793ea-0063-43c8-a093-21ceab4d219b",
+            "created": "2026-11-05T23:51:00.690674Z",
+            "modified": "2026-11-05T23:51:00.690676Z",
+            "name": "Spoofing of data from CI/CD Server to Product Microservice due to lack of authentication",
+            "description": "Spoofing of data from CI/CD Server to Product Microservice due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--93ef7835-a938-4c0c-8d5e-63e8030ef374"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--93ef7835-a938-4c0c-8d5e-63e8030ef374",
+            "created": "2026-11-05T23:51:00.690681Z",
+            "modified": "2026-11-05T23:51:00.690683Z",
+            "name": "CICDToProductSvc",
+            "description": "Asset targeted by threat: Spoofing of data from CI/CD Server to Product Microservice due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--5dc13c16-364a-4d24-bba2-0251cbf22679",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690688Z",
+            "modified": "2026-11-05T23:51:00.690690Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--f8e793ea-0063-43c8-a093-21ceab4d219b",
+            "target_ref": "attack-asset--93ef7835-a938-4c0c-8d5e-63e8030ef374"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--5bac9279-730d-4012-b038-c58ddeea9e0b",
+            "created": "2026-11-05T23:51:00.690696Z",
+            "modified": "2026-11-05T23:51:00.690698Z",
+            "name": "Identity spoofing of the actor End User via phishing or credential theft",
+            "description": "Identity spoofing of the actor End User via phishing or credential theft",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--f1963e51-0ec5-479f-baf0-df7a4018c6f2"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--f1963e51-0ec5-479f-baf0-df7a4018c6f2",
+            "created": "2026-11-05T23:51:00.690704Z",
+            "modified": "2026-11-05T23:51:00.690706Z",
+            "name": "End User",
+            "description": "Asset targeted by threat: Identity spoofing of the actor End User via phishing or credential theft",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--06cb9236-29d5-41f7-bdca-9043d2c7eac1",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690713Z",
+            "modified": "2026-11-05T23:51:00.690715Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--5bac9279-730d-4012-b038-c58ddeea9e0b",
+            "target_ref": "attack-asset--f1963e51-0ec5-479f-baf0-df7a4018c6f2"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--d21a7726-3c62-4ebd-9d71-26deee698b8f",
+            "created": "2026-11-05T23:51:00.690721Z",
+            "modified": "2026-11-05T23:51:00.690723Z",
+            "name": "Identity spoofing of the actor DevOps Engineer via phishing or credential theft",
+            "description": "Identity spoofing of the actor DevOps Engineer via phishing or credential theft",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--a86ad30f-7806-4171-b030-6afaad07102a"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--a86ad30f-7806-4171-b030-6afaad07102a",
+            "created": "2026-11-05T23:51:00.690728Z",
+            "modified": "2026-11-05T23:51:00.690730Z",
+            "name": "DevOps Engineer",
+            "description": "Asset targeted by threat: Identity spoofing of the actor DevOps Engineer via phishing or credential theft",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--0d322eeb-25b3-45cc-aa59-44d5281d5c11",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690736Z",
+            "modified": "2026-11-05T23:51:00.690738Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--d21a7726-3c62-4ebd-9d71-26deee698b8f",
+            "target_ref": "attack-asset--a86ad30f-7806-4171-b030-6afaad07102a"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--0aaaa6d1-e82e-439c-9c35-e9b6d13c8ccf",
+            "created": "2026-11-05T23:51:00.690745Z",
+            "modified": "2026-11-05T23:51:00.690747Z",
+            "name": "Lack of monitoring or logging on Product Database, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on Product Database, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--801e8464-2810-4793-8f56-fd3f2c868413"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--801e8464-2810-4793-8f56-fd3f2c868413",
+            "created": "2026-11-05T23:51:00.690752Z",
+            "modified": "2026-11-05T23:51:00.690754Z",
+            "name": "Product Database",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on Product Database, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--5534c8dd-ab9e-46e7-9e3a-001d1682fc46",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690759Z",
+            "modified": "2026-11-05T23:51:00.690761Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--0aaaa6d1-e82e-439c-9c35-e9b6d13c8ccf",
+            "target_ref": "attack-asset--801e8464-2810-4793-8f56-fd3f2c868413"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--a3bae2be-eadd-4ac6-aa37-c4a23d8ed549",
+            "created": "2026-11-05T23:51:00.690767Z",
+            "modified": "2026-11-05T23:51:00.690769Z",
+            "name": "Denial of Service against Product Database through resource-intensive queries or excessive connections",
+            "description": "Denial of Service against Product Database through resource-intensive queries or excessive connections",
+            "technique_id": "T1499",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--0f3c98b1-b8a0-4d9d-af7f-ab7862948dd9"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--0f3c98b1-b8a0-4d9d-af7f-ab7862948dd9",
+            "created": "2026-11-05T23:51:00.690775Z",
+            "modified": "2026-11-05T23:51:00.690777Z",
+            "name": "Product Database",
+            "description": "Asset targeted by threat: Denial of Service against Product Database through resource-intensive queries or excessive connections",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--64c7af58-900e-4423-9bd2-0b9bcf1af68f",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690783Z",
+            "modified": "2026-11-05T23:51:00.690785Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--a3bae2be-eadd-4ac6-aa37-c4a23d8ed549",
+            "target_ref": "attack-asset--0f3c98b1-b8a0-4d9d-af7f-ab7862948dd9"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--f108d9c2-3b5a-42a8-a0b0-99a1960a5a34",
+            "created": "2026-11-05T23:51:00.690791Z",
+            "modified": "2026-11-05T23:51:00.690793Z",
+            "name": "Insecure security configuration or hardening on Auth Service leading to information exposure",
+            "description": "Insecure security configuration or hardening on Auth Service leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--0b5004cf-7e5e-47c3-b965-24f3a09a2ecc"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--0b5004cf-7e5e-47c3-b965-24f3a09a2ecc",
+            "created": "2026-11-05T23:51:00.690798Z",
+            "modified": "2026-11-05T23:51:00.690800Z",
+            "name": "Auth Service",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on Auth Service leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--c9946ec0-7781-465c-a0f1-4cb72ce8aa89",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690805Z",
+            "modified": "2026-11-05T23:51:00.690807Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--f108d9c2-3b5a-42a8-a0b0-99a1960a5a34",
+            "target_ref": "attack-asset--0b5004cf-7e5e-47c3-b965-24f3a09a2ecc"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--2d0bc08a-4ec6-4b99-a639-0ebcf0fb8f8e",
+            "created": "2026-11-05T23:51:00.690814Z",
+            "modified": "2026-11-05T23:51:00.690816Z",
+            "name": "Lack of monitoring or logging on Product Microservice, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on Product Microservice, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--84f92957-ca55-403f-af46-320cbd9ffc4f"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--84f92957-ca55-403f-af46-320cbd9ffc4f",
+            "created": "2026-11-05T23:51:00.690822Z",
+            "modified": "2026-11-05T23:51:00.690823Z",
+            "name": "Product Microservice",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on Product Microservice, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--b1eb7075-f319-4724-a615-168494cbae2b",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690830Z",
+            "modified": "2026-11-05T23:51:00.690832Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--2d0bc08a-4ec6-4b99-a639-0ebcf0fb8f8e",
+            "target_ref": "attack-asset--84f92957-ca55-403f-af46-320cbd9ffc4f"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--2ead3896-45f3-49dc-8363-ee811c9f7d6d",
+            "created": "2026-11-05T23:51:00.690838Z",
+            "modified": "2026-11-05T23:51:00.690840Z",
+            "name": "Data interception on an unencrypted channel from Product Microservice to Product Database (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from Product Microservice to Product Database (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--648a6374-d461-417f-b84f-4b265f06ff6f"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--648a6374-d461-417f-b84f-4b265f06ff6f",
+            "created": "2026-11-05T23:51:00.690845Z",
+            "modified": "2026-11-05T23:51:00.690847Z",
+            "name": "ProductSvcToDB",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from Product Microservice to Product Database (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--1ae5ea07-7737-491a-a112-13d8c3498850",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690853Z",
+            "modified": "2026-11-05T23:51:00.690855Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--2ead3896-45f3-49dc-8363-ee811c9f7d6d",
+            "target_ref": "attack-asset--648a6374-d461-417f-b84f-4b265f06ff6f"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--11478021-6749-45ee-b8dd-9bdd3fa2a935",
+            "created": "2026-11-05T23:51:00.690861Z",
+            "modified": "2026-11-05T23:51:00.690863Z",
+            "name": "Improper rate limiting on API Gateway API Gateway, leading to Denial of Service.",
+            "description": "Improper rate limiting on API Gateway API Gateway, leading to Denial of Service.",
+            "technique_id": "T1499",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--1a07515c-c9ba-4c6d-ad98-50c8f424123e"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--1a07515c-c9ba-4c6d-ad98-50c8f424123e",
+            "created": "2026-11-05T23:51:00.690868Z",
+            "modified": "2026-11-05T23:51:00.690870Z",
+            "name": "API Gateway",
+            "description": "Asset targeted by threat: Improper rate limiting on API Gateway API Gateway, leading to Denial of Service.",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--4da11351-c1bf-45f9-b92e-409c01b1a3ab",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690876Z",
+            "modified": "2026-11-05T23:51:00.690878Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--11478021-6749-45ee-b8dd-9bdd3fa2a935",
+            "target_ref": "attack-asset--1a07515c-c9ba-4c6d-ad98-50c8f424123e"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--4f6e78c0-9b06-4c19-8eef-ffa4140d9024",
+            "created": "2026-11-05T23:51:00.690883Z",
+            "modified": "2026-11-05T23:51:00.690885Z",
+            "name": "Lack of monitoring or logging on CI/CD Server, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on CI/CD Server, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--25ae4292-49a5-4fb6-af24-e8a90abb5eea"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--25ae4292-49a5-4fb6-af24-e8a90abb5eea",
+            "created": "2026-11-05T23:51:00.690891Z",
+            "modified": "2026-11-05T23:51:00.690893Z",
+            "name": "CI/CD Server",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on CI/CD Server, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--c5d8b16a-7d13-4135-bedb-0fb9c7643e6f",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690898Z",
+            "modified": "2026-11-05T23:51:00.690901Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--4f6e78c0-9b06-4c19-8eef-ffa4140d9024",
+            "target_ref": "attack-asset--25ae4292-49a5-4fb6-af24-e8a90abb5eea"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--1867cd81-8c59-483d-9c9a-499425694c9d",
+            "created": "2026-11-05T23:51:00.690907Z",
+            "modified": "2026-11-05T23:51:00.690910Z",
+            "name": "Insecure security configuration or hardening on Product Database leading to information exposure",
+            "description": "Insecure security configuration or hardening on Product Database leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--c2617cdf-6fa5-417e-8e97-2230163e574c"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--c2617cdf-6fa5-417e-8e97-2230163e574c",
+            "created": "2026-11-05T23:51:00.690915Z",
+            "modified": "2026-11-05T23:51:00.690917Z",
+            "name": "Product Database",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on Product Database leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--b8dcbde6-a4e0-4293-adbd-3b046703b6ac",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690922Z",
+            "modified": "2026-11-05T23:51:00.690924Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--1867cd81-8c59-483d-9c9a-499425694c9d",
+            "target_ref": "attack-asset--c2617cdf-6fa5-417e-8e97-2230163e574c"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--ef8a9801-6399-4a61-9082-5c598409e724",
+            "created": "2026-11-05T23:51:00.690930Z",
+            "modified": "2026-11-05T23:51:00.690932Z",
+            "name": "Insecure security configuration or hardening on Product Microservice leading to information exposure",
+            "description": "Insecure security configuration or hardening on Product Microservice leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--35bf3244-84af-45d3-9f57-68eecaa954a0"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--35bf3244-84af-45d3-9f57-68eecaa954a0",
+            "created": "2026-11-05T23:51:00.690938Z",
+            "modified": "2026-11-05T23:51:00.690940Z",
+            "name": "Product Microservice",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on Product Microservice leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--dc611cae-f3b7-4552-a081-b632100a72d1",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690946Z",
+            "modified": "2026-11-05T23:51:00.690948Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--ef8a9801-6399-4a61-9082-5c598409e724",
+            "target_ref": "attack-asset--35bf3244-84af-45d3-9f57-68eecaa954a0"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--4b9fdcf2-85f9-46a2-b465-ed294f8e4839",
+            "created": "2026-11-05T23:51:00.690953Z",
+            "modified": "2026-11-05T23:51:00.690955Z",
+            "name": "Insecure security configuration or hardening on CI/CD Server leading to information exposure",
+            "description": "Insecure security configuration or hardening on CI/CD Server leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--a0b73e52-bbe0-4b87-991c-0bc48b0b165f"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--a0b73e52-bbe0-4b87-991c-0bc48b0b165f",
+            "created": "2026-11-05T23:51:00.690961Z",
+            "modified": "2026-11-05T23:51:00.690962Z",
+            "name": "CI/CD Server",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on CI/CD Server leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--87c872e7-a1f8-4332-aa34-ce6335663b25",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690968Z",
+            "modified": "2026-11-05T23:51:00.690970Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--4b9fdcf2-85f9-46a2-b465-ed294f8e4839",
+            "target_ref": "attack-asset--a0b73e52-bbe0-4b87-991c-0bc48b0b165f"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--8504d0af-104c-4403-969a-a2c02fd09f33",
+            "created": "2026-11-05T23:51:00.690976Z",
+            "modified": "2026-11-05T23:51:00.690978Z",
+            "name": "Privilege abuse by actor End User to gain unauthorized access or perform unauthorized actions",
+            "description": "Privilege abuse by actor End User to gain unauthorized access or perform unauthorized actions",
+            "technique_id": "T1548",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--7a4685dd-974e-49d1-bd24-d22e0b66d4f9"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--7a4685dd-974e-49d1-bd24-d22e0b66d4f9",
+            "created": "2026-11-05T23:51:00.690983Z",
+            "modified": "2026-11-05T23:51:00.690985Z",
+            "name": "End User",
+            "description": "Asset targeted by threat: Privilege abuse by actor End User to gain unauthorized access or perform unauthorized actions",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--48ef0f6f-73da-4e53-a569-1d8a9c492d3a",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.690990Z",
+            "modified": "2026-11-05T23:51:00.690992Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--8504d0af-104c-4403-969a-a2c02fd09f33",
+            "target_ref": "attack-asset--7a4685dd-974e-49d1-bd24-d22e0b66d4f9"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--178d4ef5-cdba-4640-9660-83164cb755c3",
+            "created": "2026-11-05T23:51:00.690998Z",
+            "modified": "2026-11-05T23:51:00.691000Z",
+            "name": "Privilege abuse by actor DevOps Engineer to gain unauthorized access or perform unauthorized actions",
+            "description": "Privilege abuse by actor DevOps Engineer to gain unauthorized access or perform unauthorized actions",
+            "technique_id": "T1548",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--2e044159-8457-4794-b02d-9f682d639762"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--2e044159-8457-4794-b02d-9f682d639762",
+            "created": "2026-11-05T23:51:00.691006Z",
+            "modified": "2026-11-05T23:51:00.691007Z",
+            "name": "DevOps Engineer",
+            "description": "Asset targeted by threat: Privilege abuse by actor DevOps Engineer to gain unauthorized access or perform unauthorized actions",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--c6a82b20-42e7-4681-bc9c-30472120e587",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.691012Z",
+            "modified": "2026-11-05T23:51:00.691014Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--178d4ef5-cdba-4640-9660-83164cb755c3",
+            "target_ref": "attack-asset--2e044159-8457-4794-b02d-9f682d639762"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--4f745370-246b-46d4-87a7-5ea5d995a546",
+            "created": "2026-11-05T23:51:00.691020Z",
+            "modified": "2026-11-05T23:51:00.691022Z",
+            "name": "Lack of monitoring or logging on CDN Load Balancer, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on CDN Load Balancer, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--4d2b7453-7cd5-43de-8622-04088c5439ba"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--4d2b7453-7cd5-43de-8622-04088c5439ba",
+            "created": "2026-11-05T23:51:00.691027Z",
+            "modified": "2026-11-05T23:51:00.691029Z",
+            "name": "CDN Load Balancer",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on CDN Load Balancer, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--927e06dd-efdf-4ed0-a1ae-59a2962799d8",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.691035Z",
+            "modified": "2026-11-05T23:51:00.691036Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--4f745370-246b-46d4-87a7-5ea5d995a546",
+            "target_ref": "attack-asset--4d2b7453-7cd5-43de-8622-04088c5439ba"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--5f6064c4-ef99-4356-847e-12175f5960c1",
+            "created": "2026-11-05T23:51:00.691043Z",
+            "modified": "2026-11-05T23:51:00.691045Z",
+            "name": "Lack of monitoring or logging on API Gateway, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on API Gateway, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--b959cbaf-5f5a-4119-bfe5-198d0442ec55"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--b959cbaf-5f5a-4119-bfe5-198d0442ec55",
+            "created": "2026-11-05T23:51:00.691050Z",
+            "modified": "2026-11-05T23:51:00.691052Z",
+            "name": "API Gateway",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on API Gateway, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--0cc0df22-5648-42d5-8848-eeba268e8469",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.691057Z",
+            "modified": "2026-11-05T23:51:00.691059Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--5f6064c4-ef99-4356-847e-12175f5960c1",
+            "target_ref": "attack-asset--b959cbaf-5f5a-4119-bfe5-198d0442ec55"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--b1fc203a-0034-4792-a096-8d69c4d05b98",
+            "created": "2026-11-05T23:51:00.691065Z",
+            "modified": "2026-11-05T23:51:00.691067Z",
+            "name": "Insecure security configuration or hardening on CDN Load Balancer leading to information exposure",
+            "description": "Insecure security configuration or hardening on CDN Load Balancer leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--4b8919df-b038-4aa7-9862-1b1a2277c608"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--4b8919df-b038-4aa7-9862-1b1a2277c608",
+            "created": "2026-11-05T23:51:00.691072Z",
+            "modified": "2026-11-05T23:51:00.691074Z",
+            "name": "CDN Load Balancer",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on CDN Load Balancer leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--efb731c5-3dfa-46c5-8cb3-e3bb449af1bc",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.691081Z",
+            "modified": "2026-11-05T23:51:00.691083Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--b1fc203a-0034-4792-a096-8d69c4d05b98",
+            "target_ref": "attack-asset--4b8919df-b038-4aa7-9862-1b1a2277c608"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--573ef766-d2da-4b20-9836-a730d5edb7d8",
+            "created": "2026-11-05T23:51:00.691089Z",
+            "modified": "2026-11-05T23:51:00.691091Z",
+            "name": "Weak SSL/TLS configuration or ciphers used by CDN Load Balancer leading to information disclosure",
+            "description": "Weak SSL/TLS configuration or ciphers used by CDN Load Balancer leading to information disclosure",
+            "technique_id": "T1557",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--3603b5e7-ad84-43b7-93f7-7d024b7c5bb4"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--3603b5e7-ad84-43b7-93f7-7d024b7c5bb4",
+            "created": "2026-11-05T23:51:00.691097Z",
+            "modified": "2026-11-05T23:51:00.691099Z",
+            "name": "CDN Load Balancer",
+            "description": "Asset targeted by threat: Weak SSL/TLS configuration or ciphers used by CDN Load Balancer leading to information disclosure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--872d96d1-02d4-40f9-895e-705cc6b3f76b",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.691105Z",
+            "modified": "2026-11-05T23:51:00.691107Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--573ef766-d2da-4b20-9836-a730d5edb7d8",
+            "target_ref": "attack-asset--3603b5e7-ad84-43b7-93f7-7d024b7c5bb4"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--fb652213-e509-414e-af23-0d505733b177",
+            "created": "2026-11-05T23:51:00.691112Z",
+            "modified": "2026-11-05T23:51:00.691114Z",
+            "name": "Insecure security configuration or hardening on API Gateway leading to information exposure",
+            "description": "Insecure security configuration or hardening on API Gateway leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--da8222e3-3955-440b-9ce8-fd9b3cfa5b7f"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--da8222e3-3955-440b-9ce8-fd9b3cfa5b7f",
+            "created": "2026-11-05T23:51:00.691119Z",
+            "modified": "2026-11-05T23:51:00.691121Z",
+            "name": "API Gateway",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on API Gateway leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--1236d4f0-e8fd-4ad3-9384-c19a3476453b",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.691127Z",
+            "modified": "2026-11-05T23:51:00.691128Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--fb652213-e509-414e-af23-0d505733b177",
+            "target_ref": "attack-asset--da8222e3-3955-440b-9ce8-fd9b3cfa5b7f"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--d76d7483-a235-494a-8f75-5e777cbd2f4c",
+            "created": "2026-11-05T23:51:00.691134Z",
+            "modified": "2026-11-05T23:51:00.691136Z",
+            "name": "Repudiation of critical actions performed by End User due to insufficient logging or non-repudiation controls",
+            "description": "Repudiation of critical actions performed by End User due to insufficient logging or non-repudiation controls",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--3695a1ea-d0fa-4bce-a42b-6963507bd166"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--3695a1ea-d0fa-4bce-a42b-6963507bd166",
+            "created": "2026-11-05T23:51:00.691141Z",
+            "modified": "2026-11-05T23:51:00.691143Z",
+            "name": "End User",
+            "description": "Asset targeted by threat: Repudiation of critical actions performed by End User due to insufficient logging or non-repudiation controls",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--4b946521-03f7-4f6e-aeac-fb61240a50ab",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.691148Z",
+            "modified": "2026-11-05T23:51:00.691150Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--d76d7483-a235-494a-8f75-5e777cbd2f4c",
+            "target_ref": "attack-asset--3695a1ea-d0fa-4bce-a42b-6963507bd166"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--2dc88cf0-b984-4f64-bdf5-d52908bc7ae8",
+            "created": "2026-11-05T23:51:00.691155Z",
+            "modified": "2026-11-05T23:51:00.691157Z",
+            "name": "Repudiation of critical actions performed by DevOps Engineer due to insufficient logging or non-repudiation controls",
+            "description": "Repudiation of critical actions performed by DevOps Engineer due to insufficient logging or non-repudiation controls",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--0e50e575-067b-4872-8374-209711e08cf3"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--0e50e575-067b-4872-8374-209711e08cf3",
+            "created": "2026-11-05T23:51:00.691213Z",
+            "modified": "2026-11-05T23:51:00.691216Z",
+            "name": "DevOps Engineer",
+            "description": "Asset targeted by threat: Repudiation of critical actions performed by DevOps Engineer due to insufficient logging or non-repudiation controls",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--424f597c-634b-4a31-9e33-ad7503213e18",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:00.691222Z",
+            "modified": "2026-11-05T23:51:00.691224Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--2dc88cf0-b984-4f64-bdf5-d52908bc7ae8",
+            "target_ref": "attack-asset--0e50e575-067b-4872-8374-209711e08cf3"
+        },
+        {
+            "type": "attack-flow",
+            "spec_version": "2.1",
+            "id": "attack-flow--fe620754-56dc-43e4-968f-bcba55c6d876",
+            "created_by_ref": "identity--cf2a4844-488c-40a1-b507-4c81c7a992c9",
+            "created": "2026-11-05T23:51:00.691232Z",
+            "modified": "2026-11-05T23:51:00.691234Z",
+            "name": "Attack Flow for Advanced Cloud Web Application",
+            "description": "This Attack Flow was generated from the threat model 'Advanced Cloud Web Application'.",
+            "scope": "attack-tree",
+            "start_refs": [
+                "attack-action--51fdc835-fc81-4176-ae56-99a227fdcc7e",
+                "attack-action--261b9854-6e8e-45e8-bee1-d948d4273bff",
+                "attack-action--e29d9365-5732-42ed-96bb-e4cc1ddcf8cb",
+                "attack-action--0107348f-ea16-4088-a5ea-babc8eb81b9c",
+                "attack-action--6992e23c-6a0f-4f6f-a4b1-3c8db8291ab0",
+                "attack-action--ef4213f6-abcb-4507-ae4e-ff17abaabe18",
+                "attack-action--575c4005-f3dc-41ab-aad2-22efa10ea958",
+                "attack-action--400ab988-6b9f-49b7-a9ca-902619753e37",
+                "attack-action--67468cc3-06d8-4bd4-ac6a-14788be300ee",
+                "attack-action--991cc7d7-3efd-4ac7-956d-e7d125ca3453",
+                "attack-action--0fe31ed3-a3a5-4580-a76e-0af9126ec58b",
+                "attack-action--0dd53f6d-0a0b-48e5-a69b-8388f5c02839",
+                "attack-action--a707c8cc-9a96-4f16-880e-6bfd3b433ae8",
+                "attack-action--4c76a079-5c11-4b0c-8601-5c90aec9b299",
+                "attack-action--54d2ffc9-9cb4-4608-ae32-2f905be1e55e",
+                "attack-action--6d519b6e-f713-4cd1-b1ed-7016450feea5",
+                "attack-action--5c5b6707-81b4-42b3-b8ef-255d8024cf93",
+                "attack-action--e30abce5-af71-48d2-bfd6-bc816607a6b2",
+                "attack-action--14642a37-cbdf-4987-a219-a9a24d0a753b",
+                "attack-action--dab9aa9a-7324-44d1-8eb9-7c1b71cb578c",
+                "attack-action--ef93dce0-c869-4dd5-aebf-c525593588fa",
+                "attack-action--b2c3d0bb-aa13-43d0-b439-9f39fa81a260",
+                "attack-action--be59b105-b92d-4f73-830c-3667e72f7333",
+                "attack-action--adb7c9a6-9950-462b-b205-ead978fa8606",
+                "attack-action--0b6dcfe0-3c0d-499e-85fe-f31862e4b14d",
+                "attack-action--870caa74-4da4-438d-8318-264380412b73",
+                "attack-action--bccfebab-dc6c-4506-9756-b53c98b90fc3",
+                "attack-action--90e0ff73-50af-4dee-8ad6-1cb478e67a7f",
+                "attack-action--f90629ea-5082-4315-95c5-d5b2d36a2d6f",
+                "attack-action--0ae7c4a3-60ad-4f25-a230-8ad11bf82338",
+                "attack-action--0ca8121e-3909-4037-be1f-f57b117ab187",
+                "attack-action--1aa264d9-1b9b-4c83-967e-d8bf76f6709e",
+                "attack-action--c4978c0b-1c29-462c-808d-68f0829b672e",
+                "attack-action--f8e793ea-0063-43c8-a093-21ceab4d219b",
+                "attack-action--5bac9279-730d-4012-b038-c58ddeea9e0b",
+                "attack-action--d21a7726-3c62-4ebd-9d71-26deee698b8f",
+                "attack-action--0aaaa6d1-e82e-439c-9c35-e9b6d13c8ccf",
+                "attack-action--a3bae2be-eadd-4ac6-aa37-c4a23d8ed549",
+                "attack-action--f108d9c2-3b5a-42a8-a0b0-99a1960a5a34",
+                "attack-action--2d0bc08a-4ec6-4b99-a639-0ebcf0fb8f8e",
+                "attack-action--2ead3896-45f3-49dc-8363-ee811c9f7d6d",
+                "attack-action--11478021-6749-45ee-b8dd-9bdd3fa2a935",
+                "attack-action--4f6e78c0-9b06-4c19-8eef-ffa4140d9024",
+                "attack-action--1867cd81-8c59-483d-9c9a-499425694c9d",
+                "attack-action--ef8a9801-6399-4a61-9082-5c598409e724",
+                "attack-action--4b9fdcf2-85f9-46a2-b465-ed294f8e4839",
+                "attack-action--8504d0af-104c-4403-969a-a2c02fd09f33",
+                "attack-action--178d4ef5-cdba-4640-9660-83164cb755c3",
+                "attack-action--4f745370-246b-46d4-87a7-5ea5d995a546",
+                "attack-action--5f6064c4-ef99-4356-847e-12175f5960c1",
+                "attack-action--b1fc203a-0034-4792-a096-8d69c4d05b98",
+                "attack-action--573ef766-d2da-4b20-9836-a730d5edb7d8",
+                "attack-action--fb652213-e509-414e-af23-0d505733b177",
+                "attack-action--d76d7483-a235-494a-8f75-5e777cbd2f4c",
+                "attack-action--2dc88cf0-b984-4f64-bdf5-d52908bc7ae8"
+            ],
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        }
+    ]
+}

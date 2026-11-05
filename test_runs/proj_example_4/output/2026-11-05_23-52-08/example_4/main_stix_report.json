@@ -1,0 +1,2543 @@
+{
+    "type": "bundle",
+    "id": "bundle--399defbb-c5a7-4f31-a11d-f4d0aad2d5cf",
+    "spec_version": "2.1",
+    "objects": [
+        {
+            "type": "extension-definition",
+            "id": "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4",
+            "spec_version": "2.1",
+            "created": "2022-08-02T19:34:35.143Z",
+            "modified": "2022-08-02T19:34:35.143Z",
+            "name": "Attack Flow",
+            "description": "Extends STIX 2.1 with features to create Attack Flows.",
+            "created_by_ref": "identity--f672ee01-dbf5-4af9-908d-1e15e13e1b35",
+            "schema": "https://center-for-threat-informed-defense.github.io/attack-flow/stix/attack-flow-schema-2.0.0.json",
+            "version": "2.0.0",
+            "extension_types": [
+                "new-sdo"
+            ]
+        },
+        {
+            "type": "identity",
+            "id": "identity--f672ee01-dbf5-4af9-908d-1e15e13e1b35",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060135Z",
+            "modified": "2026-11-05T23:52:11.060150Z",
+            "name": "Threat Model Analysis Tool",
+            "identity_class": "tool"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--d14964f3-6e8f-43e5-8438-6da8d442c314",
+            "created": "2026-11-05T23:52:11.060160Z",
+            "modified": "2026-11-05T23:52:11.060163Z",
+            "name": "Unpatched OS or software vulnerabilities on WAF leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on WAF leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--5597a8df-9d24-4ecd-8f8a-434a40169298"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--5597a8df-9d24-4ecd-8f8a-434a40169298",
+            "created": "2026-11-05T23:52:11.060172Z",
+            "modified": "2026-11-05T23:52:11.060174Z",
+            "name": "WAF",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on WAF leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--6af0db42-673a-4a43-b205-f19d3bca4582",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060181Z",
+            "modified": "2026-11-05T23:52:11.060184Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--d14964f3-6e8f-43e5-8438-6da8d442c314",
+            "target_ref": "attack-asset--5597a8df-9d24-4ecd-8f8a-434a40169298"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--caa41655-bdd2-49ec-a73e-4b6768feb0a9",
+            "created": "2026-11-05T23:52:11.060192Z",
+            "modified": "2026-11-05T23:52:11.060195Z",
+            "name": "Unpatched OS or software vulnerabilities on APIGateway leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on APIGateway leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--f4bc85c4-4d76-40c5-bf7a-89783e9ebd03"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--f4bc85c4-4d76-40c5-bf7a-89783e9ebd03",
+            "created": "2026-11-05T23:52:11.060202Z",
+            "modified": "2026-11-05T23:52:11.060204Z",
+            "name": "APIGateway",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on APIGateway leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--65d0e786-ddf4-4d5d-b9bd-b1adc2fdb6da",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060212Z",
+            "modified": "2026-11-05T23:52:11.060261Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--caa41655-bdd2-49ec-a73e-4b6768feb0a9",
+            "target_ref": "attack-asset--f4bc85c4-4d76-40c5-bf7a-89783e9ebd03"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--344b7e85-f1c5-4e24-828f-40e9ed03e15b",
+            "created": "2026-11-05T23:52:11.060278Z",
+            "modified": "2026-11-05T23:52:11.060281Z",
+            "name": "Untrusted actor MerchantAPI may attempt to inject malicious data or exploit vulnerabilities in connected systems.",
+            "description": "Untrusted actor MerchantAPI may attempt to inject malicious data or exploit vulnerabilities in connected systems.",
+            "technique_id": "T1221",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--af54e8a5-1642-43b6-9413-c88e2d0152e9"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--af54e8a5-1642-43b6-9413-c88e2d0152e9",
+            "created": "2026-11-05T23:52:11.060289Z",
+            "modified": "2026-11-05T23:52:11.060292Z",
+            "name": "MerchantAPI",
+            "description": "Asset targeted by threat: Untrusted actor MerchantAPI may attempt to inject malicious data or exploit vulnerabilities in connected systems.",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--e229494b-a1c5-404d-a0d5-e6c83d4e9281",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060300Z",
+            "modified": "2026-11-05T23:52:11.060302Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--344b7e85-f1c5-4e24-828f-40e9ed03e15b",
+            "target_ref": "attack-asset--af54e8a5-1642-43b6-9413-c88e2d0152e9"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--94a51771-8165-481e-b290-4918f2ef502e",
+            "created": "2026-11-05T23:52:11.060310Z",
+            "modified": "2026-11-05T23:52:11.060313Z",
+            "name": "Untrusted actor CardHolder may attempt to inject malicious data or exploit vulnerabilities in connected systems.",
+            "description": "Untrusted actor CardHolder may attempt to inject malicious data or exploit vulnerabilities in connected systems.",
+            "technique_id": "T1221",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--81ed5b8f-8aec-44e8-8178-355b26c2c5f6"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--81ed5b8f-8aec-44e8-8178-355b26c2c5f6",
+            "created": "2026-11-05T23:52:11.060318Z",
+            "modified": "2026-11-05T23:52:11.060321Z",
+            "name": "CardHolder",
+            "description": "Asset targeted by threat: Untrusted actor CardHolder may attempt to inject malicious data or exploit vulnerabilities in connected systems.",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--2b9a48a1-3ea0-4aef-b31f-e8752311056d",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060328Z",
+            "modified": "2026-11-05T23:52:11.060330Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--94a51771-8165-481e-b290-4918f2ef502e",
+            "target_ref": "attack-asset--81ed5b8f-8aec-44e8-8178-355b26c2c5f6"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--3a5f5ede-fbd4-4bdc-a0ed-aeb8918549b4",
+            "created": "2026-11-05T23:52:11.060337Z",
+            "modified": "2026-11-05T23:52:11.060339Z",
+            "name": "Untrusted actor ExternalAttacker may attempt to inject malicious data or exploit vulnerabilities in connected systems.",
+            "description": "Untrusted actor ExternalAttacker may attempt to inject malicious data or exploit vulnerabilities in connected systems.",
+            "technique_id": "T1221",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--5dcefcf6-2e0b-4bde-abc6-ae9b5cd59451"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--5dcefcf6-2e0b-4bde-abc6-ae9b5cd59451",
+            "created": "2026-11-05T23:52:11.060345Z",
+            "modified": "2026-11-05T23:52:11.060347Z",
+            "name": "ExternalAttacker",
+            "description": "Asset targeted by threat: Untrusted actor ExternalAttacker may attempt to inject malicious data or exploit vulnerabilities in connected systems.",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--70444bad-7e30-4602-b2d3-63957a32a9e2",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060353Z",
+            "modified": "2026-11-05T23:52:11.060355Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--3a5f5ede-fbd4-4bdc-a0ed-aeb8918549b4",
+            "target_ref": "attack-asset--5dcefcf6-2e0b-4bde-abc6-ae9b5cd59451"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--12ff215c-1739-4966-a0c4-c013cdcc8dd8",
+            "created": "2026-11-05T23:52:11.060362Z",
+            "modified": "2026-11-05T23:52:11.060364Z",
+            "name": "Untrusted actor ComplianceAuditor may attempt to inject malicious data or exploit vulnerabilities in connected systems.",
+            "description": "Untrusted actor ComplianceAuditor may attempt to inject malicious data or exploit vulnerabilities in connected systems.",
+            "technique_id": "T1221",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--79818280-7882-4933-976c-778f6462189f"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--79818280-7882-4933-976c-778f6462189f",
+            "created": "2026-11-05T23:52:11.060370Z",
+            "modified": "2026-11-05T23:52:11.060372Z",
+            "name": "ComplianceAuditor",
+            "description": "Asset targeted by threat: Untrusted actor ComplianceAuditor may attempt to inject malicious data or exploit vulnerabilities in connected systems.",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--a63dbde3-0293-4ad2-a8db-ac92ebe45a5c",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060378Z",
+            "modified": "2026-11-05T23:52:11.060380Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--12ff215c-1739-4966-a0c4-c013cdcc8dd8",
+            "target_ref": "attack-asset--79818280-7882-4933-976c-778f6462189f"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--4e7e6d8d-3cae-4f8d-9809-c1ff14af624a",
+            "created": "2026-11-05T23:52:11.060387Z",
+            "modified": "2026-11-05T23:52:11.060389Z",
+            "name": "Credentials in dataflow from APIGateway to PaymentAPI are sent over an unencrypted channel.",
+            "description": "Credentials in dataflow from APIGateway to PaymentAPI are sent over an unencrypted channel.",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--a4925dd8-491d-43d3-9e91-9f1485198526"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--a4925dd8-491d-43d3-9e91-9f1485198526",
+            "created": "2026-11-05T23:52:11.060395Z",
+            "modified": "2026-11-05T23:52:11.060398Z",
+            "name": "GatewayToPayment",
+            "description": "Asset targeted by threat: Credentials in dataflow from APIGateway to PaymentAPI are sent over an unencrypted channel.",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--27366175-153d-4c6f-b171-be497f6e0ed7",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060404Z",
+            "modified": "2026-11-05T23:52:11.060406Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--4e7e6d8d-3cae-4f8d-9809-c1ff14af624a",
+            "target_ref": "attack-asset--a4925dd8-491d-43d3-9e91-9f1485198526"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--63dd3be2-4921-4ce3-a1b1-21cdca32af5d",
+            "created": "2026-11-05T23:52:11.060415Z",
+            "modified": "2026-11-05T23:52:11.060418Z",
+            "name": "Unauthorized privilege escalation on WAF due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on WAF due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--4642922d-3639-4c2d-879b-36f17a976cca"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--4642922d-3639-4c2d-879b-36f17a976cca",
+            "created": "2026-11-05T23:52:11.060425Z",
+            "modified": "2026-11-05T23:52:11.060427Z",
+            "name": "WAF",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on WAF due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--6d64c58c-74be-4ef2-bdf3-0466c708eb8f",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060434Z",
+            "modified": "2026-11-05T23:52:11.060437Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--63dd3be2-4921-4ce3-a1b1-21cdca32af5d",
+            "target_ref": "attack-asset--4642922d-3639-4c2d-879b-36f17a976cca"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--373d6149-cc37-4a65-9b30-5bf04e0fb58d",
+            "created": "2026-11-05T23:52:11.060444Z",
+            "modified": "2026-11-05T23:52:11.060447Z",
+            "name": "Vulnerability in the management interface of WAF leading to critical privilege escalation",
+            "description": "Vulnerability in the management interface of WAF leading to critical privilege escalation",
+            "technique_id": "T1556",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--ff19d179-25f7-4631-b68f-e6300fd12356"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--ff19d179-25f7-4631-b68f-e6300fd12356",
+            "created": "2026-11-05T23:52:11.060453Z",
+            "modified": "2026-11-05T23:52:11.060455Z",
+            "name": "WAF",
+            "description": "Asset targeted by threat: Vulnerability in the management interface of WAF leading to critical privilege escalation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--e78234fa-7fc1-449d-a401-fc9b8a528cf0",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060461Z",
+            "modified": "2026-11-05T23:52:11.060463Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--373d6149-cc37-4a65-9b30-5bf04e0fb58d",
+            "target_ref": "attack-asset--ff19d179-25f7-4631-b68f-e6300fd12356"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--fdde395f-34ce-4872-a219-0c514f7d9a72",
+            "created": "2026-11-05T23:52:11.060469Z",
+            "modified": "2026-11-05T23:52:11.060471Z",
+            "name": "Unauthorized privilege escalation on APIGateway due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on APIGateway due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--3ebfa110-7b27-4316-af35-cec1ad8f3761"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--3ebfa110-7b27-4316-af35-cec1ad8f3761",
+            "created": "2026-11-05T23:52:11.060477Z",
+            "modified": "2026-11-05T23:52:11.060479Z",
+            "name": "APIGateway",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on APIGateway due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--32d6a2ba-3a24-4ff7-9996-82e66fd94026",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060484Z",
+            "modified": "2026-11-05T23:52:11.060486Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--fdde395f-34ce-4872-a219-0c514f7d9a72",
+            "target_ref": "attack-asset--3ebfa110-7b27-4316-af35-cec1ad8f3761"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--5f77f84f-7401-484d-ad5d-3b5e008e030a",
+            "created": "2026-11-05T23:52:11.060493Z",
+            "modified": "2026-11-05T23:52:11.060495Z",
+            "name": "Firewall rule misconfiguration allowing unintended traffic to bypass WAF and reach internal networks",
+            "description": "Firewall rule misconfiguration allowing unintended traffic to bypass WAF and reach internal networks",
+            "technique_id": "T1547",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--e30d21e4-3d63-4dbd-a9dc-534bef27efff"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--e30d21e4-3d63-4dbd-a9dc-534bef27efff",
+            "created": "2026-11-05T23:52:11.060501Z",
+            "modified": "2026-11-05T23:52:11.060503Z",
+            "name": "WAF",
+            "description": "Asset targeted by threat: Firewall rule misconfiguration allowing unintended traffic to bypass WAF and reach internal networks",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--840f0183-c959-419e-a9f2-fc86ee277a7e",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060508Z",
+            "modified": "2026-11-05T23:52:11.060510Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--5f77f84f-7401-484d-ad5d-3b5e008e030a",
+            "target_ref": "attack-asset--e30d21e4-3d63-4dbd-a9dc-534bef27efff"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--fc964a14-9d66-43dd-b9ba-402233e02ee1",
+            "created": "2026-11-05T23:52:11.060517Z",
+            "modified": "2026-11-05T23:52:11.060519Z",
+            "name": "Spoofing of data from MerchantAPI to WAF due to lack of authentication",
+            "description": "Spoofing of data from MerchantAPI to WAF due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--2b201868-3cc0-405a-a1d8-146fb7458757"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--2b201868-3cc0-405a-a1d8-146fb7458757",
+            "created": "2026-11-05T23:52:11.060524Z",
+            "modified": "2026-11-05T23:52:11.060527Z",
+            "name": "MerchantToWAF",
+            "description": "Asset targeted by threat: Spoofing of data from MerchantAPI to WAF due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--9c5c39da-8b3d-4b02-b1ba-e8e8b5464a52",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060532Z",
+            "modified": "2026-11-05T23:52:11.060535Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--fc964a14-9d66-43dd-b9ba-402233e02ee1",
+            "target_ref": "attack-asset--2b201868-3cc0-405a-a1d8-146fb7458757"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--222009f8-4814-45a6-8ad7-53cba9c0bdb0",
+            "created": "2026-11-05T23:52:11.060541Z",
+            "modified": "2026-11-05T23:52:11.060543Z",
+            "name": "Spoofing of data from WAF to APIGateway due to lack of authentication",
+            "description": "Spoofing of data from WAF to APIGateway due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--f3af90ca-cec2-40f1-aca3-06b2336d457c"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--f3af90ca-cec2-40f1-aca3-06b2336d457c",
+            "created": "2026-11-05T23:52:11.060548Z",
+            "modified": "2026-11-05T23:52:11.060551Z",
+            "name": "WAFToGateway",
+            "description": "Asset targeted by threat: Spoofing of data from WAF to APIGateway due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--cf360dca-cd58-4fa9-8b81-9a94f7593917",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060556Z",
+            "modified": "2026-11-05T23:52:11.060559Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--222009f8-4814-45a6-8ad7-53cba9c0bdb0",
+            "target_ref": "attack-asset--f3af90ca-cec2-40f1-aca3-06b2336d457c"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--7c9ab2ca-ecca-4c6e-9fdc-d6dfab1a686c",
+            "created": "2026-11-05T23:52:11.060565Z",
+            "modified": "2026-11-05T23:52:11.060567Z",
+            "name": "Potential for spoofing attacks on data crossing trust boundaries from APIGateway to PaymentAPI without proper authentication",
+            "description": "Potential for spoofing attacks on data crossing trust boundaries from APIGateway to PaymentAPI without proper authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--a97b89d1-9edf-4c97-a321-b9583fdb141d"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--a97b89d1-9edf-4c97-a321-b9583fdb141d",
+            "created": "2026-11-05T23:52:11.060573Z",
+            "modified": "2026-11-05T23:52:11.060575Z",
+            "name": "GatewayToPayment",
+            "description": "Asset targeted by threat: Potential for spoofing attacks on data crossing trust boundaries from APIGateway to PaymentAPI without proper authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--c26f4b36-77df-4923-8d84-9e043efaf311",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060580Z",
+            "modified": "2026-11-05T23:52:11.060583Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--7c9ab2ca-ecca-4c6e-9fdc-d6dfab1a686c",
+            "target_ref": "attack-asset--a97b89d1-9edf-4c97-a321-b9583fdb141d"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--43f7d7e3-4b78-4844-9327-95883b3d84c7",
+            "created": "2026-11-05T23:52:11.060589Z",
+            "modified": "2026-11-05T23:52:11.060591Z",
+            "name": "Potential for spoofing attacks on data crossing trust boundaries from APIGateway to FraudEngine without proper authentication",
+            "description": "Potential for spoofing attacks on data crossing trust boundaries from APIGateway to FraudEngine without proper authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--e64903aa-cc74-4f7a-925d-78976129e73f"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--e64903aa-cc74-4f7a-925d-78976129e73f",
+            "created": "2026-11-05T23:52:11.060597Z",
+            "modified": "2026-11-05T23:52:11.060599Z",
+            "name": "GatewayToFraud",
+            "description": "Asset targeted by threat: Potential for spoofing attacks on data crossing trust boundaries from APIGateway to FraudEngine without proper authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--b24c85ff-d58f-422b-8667-8f7a122ee43e",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060605Z",
+            "modified": "2026-11-05T23:52:11.060607Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--43f7d7e3-4b78-4844-9327-95883b3d84c7",
+            "target_ref": "attack-asset--e64903aa-cc74-4f7a-925d-78976129e73f"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--4218aa62-e3c3-4754-a468-30ef7adddaaa",
+            "created": "2026-11-05T23:52:11.060614Z",
+            "modified": "2026-11-05T23:52:11.060616Z",
+            "name": "Actor CardHolder uses single-factor authentication (credentials only), increasing risk from phishing and credential stuffing.",
+            "description": "Actor CardHolder uses single-factor authentication (credentials only), increasing risk from phishing and credential stuffing.",
+            "technique_id": "T1534",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--3725d465-6aa3-43a7-afd4-cdc7b4aee6a4"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--3725d465-6aa3-43a7-afd4-cdc7b4aee6a4",
+            "created": "2026-11-05T23:52:11.060622Z",
+            "modified": "2026-11-05T23:52:11.060624Z",
+            "name": "CardHolder",
+            "description": "Asset targeted by threat: Actor CardHolder uses single-factor authentication (credentials only), increasing risk from phishing and credential stuffing.",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--cd76122e-6178-495b-97e0-5bc2a7b3e546",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060629Z",
+            "modified": "2026-11-05T23:52:11.060632Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--4218aa62-e3c3-4754-a468-30ef7adddaaa",
+            "target_ref": "attack-asset--3725d465-6aa3-43a7-afd4-cdc7b4aee6a4"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--1def0ad4-25ef-4760-89e4-f8589b757b60",
+            "created": "2026-11-05T23:52:11.060638Z",
+            "modified": "2026-11-05T23:52:11.060640Z",
+            "name": "Data interception on an unencrypted channel from MerchantAPI to WAF (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from MerchantAPI to WAF (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--0801b34c-7eca-47a9-9214-c35e34d281bb"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--0801b34c-7eca-47a9-9214-c35e34d281bb",
+            "created": "2026-11-05T23:52:11.060646Z",
+            "modified": "2026-11-05T23:52:11.060648Z",
+            "name": "MerchantToWAF",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from MerchantAPI to WAF (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--e754945e-a1de-4a3c-95b1-2e5a4e2d6d77",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060653Z",
+            "modified": "2026-11-05T23:52:11.060656Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--1def0ad4-25ef-4760-89e4-f8589b757b60",
+            "target_ref": "attack-asset--0801b34c-7eca-47a9-9214-c35e34d281bb"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--e56b0909-477b-48a4-906a-794b6778ed9c",
+            "created": "2026-11-05T23:52:11.060662Z",
+            "modified": "2026-11-05T23:52:11.060664Z",
+            "name": "Data interception on an unencrypted channel from WAF to APIGateway (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from WAF to APIGateway (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--5a0148fe-9c05-42be-8200-63c60ef070a4"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--5a0148fe-9c05-42be-8200-63c60ef070a4",
+            "created": "2026-11-05T23:52:11.060670Z",
+            "modified": "2026-11-05T23:52:11.060672Z",
+            "name": "WAFToGateway",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from WAF to APIGateway (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--8818d2d4-6cc0-45a4-ac61-4dd17cd7cf6e",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060677Z",
+            "modified": "2026-11-05T23:52:11.060679Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--e56b0909-477b-48a4-906a-794b6778ed9c",
+            "target_ref": "attack-asset--5a0148fe-9c05-42be-8200-63c60ef070a4"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--9d0ae5ba-1948-483b-9410-e5d2e286c85e",
+            "created": "2026-11-05T23:52:11.060685Z",
+            "modified": "2026-11-05T23:52:11.060688Z",
+            "name": "Unpatched OS or software vulnerabilities on PaymentAPI leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on PaymentAPI leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--e5de921e-f0c0-4718-8b58-bc5c81ffc75a"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--e5de921e-f0c0-4718-8b58-bc5c81ffc75a",
+            "created": "2026-11-05T23:52:11.060694Z",
+            "modified": "2026-11-05T23:52:11.060696Z",
+            "name": "PaymentAPI",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on PaymentAPI leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--3c879d40-956a-4fc2-b1ae-ee7d1fa2e27c",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060702Z",
+            "modified": "2026-11-05T23:52:11.060704Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--9d0ae5ba-1948-483b-9410-e5d2e286c85e",
+            "target_ref": "attack-asset--e5de921e-f0c0-4718-8b58-bc5c81ffc75a"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--a0b19139-cae2-4e7b-9262-3185d41221b0",
+            "created": "2026-11-05T23:52:11.060718Z",
+            "modified": "2026-11-05T23:52:11.060720Z",
+            "name": "Unpatched OS or software vulnerabilities on CardVault leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on CardVault leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--28dfd417-1aa2-4b39-8869-94c59e1f75ef"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--28dfd417-1aa2-4b39-8869-94c59e1f75ef",
+            "created": "2026-11-05T23:52:11.060725Z",
+            "modified": "2026-11-05T23:52:11.060727Z",
+            "name": "CardVault",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on CardVault leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--8714b474-3f92-4543-9337-0645715c2b4c",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060733Z",
+            "modified": "2026-11-05T23:52:11.060735Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--a0b19139-cae2-4e7b-9262-3185d41221b0",
+            "target_ref": "attack-asset--28dfd417-1aa2-4b39-8869-94c59e1f75ef"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--fde8cfb6-2353-44c0-aeda-33113792fb8d",
+            "created": "2026-11-05T23:52:11.060741Z",
+            "modified": "2026-11-05T23:52:11.060743Z",
+            "name": "Data corruption or tampering in CardVault via unauthorized write access",
+            "description": "Data corruption or tampering in CardVault via unauthorized write access",
+            "technique_id": "T1221",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--3ce090fb-3564-43f6-9e9a-5778a6b92cae"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--3ce090fb-3564-43f6-9e9a-5778a6b92cae",
+            "created": "2026-11-05T23:52:11.060749Z",
+            "modified": "2026-11-05T23:52:11.060750Z",
+            "name": "CardVault",
+            "description": "Asset targeted by threat: Data corruption or tampering in CardVault via unauthorized write access",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--8b1c0738-d397-41e1-95e2-392a8f010e44",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060756Z",
+            "modified": "2026-11-05T23:52:11.060758Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--fde8cfb6-2353-44c0-aeda-33113792fb8d",
+            "target_ref": "attack-asset--3ce090fb-3564-43f6-9e9a-5778a6b92cae"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--39d8112d-93ea-4d5a-80a6-3062f68f31ac",
+            "created": "2026-11-05T23:52:11.060764Z",
+            "modified": "2026-11-05T23:52:11.060766Z",
+            "name": "Unpatched OS or software vulnerabilities on FraudEngine leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on FraudEngine leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--106ee3fa-5fe7-483c-b135-5d15b8f53842"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--106ee3fa-5fe7-483c-b135-5d15b8f53842",
+            "created": "2026-11-05T23:52:11.060771Z",
+            "modified": "2026-11-05T23:52:11.060773Z",
+            "name": "FraudEngine",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on FraudEngine leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--cc98b80e-3128-48b5-bebf-fa8318f9a75e",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060778Z",
+            "modified": "2026-11-05T23:52:11.060781Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--39d8112d-93ea-4d5a-80a6-3062f68f31ac",
+            "target_ref": "attack-asset--106ee3fa-5fe7-483c-b135-5d15b8f53842"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--432947d7-e3c4-40d9-9722-7e4f56aea828",
+            "created": "2026-11-05T23:52:11.060786Z",
+            "modified": "2026-11-05T23:52:11.060789Z",
+            "name": "Unauthorized access to sensitive data stored in CardVault leading to data breach",
+            "description": "Unauthorized access to sensitive data stored in CardVault leading to data breach",
+            "technique_id": "T1078",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--9e16f66a-b90c-44ac-b4cf-5e0fb4dab236"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--9e16f66a-b90c-44ac-b4cf-5e0fb4dab236",
+            "created": "2026-11-05T23:52:11.060795Z",
+            "modified": "2026-11-05T23:52:11.060797Z",
+            "name": "CardVault",
+            "description": "Asset targeted by threat: Unauthorized access to sensitive data stored in CardVault leading to data breach",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--963a3af6-45fa-4179-8367-81282411ab97",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060802Z",
+            "modified": "2026-11-05T23:52:11.060804Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--432947d7-e3c4-40d9-9722-7e4f56aea828",
+            "target_ref": "attack-asset--9e16f66a-b90c-44ac-b4cf-5e0fb4dab236"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--a925204b-36a7-40c0-a2f0-148246a6e201",
+            "created": "2026-11-05T23:52:11.060810Z",
+            "modified": "2026-11-05T23:52:11.060812Z",
+            "name": "Unauthorized privilege escalation on PaymentAPI due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on PaymentAPI due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--f17b2baf-b05b-4c14-8f7c-9227a215d2f7"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--f17b2baf-b05b-4c14-8f7c-9227a215d2f7",
+            "created": "2026-11-05T23:52:11.060818Z",
+            "modified": "2026-11-05T23:52:11.060820Z",
+            "name": "PaymentAPI",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on PaymentAPI due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--1a30a9c1-27d9-4164-a7e5-cb7865e0f8c0",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060826Z",
+            "modified": "2026-11-05T23:52:11.060828Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--a925204b-36a7-40c0-a2f0-148246a6e201",
+            "target_ref": "attack-asset--f17b2baf-b05b-4c14-8f7c-9227a215d2f7"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--3edf61f5-aeeb-4654-b2a6-fd60a31d3b93",
+            "created": "2026-11-05T23:52:11.060833Z",
+            "modified": "2026-11-05T23:52:11.060835Z",
+            "name": "Unauthorized privilege escalation on CardVault due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on CardVault due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--b3d53c38-ba16-4693-8558-d84cc7011932"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--b3d53c38-ba16-4693-8558-d84cc7011932",
+            "created": "2026-11-05T23:52:11.060841Z",
+            "modified": "2026-11-05T23:52:11.060843Z",
+            "name": "CardVault",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on CardVault due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--6b28afaa-5119-4d7f-851a-bade9c6b002c",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060848Z",
+            "modified": "2026-11-05T23:52:11.060850Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--3edf61f5-aeeb-4654-b2a6-fd60a31d3b93",
+            "target_ref": "attack-asset--b3d53c38-ba16-4693-8558-d84cc7011932"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--1ca1fcc2-7c88-4a62-abb4-f7eac922e5f5",
+            "created": "2026-11-05T23:52:11.060857Z",
+            "modified": "2026-11-05T23:52:11.060859Z",
+            "name": "Unauthorized privilege escalation on FraudEngine due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on FraudEngine due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--8f61c00b-dc41-40ef-8acb-45685477a2f2"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--8f61c00b-dc41-40ef-8acb-45685477a2f2",
+            "created": "2026-11-05T23:52:11.060864Z",
+            "modified": "2026-11-05T23:52:11.060866Z",
+            "name": "FraudEngine",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on FraudEngine due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--793e8b65-6980-457a-8f89-c92b3d9ec038",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060871Z",
+            "modified": "2026-11-05T23:52:11.060873Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--1ca1fcc2-7c88-4a62-abb4-f7eac922e5f5",
+            "target_ref": "attack-asset--8f61c00b-dc41-40ef-8acb-45685477a2f2"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--e77e9b26-4f72-4a34-ad09-91069ca0276b",
+            "created": "2026-11-05T23:52:11.060879Z",
+            "modified": "2026-11-05T23:52:11.060881Z",
+            "name": "Lack of monitoring or logging on CardVault, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on CardVault, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--bc4ca2a1-e350-4ef1-801d-8e1c9d2657f4"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--bc4ca2a1-e350-4ef1-801d-8e1c9d2657f4",
+            "created": "2026-11-05T23:52:11.060886Z",
+            "modified": "2026-11-05T23:52:11.060888Z",
+            "name": "CardVault",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on CardVault, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--2a362078-6755-46b7-a2bf-f573ee77ca5b",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060893Z",
+            "modified": "2026-11-05T23:52:11.060895Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--e77e9b26-4f72-4a34-ad09-91069ca0276b",
+            "target_ref": "attack-asset--bc4ca2a1-e350-4ef1-801d-8e1c9d2657f4"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--9312ca5d-267c-44e9-aa31-f3367ef5d22b",
+            "created": "2026-11-05T23:52:11.060901Z",
+            "modified": "2026-11-05T23:52:11.060903Z",
+            "name": "Denial of Service against CardVault through resource-intensive queries or excessive connections",
+            "description": "Denial of Service against CardVault through resource-intensive queries or excessive connections",
+            "technique_id": "T1499",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--4be7ece7-928a-4077-9004-4be848ffcfc8"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--4be7ece7-928a-4077-9004-4be848ffcfc8",
+            "created": "2026-11-05T23:52:11.060908Z",
+            "modified": "2026-11-05T23:52:11.060910Z",
+            "name": "CardVault",
+            "description": "Asset targeted by threat: Denial of Service against CardVault through resource-intensive queries or excessive connections",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--3e7f72fc-b74c-4dd8-9c62-db7a9e42744e",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060916Z",
+            "modified": "2026-11-05T23:52:11.060918Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--9312ca5d-267c-44e9-aa31-f3367ef5d22b",
+            "target_ref": "attack-asset--4be7ece7-928a-4077-9004-4be848ffcfc8"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--50f6d7a9-616b-41f4-a0b6-b6aae539abd8",
+            "created": "2026-11-05T23:52:11.060923Z",
+            "modified": "2026-11-05T23:52:11.060925Z",
+            "name": "Lack of monitoring or logging on APIGateway, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on APIGateway, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--5aefb28b-38d1-4661-80a3-5d94dbc8f93f"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--5aefb28b-38d1-4661-80a3-5d94dbc8f93f",
+            "created": "2026-11-05T23:52:11.060931Z",
+            "modified": "2026-11-05T23:52:11.060932Z",
+            "name": "APIGateway",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on APIGateway, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--765ae9ad-2a09-4db2-a6e1-6de74baa4512",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060938Z",
+            "modified": "2026-11-05T23:52:11.060940Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--50f6d7a9-616b-41f4-a0b6-b6aae539abd8",
+            "target_ref": "attack-asset--5aefb28b-38d1-4661-80a3-5d94dbc8f93f"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--ad8ac959-a63d-4094-a2bd-2cc25177b0c5",
+            "created": "2026-11-05T23:52:11.060945Z",
+            "modified": "2026-11-05T23:52:11.060947Z",
+            "name": "Lack of monitoring or logging on PaymentAPI, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on PaymentAPI, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--52c8b8f9-d0b2-4411-b26e-f817640a38a5"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--52c8b8f9-d0b2-4411-b26e-f817640a38a5",
+            "created": "2026-11-05T23:52:11.060953Z",
+            "modified": "2026-11-05T23:52:11.060955Z",
+            "name": "PaymentAPI",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on PaymentAPI, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--38bcc4f5-22cc-4ec6-ba8b-7d65c0ce553f",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060960Z",
+            "modified": "2026-11-05T23:52:11.060962Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--ad8ac959-a63d-4094-a2bd-2cc25177b0c5",
+            "target_ref": "attack-asset--52c8b8f9-d0b2-4411-b26e-f817640a38a5"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--c8d53fd1-3dc0-4d75-b4cf-fa8df0883d11",
+            "created": "2026-11-05T23:52:11.060967Z",
+            "modified": "2026-11-05T23:52:11.060969Z",
+            "name": "Lack of monitoring or logging on WAF, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on WAF, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--7e0313e2-01b4-4cc7-9fe6-98ad498bfd19"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--7e0313e2-01b4-4cc7-9fe6-98ad498bfd19",
+            "created": "2026-11-05T23:52:11.060974Z",
+            "modified": "2026-11-05T23:52:11.060976Z",
+            "name": "WAF",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on WAF, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--4e58aa67-53bc-4297-92a3-dd37b0715e4f",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.060981Z",
+            "modified": "2026-11-05T23:52:11.060983Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--c8d53fd1-3dc0-4d75-b4cf-fa8df0883d11",
+            "target_ref": "attack-asset--7e0313e2-01b4-4cc7-9fe6-98ad498bfd19"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--1752780e-c132-41a8-8e98-b06e1bb345af",
+            "created": "2026-11-05T23:52:11.060989Z",
+            "modified": "2026-11-05T23:52:11.060991Z",
+            "name": "Insecure security configuration or hardening on CardVault leading to information exposure",
+            "description": "Insecure security configuration or hardening on CardVault leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--a4d2e14c-5a37-45c3-acb5-39f5bb437b45"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--a4d2e14c-5a37-45c3-acb5-39f5bb437b45",
+            "created": "2026-11-05T23:52:11.060996Z",
+            "modified": "2026-11-05T23:52:11.060998Z",
+            "name": "CardVault",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on CardVault leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--764a7ab5-2d17-4900-8624-6eb842239268",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.061003Z",
+            "modified": "2026-11-05T23:52:11.061004Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--1752780e-c132-41a8-8e98-b06e1bb345af",
+            "target_ref": "attack-asset--a4d2e14c-5a37-45c3-acb5-39f5bb437b45"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--c2b515f5-9065-4f34-b351-8e377746792f",
+            "created": "2026-11-05T23:52:11.061010Z",
+            "modified": "2026-11-05T23:52:11.061012Z",
+            "name": "Spoofing of data from APIGateway to PaymentAPI due to lack of authentication",
+            "description": "Spoofing of data from APIGateway to PaymentAPI due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--60a59310-32fa-4966-a92d-3aaa6a9ff513"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--60a59310-32fa-4966-a92d-3aaa6a9ff513",
+            "created": "2026-11-05T23:52:11.061017Z",
+            "modified": "2026-11-05T23:52:11.061019Z",
+            "name": "GatewayToPayment",
+            "description": "Asset targeted by threat: Spoofing of data from APIGateway to PaymentAPI due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--b23a7207-344d-4805-8e54-ac9490c6c621",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.061024Z",
+            "modified": "2026-11-05T23:52:11.061026Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--c2b515f5-9065-4f34-b351-8e377746792f",
+            "target_ref": "attack-asset--60a59310-32fa-4966-a92d-3aaa6a9ff513"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--0c9b6d92-8c5b-4fd9-970c-9f7437c0d609",
+            "created": "2026-11-05T23:52:11.061031Z",
+            "modified": "2026-11-05T23:52:11.061033Z",
+            "name": "Spoofing of data from APIGateway to FraudEngine due to lack of authentication",
+            "description": "Spoofing of data from APIGateway to FraudEngine due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--3da05b63-1765-4ef4-9d91-db34c96496d1"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--3da05b63-1765-4ef4-9d91-db34c96496d1",
+            "created": "2026-11-05T23:52:11.061038Z",
+            "modified": "2026-11-05T23:52:11.061040Z",
+            "name": "GatewayToFraud",
+            "description": "Asset targeted by threat: Spoofing of data from APIGateway to FraudEngine due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--ad9cbd49-fa72-4f4a-8041-e15c3fe959a8",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.061046Z",
+            "modified": "2026-11-05T23:52:11.061048Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--0c9b6d92-8c5b-4fd9-970c-9f7437c0d609",
+            "target_ref": "attack-asset--3da05b63-1765-4ef4-9d91-db34c96496d1"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--83e1d104-5ec6-4199-8dbb-f892cfe274af",
+            "created": "2026-11-05T23:52:11.061053Z",
+            "modified": "2026-11-05T23:52:11.061055Z",
+            "name": "Spoofing of data from PaymentAPI to CardVault due to lack of authentication",
+            "description": "Spoofing of data from PaymentAPI to CardVault due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--90333fb5-249d-478f-8580-eea2d70d8da5"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--90333fb5-249d-478f-8580-eea2d70d8da5",
+            "created": "2026-11-05T23:52:11.061060Z",
+            "modified": "2026-11-05T23:52:11.061062Z",
+            "name": "PaymentToVault",
+            "description": "Asset targeted by threat: Spoofing of data from PaymentAPI to CardVault due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--690bea99-2a85-4b75-9fab-9f5a3ce9c557",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.061067Z",
+            "modified": "2026-11-05T23:52:11.061069Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--83e1d104-5ec6-4199-8dbb-f892cfe274af",
+            "target_ref": "attack-asset--90333fb5-249d-478f-8580-eea2d70d8da5"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--6d5a660a-2a81-4181-8011-3fba52011104",
+            "created": "2026-11-05T23:52:11.061075Z",
+            "modified": "2026-11-05T23:52:11.061077Z",
+            "name": "Identity spoofing of the actor MerchantAPI via phishing or credential theft",
+            "description": "Identity spoofing of the actor MerchantAPI via phishing or credential theft",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--24f65d97-3a71-4684-95a7-7e87ed55c2d0"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--24f65d97-3a71-4684-95a7-7e87ed55c2d0",
+            "created": "2026-11-05T23:52:11.061082Z",
+            "modified": "2026-11-05T23:52:11.061084Z",
+            "name": "MerchantAPI",
+            "description": "Asset targeted by threat: Identity spoofing of the actor MerchantAPI via phishing or credential theft",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--fc86fcc1-28c2-4f3d-936a-b41eff62409d",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.061089Z",
+            "modified": "2026-11-05T23:52:11.061091Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--6d5a660a-2a81-4181-8011-3fba52011104",
+            "target_ref": "attack-asset--24f65d97-3a71-4684-95a7-7e87ed55c2d0"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--0a53dd7a-1e1a-4f5d-80c2-e69826c22b41",
+            "created": "2026-11-05T23:52:11.061098Z",
+            "modified": "2026-11-05T23:52:11.061100Z",
+            "name": "Identity spoofing of the actor CardHolder via phishing or credential theft",
+            "description": "Identity spoofing of the actor CardHolder via phishing or credential theft",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--907b33d3-8e81-45ba-8e3c-2bbfa0669d3b"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--907b33d3-8e81-45ba-8e3c-2bbfa0669d3b",
+            "created": "2026-11-05T23:52:11.061105Z",
+            "modified": "2026-11-05T23:52:11.061107Z",
+            "name": "CardHolder",
+            "description": "Asset targeted by threat: Identity spoofing of the actor CardHolder via phishing or credential theft",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--677833f1-67cd-402d-9631-479a1b3f97fe",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.061112Z",
+            "modified": "2026-11-05T23:52:11.061114Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--0a53dd7a-1e1a-4f5d-80c2-e69826c22b41",
+            "target_ref": "attack-asset--907b33d3-8e81-45ba-8e3c-2bbfa0669d3b"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--22d10252-daae-4cc9-a0c9-399d98fcdea7",
+            "created": "2026-11-05T23:52:11.061120Z",
+            "modified": "2026-11-05T23:52:11.061122Z",
+            "name": "Identity spoofing of the actor ExternalAttacker via phishing or credential theft",
+            "description": "Identity spoofing of the actor ExternalAttacker via phishing or credential theft",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--b4043ee5-89a9-4f26-b2fe-815594e945d7"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--b4043ee5-89a9-4f26-b2fe-815594e945d7",
+            "created": "2026-11-05T23:52:11.061127Z",
+            "modified": "2026-11-05T23:52:11.061130Z",
+            "name": "ExternalAttacker",
+            "description": "Asset targeted by threat: Identity spoofing of the actor ExternalAttacker via phishing or credential theft",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--11f9b8f1-9904-42e3-850a-bdf82729b360",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.061135Z",
+            "modified": "2026-11-05T23:52:11.061137Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--22d10252-daae-4cc9-a0c9-399d98fcdea7",
+            "target_ref": "attack-asset--b4043ee5-89a9-4f26-b2fe-815594e945d7"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--f8547a84-b595-40ab-9164-174c5eb7be4d",
+            "created": "2026-11-05T23:52:11.061143Z",
+            "modified": "2026-11-05T23:52:11.061145Z",
+            "name": "Identity spoofing of the actor ComplianceAuditor via phishing or credential theft",
+            "description": "Identity spoofing of the actor ComplianceAuditor via phishing or credential theft",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--0dba9081-76af-43d9-8dec-776d8f56a180"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--0dba9081-76af-43d9-8dec-776d8f56a180",
+            "created": "2026-11-05T23:52:11.061150Z",
+            "modified": "2026-11-05T23:52:11.061152Z",
+            "name": "ComplianceAuditor",
+            "description": "Asset targeted by threat: Identity spoofing of the actor ComplianceAuditor via phishing or credential theft",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--9007cb8a-4cbf-4378-b81c-4e00956c6cb8",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.061157Z",
+            "modified": "2026-11-05T23:52:11.061159Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--f8547a84-b595-40ab-9164-174c5eb7be4d",
+            "target_ref": "attack-asset--0dba9081-76af-43d9-8dec-776d8f56a180"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--0dee9c56-1e72-4b76-b393-3607839a65e5",
+            "created": "2026-11-05T23:52:11.061165Z",
+            "modified": "2026-11-05T23:52:11.061167Z",
+            "name": "Insecure security configuration or hardening on APIGateway leading to information exposure",
+            "description": "Insecure security configuration or hardening on APIGateway leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--59492bfb-84d9-429f-8da7-d797d08f8a8b"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--59492bfb-84d9-429f-8da7-d797d08f8a8b",
+            "created": "2026-11-05T23:52:11.061172Z",
+            "modified": "2026-11-05T23:52:11.061174Z",
+            "name": "APIGateway",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on APIGateway leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--4afd8e0c-ddc3-4ccc-bcc6-d46a07a3abd1",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.061179Z",
+            "modified": "2026-11-05T23:52:11.061181Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--0dee9c56-1e72-4b76-b393-3607839a65e5",
+            "target_ref": "attack-asset--59492bfb-84d9-429f-8da7-d797d08f8a8b"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--31f9aa9e-68bd-412d-adbd-42ba1932fcd9",
+            "created": "2026-11-05T23:52:11.061187Z",
+            "modified": "2026-11-05T23:52:11.061189Z",
+            "name": "Lack of monitoring or logging on FraudEngine, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on FraudEngine, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--1327390f-1162-4afa-8ad6-d123ee76fd75"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--1327390f-1162-4afa-8ad6-d123ee76fd75",
+            "created": "2026-11-05T23:52:11.061194Z",
+            "modified": "2026-11-05T23:52:11.061196Z",
+            "name": "FraudEngine",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on FraudEngine, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--cd254434-47a1-4caa-9fc4-14506280d67f",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.061201Z",
+            "modified": "2026-11-05T23:52:11.061203Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--31f9aa9e-68bd-412d-adbd-42ba1932fcd9",
+            "target_ref": "attack-asset--1327390f-1162-4afa-8ad6-d123ee76fd75"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--3a48b965-5e30-4796-8315-0d281061937a",
+            "created": "2026-11-05T23:52:11.061208Z",
+            "modified": "2026-11-05T23:52:11.061211Z",
+            "name": "Insecure security configuration or hardening on PaymentAPI leading to information exposure",
+            "description": "Insecure security configuration or hardening on PaymentAPI leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--218b5abe-5399-41d2-b342-d08d74f1b60f"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--218b5abe-5399-41d2-b342-d08d74f1b60f",
+            "created": "2026-11-05T23:52:11.061244Z",
+            "modified": "2026-11-05T23:52:11.061249Z",
+            "name": "PaymentAPI",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on PaymentAPI leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--2b14ccd4-90bd-4576-8dc8-77e405320f06",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.061256Z",
+            "modified": "2026-11-05T23:52:11.061258Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--3a48b965-5e30-4796-8315-0d281061937a",
+            "target_ref": "attack-asset--218b5abe-5399-41d2-b342-d08d74f1b60f"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--00a9aab7-72d5-4cc0-8922-fdb43da6d7ea",
+            "created": "2026-11-05T23:52:11.061265Z",
+            "modified": "2026-11-05T23:52:11.061267Z",
+            "name": "Insecure security configuration or hardening on WAF leading to information exposure",
+            "description": "Insecure security configuration or hardening on WAF leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--3577ebb1-c9c2-40c4-9af1-4cba65e7b6a9"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--3577ebb1-c9c2-40c4-9af1-4cba65e7b6a9",
+            "created": "2026-11-05T23:52:11.061273Z",
+            "modified": "2026-11-05T23:52:11.061275Z",
+            "name": "WAF",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on WAF leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--658f4e3e-2910-4e24-9614-24c4e1e33bbc",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.061281Z",
+            "modified": "2026-11-05T23:52:11.061283Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--00a9aab7-72d5-4cc0-8922-fdb43da6d7ea",
+            "target_ref": "attack-asset--3577ebb1-c9c2-40c4-9af1-4cba65e7b6a9"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--4ecc2cb6-f886-41b0-96a9-9c5fb568ebae",
+            "created": "2026-11-05T23:52:11.061289Z",
+            "modified": "2026-11-05T23:52:11.061291Z",
+            "name": "Data interception on an unencrypted channel from APIGateway to PaymentAPI (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from APIGateway to PaymentAPI (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--e899c258-b0fc-4188-93ea-9222a51e5fd3"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--e899c258-b0fc-4188-93ea-9222a51e5fd3",
+            "created": "2026-11-05T23:52:11.061297Z",
+            "modified": "2026-11-05T23:52:11.061299Z",
+            "name": "GatewayToPayment",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from APIGateway to PaymentAPI (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--c5ddf48c-a139-45a7-94ea-e4edf38432ad",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.061304Z",
+            "modified": "2026-11-05T23:52:11.061306Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--4ecc2cb6-f886-41b0-96a9-9c5fb568ebae",
+            "target_ref": "attack-asset--e899c258-b0fc-4188-93ea-9222a51e5fd3"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--dae9c95e-5b60-4c80-b5f6-7fb0197d79cb",
+            "created": "2026-11-05T23:52:11.061311Z",
+            "modified": "2026-11-05T23:52:11.061313Z",
+            "name": "Data interception on an unencrypted channel from APIGateway to FraudEngine (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from APIGateway to FraudEngine (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--03934bb4-12a4-472a-9593-19d2bf709435"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--03934bb4-12a4-472a-9593-19d2bf709435",
+            "created": "2026-11-05T23:52:11.061319Z",
+            "modified": "2026-11-05T23:52:11.061321Z",
+            "name": "GatewayToFraud",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from APIGateway to FraudEngine (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--237346fd-97a0-42ad-8bd0-5947498e5a26",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.061326Z",
+            "modified": "2026-11-05T23:52:11.061328Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--dae9c95e-5b60-4c80-b5f6-7fb0197d79cb",
+            "target_ref": "attack-asset--03934bb4-12a4-472a-9593-19d2bf709435"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--3c08a958-d363-4271-b624-8304bcd826c8",
+            "created": "2026-11-05T23:52:11.061333Z",
+            "modified": "2026-11-05T23:52:11.061335Z",
+            "name": "Data interception on an unencrypted channel from PaymentAPI to CardVault (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from PaymentAPI to CardVault (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--3b9d1d1b-d9de-4091-99c8-9b9e8773dccf"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--3b9d1d1b-d9de-4091-99c8-9b9e8773dccf",
+            "created": "2026-11-05T23:52:11.061340Z",
+            "modified": "2026-11-05T23:52:11.061342Z",
+            "name": "PaymentToVault",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from PaymentAPI to CardVault (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--52fe7e16-2975-461d-85cd-e8381ead5c06",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.061347Z",
+            "modified": "2026-11-05T23:52:11.061349Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--3c08a958-d363-4271-b624-8304bcd826c8",
+            "target_ref": "attack-asset--3b9d1d1b-d9de-4091-99c8-9b9e8773dccf"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--1fb2f274-bc17-4662-bdb8-440a9f288d00",
+            "created": "2026-11-05T23:52:11.061355Z",
+            "modified": "2026-11-05T23:52:11.061357Z",
+            "name": "Insecure security configuration or hardening on FraudEngine leading to information exposure",
+            "description": "Insecure security configuration or hardening on FraudEngine leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--d6eb1634-892e-4853-8c85-122691cd8840"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--d6eb1634-892e-4853-8c85-122691cd8840",
+            "created": "2026-11-05T23:52:11.061363Z",
+            "modified": "2026-11-05T23:52:11.061365Z",
+            "name": "FraudEngine",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on FraudEngine leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--5243609f-b6f7-4ce5-8131-af10b7f4f1c6",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.061370Z",
+            "modified": "2026-11-05T23:52:11.061372Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--1fb2f274-bc17-4662-bdb8-440a9f288d00",
+            "target_ref": "attack-asset--d6eb1634-892e-4853-8c85-122691cd8840"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--0a17cff0-2467-4243-9ac2-04d4b769b5e5",
+            "created": "2026-11-05T23:52:11.061377Z",
+            "modified": "2026-11-05T23:52:11.061379Z",
+            "name": "Identity spoofing of the actor PlatformEngineer via phishing or credential theft",
+            "description": "Identity spoofing of the actor PlatformEngineer via phishing or credential theft",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--39d8d651-ae95-4291-b750-361575f09af3"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--39d8d651-ae95-4291-b750-361575f09af3",
+            "created": "2026-11-05T23:52:11.061384Z",
+            "modified": "2026-11-05T23:52:11.061386Z",
+            "name": "PlatformEngineer",
+            "description": "Asset targeted by threat: Identity spoofing of the actor PlatformEngineer via phishing or credential theft",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--ba493b5b-ccb6-429a-854e-9b82b4dc9d5f",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.061391Z",
+            "modified": "2026-11-05T23:52:11.061393Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--0a17cff0-2467-4243-9ac2-04d4b769b5e5",
+            "target_ref": "attack-asset--39d8d651-ae95-4291-b750-361575f09af3"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--c589319a-6237-497b-8d50-a4086e4447b3",
+            "created": "2026-11-05T23:52:11.061399Z",
+            "modified": "2026-11-05T23:52:11.061401Z",
+            "name": "Privilege abuse by actor MerchantAPI to gain unauthorized access or perform unauthorized actions",
+            "description": "Privilege abuse by actor MerchantAPI to gain unauthorized access or perform unauthorized actions",
+            "technique_id": "T1548",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--bbf1e0bb-4fbe-4782-827e-c9878bd81c39"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--bbf1e0bb-4fbe-4782-827e-c9878bd81c39",
+            "created": "2026-11-05T23:52:11.061406Z",
+            "modified": "2026-11-05T23:52:11.061408Z",
+            "name": "MerchantAPI",
+            "description": "Asset targeted by threat: Privilege abuse by actor MerchantAPI to gain unauthorized access or perform unauthorized actions",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--7dfec6ba-40bc-4a7d-9852-daa6bcb44885",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.061413Z",
+            "modified": "2026-11-05T23:52:11.061415Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--c589319a-6237-497b-8d50-a4086e4447b3",
+            "target_ref": "attack-asset--bbf1e0bb-4fbe-4782-827e-c9878bd81c39"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--f6ddab1d-fa25-490a-b5e7-5ec906222f07",
+            "created": "2026-11-05T23:52:11.061422Z",
+            "modified": "2026-11-05T23:52:11.061424Z",
+            "name": "Privilege abuse by actor CardHolder to gain unauthorized access or perform unauthorized actions",
+            "description": "Privilege abuse by actor CardHolder to gain unauthorized access or perform unauthorized actions",
+            "technique_id": "T1548",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--b525f0ad-1ad8-4b02-a01c-b7a040dfb879"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--b525f0ad-1ad8-4b02-a01c-b7a040dfb879",
+            "created": "2026-11-05T23:52:11.061429Z",
+            "modified": "2026-11-05T23:52:11.061431Z",
+            "name": "CardHolder",
+            "description": "Asset targeted by threat: Privilege abuse by actor CardHolder to gain unauthorized access or perform unauthorized actions",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--f4276538-996a-496e-ae89-31324ac26061",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.061436Z",
+            "modified": "2026-11-05T23:52:11.061438Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--f6ddab1d-fa25-490a-b5e7-5ec906222f07",
+            "target_ref": "attack-asset--b525f0ad-1ad8-4b02-a01c-b7a040dfb879"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--e506502d-3637-45e4-b662-6ab63f7c13b6",
+            "created": "2026-11-05T23:52:11.061443Z",
+            "modified": "2026-11-05T23:52:11.061445Z",
+            "name": "Privilege abuse by actor ExternalAttacker to gain unauthorized access or perform unauthorized actions",
+            "description": "Privilege abuse by actor ExternalAttacker to gain unauthorized access or perform unauthorized actions",
+            "technique_id": "T1548",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--53eb0869-b392-4f5b-b70f-358c3febd7e5"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--53eb0869-b392-4f5b-b70f-358c3febd7e5",
+            "created": "2026-11-05T23:52:11.061450Z",
+            "modified": "2026-11-05T23:52:11.061452Z",
+            "name": "ExternalAttacker",
+            "description": "Asset targeted by threat: Privilege abuse by actor ExternalAttacker to gain unauthorized access or perform unauthorized actions",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--5e824744-5758-4aaa-b84d-e0891e89c599",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.061457Z",
+            "modified": "2026-11-05T23:52:11.061459Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--e506502d-3637-45e4-b662-6ab63f7c13b6",
+            "target_ref": "attack-asset--53eb0869-b392-4f5b-b70f-358c3febd7e5"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--5ec73af4-3e77-4ca3-ab6d-282d02dc1fce",
+            "created": "2026-11-05T23:52:11.061465Z",
+            "modified": "2026-11-05T23:52:11.061467Z",
+            "name": "Privilege abuse by actor ComplianceAuditor to gain unauthorized access or perform unauthorized actions",
+            "description": "Privilege abuse by actor ComplianceAuditor to gain unauthorized access or perform unauthorized actions",
+            "technique_id": "T1548",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--2f7cda50-d32b-4d71-8365-d57b17fbe631"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--2f7cda50-d32b-4d71-8365-d57b17fbe631",
+            "created": "2026-11-05T23:52:11.061472Z",
+            "modified": "2026-11-05T23:52:11.061474Z",
+            "name": "ComplianceAuditor",
+            "description": "Asset targeted by threat: Privilege abuse by actor ComplianceAuditor to gain unauthorized access or perform unauthorized actions",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--dfd66ad9-b0fd-4546-8f49-dbe1d9b77cd4",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.061479Z",
+            "modified": "2026-11-05T23:52:11.061482Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--5ec73af4-3e77-4ca3-ab6d-282d02dc1fce",
+            "target_ref": "attack-asset--2f7cda50-d32b-4d71-8365-d57b17fbe631"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--521c1de5-15cf-430e-bfd2-41465d0fa4ef",
+            "created": "2026-11-05T23:52:11.061487Z",
+            "modified": "2026-11-05T23:52:11.061489Z",
+            "name": "Repudiation of critical actions performed by MerchantAPI due to insufficient logging or non-repudiation controls",
+            "description": "Repudiation of critical actions performed by MerchantAPI due to insufficient logging or non-repudiation controls",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--29a6307c-8410-4dc5-bc27-7a8a6c91ee37"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--29a6307c-8410-4dc5-bc27-7a8a6c91ee37",
+            "created": "2026-11-05T23:52:11.061495Z",
+            "modified": "2026-11-05T23:52:11.061497Z",
+            "name": "MerchantAPI",
+            "description": "Asset targeted by threat: Repudiation of critical actions performed by MerchantAPI due to insufficient logging or non-repudiation controls",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--7c62725d-a2bb-4e86-9e84-cc4486b19c62",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.061502Z",
+            "modified": "2026-11-05T23:52:11.061504Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--521c1de5-15cf-430e-bfd2-41465d0fa4ef",
+            "target_ref": "attack-asset--29a6307c-8410-4dc5-bc27-7a8a6c91ee37"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--f1bbc80b-6e9e-47b1-b4f7-7488c3e4428e",
+            "created": "2026-11-05T23:52:11.061509Z",
+            "modified": "2026-11-05T23:52:11.061512Z",
+            "name": "Repudiation of critical actions performed by CardHolder due to insufficient logging or non-repudiation controls",
+            "description": "Repudiation of critical actions performed by CardHolder due to insufficient logging or non-repudiation controls",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--e7ee5662-51dc-4026-b76c-4d1d152923fa"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--e7ee5662-51dc-4026-b76c-4d1d152923fa",
+            "created": "2026-11-05T23:52:11.061517Z",
+            "modified": "2026-11-05T23:52:11.061519Z",
+            "name": "CardHolder",
+            "description": "Asset targeted by threat: Repudiation of critical actions performed by CardHolder due to insufficient logging or non-repudiation controls",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--5f7e5c77-d8a6-41f4-ad41-b616210d2161",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.061524Z",
+            "modified": "2026-11-05T23:52:11.061526Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--f1bbc80b-6e9e-47b1-b4f7-7488c3e4428e",
+            "target_ref": "attack-asset--e7ee5662-51dc-4026-b76c-4d1d152923fa"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--590bdd2d-1301-4539-879c-880779620709",
+            "created": "2026-11-05T23:52:11.061531Z",
+            "modified": "2026-11-05T23:52:11.061533Z",
+            "name": "Repudiation of critical actions performed by ExternalAttacker due to insufficient logging or non-repudiation controls",
+            "description": "Repudiation of critical actions performed by ExternalAttacker due to insufficient logging or non-repudiation controls",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--82d92304-0b74-4372-8c5c-0c8fb456623b"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--82d92304-0b74-4372-8c5c-0c8fb456623b",
+            "created": "2026-11-05T23:52:11.061539Z",
+            "modified": "2026-11-05T23:52:11.061541Z",
+            "name": "ExternalAttacker",
+            "description": "Asset targeted by threat: Repudiation of critical actions performed by ExternalAttacker due to insufficient logging or non-repudiation controls",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--a295d08e-7281-4dc9-8da2-c3926be69b50",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.061546Z",
+            "modified": "2026-11-05T23:52:11.061548Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--590bdd2d-1301-4539-879c-880779620709",
+            "target_ref": "attack-asset--82d92304-0b74-4372-8c5c-0c8fb456623b"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--7381f53a-7289-45da-94ae-5cf07b21489a",
+            "created": "2026-11-05T23:52:11.061553Z",
+            "modified": "2026-11-05T23:52:11.061555Z",
+            "name": "Repudiation of critical actions performed by ComplianceAuditor due to insufficient logging or non-repudiation controls",
+            "description": "Repudiation of critical actions performed by ComplianceAuditor due to insufficient logging or non-repudiation controls",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--73a2767c-cb31-4439-9102-95ea298009ea"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--73a2767c-cb31-4439-9102-95ea298009ea",
+            "created": "2026-11-05T23:52:11.061560Z",
+            "modified": "2026-11-05T23:52:11.061562Z",
+            "name": "ComplianceAuditor",
+            "description": "Asset targeted by threat: Repudiation of critical actions performed by ComplianceAuditor due to insufficient logging or non-repudiation controls",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--054a16e8-f2f9-4f7c-8e19-362fb974ec7f",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.061567Z",
+            "modified": "2026-11-05T23:52:11.061569Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--7381f53a-7289-45da-94ae-5cf07b21489a",
+            "target_ref": "attack-asset--73a2767c-cb31-4439-9102-95ea298009ea"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--ca942df0-4844-4dfe-97c7-c0fbc5ed634e",
+            "created": "2026-11-05T23:52:11.061575Z",
+            "modified": "2026-11-05T23:52:11.061576Z",
+            "name": "Privilege abuse by actor PlatformEngineer to gain unauthorized access or perform unauthorized actions",
+            "description": "Privilege abuse by actor PlatformEngineer to gain unauthorized access or perform unauthorized actions",
+            "technique_id": "T1548",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--d0c43aeb-6a4a-46f8-9f0e-e55358e74612"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--d0c43aeb-6a4a-46f8-9f0e-e55358e74612",
+            "created": "2026-11-05T23:52:11.061581Z",
+            "modified": "2026-11-05T23:52:11.061583Z",
+            "name": "PlatformEngineer",
+            "description": "Asset targeted by threat: Privilege abuse by actor PlatformEngineer to gain unauthorized access or perform unauthorized actions",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--9364f0f6-9464-47c4-8928-60ef910928fc",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.061588Z",
+            "modified": "2026-11-05T23:52:11.061590Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--ca942df0-4844-4dfe-97c7-c0fbc5ed634e",
+            "target_ref": "attack-asset--d0c43aeb-6a4a-46f8-9f0e-e55358e74612"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--31ebfaef-31e5-432a-ac5f-b733ed33d2f4",
+            "created": "2026-11-05T23:52:11.061596Z",
+            "modified": "2026-11-05T23:52:11.061598Z",
+            "name": "Repudiation of critical actions performed by PlatformEngineer due to insufficient logging or non-repudiation controls",
+            "description": "Repudiation of critical actions performed by PlatformEngineer due to insufficient logging or non-repudiation controls",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--94c8fa58-008c-4ca4-9fee-f70468da8433"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--94c8fa58-008c-4ca4-9fee-f70468da8433",
+            "created": "2026-11-05T23:52:11.061604Z",
+            "modified": "2026-11-05T23:52:11.061606Z",
+            "name": "PlatformEngineer",
+            "description": "Asset targeted by threat: Repudiation of critical actions performed by PlatformEngineer due to insufficient logging or non-repudiation controls",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--36892020-6e1a-414a-9a4c-71e52a004219",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.061610Z",
+            "modified": "2026-11-05T23:52:11.061612Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--31ebfaef-31e5-432a-ac5f-b733ed33d2f4",
+            "target_ref": "attack-asset--94c8fa58-008c-4ca4-9fee-f70468da8433"
+        },
+        {
+            "type": "attack-flow",
+            "spec_version": "2.1",
+            "id": "attack-flow--2cc2c302-4e22-4e25-9559-d1a9368d85b9",
+            "created_by_ref": "identity--f672ee01-dbf5-4af9-908d-1e15e13e1b35",
+            "created": "2026-11-05T23:52:11.061619Z",
+            "modified": "2026-11-05T23:52:11.061621Z",
+            "name": "Attack Flow for main",
+            "description": "This Attack Flow was generated from the threat model 'main'.",
+            "scope": "attack-tree",
+            "start_refs": [
+                "attack-action--d14964f3-6e8f-43e5-8438-6da8d442c314",
+                "attack-action--caa41655-bdd2-49ec-a73e-4b6768feb0a9",
+                "attack-action--344b7e85-f1c5-4e24-828f-40e9ed03e15b",
+                "attack-action--94a51771-8165-481e-b290-4918f2ef502e",
+                "attack-action--3a5f5ede-fbd4-4bdc-a0ed-aeb8918549b4",
+                "attack-action--12ff215c-1739-4966-a0c4-c013cdcc8dd8",
+                "attack-action--4e7e6d8d-3cae-4f8d-9809-c1ff14af624a",
+                "attack-action--63dd3be2-4921-4ce3-a1b1-21cdca32af5d",
+                "attack-action--373d6149-cc37-4a65-9b30-5bf04e0fb58d",
+                "attack-action--fdde395f-34ce-4872-a219-0c514f7d9a72",
+                "attack-action--5f77f84f-7401-484d-ad5d-3b5e008e030a",
+                "attack-action--fc964a14-9d66-43dd-b9ba-402233e02ee1",
+                "attack-action--222009f8-4814-45a6-8ad7-53cba9c0bdb0",
+                "attack-action--7c9ab2ca-ecca-4c6e-9fdc-d6dfab1a686c",
+                "attack-action--43f7d7e3-4b78-4844-9327-95883b3d84c7",
+                "attack-action--4218aa62-e3c3-4754-a468-30ef7adddaaa",
+                "attack-action--1def0ad4-25ef-4760-89e4-f8589b757b60",
+                "attack-action--e56b0909-477b-48a4-906a-794b6778ed9c",
+                "attack-action--9d0ae5ba-1948-483b-9410-e5d2e286c85e",
+                "attack-action--a0b19139-cae2-4e7b-9262-3185d41221b0",
+                "attack-action--fde8cfb6-2353-44c0-aeda-33113792fb8d",
+                "attack-action--39d8112d-93ea-4d5a-80a6-3062f68f31ac",
+                "attack-action--432947d7-e3c4-40d9-9722-7e4f56aea828",
+                "attack-action--a925204b-36a7-40c0-a2f0-148246a6e201",
+                "attack-action--3edf61f5-aeeb-4654-b2a6-fd60a31d3b93",
+                "attack-action--1ca1fcc2-7c88-4a62-abb4-f7eac922e5f5",
+                "attack-action--e77e9b26-4f72-4a34-ad09-91069ca0276b",
+                "attack-action--9312ca5d-267c-44e9-aa31-f3367ef5d22b",
+                "attack-action--50f6d7a9-616b-41f4-a0b6-b6aae539abd8",
+                "attack-action--ad8ac959-a63d-4094-a2bd-2cc25177b0c5",
+                "attack-action--c8d53fd1-3dc0-4d75-b4cf-fa8df0883d11",
+                "attack-action--1752780e-c132-41a8-8e98-b06e1bb345af",
+                "attack-action--c2b515f5-9065-4f34-b351-8e377746792f",
+                "attack-action--0c9b6d92-8c5b-4fd9-970c-9f7437c0d609",
+                "attack-action--83e1d104-5ec6-4199-8dbb-f892cfe274af",
+                "attack-action--6d5a660a-2a81-4181-8011-3fba52011104",
+                "attack-action--0a53dd7a-1e1a-4f5d-80c2-e69826c22b41",
+                "attack-action--22d10252-daae-4cc9-a0c9-399d98fcdea7",
+                "attack-action--f8547a84-b595-40ab-9164-174c5eb7be4d",
+                "attack-action--0dee9c56-1e72-4b76-b393-3607839a65e5",
+                "attack-action--31f9aa9e-68bd-412d-adbd-42ba1932fcd9",
+                "attack-action--3a48b965-5e30-4796-8315-0d281061937a",
+                "attack-action--00a9aab7-72d5-4cc0-8922-fdb43da6d7ea",
+                "attack-action--4ecc2cb6-f886-41b0-96a9-9c5fb568ebae",
+                "attack-action--dae9c95e-5b60-4c80-b5f6-7fb0197d79cb",
+                "attack-action--3c08a958-d363-4271-b624-8304bcd826c8",
+                "attack-action--1fb2f274-bc17-4662-bdb8-440a9f288d00",
+                "attack-action--0a17cff0-2467-4243-9ac2-04d4b769b5e5",
+                "attack-action--c589319a-6237-497b-8d50-a4086e4447b3",
+                "attack-action--f6ddab1d-fa25-490a-b5e7-5ec906222f07",
+                "attack-action--e506502d-3637-45e4-b662-6ab63f7c13b6",
+                "attack-action--5ec73af4-3e77-4ca3-ab6d-282d02dc1fce",
+                "attack-action--521c1de5-15cf-430e-bfd2-41465d0fa4ef",
+                "attack-action--f1bbc80b-6e9e-47b1-b4f7-7488c3e4428e",
+                "attack-action--590bdd2d-1301-4539-879c-880779620709",
+                "attack-action--7381f53a-7289-45da-94ae-5cf07b21489a",
+                "attack-action--ca942df0-4844-4dfe-97c7-c0fbc5ed634e",
+                "attack-action--31ebfaef-31e5-432a-ac5f-b733ed33d2f4"
+            ],
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        }
+    ]
+}

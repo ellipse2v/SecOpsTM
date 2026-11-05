@@ -1,0 +1,124 @@
+digraph ThreatModel {
+  rankdir=LR;
+  node [shape=box];
+  edge [fontsize=10];
+  splines=true;
+  overlap=false;
+  nodesep=0.5;
+  ranksep=0.6;
+  charset="UTF-8";
+
+  
+
+  
+    
+  subgraph cluster_internet {
+    label="Internet";
+    "__hidden_node_internet" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,dashed";
+    
+    fillcolor="red";
+    
+    
+    color="#c62828";
+    penwidth=2;
+    
+    
+    "Customer" [fixedsize=shape, shape=circle, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>Customer</TD></TR></TABLE>>, id="Customer"];
+    
+    "External Attacker" [fixedsize=shape, shape=circle, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>External Attacker</TD></TR></TABLE>>, id="External_Attacker"];
+    
+    "Payment Processor" [fixedsize=shape, shape=circle, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>Payment Processor</TD></TR></TABLE>>, id="Payment_Processor"];
+    
+    
+    "WebApp" [shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/web-server.svg" SCALE="TRUE"/></TD></TR><TR><TD>WebApp</TD></TR></TABLE>>, id="WebApp"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_dmz {
+    label="DMZ";
+    "__hidden_node_dmz" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,dashed";
+    
+    fillcolor="orange";
+    
+    
+    color="#c62828";
+    penwidth=2;
+    
+    
+    
+    "DMZTier" [fixedsize=shape, shape=hexagon, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/firewall.svg" SCALE="TRUE"/></TD></TR><TR><TD>DMZTier</TD></TR></TABLE>>, id="DMZTier"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_application_zone {
+    label="Application Zone";
+    "__hidden_node_application_zone" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="lightblue";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    "Platform Admin" [fixedsize=shape, shape=circle, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>Platform Admin</TD></TR></TABLE>>, id="Platform_Admin"];
+    
+    
+    "BackendServices" [width=1.5, height=0.75, shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/server.svg" SCALE="TRUE"/></TD><TD ALIGN="LEFT">BackendServices</TD></TR></TABLE>>, id="BackendServices"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_data_zone {
+    label="Data Zone";
+    "__hidden_node_data_zone" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="lavender";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    
+    "DatabaseCluster" [shape=cylinder, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/database.svg" SCALE="TRUE"/></TD></TR><TR><TD>DatabaseCluster</TD></TR></TABLE>>, id="DatabaseCluster"];
+    
+    
+  }
+  
+  
+
+  
+
+  
+
+  
+  "Customer" -> "WebApp" [label="", color="darkgreen", style="solid", label=<CustomerToWebApp<BR/>Protocol: HTTPS<BR/>Data: User Request>, id="edge_Customer_WebApp", fontsize=7, class="protocol-HTTPS"];
+  
+  "WebApp" -> "DMZTier" [label="", color="darkgreen", style="solid", label=<WebAppToDMZ<BR/>Protocol: HTTPS<BR/>Data: Encapsulated API Call>, id="edge_WebApp_DMZTier", fontsize=7, class="protocol-HTTPS"];
+  
+  "DMZTier" -> "BackendServices" [label="", color="orange", style="dashed", label=<DMZToBackend<BR/>Protocol: HTTP<BR/>Data: Internal API Call>, id="edge_DMZTier_BackendServices", fontsize=7, class="protocol-HTTP"];
+  
+  "BackendServices" -> "DatabaseCluster" [label="", color="purple", style="solid", label=<BackendToDatabase<BR/>Protocol: PostgreSQL<BR/>Data: Internal API Call>, id="edge_BackendServices_DatabaseCluster", fontsize=7, class="protocol-PostgreSQL"];
+  
+  "Payment Processor" -> "DMZTier" [label="", color="darkgreen", style="solid", label=<PaymentProcessorCallback<BR/>Protocol: HTTPS<BR/>Data: Internal API Call>, id="edge_Payment_Processor_DMZTier", fontsize=7, class="protocol-HTTPS"];
+  
+
+  
+}

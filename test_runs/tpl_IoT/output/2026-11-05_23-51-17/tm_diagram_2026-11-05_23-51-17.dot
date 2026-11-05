@@ -1,0 +1,153 @@
+digraph ThreatModel {
+  rankdir=LR;
+  node [shape=box];
+  edge [fontsize=10];
+  splines=true;
+  overlap=false;
+  nodesep=0.5;
+  ranksep=0.6;
+  charset="UTF-8";
+
+  
+
+  
+    
+  subgraph cluster_physical_environment {
+    label="Physical Environment";
+    "__hidden_node_physical_environment" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,dashed";
+    
+    fillcolor="red";
+    
+    
+    color="#c62828";
+    penwidth=2;
+    
+    
+    "Field Technician" [fixedsize=shape, shape=circle, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>Field Technician</TD></TR></TABLE>>, id="Field_Technician"];
+    
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_iot_device {
+    label="IoT Device";
+    "__hidden_node_iot_device" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,dashed";
+    
+    fillcolor="orange";
+    
+    
+    color="#c62828";
+    penwidth=2;
+    
+    
+    "Sensor" [fixedsize=shape, shape=circle, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>Sensor</TD></TR></TABLE>>, id="Sensor"];
+    
+    "Actuator" [fixedsize=shape, shape=circle, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>Actuator</TD></TR></TABLE>>, id="Actuator"];
+    
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_iot_gateway {
+    label="IoT Gateway";
+    "__hidden_node_iot_gateway" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,dashed";
+    
+    fillcolor="yellow";
+    
+    
+    color="#c62828";
+    penwidth=2;
+    
+    
+    
+    "IoT Gateway Server" [shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/iot-gateway.svg" SCALE="TRUE"/></TD></TR><TR><TD>IoT Gateway Server</TD></TR></TABLE>>, id="IoT_Gateway_Server"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_cloud_platform {
+    label="Cloud Platform";
+    "__hidden_node_cloud_platform" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="lightblue";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    "Cloud Administrator" [fixedsize=shape, shape=circle, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>Cloud Administrator</TD></TR></TABLE>>, id="Cloud_Administrator"];
+    
+    
+    "IoT Hub" [shape=box, style=filled, fillcolor="lightblue", label="IoT Hub", id="IoT_Hub"];
+    
+    "Data Storage" [shape=cylinder, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/database.svg" SCALE="TRUE"/></TD></TR><TR><TD>Data Storage</TD></TR></TABLE>>, id="Data_Storage"];
+    
+    "Analytics Engine" [shape=box, style=filled, fillcolor="lightblue", label="Analytics Engine", id="Analytics_Engine"];
+    
+    "Device Management Service" [shape=box, style=filled, fillcolor="lightblue", label="Device Management Service", id="Device_Management_Service"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_mobile_application {
+    label="Mobile Application";
+    "__hidden_node_mobile_application" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,dashed";
+    
+    fillcolor="lightgreen";
+    
+    
+    color="#c62828";
+    penwidth=2;
+    
+    
+    "Device Administrator" [fixedsize=shape, shape=circle, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>Device Administrator</TD></TR></TABLE>>, id="Device_Administrator"];
+    
+    
+    
+  }
+  
+  
+
+  
+
+  
+
+  
+  "Sensor" -> "IoT Gateway Server" [label="", color="teal", style="dashed", label=<Sensor Data<BR/>Protocol: MQTT/CoAP>, id="edge_Sensor_IoT_Gateway_Server", fontsize=7, class="protocol-MQTT_CoAP"];
+  
+  "IoT Gateway Server" -> "IoT Hub" [label="", color="darkgreen", style="solid", label=<Gateway to Cloud<BR/>Protocol: HTTPS/MQTT>, id="edge_IoT_Gateway_Server_IoT_Hub", fontsize=7, class="protocol-HTTPS_MQTT"];
+  
+  "IoT Hub" -> "Data Storage" [label="", color="blue", style="dashed", label=<Cloud to Storage<BR/>Protocol: Internal API>, id="edge_IoT_Hub_Data_Storage", fontsize=7, class="protocol-Internal_API"];
+  
+  "Data Storage" -> "Analytics Engine" [label="", color="blue", style="dashed", label=<Storage to Analytics<BR/>Protocol: Internal API>, id="edge_Data_Storage_Analytics_Engine", fontsize=7, class="protocol-Internal_API"];
+  
+  "Device Management Service" -> "IoT Gateway Server" [label="", color="teal", style="dashed", label=<Command to Gateway<BR/>Protocol: MQTT/CoAP>, id="edge_Device_Management_Service_IoT_Gateway_Server", fontsize=7, class="protocol-MQTT_CoAP"];
+  
+  "IoT Gateway Server" -> "Actuator" [label="", color="teal", style="dashed", label=<Gateway to Actuator<BR/>Protocol: MQTT/CoAP>, id="edge_IoT_Gateway_Server_Actuator", fontsize=7, class="protocol-MQTT_CoAP"];
+  
+  "Device Administrator" -> "Device Management Service" [label="", color="darkgreen", style="solid", label=<Admin to Device Mgmt<BR/>Protocol: HTTPS>, id="edge_Device_Administrator_Device_Management_Service", fontsize=7, class="protocol-HTTPS"];
+  
+  "Field Technician" -> "IoT Gateway Server" [label="", color="red", style="dotted", label=<Local Maintenance<BR/>Protocol: SSH>, id="edge_Field_Technician_IoT_Gateway_Server", fontsize=7, class="protocol-SSH"];
+  
+
+  
+}

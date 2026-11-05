@@ -1,0 +1,393 @@
+{
+    "type": "bundle",
+    "id": "bundle--72a76ffb-c7f9-4326-9421-8c9745e48ee3",
+    "spec_version": "2.1",
+    "objects": [
+        {
+            "type": "extension-definition",
+            "id": "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4",
+            "spec_version": "2.1",
+            "created": "2022-08-02T19:34:35.143Z",
+            "modified": "2022-08-02T19:34:35.143Z",
+            "name": "Attack Flow",
+            "description": "Extends STIX 2.1 with features to create Attack Flows.",
+            "created_by_ref": "identity--19ef3861-9d0d-4a86-9266-e52a4bd67205",
+            "schema": "https://center-for-threat-informed-defense.github.io/attack-flow/stix/attack-flow-schema-2.0.0.json",
+            "version": "2.0.0",
+            "extension_types": [
+                "new-sdo"
+            ]
+        },
+        {
+            "type": "identity",
+            "id": "identity--19ef3861-9d0d-4a86-9266-e52a4bd67205",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:58.542189Z",
+            "modified": "2026-11-05T23:51:58.542204Z",
+            "name": "Threat Model Analysis Tool",
+            "identity_class": "tool"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--ec1b19c5-7bf7-4f19-943f-39975dac0dc8",
+            "created": "2026-11-05T23:51:58.542214Z",
+            "modified": "2026-11-05T23:51:58.542216Z",
+            "name": "Unpatched OS or software vulnerabilities on APIService leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on APIService leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--b9a6e34e-0fd3-4576-a695-800fdb84e6dc"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--b9a6e34e-0fd3-4576-a695-800fdb84e6dc",
+            "created": "2026-11-05T23:51:58.542225Z",
+            "modified": "2026-11-05T23:51:58.542227Z",
+            "name": "APIService",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on APIService leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--eeffbe99-a25b-4733-939e-847c603adb31",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:58.542234Z",
+            "modified": "2026-11-05T23:51:58.542237Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--ec1b19c5-7bf7-4f19-943f-39975dac0dc8",
+            "target_ref": "attack-asset--b9a6e34e-0fd3-4576-a695-800fdb84e6dc"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--4476da3f-f409-4e63-919c-a200be793edf",
+            "created": "2026-11-05T23:51:58.542247Z",
+            "modified": "2026-11-05T23:51:58.542249Z",
+            "name": "Unpatched OS or software vulnerabilities on NormalService leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on NormalService leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--ea5c4d51-ee5f-4ab1-ba8a-51340e5e5fcc"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--ea5c4d51-ee5f-4ab1-ba8a-51340e5e5fcc",
+            "created": "2026-11-05T23:51:58.542255Z",
+            "modified": "2026-11-05T23:51:58.542258Z",
+            "name": "NormalService",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on NormalService leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--2a22e359-36cf-471c-add6-bb8e1c4b6803",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:58.542266Z",
+            "modified": "2026-11-05T23:51:58.542268Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--4476da3f-f409-4e63-919c-a200be793edf",
+            "target_ref": "attack-asset--ea5c4d51-ee5f-4ab1-ba8a-51340e5e5fcc"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--0af74162-3457-4f2a-b823-c89a421cb660",
+            "created": "2026-11-05T23:51:58.542307Z",
+            "modified": "2026-11-05T23:51:58.542312Z",
+            "name": "Unauthorized privilege escalation on APIService due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on APIService due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--df834d04-ec6b-4ef9-a690-225ae3bc08da"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--df834d04-ec6b-4ef9-a690-225ae3bc08da",
+            "created": "2026-11-05T23:51:58.542325Z",
+            "modified": "2026-11-05T23:51:58.542327Z",
+            "name": "APIService",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on APIService due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--a415e77c-923a-49cb-9182-7e1df104a418",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:58.542336Z",
+            "modified": "2026-11-05T23:51:58.542338Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--0af74162-3457-4f2a-b823-c89a421cb660",
+            "target_ref": "attack-asset--df834d04-ec6b-4ef9-a690-225ae3bc08da"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--896be6bf-0621-4ed5-a5f7-7dc604418ab3",
+            "created": "2026-11-05T23:51:58.542348Z",
+            "modified": "2026-11-05T23:51:58.542350Z",
+            "name": "Unauthorized privilege escalation on NormalService due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on NormalService due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--21480188-975c-4dbb-ac48-175390eee891"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--21480188-975c-4dbb-ac48-175390eee891",
+            "created": "2026-11-05T23:51:58.542357Z",
+            "modified": "2026-11-05T23:51:58.542359Z",
+            "name": "NormalService",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on NormalService due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--f15154b3-a953-43af-a198-72a08bea0d28",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:58.542365Z",
+            "modified": "2026-11-05T23:51:58.542368Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--896be6bf-0621-4ed5-a5f7-7dc604418ab3",
+            "target_ref": "attack-asset--21480188-975c-4dbb-ac48-175390eee891"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--0377d0b6-1e9a-4f81-b023-5576740f9b1d",
+            "created": "2026-11-05T23:51:58.542375Z",
+            "modified": "2026-11-05T23:51:58.542377Z",
+            "name": "Lack of monitoring or logging on APIService, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on APIService, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--4a43de3b-f8ff-4801-b979-f5f9342ee0aa"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--4a43de3b-f8ff-4801-b979-f5f9342ee0aa",
+            "created": "2026-11-05T23:51:58.542384Z",
+            "modified": "2026-11-05T23:51:58.542386Z",
+            "name": "APIService",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on APIService, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--81229437-2789-4a91-b37a-b6d588fdc704",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:58.542392Z",
+            "modified": "2026-11-05T23:51:58.542394Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--0377d0b6-1e9a-4f81-b023-5576740f9b1d",
+            "target_ref": "attack-asset--4a43de3b-f8ff-4801-b979-f5f9342ee0aa"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--0cfa6ff2-7e1d-4dd5-b359-f8cd4a94aebd",
+            "created": "2026-11-05T23:51:58.542400Z",
+            "modified": "2026-11-05T23:51:58.542403Z",
+            "name": "Lack of monitoring or logging on NormalService, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on NormalService, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--c4239a4b-d530-4e25-93ab-e96f9f61ec79"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--c4239a4b-d530-4e25-93ab-e96f9f61ec79",
+            "created": "2026-11-05T23:51:58.542410Z",
+            "modified": "2026-11-05T23:51:58.542412Z",
+            "name": "NormalService",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on NormalService, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--745118eb-af0f-461f-bf27-e9e711a9e831",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:58.542418Z",
+            "modified": "2026-11-05T23:51:58.542420Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--0cfa6ff2-7e1d-4dd5-b359-f8cd4a94aebd",
+            "target_ref": "attack-asset--c4239a4b-d530-4e25-93ab-e96f9f61ec79"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--8ab95f54-48d1-4930-805d-340fbea8c77c",
+            "created": "2026-11-05T23:51:58.542428Z",
+            "modified": "2026-11-05T23:51:58.542430Z",
+            "name": "Insecure security configuration or hardening on APIService leading to information exposure",
+            "description": "Insecure security configuration or hardening on APIService leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--48498636-e090-45f8-a8aa-004b41871b97"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--48498636-e090-45f8-a8aa-004b41871b97",
+            "created": "2026-11-05T23:51:58.542436Z",
+            "modified": "2026-11-05T23:51:58.542439Z",
+            "name": "APIService",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on APIService leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--fd4f3a08-1023-4f77-abab-1cf83e53de03",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:58.542444Z",
+            "modified": "2026-11-05T23:51:58.542446Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--8ab95f54-48d1-4930-805d-340fbea8c77c",
+            "target_ref": "attack-asset--48498636-e090-45f8-a8aa-004b41871b97"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--f6ffd12d-5155-47ca-9ae0-980c25052b77",
+            "created": "2026-11-05T23:51:58.542456Z",
+            "modified": "2026-11-05T23:51:58.542458Z",
+            "name": "Insecure security configuration or hardening on NormalService leading to information exposure",
+            "description": "Insecure security configuration or hardening on NormalService leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--3ab8d3d8-e3ce-4aff-ae0f-8548c5b9e44e"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--3ab8d3d8-e3ce-4aff-ae0f-8548c5b9e44e",
+            "created": "2026-11-05T23:51:58.542466Z",
+            "modified": "2026-11-05T23:51:58.542468Z",
+            "name": "NormalService",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on NormalService leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--d9a6b212-dec6-4957-9721-737f3af28a74",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:58.542475Z",
+            "modified": "2026-11-05T23:51:58.542477Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--f6ffd12d-5155-47ca-9ae0-980c25052b77",
+            "target_ref": "attack-asset--3ab8d3d8-e3ce-4aff-ae0f-8548c5b9e44e"
+        },
+        {
+            "type": "attack-flow",
+            "spec_version": "2.1",
+            "id": "attack-flow--d41822be-bcc4-44f1-ada1-27d7c23c842f",
+            "created_by_ref": "identity--19ef3861-9d0d-4a86-9266-e52a4bd67205",
+            "created": "2026-11-05T23:51:58.542484Z",
+            "modified": "2026-11-05T23:51:58.542486Z",
+            "name": "Attack Flow for main",
+            "description": "This Attack Flow was generated from the threat model 'main'.",
+            "scope": "attack-tree",
+            "start_refs": [
+                "attack-action--ec1b19c5-7bf7-4f19-943f-39975dac0dc8",
+                "attack-action--4476da3f-f409-4e63-919c-a200be793edf",
+                "attack-action--0af74162-3457-4f2a-b823-c89a421cb660",
+                "attack-action--896be6bf-0621-4ed5-a5f7-7dc604418ab3",
+                "attack-action--0377d0b6-1e9a-4f81-b023-5576740f9b1d",
+                "attack-action--0cfa6ff2-7e1d-4dd5-b359-f8cd4a94aebd",
+                "attack-action--8ab95f54-48d1-4930-805d-340fbea8c77c",
+                "attack-action--f6ffd12d-5155-47ca-9ae0-980c25052b77"
+            ],
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        }
+    ]
+}

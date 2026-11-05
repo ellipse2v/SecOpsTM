@@ -1,0 +1,1382 @@
+{
+    "type": "bundle",
+    "id": "bundle--35ca5fbe-7493-4709-b41d-214ada07ec0f",
+    "spec_version": "2.1",
+    "objects": [
+        {
+            "type": "extension-definition",
+            "id": "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4",
+            "spec_version": "2.1",
+            "created": "2022-08-02T19:34:35.143Z",
+            "modified": "2022-08-02T19:34:35.143Z",
+            "name": "Attack Flow",
+            "description": "Extends STIX 2.1 with features to create Attack Flows.",
+            "created_by_ref": "identity--a06ea989-6d9a-4be8-abc7-6f4fb2c3dc80",
+            "schema": "https://center-for-threat-informed-defense.github.io/attack-flow/stix/attack-flow-schema-2.0.0.json",
+            "version": "2.0.0",
+            "extension_types": [
+                "new-sdo"
+            ]
+        },
+        {
+            "type": "identity",
+            "id": "identity--a06ea989-6d9a-4be8-abc7-6f4fb2c3dc80",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.715896Z",
+            "modified": "2026-11-05T23:52:11.715909Z",
+            "name": "Threat Model Analysis Tool",
+            "identity_class": "tool"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--1b75fcf1-871d-4801-90f0-e55a5c0e967d",
+            "created": "2026-11-05T23:52:11.715918Z",
+            "modified": "2026-11-05T23:52:11.715921Z",
+            "name": "Data interception on an unencrypted channel from MLEngine to FeatureStore (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from MLEngine to FeatureStore (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--d16b7daa-7304-40e0-b8b6-85a47b1c2a46"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--d16b7daa-7304-40e0-b8b6-85a47b1c2a46",
+            "created": "2026-11-05T23:52:11.715930Z",
+            "modified": "2026-11-05T23:52:11.715932Z",
+            "name": "MLToFeatureStore",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from MLEngine to FeatureStore (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--10d3c5db-8a10-415e-a19f-832007e8bd49",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.715939Z",
+            "modified": "2026-11-05T23:52:11.715942Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--1b75fcf1-871d-4801-90f0-e55a5c0e967d",
+            "target_ref": "attack-asset--d16b7daa-7304-40e0-b8b6-85a47b1c2a46"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--ff2d8f4f-d2b1-4eb6-8615-d70a90eccc2e",
+            "created": "2026-11-05T23:52:11.715949Z",
+            "modified": "2026-11-05T23:52:11.715951Z",
+            "name": "Credentials in dataflow from MLEngine to FeatureStore are sent over an unencrypted channel.",
+            "description": "Credentials in dataflow from MLEngine to FeatureStore are sent over an unencrypted channel.",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--ef1a33ab-bd09-4c09-97f4-fe173a9c50ef"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--ef1a33ab-bd09-4c09-97f4-fe173a9c50ef",
+            "created": "2026-11-05T23:52:11.715957Z",
+            "modified": "2026-11-05T23:52:11.715959Z",
+            "name": "MLToFeatureStore",
+            "description": "Asset targeted by threat: Credentials in dataflow from MLEngine to FeatureStore are sent over an unencrypted channel.",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--61438280-bca2-47a2-933c-8a5cdbee8ad6",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.715964Z",
+            "modified": "2026-11-05T23:52:11.715966Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--ff2d8f4f-d2b1-4eb6-8615-d70a90eccc2e",
+            "target_ref": "attack-asset--ef1a33ab-bd09-4c09-97f4-fe173a9c50ef"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--9361ea7f-b940-4fa4-b4dc-02eed46d353e",
+            "created": "2026-11-05T23:52:11.715972Z",
+            "modified": "2026-11-05T23:52:11.715974Z",
+            "name": "Data interception on an unencrypted channel from RulesEngine to FeatureStore (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from RulesEngine to FeatureStore (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--7ef956be-3cdb-4b31-aeed-9dd5d1a1093c"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--7ef956be-3cdb-4b31-aeed-9dd5d1a1093c",
+            "created": "2026-11-05T23:52:11.715980Z",
+            "modified": "2026-11-05T23:52:11.715982Z",
+            "name": "RulesToFeatureStore",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from RulesEngine to FeatureStore (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--06985cae-772b-4c24-ac93-aa70376c22d7",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.715988Z",
+            "modified": "2026-11-05T23:52:11.715990Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--9361ea7f-b940-4fa4-b4dc-02eed46d353e",
+            "target_ref": "attack-asset--7ef956be-3cdb-4b31-aeed-9dd5d1a1093c"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--76fdacd9-dc22-4347-9907-c5a5652b06b1",
+            "created": "2026-11-05T23:52:11.715996Z",
+            "modified": "2026-11-05T23:52:11.715998Z",
+            "name": "Credentials in dataflow from RulesEngine to FeatureStore are sent over an unencrypted channel.",
+            "description": "Credentials in dataflow from RulesEngine to FeatureStore are sent over an unencrypted channel.",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--b6e1427e-5298-4b5b-baad-77a098e6028e"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--b6e1427e-5298-4b5b-baad-77a098e6028e",
+            "created": "2026-11-05T23:52:11.716004Z",
+            "modified": "2026-11-05T23:52:11.716006Z",
+            "name": "RulesToFeatureStore",
+            "description": "Asset targeted by threat: Credentials in dataflow from RulesEngine to FeatureStore are sent over an unencrypted channel.",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--39e32739-f457-40a4-8f00-971e03f18994",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.716012Z",
+            "modified": "2026-11-05T23:52:11.716014Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--76fdacd9-dc22-4347-9907-c5a5652b06b1",
+            "target_ref": "attack-asset--b6e1427e-5298-4b5b-baad-77a098e6028e"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--d144077a-dd2b-4a2b-919d-e8ed7ed4f1dd",
+            "created": "2026-11-05T23:52:11.716021Z",
+            "modified": "2026-11-05T23:52:11.716023Z",
+            "name": "Credentials in dataflow from MLEngine to AlertService are sent over an unencrypted channel.",
+            "description": "Credentials in dataflow from MLEngine to AlertService are sent over an unencrypted channel.",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--32f23f72-aa21-49df-9b4a-fdd3df84aaaf"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--32f23f72-aa21-49df-9b4a-fdd3df84aaaf",
+            "created": "2026-11-05T23:52:11.716029Z",
+            "modified": "2026-11-05T23:52:11.716031Z",
+            "name": "MLToAlert",
+            "description": "Asset targeted by threat: Credentials in dataflow from MLEngine to AlertService are sent over an unencrypted channel.",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--6998c4f7-f52f-4e1d-afb3-8aa8353c0f23",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.716037Z",
+            "modified": "2026-11-05T23:52:11.716039Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--d144077a-dd2b-4a2b-919d-e8ed7ed4f1dd",
+            "target_ref": "attack-asset--32f23f72-aa21-49df-9b4a-fdd3df84aaaf"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--854eb301-6267-4f35-a7c2-cdbaa727054f",
+            "created": "2026-11-05T23:52:11.716045Z",
+            "modified": "2026-11-05T23:52:11.716047Z",
+            "name": "Credentials in dataflow from RulesEngine to AlertService are sent over an unencrypted channel.",
+            "description": "Credentials in dataflow from RulesEngine to AlertService are sent over an unencrypted channel.",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--3d17453b-7f29-4b9d-930b-80fcda87e582"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--3d17453b-7f29-4b9d-930b-80fcda87e582",
+            "created": "2026-11-05T23:52:11.716052Z",
+            "modified": "2026-11-05T23:52:11.716055Z",
+            "name": "RulesToAlert",
+            "description": "Asset targeted by threat: Credentials in dataflow from RulesEngine to AlertService are sent over an unencrypted channel.",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--e1dc5fe4-6d4e-46fb-bdff-cf96e92b8880",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.716061Z",
+            "modified": "2026-11-05T23:52:11.716063Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--854eb301-6267-4f35-a7c2-cdbaa727054f",
+            "target_ref": "attack-asset--3d17453b-7f29-4b9d-930b-80fcda87e582"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--9df4946e-5650-4127-bc35-3427ff4b83dc",
+            "created": "2026-11-05T23:52:11.716069Z",
+            "modified": "2026-11-05T23:52:11.716071Z",
+            "name": "Spoofing of data from MLEngine to FeatureStore due to lack of authentication",
+            "description": "Spoofing of data from MLEngine to FeatureStore due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--3bf994ab-bcd5-414f-a3b4-4a792835c83b"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--3bf994ab-bcd5-414f-a3b4-4a792835c83b",
+            "created": "2026-11-05T23:52:11.716078Z",
+            "modified": "2026-11-05T23:52:11.716080Z",
+            "name": "MLToFeatureStore",
+            "description": "Asset targeted by threat: Spoofing of data from MLEngine to FeatureStore due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--0967e414-8285-4852-a235-4db9582b40a0",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.716086Z",
+            "modified": "2026-11-05T23:52:11.716088Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--9df4946e-5650-4127-bc35-3427ff4b83dc",
+            "target_ref": "attack-asset--3bf994ab-bcd5-414f-a3b4-4a792835c83b"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--0b305491-93ca-4891-be8d-7247a4c93f14",
+            "created": "2026-11-05T23:52:11.716094Z",
+            "modified": "2026-11-05T23:52:11.716095Z",
+            "name": "Spoofing of data from RulesEngine to FeatureStore due to lack of authentication",
+            "description": "Spoofing of data from RulesEngine to FeatureStore due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--4167056e-d665-4ce5-ae16-8312e1e91e8f"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--4167056e-d665-4ce5-ae16-8312e1e91e8f",
+            "created": "2026-11-05T23:52:11.716101Z",
+            "modified": "2026-11-05T23:52:11.716103Z",
+            "name": "RulesToFeatureStore",
+            "description": "Asset targeted by threat: Spoofing of data from RulesEngine to FeatureStore due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--17a7f371-2d80-403d-8413-dce342e2b04a",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.716108Z",
+            "modified": "2026-11-05T23:52:11.716110Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--0b305491-93ca-4891-be8d-7247a4c93f14",
+            "target_ref": "attack-asset--4167056e-d665-4ce5-ae16-8312e1e91e8f"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--c95c3f7f-92f3-429c-86c4-159a204708e8",
+            "created": "2026-11-05T23:52:11.716116Z",
+            "modified": "2026-11-05T23:52:11.716118Z",
+            "name": "Unpatched OS or software vulnerabilities on MLEngine leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on MLEngine leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--ac06b350-5b1d-45e5-bba2-8270cdf0c517"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--ac06b350-5b1d-45e5-bba2-8270cdf0c517",
+            "created": "2026-11-05T23:52:11.716123Z",
+            "modified": "2026-11-05T23:52:11.716125Z",
+            "name": "MLEngine",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on MLEngine leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--f69ba7ea-86a8-4d91-9571-5f4e58d6e818",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.716131Z",
+            "modified": "2026-11-05T23:52:11.716133Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--c95c3f7f-92f3-429c-86c4-159a204708e8",
+            "target_ref": "attack-asset--ac06b350-5b1d-45e5-bba2-8270cdf0c517"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--2a5609d1-a2cd-44a6-b863-6be6b3f9a3e7",
+            "created": "2026-11-05T23:52:11.716138Z",
+            "modified": "2026-11-05T23:52:11.716140Z",
+            "name": "Unpatched OS or software vulnerabilities on RulesEngine leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on RulesEngine leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--eb257d67-6aeb-41b2-b99f-de349b066f7c"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--eb257d67-6aeb-41b2-b99f-de349b066f7c",
+            "created": "2026-11-05T23:52:11.716145Z",
+            "modified": "2026-11-05T23:52:11.716147Z",
+            "name": "RulesEngine",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on RulesEngine leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--9afe062a-8d93-4341-8b16-77faf33ce38d",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.716153Z",
+            "modified": "2026-11-05T23:52:11.716154Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--2a5609d1-a2cd-44a6-b863-6be6b3f9a3e7",
+            "target_ref": "attack-asset--eb257d67-6aeb-41b2-b99f-de349b066f7c"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--b8f04758-e73d-4f4b-ada1-0364e9a415d3",
+            "created": "2026-11-05T23:52:11.716160Z",
+            "modified": "2026-11-05T23:52:11.716162Z",
+            "name": "Unpatched OS or software vulnerabilities on FeatureStore leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on FeatureStore leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--ab833af9-a928-4e2d-b4c2-258236352e16"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--ab833af9-a928-4e2d-b4c2-258236352e16",
+            "created": "2026-11-05T23:52:11.716167Z",
+            "modified": "2026-11-05T23:52:11.716169Z",
+            "name": "FeatureStore",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on FeatureStore leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--b8c440af-d1c2-467f-a3b0-6960a9fe60cc",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.716175Z",
+            "modified": "2026-11-05T23:52:11.716177Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--b8f04758-e73d-4f4b-ada1-0364e9a415d3",
+            "target_ref": "attack-asset--ab833af9-a928-4e2d-b4c2-258236352e16"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--d4c31d91-adb5-49da-adcd-7e202eb87494",
+            "created": "2026-11-05T23:52:11.716183Z",
+            "modified": "2026-11-05T23:52:11.716185Z",
+            "name": "Data corruption or tampering in FeatureStore via unauthorized write access",
+            "description": "Data corruption or tampering in FeatureStore via unauthorized write access",
+            "technique_id": "T1221",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--bc13c9c5-ece6-4862-9f6b-fb39b0cdd101"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--bc13c9c5-ece6-4862-9f6b-fb39b0cdd101",
+            "created": "2026-11-05T23:52:11.716190Z",
+            "modified": "2026-11-05T23:52:11.716193Z",
+            "name": "FeatureStore",
+            "description": "Asset targeted by threat: Data corruption or tampering in FeatureStore via unauthorized write access",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--f1c7a1e1-42ce-4d30-9126-6be04ee691b6",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.716198Z",
+            "modified": "2026-11-05T23:52:11.716200Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--d4c31d91-adb5-49da-adcd-7e202eb87494",
+            "target_ref": "attack-asset--bc13c9c5-ece6-4862-9f6b-fb39b0cdd101"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--eadec6f7-ec59-4258-a7ce-413bbbe8242c",
+            "created": "2026-11-05T23:52:11.716206Z",
+            "modified": "2026-11-05T23:52:11.716208Z",
+            "name": "Unpatched OS or software vulnerabilities on AlertService leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on AlertService leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--a90573a8-47e2-4d54-b451-6d486026a62f"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--a90573a8-47e2-4d54-b451-6d486026a62f",
+            "created": "2026-11-05T23:52:11.716254Z",
+            "modified": "2026-11-05T23:52:11.716260Z",
+            "name": "AlertService",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on AlertService leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--3edf1e8d-0ce2-4a3c-bc44-5a80b9460f50",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.716269Z",
+            "modified": "2026-11-05T23:52:11.716271Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--eadec6f7-ec59-4258-a7ce-413bbbe8242c",
+            "target_ref": "attack-asset--a90573a8-47e2-4d54-b451-6d486026a62f"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--b5fff053-0e96-470d-b941-d19028c69623",
+            "created": "2026-11-05T23:52:11.716278Z",
+            "modified": "2026-11-05T23:52:11.716280Z",
+            "name": "Unauthorized access to sensitive data stored in FeatureStore leading to data breach",
+            "description": "Unauthorized access to sensitive data stored in FeatureStore leading to data breach",
+            "technique_id": "T1078",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--1ee4b8ac-d4b1-4dad-ad5c-657478a2da53"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--1ee4b8ac-d4b1-4dad-ad5c-657478a2da53",
+            "created": "2026-11-05T23:52:11.716286Z",
+            "modified": "2026-11-05T23:52:11.716288Z",
+            "name": "FeatureStore",
+            "description": "Asset targeted by threat: Unauthorized access to sensitive data stored in FeatureStore leading to data breach",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--cf0248a5-bef5-48d2-8fef-bfd14f72afc9",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.716294Z",
+            "modified": "2026-11-05T23:52:11.716296Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--b5fff053-0e96-470d-b941-d19028c69623",
+            "target_ref": "attack-asset--1ee4b8ac-d4b1-4dad-ad5c-657478a2da53"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--2143a5b5-fdb5-4da4-9ebc-90651a443e79",
+            "created": "2026-11-05T23:52:11.716303Z",
+            "modified": "2026-11-05T23:52:11.716305Z",
+            "name": "Unauthorized privilege escalation on MLEngine due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on MLEngine due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--de45a31c-9abb-4e24-a731-2e34e0c48dee"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--de45a31c-9abb-4e24-a731-2e34e0c48dee",
+            "created": "2026-11-05T23:52:11.716310Z",
+            "modified": "2026-11-05T23:52:11.716313Z",
+            "name": "MLEngine",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on MLEngine due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--cba0ce73-2f67-4eb3-a22a-ba40c75f11f9",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.716318Z",
+            "modified": "2026-11-05T23:52:11.716321Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--2143a5b5-fdb5-4da4-9ebc-90651a443e79",
+            "target_ref": "attack-asset--de45a31c-9abb-4e24-a731-2e34e0c48dee"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--0e48fcb3-7995-43bd-b594-2f7b423c7f31",
+            "created": "2026-11-05T23:52:11.716327Z",
+            "modified": "2026-11-05T23:52:11.716330Z",
+            "name": "Unauthorized privilege escalation on RulesEngine due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on RulesEngine due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--5e18813f-338b-4ab8-9a7f-0210a930a5f7"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--5e18813f-338b-4ab8-9a7f-0210a930a5f7",
+            "created": "2026-11-05T23:52:11.716336Z",
+            "modified": "2026-11-05T23:52:11.716338Z",
+            "name": "RulesEngine",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on RulesEngine due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--81a018a4-66f0-4f49-bd2b-88bfef71f7b5",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.716344Z",
+            "modified": "2026-11-05T23:52:11.716346Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--0e48fcb3-7995-43bd-b594-2f7b423c7f31",
+            "target_ref": "attack-asset--5e18813f-338b-4ab8-9a7f-0210a930a5f7"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--f9393482-27dd-47b9-b0d5-0cf0d6b41d05",
+            "created": "2026-11-05T23:52:11.716352Z",
+            "modified": "2026-11-05T23:52:11.716354Z",
+            "name": "Unauthorized privilege escalation on FeatureStore due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on FeatureStore due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--2379688a-da0a-48cd-ba14-0c3eb0b1147d"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--2379688a-da0a-48cd-ba14-0c3eb0b1147d",
+            "created": "2026-11-05T23:52:11.716359Z",
+            "modified": "2026-11-05T23:52:11.716362Z",
+            "name": "FeatureStore",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on FeatureStore due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--d1b6b675-3000-4f37-8f98-db8abb494397",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.716367Z",
+            "modified": "2026-11-05T23:52:11.716370Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--f9393482-27dd-47b9-b0d5-0cf0d6b41d05",
+            "target_ref": "attack-asset--2379688a-da0a-48cd-ba14-0c3eb0b1147d"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--b57e70fe-fd4f-4402-93ac-086450babe22",
+            "created": "2026-11-05T23:52:11.716377Z",
+            "modified": "2026-11-05T23:52:11.716379Z",
+            "name": "Unauthorized privilege escalation on AlertService due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on AlertService due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--520b6411-3e09-47d4-ab02-ce34a0204b70"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--520b6411-3e09-47d4-ab02-ce34a0204b70",
+            "created": "2026-11-05T23:52:11.716385Z",
+            "modified": "2026-11-05T23:52:11.716387Z",
+            "name": "AlertService",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on AlertService due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--2c9729cd-a40b-41d7-96e3-2f52f61a238b",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.716393Z",
+            "modified": "2026-11-05T23:52:11.716395Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--b57e70fe-fd4f-4402-93ac-086450babe22",
+            "target_ref": "attack-asset--520b6411-3e09-47d4-ab02-ce34a0204b70"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--bb6bc065-1a55-48b8-a82b-a5fc618a52f4",
+            "created": "2026-11-05T23:52:11.716402Z",
+            "modified": "2026-11-05T23:52:11.716404Z",
+            "name": "Spoofing of data from MLEngine to AlertService due to lack of authentication",
+            "description": "Spoofing of data from MLEngine to AlertService due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--503275be-98cc-4070-95d8-912522d4e353"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--503275be-98cc-4070-95d8-912522d4e353",
+            "created": "2026-11-05T23:52:11.716409Z",
+            "modified": "2026-11-05T23:52:11.716411Z",
+            "name": "MLToAlert",
+            "description": "Asset targeted by threat: Spoofing of data from MLEngine to AlertService due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--8f874587-e321-4d7e-b1b9-2f78195f8d5d",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.716418Z",
+            "modified": "2026-11-05T23:52:11.716420Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--bb6bc065-1a55-48b8-a82b-a5fc618a52f4",
+            "target_ref": "attack-asset--503275be-98cc-4070-95d8-912522d4e353"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--be8cbb79-e467-41a0-81b0-ad9dab3988a2",
+            "created": "2026-11-05T23:52:11.716426Z",
+            "modified": "2026-11-05T23:52:11.716428Z",
+            "name": "Spoofing of data from RulesEngine to AlertService due to lack of authentication",
+            "description": "Spoofing of data from RulesEngine to AlertService due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--669e53b7-3864-457e-9ba9-270c0ace1c59"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--669e53b7-3864-457e-9ba9-270c0ace1c59",
+            "created": "2026-11-05T23:52:11.716433Z",
+            "modified": "2026-11-05T23:52:11.716435Z",
+            "name": "RulesToAlert",
+            "description": "Asset targeted by threat: Spoofing of data from RulesEngine to AlertService due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--3f27d8f6-2795-41e9-b305-2811730d07ba",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.716441Z",
+            "modified": "2026-11-05T23:52:11.716443Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--be8cbb79-e467-41a0-81b0-ad9dab3988a2",
+            "target_ref": "attack-asset--669e53b7-3864-457e-9ba9-270c0ace1c59"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--36223f5e-6598-486c-8fa4-18b89f97bfe4",
+            "created": "2026-11-05T23:52:11.716449Z",
+            "modified": "2026-11-05T23:52:11.716451Z",
+            "name": "Lack of monitoring or logging on MLEngine, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on MLEngine, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--c6aca352-3a31-4e10-958d-466001dcfa39"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--c6aca352-3a31-4e10-958d-466001dcfa39",
+            "created": "2026-11-05T23:52:11.716457Z",
+            "modified": "2026-11-05T23:52:11.716459Z",
+            "name": "MLEngine",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on MLEngine, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--0fb9c56f-dcb9-4ef1-afeb-576f053b1454",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.716465Z",
+            "modified": "2026-11-05T23:52:11.716467Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--36223f5e-6598-486c-8fa4-18b89f97bfe4",
+            "target_ref": "attack-asset--c6aca352-3a31-4e10-958d-466001dcfa39"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--9dfc9c73-89dc-4a1b-aa86-214b1e495dc6",
+            "created": "2026-11-05T23:52:11.716474Z",
+            "modified": "2026-11-05T23:52:11.716476Z",
+            "name": "Lack of monitoring or logging on RulesEngine, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on RulesEngine, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--3335b2cb-1d01-4f4c-b2aa-6afd8b6f1395"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--3335b2cb-1d01-4f4c-b2aa-6afd8b6f1395",
+            "created": "2026-11-05T23:52:11.716482Z",
+            "modified": "2026-11-05T23:52:11.716485Z",
+            "name": "RulesEngine",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on RulesEngine, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--f356ac94-2cc0-4b4e-a1d3-150ec231e8a0",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.716490Z",
+            "modified": "2026-11-05T23:52:11.716492Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--9dfc9c73-89dc-4a1b-aa86-214b1e495dc6",
+            "target_ref": "attack-asset--3335b2cb-1d01-4f4c-b2aa-6afd8b6f1395"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--5a00447f-1193-4620-8783-298627fe44f2",
+            "created": "2026-11-05T23:52:11.716498Z",
+            "modified": "2026-11-05T23:52:11.716501Z",
+            "name": "Lack of monitoring or logging on FeatureStore, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on FeatureStore, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--587197f7-62da-4a83-8cdf-cc087c2c105d"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--587197f7-62da-4a83-8cdf-cc087c2c105d",
+            "created": "2026-11-05T23:52:11.716506Z",
+            "modified": "2026-11-05T23:52:11.716508Z",
+            "name": "FeatureStore",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on FeatureStore, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--2492a59a-ee73-44bf-bd92-63ad76ce3256",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.716514Z",
+            "modified": "2026-11-05T23:52:11.716516Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--5a00447f-1193-4620-8783-298627fe44f2",
+            "target_ref": "attack-asset--587197f7-62da-4a83-8cdf-cc087c2c105d"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--9ea1938b-1ca4-415b-8b28-a68b83f75f59",
+            "created": "2026-11-05T23:52:11.716522Z",
+            "modified": "2026-11-05T23:52:11.716524Z",
+            "name": "Denial of Service against FeatureStore through resource-intensive queries or excessive connections",
+            "description": "Denial of Service against FeatureStore through resource-intensive queries or excessive connections",
+            "technique_id": "T1499",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--3e72701f-5447-4879-95b7-d56bc13ea6e1"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--3e72701f-5447-4879-95b7-d56bc13ea6e1",
+            "created": "2026-11-05T23:52:11.716530Z",
+            "modified": "2026-11-05T23:52:11.716533Z",
+            "name": "FeatureStore",
+            "description": "Asset targeted by threat: Denial of Service against FeatureStore through resource-intensive queries or excessive connections",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--ddffa98e-160e-4ac2-bf02-401169399d24",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.716539Z",
+            "modified": "2026-11-05T23:52:11.716542Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--9ea1938b-1ca4-415b-8b28-a68b83f75f59",
+            "target_ref": "attack-asset--3e72701f-5447-4879-95b7-d56bc13ea6e1"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--62b33bbc-8d3d-45a7-9527-0c6ce0c871bd",
+            "created": "2026-11-05T23:52:11.716547Z",
+            "modified": "2026-11-05T23:52:11.716550Z",
+            "name": "Data interception on an unencrypted channel from MLEngine to AlertService (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from MLEngine to AlertService (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--20c7aca6-8fc4-48cb-8ad9-9cf16aaa14c7"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--20c7aca6-8fc4-48cb-8ad9-9cf16aaa14c7",
+            "created": "2026-11-05T23:52:11.716555Z",
+            "modified": "2026-11-05T23:52:11.716557Z",
+            "name": "MLToAlert",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from MLEngine to AlertService (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--536facfc-3efa-4e2a-b15a-7d1e78082f91",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.716562Z",
+            "modified": "2026-11-05T23:52:11.716564Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--62b33bbc-8d3d-45a7-9527-0c6ce0c871bd",
+            "target_ref": "attack-asset--20c7aca6-8fc4-48cb-8ad9-9cf16aaa14c7"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--3cc9ff39-1105-4540-b416-d9ded611adcd",
+            "created": "2026-11-05T23:52:11.716571Z",
+            "modified": "2026-11-05T23:52:11.716573Z",
+            "name": "Data interception on an unencrypted channel from RulesEngine to AlertService (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from RulesEngine to AlertService (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--aeeb9ecd-f3a0-41e0-af25-1157141fc08b"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--aeeb9ecd-f3a0-41e0-af25-1157141fc08b",
+            "created": "2026-11-05T23:52:11.716579Z",
+            "modified": "2026-11-05T23:52:11.716581Z",
+            "name": "RulesToAlert",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from RulesEngine to AlertService (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--e46052b8-5fa2-4985-8a21-4e43a7ecd28c",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.716586Z",
+            "modified": "2026-11-05T23:52:11.716588Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--3cc9ff39-1105-4540-b416-d9ded611adcd",
+            "target_ref": "attack-asset--aeeb9ecd-f3a0-41e0-af25-1157141fc08b"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--924671be-f3f5-4ab3-ab9c-19ce4ebb996c",
+            "created": "2026-11-05T23:52:11.716593Z",
+            "modified": "2026-11-05T23:52:11.716595Z",
+            "name": "Lack of monitoring or logging on AlertService, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on AlertService, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--9f914b69-f9ec-455a-841d-58f828712645"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--9f914b69-f9ec-455a-841d-58f828712645",
+            "created": "2026-11-05T23:52:11.716600Z",
+            "modified": "2026-11-05T23:52:11.716602Z",
+            "name": "AlertService",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on AlertService, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--ed7464db-13f8-45c5-8a7b-d4600d50ad29",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.716608Z",
+            "modified": "2026-11-05T23:52:11.716610Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--924671be-f3f5-4ab3-ab9c-19ce4ebb996c",
+            "target_ref": "attack-asset--9f914b69-f9ec-455a-841d-58f828712645"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--4b4a3e50-a5d9-4fe2-9ad6-6f5c1e6aba43",
+            "created": "2026-11-05T23:52:11.716615Z",
+            "modified": "2026-11-05T23:52:11.716617Z",
+            "name": "Insecure security configuration or hardening on MLEngine leading to information exposure",
+            "description": "Insecure security configuration or hardening on MLEngine leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--b1e5564b-6f0e-43d7-9405-a34f54f98165"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--b1e5564b-6f0e-43d7-9405-a34f54f98165",
+            "created": "2026-11-05T23:52:11.716622Z",
+            "modified": "2026-11-05T23:52:11.716624Z",
+            "name": "MLEngine",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on MLEngine leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--ee55a49f-ac2f-4da0-bf05-141efddc52b1",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.716630Z",
+            "modified": "2026-11-05T23:52:11.716632Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--4b4a3e50-a5d9-4fe2-9ad6-6f5c1e6aba43",
+            "target_ref": "attack-asset--b1e5564b-6f0e-43d7-9405-a34f54f98165"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--3bc4cb48-eace-4120-9bf7-0cbb84d67ccc",
+            "created": "2026-11-05T23:52:11.716637Z",
+            "modified": "2026-11-05T23:52:11.716639Z",
+            "name": "Insecure security configuration or hardening on RulesEngine leading to information exposure",
+            "description": "Insecure security configuration or hardening on RulesEngine leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--ba299c00-a574-4ea8-ba86-34247c8424d9"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--ba299c00-a574-4ea8-ba86-34247c8424d9",
+            "created": "2026-11-05T23:52:11.716644Z",
+            "modified": "2026-11-05T23:52:11.716646Z",
+            "name": "RulesEngine",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on RulesEngine leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--d73d7df0-df0e-4cfa-9945-c5b583305ded",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.716652Z",
+            "modified": "2026-11-05T23:52:11.716654Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--3bc4cb48-eace-4120-9bf7-0cbb84d67ccc",
+            "target_ref": "attack-asset--ba299c00-a574-4ea8-ba86-34247c8424d9"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--8be02a87-6373-44f4-885a-0cbbca375470",
+            "created": "2026-11-05T23:52:11.716659Z",
+            "modified": "2026-11-05T23:52:11.716661Z",
+            "name": "Insecure security configuration or hardening on FeatureStore leading to information exposure",
+            "description": "Insecure security configuration or hardening on FeatureStore leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--ed0243dd-2e5d-4128-a38b-4c82b2597dbd"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--ed0243dd-2e5d-4128-a38b-4c82b2597dbd",
+            "created": "2026-11-05T23:52:11.716666Z",
+            "modified": "2026-11-05T23:52:11.716668Z",
+            "name": "FeatureStore",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on FeatureStore leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--e8e4b88b-ca1b-4109-ad35-0fb77b05231a",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.716673Z",
+            "modified": "2026-11-05T23:52:11.716675Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--8be02a87-6373-44f4-885a-0cbbca375470",
+            "target_ref": "attack-asset--ed0243dd-2e5d-4128-a38b-4c82b2597dbd"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--3cdf1c81-14f1-4ec2-be0f-c9644d05ccb9",
+            "created": "2026-11-05T23:52:11.716681Z",
+            "modified": "2026-11-05T23:52:11.716683Z",
+            "name": "Insecure security configuration or hardening on AlertService leading to information exposure",
+            "description": "Insecure security configuration or hardening on AlertService leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--15fa55b1-37e6-4030-a816-73f40e9b01cb"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--15fa55b1-37e6-4030-a816-73f40e9b01cb",
+            "created": "2026-11-05T23:52:11.716689Z",
+            "modified": "2026-11-05T23:52:11.716690Z",
+            "name": "AlertService",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on AlertService leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--f003e10c-740f-45fe-b3d6-ad529f1da8a9",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.716696Z",
+            "modified": "2026-11-05T23:52:11.716698Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--3cdf1c81-14f1-4ec2-be0f-c9644d05ccb9",
+            "target_ref": "attack-asset--15fa55b1-37e6-4030-a816-73f40e9b01cb"
+        },
+        {
+            "type": "attack-flow",
+            "spec_version": "2.1",
+            "id": "attack-flow--eb651967-1548-46a6-aa2a-70f269f6d818",
+            "created_by_ref": "identity--a06ea989-6d9a-4be8-abc7-6f4fb2c3dc80",
+            "created": "2026-11-05T23:52:11.716705Z",
+            "modified": "2026-11-05T23:52:11.716707Z",
+            "name": "Attack Flow for model",
+            "description": "This Attack Flow was generated from the threat model 'model'.",
+            "scope": "attack-tree",
+            "start_refs": [
+                "attack-action--1b75fcf1-871d-4801-90f0-e55a5c0e967d",
+                "attack-action--ff2d8f4f-d2b1-4eb6-8615-d70a90eccc2e",
+                "attack-action--9361ea7f-b940-4fa4-b4dc-02eed46d353e",
+                "attack-action--76fdacd9-dc22-4347-9907-c5a5652b06b1",
+                "attack-action--d144077a-dd2b-4a2b-919d-e8ed7ed4f1dd",
+                "attack-action--854eb301-6267-4f35-a7c2-cdbaa727054f",
+                "attack-action--9df4946e-5650-4127-bc35-3427ff4b83dc",
+                "attack-action--0b305491-93ca-4891-be8d-7247a4c93f14",
+                "attack-action--c95c3f7f-92f3-429c-86c4-159a204708e8",
+                "attack-action--2a5609d1-a2cd-44a6-b863-6be6b3f9a3e7",
+                "attack-action--b8f04758-e73d-4f4b-ada1-0364e9a415d3",
+                "attack-action--d4c31d91-adb5-49da-adcd-7e202eb87494",
+                "attack-action--eadec6f7-ec59-4258-a7ce-413bbbe8242c",
+                "attack-action--b5fff053-0e96-470d-b941-d19028c69623",
+                "attack-action--2143a5b5-fdb5-4da4-9ebc-90651a443e79",
+                "attack-action--0e48fcb3-7995-43bd-b594-2f7b423c7f31",
+                "attack-action--f9393482-27dd-47b9-b0d5-0cf0d6b41d05",
+                "attack-action--b57e70fe-fd4f-4402-93ac-086450babe22",
+                "attack-action--bb6bc065-1a55-48b8-a82b-a5fc618a52f4",
+                "attack-action--be8cbb79-e467-41a0-81b0-ad9dab3988a2",
+                "attack-action--36223f5e-6598-486c-8fa4-18b89f97bfe4",
+                "attack-action--9dfc9c73-89dc-4a1b-aa86-214b1e495dc6",
+                "attack-action--5a00447f-1193-4620-8783-298627fe44f2",
+                "attack-action--9ea1938b-1ca4-415b-8b28-a68b83f75f59",
+                "attack-action--62b33bbc-8d3d-45a7-9527-0c6ce0c871bd",
+                "attack-action--3cc9ff39-1105-4540-b416-d9ded611adcd",
+                "attack-action--924671be-f3f5-4ab3-ab9c-19ce4ebb996c",
+                "attack-action--4b4a3e50-a5d9-4fe2-9ad6-6f5c1e6aba43",
+                "attack-action--3bc4cb48-eace-4120-9bf7-0cbb84d67ccc",
+                "attack-action--8be02a87-6373-44f4-885a-0cbbca375470",
+                "attack-action--3cdf1c81-14f1-4ec2-be0f-c9644d05ccb9"
+            ],
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,164 @@
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f0f2f5;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+.header {
+    background-color: #ffffff;
+    padding: 10px 20px;
+    border-bottom: 1px solid #d1d5da;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    flex-shrink: 0;
+}
+.header h1 {
+    font-size: 1.5em;
+    margin: 0;
+}
+.button-group button {
+    background-color: #2c974b;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-left: 10px;
+    transition: background-color 0.2s;
+}
+.button-group button:hover {
+    background-color: #278341;
+}
+.error-message {
+    color: #d8000c;
+    background-color: #ffbaba;
+    border: 1px solid #d8000c;
+    padding: 10px;
+    margin: 10px;
+    border-radius: 5px;
+    display: none; /* Hidden by default */
+}
+.container {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+.split {
+    display: flex;
+    flex: 1;
+}
+.gutter {
+    background-color: #eee;
+    background-repeat: no-repeat;
+    background-position: 50%;
+}
+.gutter.gutter-horizontal {
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxl79uz5T5Gj5WBGjma8+fABAF0pIxXTG4ToAAAAAElFTkSuQmCC');
+    cursor: col-resize;
+}
+.editor-pane, .preview-container {
+    padding: 10px;
+    box-sizing: border-box;
+    height: 100%;
+}
+.editor-pane {
+    background-color: #ffffff;
+}
+.CodeMirror {
+    width: 100%;
+    height: 100%;
+    border: 1px solid #d1d5da;
+    border-radius: 6px;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 14px;
+}
+.preview-container {
+    display: flex;
+    flex-direction: column;
+}
+#svg-container {
+    flex: 1;
+    border: 1px solid #d1d5da;
+    border-radius: 6px;
+    background-color: #ffffff;
+    overflow: hidden;
+    height: 70%;
+    position: relative; /* For positioning custom controls */
+}
+#svg-wrapper {
+    width: 100%;
+    height: 100%;
+}
+#svg-wrapper svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+#zoom-controls {
+    position: absolute;
+    bottom: 15px;
+    right: 15px;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+#zoom-controls button {
+    width: 30px;
+    height: 30px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    border-radius: 50%;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: background-color 0.2s, box-shadow 0.2s;
+}
+#zoom-controls button:hover {
+    background-color: #f0f0f0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+}
+#legend-container {
+    flex-shrink: 0;
+    padding-top: 10px;
+    height: 30%;
+    overflow-y: auto;
+}
+.legend-content {
+    padding: 8px;
+    line-height: 1.2;
+    transition: all 0.3s ease;
+}
+.legend-content.hidden {
+    display: none;
+}
+.legend-collapsed {
+    min-width: auto;
+    max-width: auto;
+}
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 3px;
+    padding: 1px 0;
+    font-size: 9px;
+}
+.legend-item:hover {
+    background-color: rgba(0, 122, 204, 0.1);
+    border-radius: 2px;
+    padding: 1px 2px;
+}
+.svg-element-hidden {
+    display: none !important;
+}
+.implemented-mitigation {
+    color: #16a34a; /* A green color */
+    font-weight: bold;
+}

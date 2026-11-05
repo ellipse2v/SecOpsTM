@@ -1,0 +1,737 @@
+{
+    "type": "bundle",
+    "id": "bundle--2aa7183f-ce35-4223-8e07-1c0b1fb7d63c",
+    "spec_version": "2.1",
+    "objects": [
+        {
+            "type": "extension-definition",
+            "id": "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4",
+            "spec_version": "2.1",
+            "created": "2022-08-02T19:34:35.143Z",
+            "modified": "2022-08-02T19:34:35.143Z",
+            "name": "Attack Flow",
+            "description": "Extends STIX 2.1 with features to create Attack Flows.",
+            "created_by_ref": "identity--38b55077-ad8c-4153-ada6-c51803842e32",
+            "schema": "https://center-for-threat-informed-defense.github.io/attack-flow/stix/attack-flow-schema-2.0.0.json",
+            "version": "2.0.0",
+            "extension_types": [
+                "new-sdo"
+            ]
+        },
+        {
+            "type": "identity",
+            "id": "identity--38b55077-ad8c-4153-ada6-c51803842e32",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:05.512711Z",
+            "modified": "2026-11-05T23:52:05.512725Z",
+            "name": "Threat Model Analysis Tool",
+            "identity_class": "tool"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--967897f1-113d-407b-8c1b-2d6bd35e2b2c",
+            "created": "2026-11-05T23:52:05.512735Z",
+            "modified": "2026-11-05T23:52:05.512738Z",
+            "name": "Unpatched OS or software vulnerabilities on PrimaryDB leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on PrimaryDB leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--1c824599-e85b-4ca8-bf63-dfd790eae472"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--1c824599-e85b-4ca8-bf63-dfd790eae472",
+            "created": "2026-11-05T23:52:05.512746Z",
+            "modified": "2026-11-05T23:52:05.512748Z",
+            "name": "PrimaryDB",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on PrimaryDB leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--8e89229c-66ce-4970-a651-90596b797382",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:05.512755Z",
+            "modified": "2026-11-05T23:52:05.512757Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--967897f1-113d-407b-8c1b-2d6bd35e2b2c",
+            "target_ref": "attack-asset--1c824599-e85b-4ca8-bf63-dfd790eae472"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--750cd259-7718-4176-b95a-4ba3db90cbe8",
+            "created": "2026-11-05T23:52:05.512765Z",
+            "modified": "2026-11-05T23:52:05.512767Z",
+            "name": "Data corruption or tampering in PrimaryDB via unauthorized write access",
+            "description": "Data corruption or tampering in PrimaryDB via unauthorized write access",
+            "technique_id": "T1221",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--71b4b0d2-19e0-4bbf-b8fc-c271c66a3133"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--71b4b0d2-19e0-4bbf-b8fc-c271c66a3133",
+            "created": "2026-11-05T23:52:05.512773Z",
+            "modified": "2026-11-05T23:52:05.512775Z",
+            "name": "PrimaryDB",
+            "description": "Asset targeted by threat: Data corruption or tampering in PrimaryDB via unauthorized write access",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--c01e61c5-c2ee-41fd-b9c7-067285b88cb0",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:05.512781Z",
+            "modified": "2026-11-05T23:52:05.512784Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--750cd259-7718-4176-b95a-4ba3db90cbe8",
+            "target_ref": "attack-asset--71b4b0d2-19e0-4bbf-b8fc-c271c66a3133"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--43bf3847-9284-49e2-8dcf-cc7800c68548",
+            "created": "2026-11-05T23:52:05.512790Z",
+            "modified": "2026-11-05T23:52:05.512792Z",
+            "name": "Unpatched OS or software vulnerabilities on ReplicaDB leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on ReplicaDB leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--a13cf9f7-42a4-463f-9b04-6b1b0105623d"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--a13cf9f7-42a4-463f-9b04-6b1b0105623d",
+            "created": "2026-11-05T23:52:05.512798Z",
+            "modified": "2026-11-05T23:52:05.512800Z",
+            "name": "ReplicaDB",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on ReplicaDB leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--9a7868f5-c5ef-4f31-978a-5e91d32b0d4c",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:05.512806Z",
+            "modified": "2026-11-05T23:52:05.512808Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--43bf3847-9284-49e2-8dcf-cc7800c68548",
+            "target_ref": "attack-asset--a13cf9f7-42a4-463f-9b04-6b1b0105623d"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--19899895-e9bd-4994-96aa-42ab6fb2ac07",
+            "created": "2026-11-05T23:52:05.512814Z",
+            "modified": "2026-11-05T23:52:05.512816Z",
+            "name": "Data corruption or tampering in ReplicaDB via unauthorized write access",
+            "description": "Data corruption or tampering in ReplicaDB via unauthorized write access",
+            "technique_id": "T1221",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--8865b8e8-e6fa-4db7-a326-76ca790d7136"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--8865b8e8-e6fa-4db7-a326-76ca790d7136",
+            "created": "2026-11-05T23:52:05.512822Z",
+            "modified": "2026-11-05T23:52:05.512824Z",
+            "name": "ReplicaDB",
+            "description": "Asset targeted by threat: Data corruption or tampering in ReplicaDB via unauthorized write access",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--b870e0cd-18b5-4da4-a204-f5af63f22e82",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:05.512830Z",
+            "modified": "2026-11-05T23:52:05.512832Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--19899895-e9bd-4994-96aa-42ab6fb2ac07",
+            "target_ref": "attack-asset--8865b8e8-e6fa-4db7-a326-76ca790d7136"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--f37b90f6-b47f-4f05-9f65-60bba13d24d7",
+            "created": "2026-11-05T23:52:05.512839Z",
+            "modified": "2026-11-05T23:52:05.512841Z",
+            "name": "Unauthorized access to sensitive data stored in PrimaryDB leading to data breach",
+            "description": "Unauthorized access to sensitive data stored in PrimaryDB leading to data breach",
+            "technique_id": "T1078",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--88f64810-d395-4df1-a4dd-635c3743aeb3"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--88f64810-d395-4df1-a4dd-635c3743aeb3",
+            "created": "2026-11-05T23:52:05.512846Z",
+            "modified": "2026-11-05T23:52:05.512849Z",
+            "name": "PrimaryDB",
+            "description": "Asset targeted by threat: Unauthorized access to sensitive data stored in PrimaryDB leading to data breach",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--77e1472b-4362-484a-ab60-1335cbaa9e3b",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:05.512855Z",
+            "modified": "2026-11-05T23:52:05.512857Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--f37b90f6-b47f-4f05-9f65-60bba13d24d7",
+            "target_ref": "attack-asset--88f64810-d395-4df1-a4dd-635c3743aeb3"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--9e56502f-76ff-4226-91c8-b3b6f6ddafa3",
+            "created": "2026-11-05T23:52:05.512863Z",
+            "modified": "2026-11-05T23:52:05.512865Z",
+            "name": "Unauthorized access to sensitive data stored in ReplicaDB leading to data breach",
+            "description": "Unauthorized access to sensitive data stored in ReplicaDB leading to data breach",
+            "technique_id": "T1078",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--2985e719-06aa-430d-b392-35a52907e1dd"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--2985e719-06aa-430d-b392-35a52907e1dd",
+            "created": "2026-11-05T23:52:05.512871Z",
+            "modified": "2026-11-05T23:52:05.512873Z",
+            "name": "ReplicaDB",
+            "description": "Asset targeted by threat: Unauthorized access to sensitive data stored in ReplicaDB leading to data breach",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--f11f4746-ed2b-4863-a4dc-2eb065a2f889",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:05.512879Z",
+            "modified": "2026-11-05T23:52:05.512881Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--9e56502f-76ff-4226-91c8-b3b6f6ddafa3",
+            "target_ref": "attack-asset--2985e719-06aa-430d-b392-35a52907e1dd"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--0c8fa2dd-83f4-40c3-978d-399b9e55639d",
+            "created": "2026-11-05T23:52:05.512913Z",
+            "modified": "2026-11-05T23:52:05.512918Z",
+            "name": "Unauthorized privilege escalation on PrimaryDB due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on PrimaryDB due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--19e5db2f-b171-4b12-8d8e-9d0c6fa8f9d9"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--19e5db2f-b171-4b12-8d8e-9d0c6fa8f9d9",
+            "created": "2026-11-05T23:52:05.512928Z",
+            "modified": "2026-11-05T23:52:05.512949Z",
+            "name": "PrimaryDB",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on PrimaryDB due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--10645b96-7830-4b38-9ab0-171b6c1caf20",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:05.512966Z",
+            "modified": "2026-11-05T23:52:05.512970Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--0c8fa2dd-83f4-40c3-978d-399b9e55639d",
+            "target_ref": "attack-asset--19e5db2f-b171-4b12-8d8e-9d0c6fa8f9d9"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--87c08e31-a859-491e-8a13-fa7e15f2d0de",
+            "created": "2026-11-05T23:52:05.512982Z",
+            "modified": "2026-11-05T23:52:05.512986Z",
+            "name": "Unauthorized privilege escalation on ReplicaDB due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on ReplicaDB due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--470814ba-3dc2-414f-930b-d631c5c49fc3"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--470814ba-3dc2-414f-930b-d631c5c49fc3",
+            "created": "2026-11-05T23:52:05.512996Z",
+            "modified": "2026-11-05T23:52:05.513000Z",
+            "name": "ReplicaDB",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on ReplicaDB due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--57501d91-7383-4e88-83e2-8445d6577869",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:05.513010Z",
+            "modified": "2026-11-05T23:52:05.513014Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--87c08e31-a859-491e-8a13-fa7e15f2d0de",
+            "target_ref": "attack-asset--470814ba-3dc2-414f-930b-d631c5c49fc3"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--764d3b42-95dd-4db0-b57a-bd811b1e35d8",
+            "created": "2026-11-05T23:52:05.513025Z",
+            "modified": "2026-11-05T23:52:05.513030Z",
+            "name": "Lack of monitoring or logging on PrimaryDB, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on PrimaryDB, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--6d3a40c1-082b-4705-beaf-5db70d9e66dd"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--6d3a40c1-082b-4705-beaf-5db70d9e66dd",
+            "created": "2026-11-05T23:52:05.513040Z",
+            "modified": "2026-11-05T23:52:05.513044Z",
+            "name": "PrimaryDB",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on PrimaryDB, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--df80b3d8-aaff-4bdb-99da-9052f2d88502",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:05.513054Z",
+            "modified": "2026-11-05T23:52:05.513059Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--764d3b42-95dd-4db0-b57a-bd811b1e35d8",
+            "target_ref": "attack-asset--6d3a40c1-082b-4705-beaf-5db70d9e66dd"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--fe5a41f1-4231-4473-a5af-d01d3f882f33",
+            "created": "2026-11-05T23:52:05.513072Z",
+            "modified": "2026-11-05T23:52:05.513076Z",
+            "name": "Denial of Service against PrimaryDB through resource-intensive queries or excessive connections",
+            "description": "Denial of Service against PrimaryDB through resource-intensive queries or excessive connections",
+            "technique_id": "T1499",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--6c602f8f-97e0-4a1c-85c1-99fa5c731b8f"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--6c602f8f-97e0-4a1c-85c1-99fa5c731b8f",
+            "created": "2026-11-05T23:52:05.513086Z",
+            "modified": "2026-11-05T23:52:05.513089Z",
+            "name": "PrimaryDB",
+            "description": "Asset targeted by threat: Denial of Service against PrimaryDB through resource-intensive queries or excessive connections",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--c73a90d3-e438-486f-8e70-c87e61c6ce5c",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:05.513100Z",
+            "modified": "2026-11-05T23:52:05.513104Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--fe5a41f1-4231-4473-a5af-d01d3f882f33",
+            "target_ref": "attack-asset--6c602f8f-97e0-4a1c-85c1-99fa5c731b8f"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--a02bc53a-5807-4c8c-8eac-82c485120121",
+            "created": "2026-11-05T23:52:05.513115Z",
+            "modified": "2026-11-05T23:52:05.513118Z",
+            "name": "Insecure security configuration or hardening on PrimaryDB leading to information exposure",
+            "description": "Insecure security configuration or hardening on PrimaryDB leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--38a59847-81b9-4fae-941d-8610479d910c"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--38a59847-81b9-4fae-941d-8610479d910c",
+            "created": "2026-11-05T23:52:05.513125Z",
+            "modified": "2026-11-05T23:52:05.513127Z",
+            "name": "PrimaryDB",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on PrimaryDB leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--bb9046f0-4f93-4066-b725-91fb84df102a",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:05.513133Z",
+            "modified": "2026-11-05T23:52:05.513135Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--a02bc53a-5807-4c8c-8eac-82c485120121",
+            "target_ref": "attack-asset--38a59847-81b9-4fae-941d-8610479d910c"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--fa26cdb6-98ec-4976-94c9-d2ca4f919a11",
+            "created": "2026-11-05T23:52:05.513142Z",
+            "modified": "2026-11-05T23:52:05.513144Z",
+            "name": "Spoofing of data from PrimaryDB to ReplicaDB due to lack of authentication",
+            "description": "Spoofing of data from PrimaryDB to ReplicaDB due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--6afcdd1e-54d4-4d8b-8099-1978bc9b45e6"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--6afcdd1e-54d4-4d8b-8099-1978bc9b45e6",
+            "created": "2026-11-05T23:52:05.513151Z",
+            "modified": "2026-11-05T23:52:05.513153Z",
+            "name": "PrimaryToReplica",
+            "description": "Asset targeted by threat: Spoofing of data from PrimaryDB to ReplicaDB due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--fce2561e-9b05-483d-b625-4a2e59206de0",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:05.513158Z",
+            "modified": "2026-11-05T23:52:05.513161Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--fa26cdb6-98ec-4976-94c9-d2ca4f919a11",
+            "target_ref": "attack-asset--6afcdd1e-54d4-4d8b-8099-1978bc9b45e6"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--ebe2653b-0134-49b8-ab09-fefdbf5ca662",
+            "created": "2026-11-05T23:52:05.513167Z",
+            "modified": "2026-11-05T23:52:05.513169Z",
+            "name": "Lack of monitoring or logging on ReplicaDB, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on ReplicaDB, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--e55d7471-73fe-429c-9efd-7dee8be5bc55"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--e55d7471-73fe-429c-9efd-7dee8be5bc55",
+            "created": "2026-11-05T23:52:05.513175Z",
+            "modified": "2026-11-05T23:52:05.513177Z",
+            "name": "ReplicaDB",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on ReplicaDB, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--df9021be-a012-4203-932b-2fe7172e5091",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:05.513183Z",
+            "modified": "2026-11-05T23:52:05.513185Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--ebe2653b-0134-49b8-ab09-fefdbf5ca662",
+            "target_ref": "attack-asset--e55d7471-73fe-429c-9efd-7dee8be5bc55"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--7c10396e-11ab-4835-8968-a9b2b5164784",
+            "created": "2026-11-05T23:52:05.513192Z",
+            "modified": "2026-11-05T23:52:05.513194Z",
+            "name": "Denial of Service against ReplicaDB through resource-intensive queries or excessive connections",
+            "description": "Denial of Service against ReplicaDB through resource-intensive queries or excessive connections",
+            "technique_id": "T1499",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--5988b2a2-415d-4e15-bed9-70fc2d7d4be2"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--5988b2a2-415d-4e15-bed9-70fc2d7d4be2",
+            "created": "2026-11-05T23:52:05.513200Z",
+            "modified": "2026-11-05T23:52:05.513202Z",
+            "name": "ReplicaDB",
+            "description": "Asset targeted by threat: Denial of Service against ReplicaDB through resource-intensive queries or excessive connections",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--730c6568-d58f-47ea-a173-c4935ac4a678",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:05.513208Z",
+            "modified": "2026-11-05T23:52:05.513211Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--7c10396e-11ab-4835-8968-a9b2b5164784",
+            "target_ref": "attack-asset--5988b2a2-415d-4e15-bed9-70fc2d7d4be2"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--92c470ac-84f9-4a4c-a97d-cf295bea899c",
+            "created": "2026-11-05T23:52:05.513217Z",
+            "modified": "2026-11-05T23:52:05.513219Z",
+            "name": "Data interception on an unencrypted channel from PrimaryDB to ReplicaDB (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from PrimaryDB to ReplicaDB (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--2c1a73e5-3909-4d6c-a943-0372b1274465"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--2c1a73e5-3909-4d6c-a943-0372b1274465",
+            "created": "2026-11-05T23:52:05.513225Z",
+            "modified": "2026-11-05T23:52:05.513227Z",
+            "name": "PrimaryToReplica",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from PrimaryDB to ReplicaDB (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--551ae6f1-cd1b-439e-bf08-1688e7cad9a6",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:05.513233Z",
+            "modified": "2026-11-05T23:52:05.513236Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--92c470ac-84f9-4a4c-a97d-cf295bea899c",
+            "target_ref": "attack-asset--2c1a73e5-3909-4d6c-a943-0372b1274465"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--d6bddac1-a8f3-4bf5-ae3d-53b764cb010e",
+            "created": "2026-11-05T23:52:05.513242Z",
+            "modified": "2026-11-05T23:52:05.513278Z",
+            "name": "Insecure security configuration or hardening on ReplicaDB leading to information exposure",
+            "description": "Insecure security configuration or hardening on ReplicaDB leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--e4c1536b-2fa7-4355-afe1-ebe37bf9dead"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--e4c1536b-2fa7-4355-afe1-ebe37bf9dead",
+            "created": "2026-11-05T23:52:05.513291Z",
+            "modified": "2026-11-05T23:52:05.513294Z",
+            "name": "ReplicaDB",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on ReplicaDB leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--5b063cbc-8080-4fcb-9790-bb6e53806dac",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:05.513307Z",
+            "modified": "2026-11-05T23:52:05.513310Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--d6bddac1-a8f3-4bf5-ae3d-53b764cb010e",
+            "target_ref": "attack-asset--e4c1536b-2fa7-4355-afe1-ebe37bf9dead"
+        },
+        {
+            "type": "attack-flow",
+            "spec_version": "2.1",
+            "id": "attack-flow--f2afeb17-7c89-4c7c-a2aa-d209e972deda",
+            "created_by_ref": "identity--38b55077-ad8c-4153-ada6-c51803842e32",
+            "created": "2026-11-05T23:52:05.513318Z",
+            "modified": "2026-11-05T23:52:05.513321Z",
+            "name": "Attack Flow for model",
+            "description": "This Attack Flow was generated from the threat model 'model'.",
+            "scope": "attack-tree",
+            "start_refs": [
+                "attack-action--967897f1-113d-407b-8c1b-2d6bd35e2b2c",
+                "attack-action--750cd259-7718-4176-b95a-4ba3db90cbe8",
+                "attack-action--43bf3847-9284-49e2-8dcf-cc7800c68548",
+                "attack-action--19899895-e9bd-4994-96aa-42ab6fb2ac07",
+                "attack-action--f37b90f6-b47f-4f05-9f65-60bba13d24d7",
+                "attack-action--9e56502f-76ff-4226-91c8-b3b6f6ddafa3",
+                "attack-action--0c8fa2dd-83f4-40c3-978d-399b9e55639d",
+                "attack-action--87c08e31-a859-491e-8a13-fa7e15f2d0de",
+                "attack-action--764d3b42-95dd-4db0-b57a-bd811b1e35d8",
+                "attack-action--fe5a41f1-4231-4473-a5af-d01d3f882f33",
+                "attack-action--a02bc53a-5807-4c8c-8eac-82c485120121",
+                "attack-action--fa26cdb6-98ec-4976-94c9-d2ca4f919a11",
+                "attack-action--ebe2653b-0134-49b8-ab09-fefdbf5ca662",
+                "attack-action--7c10396e-11ab-4835-8968-a9b2b5164784",
+                "attack-action--92c470ac-84f9-4a4c-a97d-cf295bea899c",
+                "attack-action--d6bddac1-a8f3-4bf5-ae3d-53b764cb010e"
+            ],
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        }
+    ]
+}

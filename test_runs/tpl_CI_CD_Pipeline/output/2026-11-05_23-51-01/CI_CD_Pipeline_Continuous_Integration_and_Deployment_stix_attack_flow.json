@@ -1,0 +1,1597 @@
+{
+    "type": "bundle",
+    "id": "bundle--e97b5104-7464-44df-8c1d-e6c3f5aa2747",
+    "spec_version": "2.1",
+    "objects": [
+        {
+            "type": "extension-definition",
+            "id": "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4",
+            "spec_version": "2.1",
+            "created": "2022-08-02T19:34:35.143Z",
+            "modified": "2022-08-02T19:34:35.143Z",
+            "name": "Attack Flow",
+            "description": "Extends STIX 2.1 with features to create Attack Flows.",
+            "created_by_ref": "identity--c33dd449-537c-4009-8f13-eb3cde0c4bd2",
+            "schema": "https://center-for-threat-informed-defense.github.io/attack-flow/stix/attack-flow-schema-2.0.0.json",
+            "version": "2.0.0",
+            "extension_types": [
+                "new-sdo"
+            ]
+        },
+        {
+            "type": "identity",
+            "id": "identity--c33dd449-537c-4009-8f13-eb3cde0c4bd2",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.776356Z",
+            "modified": "2026-11-05T23:51:03.776377Z",
+            "name": "Threat Model Analysis Tool",
+            "identity_class": "tool"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--ac212e38-de15-4276-9147-c57758b2a56a",
+            "created": "2026-11-05T23:51:03.776387Z",
+            "modified": "2026-11-05T23:51:03.776390Z",
+            "name": "Unpatched OS or software vulnerabilities on KubeCluster leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on KubeCluster leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--31956748-6234-49f4-bbf1-6a025f1092ee"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--31956748-6234-49f4-bbf1-6a025f1092ee",
+            "created": "2026-11-05T23:51:03.776399Z",
+            "modified": "2026-11-05T23:51:03.776402Z",
+            "name": "KubeCluster",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on KubeCluster leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--74c2ac79-d651-4e37-9f88-1d1618a7a444",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.776410Z",
+            "modified": "2026-11-05T23:51:03.776413Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--ac212e38-de15-4276-9147-c57758b2a56a",
+            "target_ref": "attack-asset--31956748-6234-49f4-bbf1-6a025f1092ee"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--d71ab813-3ec6-49d6-bb56-803e3715ba7f",
+            "created": "2026-11-05T23:51:03.776422Z",
+            "modified": "2026-11-05T23:51:03.776424Z",
+            "name": "Unauthorized privilege escalation on KubeCluster due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on KubeCluster due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--dc0c8aa7-7539-41b1-a151-412c0f4e5120"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--dc0c8aa7-7539-41b1-a151-412c0f4e5120",
+            "created": "2026-11-05T23:51:03.776431Z",
+            "modified": "2026-11-05T23:51:03.776433Z",
+            "name": "KubeCluster",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on KubeCluster due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--901c0348-4c46-40a9-ad06-29410dce678a",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.776439Z",
+            "modified": "2026-11-05T23:51:03.776441Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--d71ab813-3ec6-49d6-bb56-803e3715ba7f",
+            "target_ref": "attack-asset--dc0c8aa7-7539-41b1-a151-412c0f4e5120"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--e8ef2593-1a4f-4f8e-8b32-773cc8092eaa",
+            "created": "2026-11-05T23:51:03.776448Z",
+            "modified": "2026-11-05T23:51:03.776450Z",
+            "name": "Potential for spoofing attacks on data crossing trust boundaries from KubeCluster to ArtifactRegistry without proper authentication",
+            "description": "Potential for spoofing attacks on data crossing trust boundaries from KubeCluster to ArtifactRegistry without proper authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--07ba361e-cc5b-4a38-96e3-90bffb8805a9"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--07ba361e-cc5b-4a38-96e3-90bffb8805a9",
+            "created": "2026-11-05T23:51:03.776457Z",
+            "modified": "2026-11-05T23:51:03.776459Z",
+            "name": "Pull Artifact",
+            "description": "Asset targeted by threat: Potential for spoofing attacks on data crossing trust boundaries from KubeCluster to ArtifactRegistry without proper authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--eb0e3c26-48a3-4e0f-8579-a6bfdcdec5f6",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.776465Z",
+            "modified": "2026-11-05T23:51:03.776467Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--e8ef2593-1a4f-4f8e-8b32-773cc8092eaa",
+            "target_ref": "attack-asset--07ba361e-cc5b-4a38-96e3-90bffb8805a9"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--ff32a47e-855c-41a2-9b1a-c92f3d3f78bf",
+            "created": "2026-11-05T23:51:03.776474Z",
+            "modified": "2026-11-05T23:51:03.776476Z",
+            "name": "Potential for spoofing attacks on data crossing trust boundaries from CIServer to KubeCluster without proper authentication",
+            "description": "Potential for spoofing attacks on data crossing trust boundaries from CIServer to KubeCluster without proper authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--4dd92145-d103-4f1d-90b9-b895b9dfa1ac"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--4dd92145-d103-4f1d-90b9-b895b9dfa1ac",
+            "created": "2026-11-05T23:51:03.776482Z",
+            "modified": "2026-11-05T23:51:03.776484Z",
+            "name": "Deploy Application",
+            "description": "Asset targeted by threat: Potential for spoofing attacks on data crossing trust boundaries from CIServer to KubeCluster without proper authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--4413b81a-9df7-4d42-a71d-be4daff2cd8c",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.776489Z",
+            "modified": "2026-11-05T23:51:03.776491Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--ff32a47e-855c-41a2-9b1a-c92f3d3f78bf",
+            "target_ref": "attack-asset--4dd92145-d103-4f1d-90b9-b895b9dfa1ac"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--7177828a-ffaa-4d55-bda1-778b735755a7",
+            "created": "2026-11-05T23:51:03.776498Z",
+            "modified": "2026-11-05T23:51:03.776500Z",
+            "name": "Unpatched OS or software vulnerabilities on Git Repository leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on Git Repository leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--d1f2a2c5-938a-4e55-9103-fd5b5dc66ba8"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--d1f2a2c5-938a-4e55-9103-fd5b5dc66ba8",
+            "created": "2026-11-05T23:51:03.776506Z",
+            "modified": "2026-11-05T23:51:03.776508Z",
+            "name": "Git Repository",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on Git Repository leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--94fafb40-5a6a-4842-8efa-5f66233cf82b",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.776513Z",
+            "modified": "2026-11-05T23:51:03.776515Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--7177828a-ffaa-4d55-bda1-778b735755a7",
+            "target_ref": "attack-asset--d1f2a2c5-938a-4e55-9103-fd5b5dc66ba8"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--01bffe5b-f711-4f2a-9b09-7ddb6c907d5a",
+            "created": "2026-11-05T23:51:03.776522Z",
+            "modified": "2026-11-05T23:51:03.776524Z",
+            "name": "Unpatched OS or software vulnerabilities on CIServer leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on CIServer leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--eb71c0b9-caa3-4385-8fd8-24c87ba72e67"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--eb71c0b9-caa3-4385-8fd8-24c87ba72e67",
+            "created": "2026-11-05T23:51:03.776531Z",
+            "modified": "2026-11-05T23:51:03.776533Z",
+            "name": "CIServer",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on CIServer leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--3518a5ce-cd10-4982-9059-a9fab87fa99e",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.776539Z",
+            "modified": "2026-11-05T23:51:03.776541Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--01bffe5b-f711-4f2a-9b09-7ddb6c907d5a",
+            "target_ref": "attack-asset--eb71c0b9-caa3-4385-8fd8-24c87ba72e67"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--53b6fbd6-d316-4409-9bf9-04ec7e78adad",
+            "created": "2026-11-05T23:51:03.776548Z",
+            "modified": "2026-11-05T23:51:03.776550Z",
+            "name": "Unpatched OS or software vulnerabilities on ArtifactRegistry leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on ArtifactRegistry leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--d91b5d65-600b-4b73-8659-0872bd001d2e"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--d91b5d65-600b-4b73-8659-0872bd001d2e",
+            "created": "2026-11-05T23:51:03.776589Z",
+            "modified": "2026-11-05T23:51:03.776594Z",
+            "name": "ArtifactRegistry",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on ArtifactRegistry leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--19afdcd8-bb70-469b-9f5e-0813e691bac5",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.776602Z",
+            "modified": "2026-11-05T23:51:03.776604Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--53b6fbd6-d316-4409-9bf9-04ec7e78adad",
+            "target_ref": "attack-asset--d91b5d65-600b-4b73-8659-0872bd001d2e"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--aa4ad80b-8b1e-421e-adfb-6c3075e9ecb4",
+            "created": "2026-11-05T23:51:03.776616Z",
+            "modified": "2026-11-05T23:51:03.776618Z",
+            "name": "Unauthorized privilege escalation on Git Repository due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on Git Repository due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--caef5cb8-5ef9-4cbf-9b21-73a77ce31b7d"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--caef5cb8-5ef9-4cbf-9b21-73a77ce31b7d",
+            "created": "2026-11-05T23:51:03.776626Z",
+            "modified": "2026-11-05T23:51:03.776628Z",
+            "name": "Git Repository",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on Git Repository due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--064a7d37-0d52-4808-a2e2-fc6e4caedef5",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.776637Z",
+            "modified": "2026-11-05T23:51:03.776639Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--aa4ad80b-8b1e-421e-adfb-6c3075e9ecb4",
+            "target_ref": "attack-asset--caef5cb8-5ef9-4cbf-9b21-73a77ce31b7d"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--8d3be684-94ef-4113-94d0-2023518834db",
+            "created": "2026-11-05T23:51:03.776646Z",
+            "modified": "2026-11-05T23:51:03.776648Z",
+            "name": "Unauthorized privilege escalation on CIServer due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on CIServer due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--94749f7c-b937-4b95-9974-20ca6469f3e6"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--94749f7c-b937-4b95-9974-20ca6469f3e6",
+            "created": "2026-11-05T23:51:03.776654Z",
+            "modified": "2026-11-05T23:51:03.776656Z",
+            "name": "CIServer",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on CIServer due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--909d1745-8797-4e25-9024-320c6e4a2040",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.776662Z",
+            "modified": "2026-11-05T23:51:03.776663Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--8d3be684-94ef-4113-94d0-2023518834db",
+            "target_ref": "attack-asset--94749f7c-b937-4b95-9974-20ca6469f3e6"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--aba04081-0e08-4ddb-ba4d-2b902e0e97d1",
+            "created": "2026-11-05T23:51:03.776670Z",
+            "modified": "2026-11-05T23:51:03.776672Z",
+            "name": "Unauthorized privilege escalation on ArtifactRegistry due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on ArtifactRegistry due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--aeb038bf-8a65-4f47-abf7-5fa1813c3b5a"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--aeb038bf-8a65-4f47-abf7-5fa1813c3b5a",
+            "created": "2026-11-05T23:51:03.776678Z",
+            "modified": "2026-11-05T23:51:03.776679Z",
+            "name": "ArtifactRegistry",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on ArtifactRegistry due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--7a1db022-fce3-48c2-a132-6908eb0c26bb",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.776686Z",
+            "modified": "2026-11-05T23:51:03.776687Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--aba04081-0e08-4ddb-ba4d-2b902e0e97d1",
+            "target_ref": "attack-asset--aeb038bf-8a65-4f47-abf7-5fa1813c3b5a"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--aa527dfa-487a-4177-b1d8-79a78991005c",
+            "created": "2026-11-05T23:51:03.776694Z",
+            "modified": "2026-11-05T23:51:03.776696Z",
+            "name": "Lack of monitoring or logging on KubeCluster, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on KubeCluster, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--5846235d-680b-4e67-91da-98c0be799dd5"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--5846235d-680b-4e67-91da-98c0be799dd5",
+            "created": "2026-11-05T23:51:03.776702Z",
+            "modified": "2026-11-05T23:51:03.776704Z",
+            "name": "KubeCluster",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on KubeCluster, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--4e2d4c78-f5f9-4d45-a55e-73256f597b5c",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.776710Z",
+            "modified": "2026-11-05T23:51:03.776712Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--aa527dfa-487a-4177-b1d8-79a78991005c",
+            "target_ref": "attack-asset--5846235d-680b-4e67-91da-98c0be799dd5"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--9bfa6e8d-f5a3-4246-b067-1aac272671e1",
+            "created": "2026-11-05T23:51:03.776718Z",
+            "modified": "2026-11-05T23:51:03.776719Z",
+            "name": "Insecure security configuration or hardening on KubeCluster leading to information exposure",
+            "description": "Insecure security configuration or hardening on KubeCluster leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--193bab55-1b57-4a0d-ad1e-17b0bd06263b"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--193bab55-1b57-4a0d-ad1e-17b0bd06263b",
+            "created": "2026-11-05T23:51:03.776726Z",
+            "modified": "2026-11-05T23:51:03.776727Z",
+            "name": "KubeCluster",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on KubeCluster leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--91911dfd-5891-4f55-9308-bf78bc0dbbc5",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.776735Z",
+            "modified": "2026-11-05T23:51:03.776737Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--9bfa6e8d-f5a3-4246-b067-1aac272671e1",
+            "target_ref": "attack-asset--193bab55-1b57-4a0d-ad1e-17b0bd06263b"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--c36287a9-3afb-41a0-9742-58ba5bf90e66",
+            "created": "2026-11-05T23:51:03.776743Z",
+            "modified": "2026-11-05T23:51:03.776746Z",
+            "name": "Spoofing of data from Developer to Git Repository due to lack of authentication",
+            "description": "Spoofing of data from Developer to Git Repository due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--02128e22-e3a3-47a8-a10d-c0f76a8d8b3f"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--02128e22-e3a3-47a8-a10d-c0f76a8d8b3f",
+            "created": "2026-11-05T23:51:03.776752Z",
+            "modified": "2026-11-05T23:51:03.776754Z",
+            "name": "Push Code",
+            "description": "Asset targeted by threat: Spoofing of data from Developer to Git Repository due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--1b1986ae-5a55-4476-a2b4-b2ee9033f971",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.776760Z",
+            "modified": "2026-11-05T23:51:03.776761Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--c36287a9-3afb-41a0-9742-58ba5bf90e66",
+            "target_ref": "attack-asset--02128e22-e3a3-47a8-a10d-c0f76a8d8b3f"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--18a03a58-2d48-4e84-a09a-b8f95e4ba248",
+            "created": "2026-11-05T23:51:03.776769Z",
+            "modified": "2026-11-05T23:51:03.776771Z",
+            "name": "Spoofing of data from Git Repository to CIServer due to lack of authentication",
+            "description": "Spoofing of data from Git Repository to CIServer due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--8983e94b-ba8e-4afb-b55d-0e94079d829d"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--8983e94b-ba8e-4afb-b55d-0e94079d829d",
+            "created": "2026-11-05T23:51:03.776776Z",
+            "modified": "2026-11-05T23:51:03.776778Z",
+            "name": "Webhook Trigger",
+            "description": "Asset targeted by threat: Spoofing of data from Git Repository to CIServer due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--64da8034-54cc-46a3-be9a-915309dad7f0",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.776784Z",
+            "modified": "2026-11-05T23:51:03.776785Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--18a03a58-2d48-4e84-a09a-b8f95e4ba248",
+            "target_ref": "attack-asset--8983e94b-ba8e-4afb-b55d-0e94079d829d"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--9a789295-54ab-4865-a068-79b26ad7035c",
+            "created": "2026-11-05T23:51:03.776792Z",
+            "modified": "2026-11-05T23:51:03.776794Z",
+            "name": "Spoofing of data from CIServer to Git Repository due to lack of authentication",
+            "description": "Spoofing of data from CIServer to Git Repository due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--adbebe81-106d-4b59-b638-f657f55da31b"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--adbebe81-106d-4b59-b638-f657f55da31b",
+            "created": "2026-11-05T23:51:03.776800Z",
+            "modified": "2026-11-05T23:51:03.776803Z",
+            "name": "Fetch Code",
+            "description": "Asset targeted by threat: Spoofing of data from CIServer to Git Repository due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--ce9b0d07-92ed-4c13-b840-87ebd845ba08",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.776809Z",
+            "modified": "2026-11-05T23:51:03.776812Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--9a789295-54ab-4865-a068-79b26ad7035c",
+            "target_ref": "attack-asset--adbebe81-106d-4b59-b638-f657f55da31b"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--391a6c74-f542-4c7f-9fe4-19cabc210b80",
+            "created": "2026-11-05T23:51:03.776818Z",
+            "modified": "2026-11-05T23:51:03.776820Z",
+            "name": "Spoofing of data from CIServer to ArtifactRegistry due to lack of authentication",
+            "description": "Spoofing of data from CIServer to ArtifactRegistry due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--d9e9aec2-2f65-4dca-850c-01a5fc6a295f"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--d9e9aec2-2f65-4dca-850c-01a5fc6a295f",
+            "created": "2026-11-05T23:51:03.776826Z",
+            "modified": "2026-11-05T23:51:03.776828Z",
+            "name": "Build Application",
+            "description": "Asset targeted by threat: Spoofing of data from CIServer to ArtifactRegistry due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--e5ec3205-90c5-4142-9247-a9824f572f02",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.776834Z",
+            "modified": "2026-11-05T23:51:03.776836Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--391a6c74-f542-4c7f-9fe4-19cabc210b80",
+            "target_ref": "attack-asset--d9e9aec2-2f65-4dca-850c-01a5fc6a295f"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--c5011062-aa5d-46ec-8682-8d3b21e1c4e3",
+            "created": "2026-11-05T23:51:03.776842Z",
+            "modified": "2026-11-05T23:51:03.776844Z",
+            "name": "Spoofing of data from KubeCluster to ArtifactRegistry due to lack of authentication",
+            "description": "Spoofing of data from KubeCluster to ArtifactRegistry due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--147c5999-4a02-4b6d-8756-8c6565c398d9"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--147c5999-4a02-4b6d-8756-8c6565c398d9",
+            "created": "2026-11-05T23:51:03.776850Z",
+            "modified": "2026-11-05T23:51:03.776852Z",
+            "name": "Pull Artifact",
+            "description": "Asset targeted by threat: Spoofing of data from KubeCluster to ArtifactRegistry due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--b3f4f0a5-72cb-4473-94cf-d3c71622b5b3",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.776857Z",
+            "modified": "2026-11-05T23:51:03.776859Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--c5011062-aa5d-46ec-8682-8d3b21e1c4e3",
+            "target_ref": "attack-asset--147c5999-4a02-4b6d-8756-8c6565c398d9"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--94354f0a-d913-4384-904c-443467c3ae41",
+            "created": "2026-11-05T23:51:03.776865Z",
+            "modified": "2026-11-05T23:51:03.776867Z",
+            "name": "Spoofing of data from CIServer to KubeCluster due to lack of authentication",
+            "description": "Spoofing of data from CIServer to KubeCluster due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--e092ba9d-7fd1-4263-8c81-675b8332a11f"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--e092ba9d-7fd1-4263-8c81-675b8332a11f",
+            "created": "2026-11-05T23:51:03.776873Z",
+            "modified": "2026-11-05T23:51:03.776875Z",
+            "name": "Deploy Application",
+            "description": "Asset targeted by threat: Spoofing of data from CIServer to KubeCluster due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--35298388-c857-478d-9f0e-0fd3b92ded4a",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.776880Z",
+            "modified": "2026-11-05T23:51:03.776882Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--94354f0a-d913-4384-904c-443467c3ae41",
+            "target_ref": "attack-asset--e092ba9d-7fd1-4263-8c81-675b8332a11f"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--546476ee-67e1-42df-bf4a-faa0eac8bc9e",
+            "created": "2026-11-05T23:51:03.776888Z",
+            "modified": "2026-11-05T23:51:03.776890Z",
+            "name": "Lack of monitoring or logging on CIServer, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on CIServer, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--00c6d4dd-f573-4d0b-a587-1eb313cd0a23"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--00c6d4dd-f573-4d0b-a587-1eb313cd0a23",
+            "created": "2026-11-05T23:51:03.776896Z",
+            "modified": "2026-11-05T23:51:03.776898Z",
+            "name": "CIServer",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on CIServer, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--a228ea59-c342-4f0a-9f22-cdf321b68481",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.776904Z",
+            "modified": "2026-11-05T23:51:03.776906Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--546476ee-67e1-42df-bf4a-faa0eac8bc9e",
+            "target_ref": "attack-asset--00c6d4dd-f573-4d0b-a587-1eb313cd0a23"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--57960945-f61d-4d38-b937-5e417d5b641a",
+            "created": "2026-11-05T23:51:03.776918Z",
+            "modified": "2026-11-05T23:51:03.776920Z",
+            "name": "Lack of monitoring or logging on Git Repository, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on Git Repository, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--6ac20b9a-6ec5-4e32-a07b-47fdf87c8f6d"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--6ac20b9a-6ec5-4e32-a07b-47fdf87c8f6d",
+            "created": "2026-11-05T23:51:03.776925Z",
+            "modified": "2026-11-05T23:51:03.776927Z",
+            "name": "Git Repository",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on Git Repository, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--8f8ddf0c-f370-4092-bc14-ff105d7fa921",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.776934Z",
+            "modified": "2026-11-05T23:51:03.776936Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--57960945-f61d-4d38-b937-5e417d5b641a",
+            "target_ref": "attack-asset--6ac20b9a-6ec5-4e32-a07b-47fdf87c8f6d"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--e3ad39d2-22cd-44f3-b07d-f7bc03bbafd7",
+            "created": "2026-11-05T23:51:03.776942Z",
+            "modified": "2026-11-05T23:51:03.776944Z",
+            "name": "Data interception on an unencrypted channel from Developer to Git Repository (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from Developer to Git Repository (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--ee86535f-7183-45d5-8957-6a484379cafd"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--ee86535f-7183-45d5-8957-6a484379cafd",
+            "created": "2026-11-05T23:51:03.776950Z",
+            "modified": "2026-11-05T23:51:03.776952Z",
+            "name": "Push Code",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from Developer to Git Repository (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--79161205-8541-4b91-a8f8-1ddfef2a8b44",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.776957Z",
+            "modified": "2026-11-05T23:51:03.776960Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--e3ad39d2-22cd-44f3-b07d-f7bc03bbafd7",
+            "target_ref": "attack-asset--ee86535f-7183-45d5-8957-6a484379cafd"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--83af5dc1-0d90-421e-9889-8bc734b564fa",
+            "created": "2026-11-05T23:51:03.776966Z",
+            "modified": "2026-11-05T23:51:03.776968Z",
+            "name": "Data interception on an unencrypted channel from Git Repository to CIServer (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from Git Repository to CIServer (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--4ff03c99-dc91-45d4-8432-0f337f0aebcc"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--4ff03c99-dc91-45d4-8432-0f337f0aebcc",
+            "created": "2026-11-05T23:51:03.776975Z",
+            "modified": "2026-11-05T23:51:03.776977Z",
+            "name": "Webhook Trigger",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from Git Repository to CIServer (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--255d66d7-2b2b-413d-aca4-b6358f852dd8",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.776982Z",
+            "modified": "2026-11-05T23:51:03.776984Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--83af5dc1-0d90-421e-9889-8bc734b564fa",
+            "target_ref": "attack-asset--4ff03c99-dc91-45d4-8432-0f337f0aebcc"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--69faab60-7c34-4ef9-961c-64f7a048b15d",
+            "created": "2026-11-05T23:51:03.776990Z",
+            "modified": "2026-11-05T23:51:03.776992Z",
+            "name": "Data interception on an unencrypted channel from CIServer to Git Repository (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from CIServer to Git Repository (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--18812028-edce-4f2d-aa7e-756bb5f908fa"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--18812028-edce-4f2d-aa7e-756bb5f908fa",
+            "created": "2026-11-05T23:51:03.776998Z",
+            "modified": "2026-11-05T23:51:03.777000Z",
+            "name": "Fetch Code",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from CIServer to Git Repository (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--dfccf42c-94ae-488a-a6ae-e61651ecec17",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.777006Z",
+            "modified": "2026-11-05T23:51:03.777008Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--69faab60-7c34-4ef9-961c-64f7a048b15d",
+            "target_ref": "attack-asset--18812028-edce-4f2d-aa7e-756bb5f908fa"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--6ffddcc4-b88e-4357-a36d-4035dc99805d",
+            "created": "2026-11-05T23:51:03.777014Z",
+            "modified": "2026-11-05T23:51:03.777016Z",
+            "name": "Data interception on an unencrypted channel from CIServer to ArtifactRegistry (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from CIServer to ArtifactRegistry (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--01a979a1-0063-4921-bf8e-13be9af4c03b"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--01a979a1-0063-4921-bf8e-13be9af4c03b",
+            "created": "2026-11-05T23:51:03.777023Z",
+            "modified": "2026-11-05T23:51:03.777025Z",
+            "name": "Build Application",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from CIServer to ArtifactRegistry (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--a2589499-4752-4e46-8d46-ce71e3b8c436",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.777030Z",
+            "modified": "2026-11-05T23:51:03.777032Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--6ffddcc4-b88e-4357-a36d-4035dc99805d",
+            "target_ref": "attack-asset--01a979a1-0063-4921-bf8e-13be9af4c03b"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--d388912e-673b-4b0d-bfb5-615338a44ab5",
+            "created": "2026-11-05T23:51:03.777039Z",
+            "modified": "2026-11-05T23:51:03.777041Z",
+            "name": "Data interception on an unencrypted channel from KubeCluster to ArtifactRegistry (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from KubeCluster to ArtifactRegistry (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--694bc23f-32c3-4866-8e31-7071704c6ac7"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--694bc23f-32c3-4866-8e31-7071704c6ac7",
+            "created": "2026-11-05T23:51:03.777046Z",
+            "modified": "2026-11-05T23:51:03.777048Z",
+            "name": "Pull Artifact",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from KubeCluster to ArtifactRegistry (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--164fd5f1-d52f-4561-aa6b-e65b13dbbf40",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.777053Z",
+            "modified": "2026-11-05T23:51:03.777055Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--d388912e-673b-4b0d-bfb5-615338a44ab5",
+            "target_ref": "attack-asset--694bc23f-32c3-4866-8e31-7071704c6ac7"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--a662c51a-82af-4ba7-8473-4664b75561a0",
+            "created": "2026-11-05T23:51:03.777062Z",
+            "modified": "2026-11-05T23:51:03.777064Z",
+            "name": "Data interception on an unencrypted channel from CIServer to KubeCluster (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from CIServer to KubeCluster (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--ccc9d212-5790-4629-bdac-cc67d38c9fc1"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--ccc9d212-5790-4629-bdac-cc67d38c9fc1",
+            "created": "2026-11-05T23:51:03.777069Z",
+            "modified": "2026-11-05T23:51:03.777071Z",
+            "name": "Deploy Application",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from CIServer to KubeCluster (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--46a2875c-6038-4faf-bd48-08aadfc103dc",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.777077Z",
+            "modified": "2026-11-05T23:51:03.777079Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--a662c51a-82af-4ba7-8473-4664b75561a0",
+            "target_ref": "attack-asset--ccc9d212-5790-4629-bdac-cc67d38c9fc1"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--8e59f2be-5ac9-4dd9-b01a-95f2ff3c9f52",
+            "created": "2026-11-05T23:51:03.777085Z",
+            "modified": "2026-11-05T23:51:03.777087Z",
+            "name": "Lack of monitoring or logging on ArtifactRegistry, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on ArtifactRegistry, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--a871c026-5874-4bb5-bdbe-a175bd907a71"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--a871c026-5874-4bb5-bdbe-a175bd907a71",
+            "created": "2026-11-05T23:51:03.777093Z",
+            "modified": "2026-11-05T23:51:03.777095Z",
+            "name": "ArtifactRegistry",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on ArtifactRegistry, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--2ed81ec8-f03c-49ee-900f-9aaeaeb2a581",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.777100Z",
+            "modified": "2026-11-05T23:51:03.777102Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--8e59f2be-5ac9-4dd9-b01a-95f2ff3c9f52",
+            "target_ref": "attack-asset--a871c026-5874-4bb5-bdbe-a175bd907a71"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--9630130e-f073-4af1-8722-e536d56063f9",
+            "created": "2026-11-05T23:51:03.777108Z",
+            "modified": "2026-11-05T23:51:03.777110Z",
+            "name": "Insecure security configuration or hardening on CIServer leading to information exposure",
+            "description": "Insecure security configuration or hardening on CIServer leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--18b1231f-f42c-4554-9b6b-c161f2488f98"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--18b1231f-f42c-4554-9b6b-c161f2488f98",
+            "created": "2026-11-05T23:51:03.777115Z",
+            "modified": "2026-11-05T23:51:03.777117Z",
+            "name": "CIServer",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on CIServer leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--4d07d063-a205-47c6-8e40-29741712c310",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.777123Z",
+            "modified": "2026-11-05T23:51:03.777125Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--9630130e-f073-4af1-8722-e536d56063f9",
+            "target_ref": "attack-asset--18b1231f-f42c-4554-9b6b-c161f2488f98"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--1d884e08-ea66-4df2-b797-0ebcf7a61ac8",
+            "created": "2026-11-05T23:51:03.777130Z",
+            "modified": "2026-11-05T23:51:03.777132Z",
+            "name": "Identity spoofing of the actor Developer via phishing or credential theft",
+            "description": "Identity spoofing of the actor Developer via phishing or credential theft",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--414ca1cb-0b86-4cc5-babe-9fa6602f9332"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--414ca1cb-0b86-4cc5-babe-9fa6602f9332",
+            "created": "2026-11-05T23:51:03.777137Z",
+            "modified": "2026-11-05T23:51:03.777139Z",
+            "name": "Developer",
+            "description": "Asset targeted by threat: Identity spoofing of the actor Developer via phishing or credential theft",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--08921a4e-f418-4e12-92b5-d9702f827496",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.777144Z",
+            "modified": "2026-11-05T23:51:03.777146Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--1d884e08-ea66-4df2-b797-0ebcf7a61ac8",
+            "target_ref": "attack-asset--414ca1cb-0b86-4cc5-babe-9fa6602f9332"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--8b942919-7635-401e-982e-872d75c55d9a",
+            "created": "2026-11-05T23:51:03.777152Z",
+            "modified": "2026-11-05T23:51:03.777154Z",
+            "name": "Identity spoofing of the actor CI/CD System via phishing or credential theft",
+            "description": "Identity spoofing of the actor CI/CD System via phishing or credential theft",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--a1d2b2e1-7a63-43e7-93ee-e1cea46fabf7"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--a1d2b2e1-7a63-43e7-93ee-e1cea46fabf7",
+            "created": "2026-11-05T23:51:03.777160Z",
+            "modified": "2026-11-05T23:51:03.777162Z",
+            "name": "CI/CD System",
+            "description": "Asset targeted by threat: Identity spoofing of the actor CI/CD System via phishing or credential theft",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--64580944-b5bd-4fb7-92d2-d579d9a55bbc",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.777167Z",
+            "modified": "2026-11-05T23:51:03.777168Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--8b942919-7635-401e-982e-872d75c55d9a",
+            "target_ref": "attack-asset--a1d2b2e1-7a63-43e7-93ee-e1cea46fabf7"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--e4e625a3-ffaf-4e01-9a71-b4bbd286ff61",
+            "created": "2026-11-05T23:51:03.777174Z",
+            "modified": "2026-11-05T23:51:03.777176Z",
+            "name": "Insecure security configuration or hardening on Git Repository leading to information exposure",
+            "description": "Insecure security configuration or hardening on Git Repository leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--631b2d2c-e3c4-412b-9840-e465364c8f98"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--631b2d2c-e3c4-412b-9840-e465364c8f98",
+            "created": "2026-11-05T23:51:03.777182Z",
+            "modified": "2026-11-05T23:51:03.777184Z",
+            "name": "Git Repository",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on Git Repository leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--6ab6b23b-2b72-40ef-a705-9b6d59b33c94",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.777189Z",
+            "modified": "2026-11-05T23:51:03.777191Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--e4e625a3-ffaf-4e01-9a71-b4bbd286ff61",
+            "target_ref": "attack-asset--631b2d2c-e3c4-412b-9840-e465364c8f98"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--d272a14e-5869-4402-b0e4-797e0a46e8e8",
+            "created": "2026-11-05T23:51:03.777198Z",
+            "modified": "2026-11-05T23:51:03.777200Z",
+            "name": "Insecure security configuration or hardening on ArtifactRegistry leading to information exposure",
+            "description": "Insecure security configuration or hardening on ArtifactRegistry leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--93101245-4b51-41f2-8780-96082c653cdc"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--93101245-4b51-41f2-8780-96082c653cdc",
+            "created": "2026-11-05T23:51:03.777205Z",
+            "modified": "2026-11-05T23:51:03.777207Z",
+            "name": "ArtifactRegistry",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on ArtifactRegistry leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--963ff400-7f04-46b2-b296-246540a60b10",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.777212Z",
+            "modified": "2026-11-05T23:51:03.777214Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--d272a14e-5869-4402-b0e4-797e0a46e8e8",
+            "target_ref": "attack-asset--93101245-4b51-41f2-8780-96082c653cdc"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--a61e19be-e04f-4734-98a9-eb582baf9145",
+            "created": "2026-11-05T23:51:03.777219Z",
+            "modified": "2026-11-05T23:51:03.777221Z",
+            "name": "Privilege abuse by actor Developer to gain unauthorized access or perform unauthorized actions",
+            "description": "Privilege abuse by actor Developer to gain unauthorized access or perform unauthorized actions",
+            "technique_id": "T1548",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--2e08627b-e364-49e9-8a34-1805bcc0616e"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--2e08627b-e364-49e9-8a34-1805bcc0616e",
+            "created": "2026-11-05T23:51:03.777227Z",
+            "modified": "2026-11-05T23:51:03.777229Z",
+            "name": "Developer",
+            "description": "Asset targeted by threat: Privilege abuse by actor Developer to gain unauthorized access or perform unauthorized actions",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--40d1d7d5-ad40-4ad2-8075-e13d20c42824",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.777235Z",
+            "modified": "2026-11-05T23:51:03.777237Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--a61e19be-e04f-4734-98a9-eb582baf9145",
+            "target_ref": "attack-asset--2e08627b-e364-49e9-8a34-1805bcc0616e"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--7fbbb986-490b-4fc3-9fd9-6ae6265290cd",
+            "created": "2026-11-05T23:51:03.777242Z",
+            "modified": "2026-11-05T23:51:03.777244Z",
+            "name": "Privilege abuse by actor CI/CD System to gain unauthorized access or perform unauthorized actions",
+            "description": "Privilege abuse by actor CI/CD System to gain unauthorized access or perform unauthorized actions",
+            "technique_id": "T1548",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--213be795-4a61-48d0-a256-7e656f0eca86"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--213be795-4a61-48d0-a256-7e656f0eca86",
+            "created": "2026-11-05T23:51:03.777250Z",
+            "modified": "2026-11-05T23:51:03.777251Z",
+            "name": "CI/CD System",
+            "description": "Asset targeted by threat: Privilege abuse by actor CI/CD System to gain unauthorized access or perform unauthorized actions",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--f2fffdc8-bde5-4e91-8e37-41ae6660475d",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.777257Z",
+            "modified": "2026-11-05T23:51:03.777259Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--7fbbb986-490b-4fc3-9fd9-6ae6265290cd",
+            "target_ref": "attack-asset--213be795-4a61-48d0-a256-7e656f0eca86"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--0c21ad3f-3b06-4836-bd54-34ebc5403970",
+            "created": "2026-11-05T23:51:03.777265Z",
+            "modified": "2026-11-05T23:51:03.777267Z",
+            "name": "Repudiation of critical actions performed by Developer due to insufficient logging or non-repudiation controls",
+            "description": "Repudiation of critical actions performed by Developer due to insufficient logging or non-repudiation controls",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--86215216-33fa-4de7-b80f-f9f46d2c45f3"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--86215216-33fa-4de7-b80f-f9f46d2c45f3",
+            "created": "2026-11-05T23:51:03.777272Z",
+            "modified": "2026-11-05T23:51:03.777274Z",
+            "name": "Developer",
+            "description": "Asset targeted by threat: Repudiation of critical actions performed by Developer due to insufficient logging or non-repudiation controls",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--d00200cd-72b6-4a0e-ba1c-8ffc6fc44909",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.777280Z",
+            "modified": "2026-11-05T23:51:03.777281Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--0c21ad3f-3b06-4836-bd54-34ebc5403970",
+            "target_ref": "attack-asset--86215216-33fa-4de7-b80f-f9f46d2c45f3"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--4bbe5002-396b-48c5-8d42-7d23fcfa28f3",
+            "created": "2026-11-05T23:51:03.777287Z",
+            "modified": "2026-11-05T23:51:03.777289Z",
+            "name": "Repudiation of critical actions performed by CI/CD System due to insufficient logging or non-repudiation controls",
+            "description": "Repudiation of critical actions performed by CI/CD System due to insufficient logging or non-repudiation controls",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--34daf02c-03d8-415c-90b0-43c0459bbae7"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--34daf02c-03d8-415c-90b0-43c0459bbae7",
+            "created": "2026-11-05T23:51:03.777295Z",
+            "modified": "2026-11-05T23:51:03.777297Z",
+            "name": "CI/CD System",
+            "description": "Asset targeted by threat: Repudiation of critical actions performed by CI/CD System due to insufficient logging or non-repudiation controls",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--01fe8e1b-fe20-488d-bdb2-5c31d2bee690",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:03.777302Z",
+            "modified": "2026-11-05T23:51:03.777305Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--4bbe5002-396b-48c5-8d42-7d23fcfa28f3",
+            "target_ref": "attack-asset--34daf02c-03d8-415c-90b0-43c0459bbae7"
+        },
+        {
+            "type": "attack-flow",
+            "spec_version": "2.1",
+            "id": "attack-flow--169cc03d-577a-4f00-84c4-b0d8625fa3f3",
+            "created_by_ref": "identity--c33dd449-537c-4009-8f13-eb3cde0c4bd2",
+            "created": "2026-11-05T23:51:03.777314Z",
+            "modified": "2026-11-05T23:51:03.777316Z",
+            "name": "Attack Flow for CI/CD Pipeline (Continuous Integration and Deployment)",
+            "description": "This Attack Flow was generated from the threat model 'CI/CD Pipeline (Continuous Integration and Deployment)'.",
+            "scope": "attack-tree",
+            "start_refs": [
+                "attack-action--ac212e38-de15-4276-9147-c57758b2a56a",
+                "attack-action--d71ab813-3ec6-49d6-bb56-803e3715ba7f",
+                "attack-action--e8ef2593-1a4f-4f8e-8b32-773cc8092eaa",
+                "attack-action--ff32a47e-855c-41a2-9b1a-c92f3d3f78bf",
+                "attack-action--7177828a-ffaa-4d55-bda1-778b735755a7",
+                "attack-action--01bffe5b-f711-4f2a-9b09-7ddb6c907d5a",
+                "attack-action--53b6fbd6-d316-4409-9bf9-04ec7e78adad",
+                "attack-action--aa4ad80b-8b1e-421e-adfb-6c3075e9ecb4",
+                "attack-action--8d3be684-94ef-4113-94d0-2023518834db",
+                "attack-action--aba04081-0e08-4ddb-ba4d-2b902e0e97d1",
+                "attack-action--aa527dfa-487a-4177-b1d8-79a78991005c",
+                "attack-action--9bfa6e8d-f5a3-4246-b067-1aac272671e1",
+                "attack-action--c36287a9-3afb-41a0-9742-58ba5bf90e66",
+                "attack-action--18a03a58-2d48-4e84-a09a-b8f95e4ba248",
+                "attack-action--9a789295-54ab-4865-a068-79b26ad7035c",
+                "attack-action--391a6c74-f542-4c7f-9fe4-19cabc210b80",
+                "attack-action--c5011062-aa5d-46ec-8682-8d3b21e1c4e3",
+                "attack-action--94354f0a-d913-4384-904c-443467c3ae41",
+                "attack-action--546476ee-67e1-42df-bf4a-faa0eac8bc9e",
+                "attack-action--57960945-f61d-4d38-b937-5e417d5b641a",
+                "attack-action--e3ad39d2-22cd-44f3-b07d-f7bc03bbafd7",
+                "attack-action--83af5dc1-0d90-421e-9889-8bc734b564fa",
+                "attack-action--69faab60-7c34-4ef9-961c-64f7a048b15d",
+                "attack-action--6ffddcc4-b88e-4357-a36d-4035dc99805d",
+                "attack-action--d388912e-673b-4b0d-bfb5-615338a44ab5",
+                "attack-action--a662c51a-82af-4ba7-8473-4664b75561a0",
+                "attack-action--8e59f2be-5ac9-4dd9-b01a-95f2ff3c9f52",
+                "attack-action--9630130e-f073-4af1-8722-e536d56063f9",
+                "attack-action--1d884e08-ea66-4df2-b797-0ebcf7a61ac8",
+                "attack-action--8b942919-7635-401e-982e-872d75c55d9a",
+                "attack-action--e4e625a3-ffaf-4e01-9a71-b4bbd286ff61",
+                "attack-action--d272a14e-5869-4402-b0e4-797e0a46e8e8",
+                "attack-action--a61e19be-e04f-4734-98a9-eb582baf9145",
+                "attack-action--7fbbb986-490b-4fc3-9fd9-6ae6265290cd",
+                "attack-action--0c21ad3f-3b06-4836-bd54-34ebc5403970",
+                "attack-action--4bbe5002-396b-48c5-8d42-7d23fcfa28f3"
+            ],
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,119 @@
+digraph ThreatModel {
+  rankdir=LR;
+  node [shape=box];
+  edge [fontsize=10];
+  splines=true;
+  overlap=false;
+  nodesep=0.5;
+  ranksep=0.6;
+  charset="UTF-8";
+
+  
+
+  
+    
+  subgraph cluster_client__web_browser_ {
+    label="Client (Web Browser)";
+    "__hidden_node_client__web_browser_" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,dashed";
+    
+    fillcolor="lightblue";
+    
+    
+    color="#c62828";
+    penwidth=2;
+    
+    
+    "End User" [fixedsize=shape, shape=circle, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>End User</TD></TR></TABLE>>, id="End_User"];
+    
+    
+    "Client Web Browser" [shape=box, style=filled, fillcolor="lightblue", label="Client Web Browser", id="Client_Web_Browser"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_web_server__presentation_tier_ {
+    label="Web Server (Presentation Tier)";
+    "__hidden_node_web_server__presentation_tier_" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,dashed";
+    
+    fillcolor="orange";
+    
+    
+    color="#c62828";
+    penwidth=2;
+    
+    
+    
+    "WebServer" [width=1.5, height=0.75, shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/web-server.svg" SCALE="TRUE"/></TD><TD ALIGN="LEFT">WebServer</TD></TR></TABLE>>, id="WebServer"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_application_server__business_logic_tier_ {
+    label="Application Server (Business Logic Tier)";
+    "__hidden_node_application_server__business_logic_tier_" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="green";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    
+    "AppServer" [width=1.5, height=0.75, shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/server.svg" SCALE="TRUE"/></TD><TD ALIGN="LEFT">AppServer</TD></TR></TABLE>>, id="AppServer"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_database__data_tier_ {
+    label="Database (Data Tier)";
+    "__hidden_node_database__data_tier_" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="purple";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    
+    "DatabaseServer" [shape=cylinder, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/database.svg" SCALE="TRUE"/></TD></TR><TR><TD>DatabaseServer</TD></TR></TABLE>>, id="DatabaseServer"];
+    
+    
+  }
+  
+  
+
+  
+
+  
+  "Load Balancer" [shape=cylinder, style=filled, fillcolor="gray", color="gray", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/load_balancer.svg" SCALE="TRUE"/></TD></TR><TR><TD>Load Balancer</TD></TR></TABLE>>, id="Load_Balancer"];
+  
+
+  
+  "End User" -> "Load Balancer" [label="", color="darkgreen", style="solid", label=<HTTP/S Request<BR/>Protocol: HTTPS>, id="edge_End_User_Load_Balancer", fontsize=7, class="protocol-HTTPS"];
+  
+  "Load Balancer" -> "WebServer" [label="", color="orange", style="solid", label=<Web Request<BR/>Protocol: HTTP/S>, id="edge_Load_Balancer_WebServer", fontsize=7, class="protocol-HTTP_S"];
+  
+  "WebServer" -> "AppServer" [label="", color="orange", style="solid", label=<API Request<BR/>Protocol: HTTP/S>, id="edge_WebServer_AppServer", fontsize=7, class="protocol-HTTP_S"];
+  
+  "AppServer" -> "DatabaseServer" [dir="both", label="
+↔️ Bidirectional", color="purple", style="dashed", label=<SQL Request<BR/>Protocol: JDBC/ODBC>, id="edge_AppServer_DatabaseServer", fontsize=7, class="protocol-JDBC_ODBC"];
+  
+
+  
+}

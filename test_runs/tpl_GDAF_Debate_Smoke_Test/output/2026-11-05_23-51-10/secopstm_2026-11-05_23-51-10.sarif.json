@@ -1,0 +1,545 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "SecOpsTM",
+          "informationUri": "https://github.com/ellipse2v/SecOpsTM",
+          "version": "1.2.0",
+          "rules": [
+            {
+              "id": "T-0001",
+              "name": "Spoofing",
+              "shortDescription": {
+                "text": "[CRITICAL] Spoofing \u2014 AttackerToServer"
+              },
+              "fullDescription": {
+                "text": "Potential for spoofing attacks on data crossing trust boundaries from External Attacker to Target Server without proper authentication"
+              },
+              "helpUri": "https://github.com/ellipse2v/SecOpsTM",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "stride/Spoofing"
+                ],
+                "security-severity": "10.0"
+              }
+            },
+            {
+              "id": "T-0002",
+              "name": "Spoofing",
+              "shortDescription": {
+                "text": "[CRITICAL] Spoofing \u2014 AttackerToServer"
+              },
+              "fullDescription": {
+                "text": "Spoofing of data from External Attacker to Target Server due to lack of authentication"
+              },
+              "helpUri": "https://github.com/ellipse2v/SecOpsTM",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "stride/Spoofing"
+                ],
+                "security-severity": "9.5"
+              }
+            },
+            {
+              "id": "T-0003",
+              "name": "Tampering",
+              "shortDescription": {
+                "text": "[CRITICAL] Tampering \u2014 External Attacker"
+              },
+              "fullDescription": {
+                "text": "Untrusted actor External Attacker may attempt to inject malicious data or exploit vulnerabilities in connected systems."
+              },
+              "helpUri": "https://attack.mitre.org/techniques/T1221",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "stride/Tampering",
+                  "attack/T1221",
+                  "attack/T1195",
+                  "attack/T1072",
+                  "attack/T1553"
+                ],
+                "security-severity": "10.0"
+              }
+            },
+            {
+              "id": "T-0004",
+              "name": "Tampering",
+              "shortDescription": {
+                "text": "[CRITICAL] Tampering \u2014 Target Server"
+              },
+              "fullDescription": {
+                "text": "Unpatched OS or software vulnerabilities on Target Server leading to system compromise"
+              },
+              "helpUri": "https://attack.mitre.org/techniques/T1195",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "stride/Tampering",
+                  "attack/T1195",
+                  "attack/T1072"
+                ],
+                "security-severity": "10.0"
+              }
+            },
+            {
+              "id": "T-0005",
+              "name": "Spoofing",
+              "shortDescription": {
+                "text": "[CRITICAL] Spoofing \u2014 External Attacker"
+              },
+              "fullDescription": {
+                "text": "Identity spoofing of the actor External Attacker via phishing or credential theft"
+              },
+              "helpUri": "https://attack.mitre.org/techniques/T1552",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "stride/Spoofing",
+                  "attack/T1552",
+                  "attack/T1534"
+                ],
+                "security-severity": "9.0"
+              }
+            },
+            {
+              "id": "T-0006",
+              "name": "ElevationofPrivilege",
+              "shortDescription": {
+                "text": "[HIGH] Elevation of Privilege \u2014 Target Server"
+              },
+              "fullDescription": {
+                "text": "Unauthorized privilege escalation on Target Server due to misconfiguration or vulnerability"
+              },
+              "helpUri": "https://attack.mitre.org/techniques/T1574",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "stride/Elevation of Privilege",
+                  "attack/T1574",
+                  "attack/T1548"
+                ],
+                "security-severity": "8.5"
+              }
+            },
+            {
+              "id": "T-0007",
+              "name": "ElevationofPrivilege",
+              "shortDescription": {
+                "text": "[HIGH] Elevation of Privilege \u2014 External Attacker"
+              },
+              "fullDescription": {
+                "text": "Privilege abuse by actor External Attacker to gain unauthorized access or perform unauthorized actions"
+              },
+              "helpUri": "https://attack.mitre.org/techniques/T1548",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "stride/Elevation of Privilege",
+                  "attack/T1548"
+                ],
+                "security-severity": "7.6"
+              }
+            },
+            {
+              "id": "T-0008",
+              "name": "Repudiation",
+              "shortDescription": {
+                "text": "[MEDIUM] Repudiation \u2014 External Attacker"
+              },
+              "fullDescription": {
+                "text": "Repudiation of critical actions performed by External Attacker due to insufficient logging or non-repudiation controls"
+              },
+              "helpUri": "https://attack.mitre.org/techniques/T1070",
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "stride/Repudiation",
+                  "attack/T1070",
+                  "attack/T1562"
+                ],
+                "security-severity": "7.0"
+              }
+            },
+            {
+              "id": "T-0009",
+              "name": "Repudiation",
+              "shortDescription": {
+                "text": "[MEDIUM] Repudiation \u2014 Target Server"
+              },
+              "fullDescription": {
+                "text": "Lack of monitoring or logging on Target Server, preventing detection of malicious activities and enabling repudiation"
+              },
+              "helpUri": "https://attack.mitre.org/techniques/T1070",
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "stride/Repudiation",
+                  "attack/T1070",
+                  "attack/T1562"
+                ],
+                "security-severity": "6.9"
+              }
+            },
+            {
+              "id": "T-0010",
+              "name": "InformationDisclosure",
+              "shortDescription": {
+                "text": "[MEDIUM] Information Disclosure \u2014 Target Server"
+              },
+              "fullDescription": {
+                "text": "Insecure security configuration or hardening on Target Server leading to information exposure"
+              },
+              "helpUri": "https://attack.mitre.org/techniques/T1195",
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "stride/Information Disclosure",
+                  "attack/T1195"
+                ],
+                "security-severity": "6.3"
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "T-0001",
+          "level": "error",
+          "message": {
+            "text": "Potential for spoofing attacks on data crossing trust boundaries from External Attacker to Target Server without proper authentication"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "home/user/SecOpsTM/threatModel_Template/GDAF_Debate_Smoke_Test/model.md"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "AttackerToServer",
+                  "kind": "module"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "stride_category": "Spoofing",
+            "source": "pytm",
+            "target": "AttackerToServer"
+          }
+        },
+        {
+          "ruleId": "T-0002",
+          "level": "error",
+          "message": {
+            "text": "Spoofing of data from External Attacker to Target Server due to lack of authentication"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "home/user/SecOpsTM/threatModel_Template/GDAF_Debate_Smoke_Test/model.md"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "AttackerToServer",
+                  "kind": "module"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "stride_category": "Spoofing",
+            "source": "pytm",
+            "target": "AttackerToServer"
+          }
+        },
+        {
+          "ruleId": "T-0003",
+          "level": "error",
+          "message": {
+            "text": "Untrusted actor External Attacker may attempt to inject malicious data or exploit vulnerabilities in connected systems."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "home/user/SecOpsTM/threatModel_Template/GDAF_Debate_Smoke_Test/model.md"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "External Attacker",
+                  "kind": "module"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "stride_category": "Tampering",
+            "source": "pytm",
+            "target": "External Attacker"
+          }
+        },
+        {
+          "ruleId": "T-0004",
+          "level": "error",
+          "message": {
+            "text": "Unpatched OS or software vulnerabilities on Target Server leading to system compromise"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "home/user/SecOpsTM/threatModel_Template/GDAF_Debate_Smoke_Test/model.md"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "Target Server",
+                  "kind": "module"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "stride_category": "Tampering",
+            "source": "pytm",
+            "target": "Target Server"
+          }
+        },
+        {
+          "ruleId": "T-0005",
+          "level": "error",
+          "message": {
+            "text": "Identity spoofing of the actor External Attacker via phishing or credential theft"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "home/user/SecOpsTM/threatModel_Template/GDAF_Debate_Smoke_Test/model.md"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "External Attacker",
+                  "kind": "module"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "stride_category": "Spoofing",
+            "source": "pytm",
+            "target": "External Attacker"
+          }
+        },
+        {
+          "ruleId": "T-0006",
+          "level": "error",
+          "message": {
+            "text": "Unauthorized privilege escalation on Target Server due to misconfiguration or vulnerability"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "home/user/SecOpsTM/threatModel_Template/GDAF_Debate_Smoke_Test/model.md"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "Target Server",
+                  "kind": "module"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "stride_category": "Elevation of Privilege",
+            "source": "pytm",
+            "target": "Target Server"
+          }
+        },
+        {
+          "ruleId": "T-0007",
+          "level": "error",
+          "message": {
+            "text": "Privilege abuse by actor External Attacker to gain unauthorized access or perform unauthorized actions"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "home/user/SecOpsTM/threatModel_Template/GDAF_Debate_Smoke_Test/model.md"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "External Attacker",
+                  "kind": "module"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "stride_category": "Elevation of Privilege",
+            "source": "pytm",
+            "target": "External Attacker"
+          }
+        },
+        {
+          "ruleId": "T-0008",
+          "level": "warning",
+          "message": {
+            "text": "Repudiation of critical actions performed by External Attacker due to insufficient logging or non-repudiation controls"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "home/user/SecOpsTM/threatModel_Template/GDAF_Debate_Smoke_Test/model.md"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "External Attacker",
+                  "kind": "module"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "stride_category": "Repudiation",
+            "source": "pytm",
+            "target": "External Attacker"
+          }
+        },
+        {
+          "ruleId": "T-0009",
+          "level": "warning",
+          "message": {
+            "text": "Lack of monitoring or logging on Target Server, preventing detection of malicious activities and enabling repudiation"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "home/user/SecOpsTM/threatModel_Template/GDAF_Debate_Smoke_Test/model.md"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "Target Server",
+                  "kind": "module"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "stride_category": "Repudiation",
+            "source": "pytm",
+            "target": "Target Server"
+          }
+        },
+        {
+          "ruleId": "T-0010",
+          "level": "warning",
+          "message": {
+            "text": "Insecure security configuration or hardening on Target Server leading to information exposure"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "home/user/SecOpsTM/threatModel_Template/GDAF_Debate_Smoke_Test/model.md"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              },
+              "logicalLocations": [
+                {
+                  "name": "Target Server",
+                  "kind": "module"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "stride_category": "Information Disclosure",
+            "source": "pytm",
+            "target": "Target Server"
+          }
+        }
+      ]
+    }
+  ]
+}

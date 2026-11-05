@@ -1,0 +1,1023 @@
+<!--
+ Copyright 2025 ellipse2v
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+        }
+        .diagram-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .svg-container {
+            width: 98%;
+            height: 98%;
+            border: 1px solid #ddd;
+            background-color: white;
+        }
+        .svg-container svg {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .navigation-ui {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+        }
+        .back-button, .legend-toggle-btn {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 8px 12px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-decoration: none;
+            color: #333;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .legend-toggle-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+        .zoom-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 5px;
+        }
+        .zoom-btn {
+            width: 30px;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .legend {
+            position: absolute;
+            top: 70px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            max-width: 200px;
+            z-index: 1000;
+        }
+        .legend.hidden {
+            display: none;
+        }
+        .legend-header {
+            padding: 8px;
+            font-weight: bold;
+            border-bottom: 1px solid #eee;
+        }
+        .legend-content {
+            padding: 8px;
+        }
+        .breadcrumb {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #666;
+            z-index: 1001;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 3px;
+            padding: 1px 0;
+            cursor: pointer;
+            border-radius: 2px;
+        }
+        .legend-item:hover {
+            background-color: rgba(0, 122, 204, 0.1);
+        }
+        .svg-element-hidden {
+            display: none !important;
+        }
+        /* --- Hover effect styles --- */
+        g > a > polygon,
+        g > a > rect,
+        g > a > ellipse,
+        g > a > circle,
+        g > a > path {
+            transition: stroke-width 0.2s ease-in-out;
+        }
+
+        g.hover-effect {
+            transition: transform 0.2s ease-in-out, filter 0.2s ease-in-out;
+            transform-origin: center; /* Fallback */
+        }
+
+        g.hover-effect.hovered {
+            transform: scale(1.05);
+            filter: drop-shadow(3px 5px 2px rgb(0 0 0 / 0.4)) brightness(1.1);
+        }
+
+        g.hover-effect.hovered > a > polygon,
+        g.hover-effect.hovered > a > rect,
+        g.hover-effect.hovered > a > ellipse,
+        g.hover-effect.hovered > a > circle,
+        g.hover-effect.hovered > a > path {
+            stroke-width: 3px !important;
+        }
+
+        /* New styles for highlighting */
+        .highlighted { /* Group-level styling for related elements */
+            opacity: 1 !important;
+        }
+        /* Style ONLY the shapes of related elements */
+        .highlighted path, .highlighted polygon, .highlighted ellipse {
+            stroke: #007bff !important; /* Bright blue */
+            stroke-width: 3px !important;
+            transition: stroke 0.2s, stroke-width 0.2s;
+        }
+        /* More specific rule for EDGES to ensure they are highlighted */
+        g.edge.highlighted path, g.edge.highlighted polygon {
+            stroke: #007bff !important;
+            stroke-width: 4px !important;
+        }
+
+        /* Ensure text within related elements remains readable */
+        .highlighted text {
+            stroke: none !important;
+            fill: inherit !important;
+        }
+
+        .selected { /* Group-level styling for selected element */
+            opacity: 1 !important;
+        }
+        /* Style ONLY the shapes of the selected element */
+        .selected path, .selected polygon, .selected ellipse {
+            stroke: red !important;
+            stroke-width: 3px !important;
+            fill: rgba(255, 0, 0, 0.15) !important; /* A more subtle fill */
+            transition: stroke 0.2s, stroke-width 0.2s, fill 0.2s;
+        }
+        /* More specific rule for EDGES to ensure they are highlighted */
+        g.edge.selected path, g.edge.selected polygon {
+            stroke: red !important;
+            stroke-width: 4px !important;
+        }
+        
+        /* Ensure text within the selected element remains perfectly readable */
+        .selected text {
+            stroke: none !important;
+            fill: inherit !important; /* Inherit original text color */
+        }
+        
+        .faded {
+            opacity: 0.5 !important;
+            transition: opacity 0.2s ease-in-out;
+        }
+        /* Specific rules for text within faded elements to remain visible */
+        .faded text {
+            fill: inherit !important; /* Keep original text color */
+            opacity: 1 !important;   /* Keep text opaque */
+        }
+        /* Remove graph-element's conflicting styles - let Graphviz set defaults, then override with !important */
+        .graph-element {
+            /* No conflicting fill/stroke here */
+        }
+    </style>
+</head>
+<body>
+    <div class="diagram-container">
+        <div id="svg-container" class="svg-container">
+            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="157.0" height="144.0" viewBox="0 0 157.0 144.0">
+  <g transform="translate(0, 144.0) scale(1, -1)">
+<rect fill="#ffffff" stroke="none" x="0" y="0" width="157.0" height="144.0" />
+  <g id="APIService">
+    <a xlink:href="sub_project_A/model_diagram.html" href="sub_project_A/model_diagram.html"><title>Open sub-model: ./sub_project_A/model.md</title><polygon points="143.0,54.0 14.0,54.0 14.0,0.0 143.0,0.0" fill="#add8e6" stroke="#000000" />
+    <g transform="translate(78.5,27.0) scale(0.029296875,-0.029296875) translate(-1348.3076266666665,-512.0)">
+
+<svg version="1.1" id="svg1" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs id="defs1" />
+  <g id="g1">
+    <path style="fill:#000000" d="m 498.89246,752.6458 c -10.12055,-4.16321 -16.31027,-9.92041 -20.48299,-19.05168 -5.76193,-12.60897 -3.82525,-27.57406 5.0169,-38.76668 3.5293,-4.46748 6.09529,-6.47023 12.07854,-9.42732 6.76288,-3.34239 8.44272,-3.75774 15.29615,-3.782 12.88648,-0.0456 23.26073,5.07159 30.68871,15.13751 C 545.52646,702.2259 549,712.28284 549,718.5 c 0,10.92517 -7.07444,23.98884 -16.37638,30.24068 -9.8176,6.59839 -23.36986,8.16737 -33.73116,3.90512 z m 27.95782,-6.64668 c 16.71692,-8.91003 21.83018,-29.9756 11.07159,-45.61268 -6.31702,-9.18147 -19.38302,-15.41747 -29.42079,-14.04164 -10.85624,1.48801 -21.10827,9.1304 -25.69612,19.1552 -3.23163,7.06136 -3.17902,19.09553 0.11147,25.5 4.81036,9.36267 9.98491,13.95019 19.92775,17.66706 6.34817,2.3731 16.70838,1.2217 24.0061,-2.66794 z m -24.24039,-12.30621 c -8.27264,-5.13079 -11.08355,-15.8095 -6.34344,-24.09889 3.47432,-6.07582 6.75691,-7.97535 14.51552,-8.39965 5.77171,-0.31564 7.2077,-0.0349 10.19423,1.99291 10.84121,7.36108 11.58463,21.70675 1.52259,29.38144 -5.33465,4.06893 -14.32188,4.57692 -19.8889,1.12419 z m 14.96352,-4.15914 c 4.94177,-2.0648 7.96206,-8.83147 6.44937,-14.44917 -1.25248,-4.65135 -5.69259,-8.74443 -10.455,-9.63786 -7.09234,-1.33053 -14.57266,5.12354 -14.5493,12.55326 0.0148,4.69378 1.8177,7.97299 5.89397,10.71998 3.91568,2.63878 7.70953,2.88263 12.66096,0.81379 z M 392.5,744.59749 c -1.65,-0.72833 -3.9,-2.33296 -5,-3.56585 -1.87362,-2.09997 -2,-3.65549 -2,-24.6174 v -22.37578 l 3.26724,-3.26923 c 3.18824,-3.19017 3.50733,-3.2775 13.19512,-3.61122 l 9.92788,-0.342 0.30488,-3.658 c 0.42453,-5.09356 3.1919,-5.02314 3.61525,0.092 l 0.31036,3.75 h 8.53851 c 5.83123,0 9.63085,0.51835 11.98368,1.63484 5.8967,2.79817 6.35708,4.81618 6.35708,27.86516 0,23.16187 -0.56368,25.5841 -6.5343,28.07878 -4.65668,1.94569 -39.56654,1.96054 -43.9657,0.0187 z m 43.59001,-6.45827 C 437.82213,735.99829 438,733.9853 438,716.52407 c 0,-17.96491 -0.1388,-19.43081 -2.07258,-21.88921 L 433.85484,692 H 414 394.14516 l -2.07258,2.63486 C 390.14289,697.08807 390,698.56465 390,716.05307 c 0,10.33085 0.29235,19.5452 0.64966,20.47634 1.42901,3.72395 5.97765,4.48641 25.19035,4.22251 17.92454,-0.24621 18.38327,-0.3054 20.25,-2.6127 z m 151.2247,6.39712 C 581.57487,742.03992 581,739.48757 581,716.5 c 0,-23.16187 0.56368,-25.5841 6.5343,-28.07878 C 589.51601,687.59321 594.28832,687 598.96788,687 H 607 v -3.53138 c 0,-2.26039 0.5554,-3.74452 1.54313,-4.12354 2.18278,-0.83761 2.86611,0.20124 2.75317,4.18557 L 611.198,687 l 8.65103,0.002 c 10.35022,0.002 14.79798,1.79085 17.39947,6.99845 1.48043,2.96351 1.74844,6.41238 1.74844,22.5 0,29.31859 -0.19893,29.51726 -29.49689,29.4593 -13.92071,-0.0275 -19.85153,-0.40794 -22.18529,-1.42296 z m 42.86541,-5.03208 C 633.13117,738.33691 634,733.10459 634,716.5 634,699.68776 633.14007,694.68052 629.96056,692.97889 628.95093,692.43856 619.5898,692 609.06574,692 c -17.73241,0 -19.20561,0.13987 -21.06574,2 -1.86267,1.86267 -2,3.33333 -2,21.41821 0,10.68002 0.29235,20.18006 0.64966,21.1112 1.46578,3.81977 5.92931,4.56999 24.35034,4.0928 9.625,-0.24934 18.25606,-0.75241 19.18012,-1.11795 z M 344.33975,702.61694 c -6.0867,-1.97943 -9.89638,-5.06961 -12.25392,-9.93964 C 330.04357,688.45856 330,687.13479 330,629.3096 c 0,-68.13139 0.37393,-72.23863 8.95035,-98.3096 9.58803,-29.14611 23.75709,-51.72048 46.19401,-73.59699 45.91055,-44.76385 109.84093,-61.54551 173.21254,-45.46812 59.36702,15.06143 108.71742,61.69816 127.05137,120.06511 7.99688,25.4584 7.88106,24.15348 8.31447,93.68169 0.37757,60.57178 0.33592,62.283 -1.60865,66.09468 -6.5262,12.7924 -23.17703,15.66404 -33.9591,5.85666 -5.81033,-5.28508 -5.6031,-3.06228 -6.25873,-67.13303 -0.56802,-55.50847 -0.73136,-59.57397 -2.76012,-68.699 C 635.27033,499.43512 586.04683,455.8002 523.01803,450.00166 483.12389,446.33147 442.3507,461.5105 412.99493,490.96102 397.02758,506.9799 386.18216,524.50943 379.5613,545 c -6.97856,21.59762 -6.79747,19.53012 -7.45949,85.16582 l -0.60181,59.66582 -3.0444,4.33418 c -5.45147,7.76101 -15.45654,11.26717 -24.11585,8.45112 z m 13.34643,-9.56717 c 1.7524,-1.06851 3.6727,-2.85183 4.26734,-3.96292 0.7182,-1.34197 1.25382,-20.41192 1.59544,-56.80351 0.53384,-56.86677 0.99358,-64.28143 4.95368,-79.8926 10.53641,-41.53576 38.4108,-75.77619 77.76479,-95.52494 20.3443,-10.20925 41.32417,-15.05522 65.23257,-15.06754 17.78452,-0.009 30.14118,2.04439 47.5,7.89402 15.2998,5.15578 24.28372,9.41417 34.72503,16.4597 22.08159,14.9001 38.32036,33.13257 49.7411,55.84802 6.74356,13.41272 10.05978,22.64384 13.29202,37 2.58114,11.46428 2.59097,11.6824 3.16552,70.232 l 0.57633,58.73201 3.09338,3.09214 c 5.75598,5.75368 15.40234,4.72038 18.88969,-2.02342 2.23139,-4.31502 2.23596,-111.65977 0.005,-126.53273 C 674.81675,511.3466 643.8752,465.59057 599.15941,439.27393 564.13579,418.66143 519.66591,410.89671 480.5,418.55525 411.49882,432.0478 358.79845,483.327 343.35693,552 l -2.8107,12.5 -0.32262,61.80049 -0.32263,61.80049 3.44951,3.44951 c 4.08866,4.08866 9.21052,4.62432 14.33569,1.49928 z M 561,452 c 0,-0.55 -0.47656,-1 -1.05902,-1 -0.58246,0 -0.7809,0.45 -0.44098,1 0.33992,0.55 0.81648,1 1.05902,1 C 560.80156,453 561,452.55 561,452 Z M 412,665.10699 c 0,-3.27523 0.46362,-5.07092 1.40223,-5.4311 2.11874,-0.81304 2.59777,0.19946 2.59777,5.49078 0,4.16666 -0.27586,4.83333 -2,4.83333 -1.7275,0 -2,-0.66667 -2,-4.89301 z m 195.31924,3.28254 c -0.79575,-2.07369 0.87205,-8.55651 2.18076,-8.47673 0.55,0.0335 1.13602,2.31686 1.30226,5.07408 0.24325,4.03436 -0.007,5.01312 -1.28139,5.01312 -0.871,0 -1.86174,-0.72471 -2.20163,-1.61047 z M 412.6875,650.35417 c -1.01052,-1.01052 -0.80829,-7.61466 0.28617,-9.34581 1.59697,-2.52596 3.18616,0.28715 2.84047,5.02806 -0.29654,4.06683 -1.59057,5.85382 -3.12664,4.31775 z M 608.19774,645.75 c 0.3806,-6.61072 2.20164,-6.4451 2.60452,0.23688 0.2448,4.06016 -0.003,5.01312 -1.30226,5.01312 -1.30733,0 -1.54853,-0.97242 -1.30226,-5.25 z M 420.67589,640.59777 C 419.86735,638.49074 420.87311,638 426,638 c 5.12689,0 6.13265,0.49074 5.32411,2.59777 C 430.9662,641.53047 429.18345,642 426,642 c -3.18345,0 -4.9662,-0.46953 -5.32411,-1.40223 z m 19.99078,0.73556 C 438.63411,639.30077 440.26008,638 444.83333,638 c 5.39998,0 6.68052,0.67593 5.03555,2.65799 -1.13964,1.37318 -8.00084,1.87672 -9.20221,0.67534 z m 19.46445,-0.67534 C 458.53487,638.73462 459.74236,638 464.5,638 c 4.63433,0 5.61775,0.52957 4.82411,2.59777 -0.69743,1.81747 -7.69655,1.86332 -9.19299,0.0602 z m 18.40046,0.3931 C 477.2796,639.02535 479.16179,638 484.13234,638 c 4.23546,0 4.96269,0.27182 4.68199,1.75 -0.24923,1.31244 -1.49509,1.82528 -4.98273,2.05109 -2.55773,0.1656 -4.94274,-0.1719 -5.30002,-0.75 z m 19,0 C 496.2796,639.02535 498.16179,638 503.13234,638 c 4.23546,0 4.96269,0.27182 4.68199,1.75 -0.24923,1.31244 -1.49509,1.82528 -4.98273,2.05109 -2.55773,0.1656 -4.94274,-0.1719 -5.30002,-0.75 z M 516,640 c 0,-1.89281 0.4881,-2.07826 4.75,-1.80479 3.42009,0.21945 4.75,0.72476 4.75,1.80479 0,1.08003 -1.32991,1.58534 -4.75,1.80479 -4.2619,0.27347 -4.75,0.088 -4.75,-1.80479 z m 18.47773,0.96396 c -1.21642,-1.9682 1.08775,-3.10389 5.63641,-2.7781 3.09226,0.22149 4.38586,0.75656 4.38586,1.81414 0,1.86278 -8.93561,2.72222 -10.02227,0.96396 z m 19,0 c -1.21642,-1.9682 1.08775,-3.10389 5.63641,-2.7781 3.09226,0.22149 4.38586,0.75656 4.38586,1.81414 0,1.86278 -8.93561,2.72222 -10.02227,0.96396 z m 19,0 c -1.21642,-1.9682 1.08775,-3.10389 5.63641,-2.7781 3.09226,0.22149 4.38586,0.75656 4.38586,1.81414 0,1.86278 -8.93561,2.72222 -10.02227,0.96396 z m 20.25124,-0.0558 C 589.87905,639.24898 591.73872,638 597.05902,638 c 3.55665,0 4.94098,0.39028 4.94098,1.39301 0,2.54086 -5.86323,3.49906 -9.27103,1.51512 z m -82.53376,-7.57996 c 0.30554,-4.68328 2.25824,-6.91604 3.41414,-3.9038 1.00451,2.61769 -0.53052,8.57563 -2.20945,8.57563 -1.17407,0 -1.44176,-1.03811 -1.20469,-4.67183 z M 510,614.07332 C 510,609.62157 510.25175,609 512.05479,609 c 1.82698,0 2.021,0.52564 1.75,4.74101 -0.22966,3.5723 -0.73618,4.82292 -2.05479,5.07332 -1.48037,0.28112 -1.75,-0.44934 -1.75,-4.74101 z m -3.58389,-14.56061 c -8.79765,-2.778 -15.43247,-8.30956 -18.3156,-15.27005 L 486.75736,581 H 473.07113 459.3849 l -1.7956,4.06982 c -2.07662,4.70675 -7.22144,10.17147 -11.80996,12.54429 -4.13061,2.13602 -14.15778,2.9125 -19.37522,1.50037 -5.84342,-1.58155 -11.82093,-6.2655 -15.08726,-11.82232 C 408.90407,583.18742 408.5,581.42415 408.5,575 c 0,-11.1077 4.64638,-18.87439 14.0966,-23.56326 5.25865,-2.60917 17.40091,-2.68489 22.51098,-0.14038 4.72727,2.35389 9.57833,7.16765 11.99297,11.90073 L 459.04065,567 h 13.93276 13.93276 l 1.73365,-3.6534 c 3.64201,-7.67498 11.0408,-13.0477 19.31801,-14.02801 11.63551,-1.37805 20.94757,3.00028 26.20891,12.32286 L 537.19092,567 H 551 564.80908 l 2.98345,-5.28637 c 4.85656,-8.60536 12.4052,-12.73472 23.20087,-12.69167 21.25554,0.0848 32.73022,25.64985 18.67808,41.61392 -12.73056,14.46268 -35.71569,11.53526 -43.23446,-5.50641 L 564.6151,581 h -13.68623 -13.68623 l -1.21446,2.93196 c -3.2938,7.95194 -9.59003,13.19793 -18.68257,15.56624 -3.1712,0.82599 -6.00876,1.45731 -6.30571,1.40293 -0.29694,-0.0544 -2.37765,-0.67917 -4.62379,-1.38842 z M 421.5,350.64245 C 413.58788,346.98322 410.6218,337.77332 415.17408,331 c 3.27399,-4.87137 8.73783,-7.39026 14.24058,-6.56507 5.86713,0.87983 8.46656,2.85199 6.9284,5.2565 -1.25938,1.96869 -1.37601,1.97225 -5.96938,0.18196 -9.04985,-3.52722 -16.25634,9.14075 -8.61794,15.14911 C 426.76478,348.96262 433,346.98979 433,341.46482 433,338.43568 433.31436,338 435.5,338 c 2.35453,0 2.5,0.3107 2.5,5.33948 0,4.79405 -0.26839,5.46178 -2.62735,6.53659 -4.24425,1.93381 -10.59034,2.28439 -13.87265,0.76638 z M 479,340.86133 V 330 h -4.5 c -4.13333,0 -4.5,-0.2037 -4.5,-2.5 V 325 h 11.56955 c 11.40199,0 11.56492,0.0324 11.25,2.23386 -0.28187,1.97049 -0.82063,2.19728 -4.56955,1.92353 L 484,328.84706 v 10.95989 c 0,10.89645 -0.0145,10.96266 -2.5,11.4378 l -2.5,0.47791 z M 498,338.5 V 325 h 10 10 v 2.63793 2.63793 l -7.5,-0.67963 -7.5,-0.67963 V 332.4583 336 h 6.5 c 5.83333,0 6.5,0.20513 6.5,2 0,1.79487 -0.66667,2 -6.5,2 H 503 v 3.5 3.5 h 7.5 c 7.33333,0 7.5,0.0556 7.5,2.5 v 2.5 h -10 -10 z m 33.498,12.25 c -6.01666,-17.12276 -8.48245,-24.4034 -8.48942,-25.06642 -0.005,-0.44903 1.21135,-0.67403 2.70238,-0.5 2.45302,0.28631 2.95252,1.096 5.25,8.51015 1.39647,4.50655 2.80569,8.4482 3.1316,8.75923 0.32591,0.31102 1.80926,-3.48866 3.29633,-8.44373 2.60281,-8.67284 2.81285,-9.00923 5.62529,-9.00923 2.80794,0 3.02267,0.34022 5.52262,8.75 1.4306,4.8125 2.72447,9.2 2.87527,9.75 0.15079,0.55 1.59367,-3.275 3.20638,-8.5 2.74497,-8.89337 3.11498,-9.52105 5.79445,-9.8297 2.05626,-0.23686 2.71992,0.0447 2.35681,1 -0.27798,0.73134 -2.21654,6.62786 -4.3079,13.1034 -3.25805,10.08799 -4.14651,11.86005 -6.20536,12.37678 -3.19012,0.80067 -3.6349,0.16914 -6.29537,-8.93846 -1.25124,-4.28339 -2.60234,-7.9903 -3.00244,-8.23758 -0.40011,-0.24728 -1.26141,1.68231 -1.91402,4.28798 -2.07237,8.2744 -4.70431,13.23758 -7.01977,13.23758 -1.14819,0 -2.28527,-0.5625 -2.52685,-1.25 z m -86.87168,-5.5 c 1.43061,-3.1625 3.96504,-9.03616 5.63208,-13.05257 2.90537,-6.99995 3.15796,-7.29003 6.09531,-7 2.89031,0.28539 3.36116,0.98407 8.29066,12.30257 2.87447,6.6 5.25541,12.3375 5.29097,12.75 0.0356,0.4125 -1.06999,0.75 -2.45678,0.75 -1.71911,0 -2.88389,-0.7955 -3.66051,-2.5 -1.0508,-2.30624 -1.66076,-2.5 -7.87016,-2.5 -6.34582,0 -6.76699,0.14309 -7.35853,2.5 -0.493,1.96426 -1.26356,2.5 -3.5958,2.5 h -2.96834 z M 460,340.52024 c 0,-0.26387 -0.73562,-2.31826 -1.63471,-4.5653 -1.79119,-4.47664 -2.41943,-4.30432 -4.7215,1.29506 l -1.54174,3.75 h 3.94898 C 458.22296,341 460,340.78411 460,340.52024 Z M 568.39779,343.25 c 8.57306,-20.00082 7.59912,-18.38481 10.88004,-18.05249 2.79473,0.28308 3.33084,1.09368 8.35427,12.63189 2.95235,6.78116 5.3679,12.51866 5.3679,12.75 0,0.23133 -1.30122,0.4206 -2.89159,0.4206 -2.25038,0 -3.03073,-0.55438 -3.51905,-2.5 -0.59315,-2.36329 -1.00328,-2.5 -7.5,-2.5 -6.49672,0 -6.90686,0.13671 -7.5,2.5 -0.49149,1.95822 -1.26525,2.5 -3.57048,2.5 h -2.94302 z m 14.10692,-4 c -0.3901,-0.9625 -1.15727,-2.9875 -1.70482,-4.5 -1.33015,-3.6743 -2.12106,-3.46855 -3.84401,1 -0.79525,2.0625 -1.59815,4.0875 -1.78423,4.5 -0.18607,0.4125 1.54733,0.75 3.85201,0.75 3.59431,0 4.08943,-0.24891 3.48105,-1.75 z M 603,346.73413 c 0,-3.18748 -1.03397,-6.03142 -4.09013,-11.25 C 592.31931,324.23039 592.55265,325 595.73118,325 c 2.33041,0 3.3548,0.92496 6.09125,5.5 1.80933,3.025 3.46424,5.5 3.67757,5.5 0.21333,0 1.86824,-2.475 3.67757,-5.5 2.77111,-4.63299 3.74391,-5.5 6.17107,-5.5 2.74561,0 2.81392,0.10602 1.44978,2.25 C 609.43205,338.82751 608,341.94128 608,346.38081 608,350.64128 607.80585,351 605.5,351 c -2.27597,0 -2.5,-0.38228 -2.5,-4.26587 z M 422.68332,304.2891 c -0.26567,-0.43401 3.87519,-10.6891 9.20191,-22.7891 5.32672,-12.1 12.33062,-28.1875 15.56422,-35.75 l 5.87927,-13.75 8.58564,0.0253 8.58564,0.0253 8.979,20.72474 c 4.93845,11.3986 11.98747,27.47473 15.66449,35.72473 3.67702,8.25 6.34463,15.35684 5.92802,15.79298 -0.41661,0.43614 -4.52117,0.66114 -9.12126,0.5 l -8.36378,-0.29298 -2.65737,-7 -2.65736,-7 -16.38587,-0.246 -16.38587,-0.246 -3.00151,7.246 -3.0015,7.246 -8.16531,0.2891 c -4.49093,0.159 -8.38268,-0.066 -8.64836,-0.5 z M 471,274.43673 c 0,-0.92395 -8.26611,-20.86941 -9.00601,-21.73077 C 461.40919,252.02515 453,272.17292 453,274.25487 c 0,0.40982 4.05,0.74513 9,0.74513 4.95,0 9,-0.25347 9,-0.56327 z m 39.66667,29.8966 C 510.3,303.96667 510,287.54167 510,267.83333 V 232 h 17.95078 c 9.87293,0 20.17865,0.47779 22.90161,1.06176 7.09948,1.52257 13.46434,5.91877 16.80998,11.61064 2.51962,4.28658 2.83629,5.78018 2.82563,13.3276 -0.0176,12.47873 -3.63103,18.45808 -14.00046,23.16744 -4.08878,1.85696 -7.19501,2.33479 -17.23754,2.65168 L 527,284.20565 V 294.60283 305 h -7.83333 c -4.30834,0 -8.13334,-0.3 -8.5,-0.66667 z M 548.325,267.95872 c 7.42053,-3.54108 7.39622,-16.48656 -0.0373,-19.87351 C 546.9777,247.48835 541.87707,247 536.95295,247 H 528 v 11.62232 11.62232 l 8.75,-0.46892 c 4.8125,-0.2579 10.02125,-1.07555 11.575,-1.817 z m 35.34167,36.37461 C 583.3,303.96667 583,287.54167 583,267.83333 V 232 h 8.5 8.5 v 36.5 36.5 h -7.83333 c -4.30834,0 -8.13334,-0.3 -8.5,-0.66667 z" id="path1" />
+  </g>
+</svg>
+</g>
+
+    <text x="63.9988" y="23.3" transform="translate(63.9988,23.3) scale(1,-1) translate(-63.9988,-23.3)" font-family="Times-Roman" font-size="14.0" text-anchor="start" fill="#000000">APIService</text>
+  </a></g>
+  <g id="NormalService">
+    <polygon points="157.0,144.0 0.0,144.0 0.0,90.0 157.0,90.0" fill="#add8e6" stroke="#000000" />
+    <g transform="translate(78.5,117.0) scale(0.020053475935828877,-0.020053475935828877) translate(-2667.946453333333,-748.0)">
+
+<svg version="1.1" id="svg1" width="1496" height="1496" viewBox="0 0 1496 1496">
+  <defs id="defs1" />
+  <g id="g1">
+    <path style="fill:#000000" d="m 759.39439,1093.423 c -15.7869,-0.7393 -31.6634,-6.537 -44.6684,-16.3118 -6.3177,-4.7485 -11.9814,-10.4704 -16.6959,-16.8674 l -2.047,-2.7777 -79.0853,-0.16 c -76.5912,-0.155 -79.1236,-0.179 -80.2964,-0.7617 -2.3339,-1.1596 -2.149,2.7674 -2.149,-45.6383 0,-48.40556 -0.1849,-44.47866 2.149,-45.63816 1.1742,-0.5835 3.632,-0.6043 80.768,-0.6855 l 79.557,-0.084 2.3479,-3.1163 c 3.0735,-4.0793 10.8216,-11.8031 14.8581,-14.8114 1.76,-1.3116 3.3062,-2.5288 3.436,-2.7048 0.1298,-0.176 0.2018,-14.936 0.16,-32.8 l -0.076,-32.48 -136.16,-0.16 -136.16,-0.16 -1.8063,-0.7304 c -4.6593,-1.884 -8.1323,-5.6493 -9.6447,-10.4563 l -0.709,-2.2534 v -86.24 -86.24 l 0.7398,-2.1409 c 1.7101,-4.9494 5.0632,-8.4428 9.9907,-10.4087 1.3612,-0.5431 7.9345,-0.578 137.5895,-0.7304 l 136.16,-0.16 0.083,-14.8 0.083,-14.8 h -134.4832 c -90.6746,0 -135.1607,-0.1097 -136.5632,-0.3319 -6.762,-1.0713 -12.4625,-6.8391 -13.427,-13.5856 -0.4459,-3.1187 -0.4475,-169.18448 0,-171.93173 0.4786,-2.94952 1.4604,-5.30147 3.1429,-7.52934 1.7563,-2.32551 4.9796,-4.6605 7.6374,-5.5325 1.8099,-0.59412 8.91,-0.60686 337.8487,-0.60686 328.93881,0 336.03891,0.0127 337.84851,0.60644 2.6577,0.872 5.8811,3.20699 7.6374,5.5325 1.6825,2.22787 2.6643,4.57982 3.1429,7.52934 0.4458,2.74725 0.4442,168.81305 0,171.93165 -0.9646,6.7466 -6.6651,12.5144 -13.4271,13.5857 -1.4053,0.2226 -51.4655,0.3303 -154.32011,0.3319 h -152.24 v 14.88 14.88 h 153.4063 c 152.12221,0 153.42361,0.01 155.46321,0.6353 4.9737,1.5362 8.7536,5.3055 10.5596,10.53 l 0.731,2.1147 v 86.4 86.4 l -0.731,2.1148 c -1.806,5.2245 -5.5859,8.9937 -10.5596,10.5299 -2.0396,0.63 -3.341,0.6353 -155.46321,0.6353 h -153.4079 v 32.7666 32.7666 l 2.6383,1.9682 c 5.93,4.4237 11.781,10.2462 16.206,16.1271 l 1.7243,2.2915 71.0757,0.16 c 65.4412,0.1473 71.1689,0.2023 72.2508,0.6933 2.396,1.0873 2.2057,-2.8549 2.2057,45.70666 0,48.5617 0.1903,44.6194 -2.2057,45.7067 -1.083,0.4915 -6.7047,0.5416 -71.7351,0.6396 l -70.56,0.1062 -2.6691,3.627 c -9.9784,13.5593 -25.498,24.3728 -41.9709,29.2438 -9.0197,2.6671 -17.9082,3.6745 -28.178,3.1936 z m 13.458,-8.4403 c 0.616,-0.1019 2.416,-0.3988 4,-0.6597 27.5246,-4.5341 50.6316,-25.4423 58.3733,-52.8183 1.8857,-6.6679 2.7405,-13.217 2.6887,-20.5986 -0.1513,-21.56596 -9.9488,-42.23226 -26.5863,-56.07976 -14.9709,-12.4602 -34.2502,-18.4566 -54.0064,-16.7974 -11.3087,0.9498 -23.9423,5.3707 -33.5687,11.7469 -18.677,12.371 -30.1321,30.866 -33.006,53.29026 -0.643,5.0168 -0.4769,14.4395 0.3469,19.68 2.5501,16.2231 10.0154,30.5351 21.9572,42.0952 3.9615,3.8348 6.2978,5.696 11.0013,8.7642 9.071,5.9172 20.201,9.9545 31.3721,11.3797 3.4274,0.4373 14.7786,0.4357 17.4279,0 z m -15.9657,-8.8209 c -26.5978,-2.9927 -48.9564,-22.3873 -55.5787,-48.2112 -5.7883,-22.5713 0.6591,-46.06266 17.1566,-62.51046 14.4559,-14.4124 35.1238,-21.119 55.5078,-18.0118 25.7592,3.9264 46.7705,23.084 53.1247,48.4378 1.8508,7.38476 2.3579,17.31106 1.274,24.93836 -2.7212,19.1484 -14.1923,36.4162 -30.8787,46.4825 -6.866,4.1421 -14.7977,7.0452 -23.04,8.4328 -3.6437,0.6135 -13.7755,0.8684 -17.5657,0.442 z M 1093.1576,848.34614 c 1.6644,-0.9343 3.3698,-3.0341 3.8403,-4.728 0.4295,-1.5463 0.4295,-10.7576 0,-12.3039 -0.4705,-1.694 -2.1759,-3.7937 -3.8403,-4.7281 l -1.4251,-0.8 h -128.64011 -128.64 l -1.4887,0.8752 c -1.8932,1.1129 -3.3447,3.0828 -3.8101,5.1706 -0.2191,0.9827 -0.3186,3.6117 -0.2496,6.5942 0.1291,5.5806 0.4136,6.5452 2.5642,8.6958 2.337,2.337 -9.6872,2.1477 132.2642,2.0828 l 128.00011,-0.059 z m -1.7687,-54.0666 c 1.7966,-0.4167 3.6961,-1.8669 4.816,-3.677 l 0.9676,-1.5638 0.1066,-5.7506 c 0.089,-4.8275 0.019,-5.98 -0.4394,-7.1799 -0.6919,-1.8117 -2.1186,-3.4428 -3.7969,-4.3409 l -1.3103,-0.7012 -127.96001,-0.082 c -87.2083,-0.056 -128.3506,0.024 -129.1866,0.2487 -1.8056,0.4862 -3.8259,2.1799 -4.756,3.9872 -0.79,1.5353 -0.8175,1.7874 -0.8175,7.5171 v 5.9285 l 0.9932,1.76 c 1.0757,1.9061 2.9229,3.4325 4.6463,3.8394 1.5323,0.3618 255.17781,0.3756 256.73701,0.014 z m -574.69651,-22.5596 c 11.5795,-3.3742 20.0505,-12.1722 22.9674,-23.8538 0.5401,-2.1629 0.6798,-3.7031 0.6823,-7.52 0,-4.229 -0.099,-5.1724 -0.8585,-7.9307 -4.3094,-15.6575 -18.6557,-25.7196 -34.4701,-24.1764 -17.1146,1.67 -29.8944,16.3186 -29.2674,33.5471 0.5436,14.9346 11.5973,27.7609 26.3381,30.5616 3.8935,0.7398 10.9569,0.4362 14.6082,-0.6278 z m 576.54931,-32.9009 c 0.83,-0.4879 1.8712,-1.3618 2.3137,-1.942 1.5065,-1.9751 1.7777,-3.374 1.7701,-9.1311 -0.01,-4.6579 -0.088,-5.4989 -0.6589,-6.7598 -0.8037,-1.7754 -1.9784,-3.0451 -3.6541,-3.9493 l -1.28,-0.6907 -127.96001,-0.082 c -87.2083,-0.056 -128.3506,0.024 -129.1866,0.2487 -1.8038,0.4858 -3.8258,2.1801 -4.756,3.9853 -0.7658,1.4862 -0.8239,1.9275 -0.9189,6.9868 -0.1191,6.3428 0.2247,7.7827 2.3916,10.0142 2.4788,2.5526 -10.4821,2.3309 132.4298,2.2653 l 128.00011,-0.059 z m -1.2874,-119.3292 c 1.7936,-0.5374 3.8813,-2.5027 4.7135,-4.4372 0.6533,-1.5186 0.6973,-2.0495 0.6046,-7.3026 -0.094,-5.3458 -0.1459,-5.7542 -0.9174,-7.2514 -1.0238,-1.9871 -2.9828,-3.508 -5.1045,-3.963 -2.2291,-0.4781 -254.23541,-0.4819 -256.30991,0 -1.9317,0.4451 -3.9442,2.0349 -5.0313,3.9744 -0.8671,1.5469 -0.9004,1.778 -1.0038,6.9564 -0.085,4.2611 0,5.6701 0.4025,6.8902 0.6992,2.1048 2.2291,3.8517 4.1618,4.7516 l 1.6226,0.7556 h 127.8029 c 97.03661,0 128.10531,-0.087 129.05901,-0.3732 z m 0.7405,-55.096 c 1.9055,-0.8874 3.3952,-2.4866 4.1449,-4.4497 0.4581,-1.1993 0.5288,-2.3507 0.4394,-7.1536 -0.1045,-5.6122 -0.1243,-5.7544 -1.008,-7.2578 -1.1359,-1.9325 -2.9917,-3.2896 -5.1222,-3.746 -1.2011,-0.2573 -36.6614,-0.3281 -129.01651,-0.2576 l -127.36,0.097 -1.596,0.84 c -1.7534,0.9228 -3.4459,3.0513 -3.9932,5.0218 -0.5299,1.908 -0.4182,10.5676 0.1582,12.2591 0.6883,2.02 2.2322,3.7543 4.1284,4.6372 l 1.6226,0.7556 h 128 128.00011 z m -578.44231,-21.5306 c 12.234,-2.1577 22.2024,-11.7111 25.396,-24.3388 0.9952,-3.9349 1.0014,-10.87274 0.013,-14.81823 -2.9862,-11.92378 -11.694,-20.76443 -23.7132,-24.07489 -2.0543,-0.56582 -3.3462,-0.6765 -7.8961,-0.6765 -5.9803,0 -7.9901,0.3696 -12.7223,2.33964 -5.0738,2.11222 -10.8791,6.88392 -13.9835,11.49372 -4.7424,7.04229 -6.6225,15.83054 -5.1381,24.01696 2.5902,14.2836 14.6357,25.3353 28.9639,26.574 3.0367,0.2626 5.4407,0.126 9.08,-0.5159 z m 577.47961,-32.7903 c 1.8639,-0.46935 3.9129,-2.27629 4.8408,-4.26894 0.6952,-1.49296 0.7536,-2.02697 0.7565,-6.92079 0,-6.29692 -0.3434,-7.70033 -2.4173,-9.77421 -2.5975,-2.59752 10.498,-2.36279 -131.81971,-2.36279 -141.4705,0 -129.2366,-0.20338 -131.6282,2.18825 -2.1773,2.17731 -2.4352,3.08222 -2.5586,8.97908 -0.073,3.50215 0.021,5.71561 0.2844,6.65532 0.4553,1.62619 1.8489,3.67785 3.019,4.44452 2.2182,1.45341 -4.2739,1.38391 130.6617,1.39878 91.95741,0.0101 127.84921,-0.0843 128.86141,-0.33922 z" id="path1" />
+  </g>
+</svg>
+</g>
+
+    <text x="49.998400000000004" y="113.3" transform="translate(49.998400000000004,113.3) scale(1,-1) translate(-49.998400000000004,-113.3)" font-family="Times-Roman" font-size="14.0" text-anchor="start" fill="#000000">NormalService</text>
+  </g>
+  </g>
+</svg>
+        </div>
+
+        <div class="navigation-ui">
+            
+            <button class="legend-toggle-btn" onclick="toggleLegend()" title="Legend">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zm0 13c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6zm0-10c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z" fill="currentColor"/></svg>
+            </button>
+        </div>
+
+        <div class="zoom-controls">
+            <button class="zoom-btn" id="zoom-in">+</button>
+            <button class="zoom-btn" id="zoom-out">-</button>
+        </div>
+
+        <div class="breadcrumb">
+            
+                <a href="main_diagram.html">main</a>
+            
+        </div>
+
+        <div class="legend hidden" id="legend">
+            <div class="legend-header">Legend</div>
+            <div class="legend-content">
+                <div style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 12px; height: 8px; background-color: #FFFF99; border: 1px solid #999; margin-right: 8px; border-radius: 2px;"></div><span style="font-size: 9px;">👤 Actor</span></div><div style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 12px; height: 8px; background-color: #90EE90; border: 1px solid #999; margin-right: 8px; border-radius: 2px;"></div><span style="font-size: 9px;">🖥️ Server</span></div><div style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 12px; height: 8px; background-color: #ADD8D6; border: 1px solid #999; margin-right: 8px; border-radius: 2px;"></div><span style="font-size: 9px;">🗄️ Database</span></div><div style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 12px; height: 8px; background-color: #FF6B6B; border: 1px solid #999; margin-right: 8px; border-radius: 2px;"></div><span style="font-size: 9px;">🔥 Firewall</span></div><div style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 12px; height: 8px; background-color: #FFD700; border: 1px solid #999; margin-right: 8px; border-radius: 2px;"></div><span style="font-size: 9px;">🌐 Router</span></div><div style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 12px; height: 8px; background-color: orange; border: 1px solid #999; margin-right: 8px; border-radius: 2px;"></div><span style="font-size: 9px;">🔀 Switch</span></div><div style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 12px; height: 8px; background-color: lightgreen; border: 1px solid #999; margin-right: 8px; border-radius: 2px;"></div><span style="font-size: 9px;">🌐 Web Server</span></div><div style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 12px; height: 8px; background-color: lightyellow; border: 1px solid #999; margin-right: 8px; border-radius: 2px;"></div><span style="font-size: 9px;">🔌 API Gateway</span></div><div style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 20px; height: 15px; border: 2px solid #2e7d32; margin-right: 8px; border-radius: 2px;"></div><span style="font-size: 11px;">🔒 Trusted Zone</span></div><div style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 20px; height: 15px; border: 2px dashed #c62828; margin-right: 8px; border-radius: 2px;"></div><span style="font-size: 11px;">⚠ Untrusted Zone</span></div><div id="severity-legend-section" style="margin-top: 5px; border-top: 1px solid #eee; padding-top: 5px;"><div style="margin-bottom: 3px; font-weight: bold; font-size: 10px;">Threats:</div><label id="threat-layer-toggle-row" style="display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:10px;cursor:pointer;"><input type="checkbox" id="threat-layer-toggle" checked onchange="setThreatLayerVisible(this.checked)" style="margin:0;">Show threat badges</label><div class="legend-item threat-sev-filter" data-severity="CRITICAL" title="Click to show/hide critical threats" style="display:flex;align-items:center;margin-bottom:3px;"><div style="width:12px;height:12px;border-radius:50%;background:#dc2626;margin-right:8px;"></div><span style="font-size:10px;flex:1;">Critical</span><span class="threat-sev-count" data-severity="CRITICAL" style="font-size:10px;color:#666;margin-left:6px;"></span></div><div class="legend-item threat-sev-filter" data-severity="HIGH" title="Click to show/hide high threats" style="display:flex;align-items:center;margin-bottom:3px;"><div style="width:12px;height:12px;border-radius:50%;background:#ea580c;margin-right:8px;"></div><span style="font-size:10px;flex:1;">High</span><span class="threat-sev-count" data-severity="HIGH" style="font-size:10px;color:#666;margin-left:6px;"></span></div><div class="legend-item threat-sev-filter" data-severity="MEDIUM" title="Click to show/hide medium threats" style="display:flex;align-items:center;margin-bottom:3px;"><div style="width:12px;height:12px;border-radius:50%;background:#d97706;margin-right:8px;"></div><span style="font-size:10px;flex:1;">Medium</span><span class="threat-sev-count" data-severity="MEDIUM" style="font-size:10px;color:#666;margin-left:6px;"></span></div><div class="legend-item threat-sev-filter" data-severity="LOW" title="Click to show/hide low threats" style="display:flex;align-items:center;margin-bottom:3px;"><div style="width:12px;height:12px;border-radius:50%;background:#16a34a;margin-right:8px;"></div><span style="font-size:10px;flex:1;">Low</span><span class="threat-sev-count" data-severity="LOW" style="font-size:10px;color:#666;margin-left:6px;"></span></div><div id="threat-stride-row" style="margin:5px 0 2px;"><div style="font-size:9px;color:#666;margin-bottom:3px;">STRIDE (click to isolate)</div><div style="display:flex;gap:3px;"><button type="button" class="threat-stride-filter" data-stride="Spoofing" title="Spoofing" aria-pressed="false">S</button><button type="button" class="threat-stride-filter" data-stride="Tampering" title="Tampering" aria-pressed="false">T</button><button type="button" class="threat-stride-filter" data-stride="Repudiation" title="Repudiation" aria-pressed="false">R</button><button type="button" class="threat-stride-filter" data-stride="Information Disclosure" title="Information Disclosure" aria-pressed="false">I</button><button type="button" class="threat-stride-filter" data-stride="Denial of Service" title="Denial of Service" aria-pressed="false">D</button><button type="button" class="threat-stride-filter" data-stride="Elevation of Privilege" title="Elevation of Privilege" aria-pressed="false">E</button></div></div><div style="margin-top:4px;"><button id="severity-overlay-btn" onclick="toggleSeverityOverlay()" style="font-size:10px;padding:2px 7px;border:1px solid #aaa;border-radius:3px;cursor:pointer;background:#f5f5f5;">⬤ Show Heat Map</button></div></div>
+            </div>
+        </div>
+    </div>
+
+    
+    <script>// svg-pan-zoom v3.6.2
+// https://github.com/bumbu/svg-pan-zoom
+!function s(r,a,l){function u(e,t){if(!a[e]){if(!r[e]){var o="function"==typeof require&&require;if(!t&&o)return o(e,!0);if(h)return h(e,!0);var n=new Error("Cannot find module '"+e+"'");throw n.code="MODULE_NOT_FOUND",n}var i=a[e]={exports:{}};r[e][0].call(i.exports,function(t){return u(r[e][1][t]||t)},i,i.exports,s,r,a,l)}return a[e].exports}for(var h="function"==typeof require&&require,t=0;t<l.length;t++)u(l[t]);return u}({1:[function(t,e,o){var s=t("./svg-utilities");e.exports={enable:function(t){var e=t.svg.querySelector("defs");if(e||(e=document.createElementNS(s.svgNS,"defs"),t.svg.appendChild(e)),!e.querySelector("style#svg-pan-zoom-controls-styles")){var o=document.createElementNS(s.svgNS,"style");o.setAttribute("id","svg-pan-zoom-controls-styles"),o.setAttribute("type","text/css"),o.textContent=".svg-pan-zoom-control { cursor: pointer; fill: black; fill-opacity: 0.333; } .svg-pan-zoom-control:hover { fill-opacity: 0.8; } .svg-pan-zoom-control-background { fill: white; fill-opacity: 0.5; } .svg-pan-zoom-control-background { fill-opacity: 0.8; }",e.appendChild(o)}var n=document.createElementNS(s.svgNS,"g");n.setAttribute("id","svg-pan-zoom-controls"),n.setAttribute("transform","translate("+(t.width-70)+" "+(t.height-76)+") scale(0.75)"),n.setAttribute("class","svg-pan-zoom-control"),n.appendChild(this._createZoomIn(t)),n.appendChild(this._createZoomReset(t)),n.appendChild(this._createZoomOut(t)),t.svg.appendChild(n),t.controlIcons=n},_createZoomIn:function(t){var e=document.createElementNS(s.svgNS,"g");e.setAttribute("id","svg-pan-zoom-zoom-in"),e.setAttribute("transform","translate(30.5 5) scale(0.015)"),e.setAttribute("class","svg-pan-zoom-control"),e.addEventListener("click",function(){t.getPublicInstance().zoomIn()},!1),e.addEventListener("touchstart",function(){t.getPublicInstance().zoomIn()},!1);var o=document.createElementNS(s.svgNS,"rect");o.setAttribute("x","0"),o.setAttribute("y","0"),o.setAttribute("width","1500"),o.setAttribute("height","1400"),o.setAttribute("class","svg-pan-zoom-control-background"),e.appendChild(o);var n=document.createElementNS(s.svgNS,"path");return n.setAttribute("d","M1280 576v128q0 26 -19 45t-45 19h-320v320q0 26 -19 45t-45 19h-128q-26 0 -45 -19t-19 -45v-320h-320q-26 0 -45 -19t-19 -45v-128q0 -26 19 -45t45 -19h320v-320q0 -26 19 -45t45 -19h128q26 0 45 19t19 45v320h320q26 0 45 19t19 45zM1536 1120v-960 q0 -119 -84.5 -203.5t-203.5 -84.5h-960q-119 0 -203.5 84.5t-84.5 203.5v960q0 119 84.5 203.5t203.5 84.5h960q119 0 203.5 -84.5t84.5 -203.5z"),n.setAttribute("class","svg-pan-zoom-control-element"),e.appendChild(n),e},_createZoomReset:function(t){var e=document.createElementNS(s.svgNS,"g");e.setAttribute("id","svg-pan-zoom-reset-pan-zoom"),e.setAttribute("transform","translate(5 35) scale(0.4)"),e.setAttribute("class","svg-pan-zoom-control"),e.addEventListener("click",function(){t.getPublicInstance().reset()},!1),e.addEventListener("touchstart",function(){t.getPublicInstance().reset()},!1);var o=document.createElementNS(s.svgNS,"rect");o.setAttribute("x","2"),o.setAttribute("y","2"),o.setAttribute("width","182"),o.setAttribute("height","58"),o.setAttribute("class","svg-pan-zoom-control-background"),e.appendChild(o);var n=document.createElementNS(s.svgNS,"path");n.setAttribute("d","M33.051,20.632c-0.742-0.406-1.854-0.609-3.338-0.609h-7.969v9.281h7.769c1.543,0,2.701-0.188,3.473-0.562c1.365-0.656,2.048-1.953,2.048-3.891C35.032,22.757,34.372,21.351,33.051,20.632z"),n.setAttribute("class","svg-pan-zoom-control-element"),e.appendChild(n);var i=document.createElementNS(s.svgNS,"path");return i.setAttribute("d","M170.231,0.5H15.847C7.102,0.5,0.5,5.708,0.5,11.84v38.861C0.5,56.833,7.102,61.5,15.847,61.5h154.384c8.745,0,15.269-4.667,15.269-10.798V11.84C185.5,5.708,178.976,0.5,170.231,0.5z M42.837,48.569h-7.969c-0.219-0.766-0.375-1.383-0.469-1.852c-0.188-0.969-0.289-1.961-0.305-2.977l-0.047-3.211c-0.03-2.203-0.41-3.672-1.142-4.406c-0.732-0.734-2.103-1.102-4.113-1.102h-7.05v13.547h-7.055V14.022h16.524c2.361,0.047,4.178,0.344,5.45,0.891c1.272,0.547,2.351,1.352,3.234,2.414c0.731,0.875,1.31,1.844,1.737,2.906s0.64,2.273,0.64,3.633c0,1.641-0.414,3.254-1.242,4.84s-2.195,2.707-4.102,3.363c1.594,0.641,2.723,1.551,3.387,2.73s0.996,2.98,0.996,5.402v2.32c0,1.578,0.063,2.648,0.19,3.211c0.19,0.891,0.635,1.547,1.333,1.969V48.569z M75.579,48.569h-26.18V14.022h25.336v6.117H56.454v7.336h16.781v6H56.454v8.883h19.125V48.569z M104.497,46.331c-2.44,2.086-5.887,3.129-10.34,3.129c-4.548,0-8.125-1.027-10.731-3.082s-3.909-4.879-3.909-8.473h6.891c0.224,1.578,0.662,2.758,1.316,3.539c1.196,1.422,3.246,2.133,6.15,2.133c1.739,0,3.151-0.188,4.236-0.562c2.058-0.719,3.087-2.055,3.087-4.008c0-1.141-0.504-2.023-1.512-2.648c-1.008-0.609-2.607-1.148-4.796-1.617l-3.74-0.82c-3.676-0.812-6.201-1.695-7.576-2.648c-2.328-1.594-3.492-4.086-3.492-7.477c0-3.094,1.139-5.664,3.417-7.711s5.623-3.07,10.036-3.07c3.685,0,6.829,0.965,9.431,2.895c2.602,1.93,3.966,4.73,4.093,8.402h-6.938c-0.128-2.078-1.057-3.555-2.787-4.43c-1.154-0.578-2.587-0.867-4.301-0.867c-1.907,0-3.428,0.375-4.565,1.125c-1.138,0.75-1.706,1.797-1.706,3.141c0,1.234,0.561,2.156,1.682,2.766c0.721,0.406,2.25,0.883,4.589,1.43l6.063,1.43c2.657,0.625,4.648,1.461,5.975,2.508c2.059,1.625,3.089,3.977,3.089,7.055C108.157,41.624,106.937,44.245,104.497,46.331z M139.61,48.569h-26.18V14.022h25.336v6.117h-18.281v7.336h16.781v6h-16.781v8.883h19.125V48.569z M170.337,20.14h-10.336v28.43h-7.266V20.14h-10.383v-6.117h27.984V20.14z"),i.setAttribute("class","svg-pan-zoom-control-element"),e.appendChild(i),e},_createZoomOut:function(t){var e=document.createElementNS(s.svgNS,"g");e.setAttribute("id","svg-pan-zoom-zoom-out"),e.setAttribute("transform","translate(30.5 70) scale(0.015)"),e.setAttribute("class","svg-pan-zoom-control"),e.addEventListener("click",function(){t.getPublicInstance().zoomOut()},!1),e.addEventListener("touchstart",function(){t.getPublicInstance().zoomOut()},!1);var o=document.createElementNS(s.svgNS,"rect");o.setAttribute("x","0"),o.setAttribute("y","0"),o.setAttribute("width","1500"),o.setAttribute("height","1400"),o.setAttribute("class","svg-pan-zoom-control-background"),e.appendChild(o);var n=document.createElementNS(s.svgNS,"path");return n.setAttribute("d","M1280 576v128q0 26 -19 45t-45 19h-896q-26 0 -45 -19t-19 -45v-128q0 -26 19 -45t45 -19h896q26 0 45 19t19 45zM1536 1120v-960q0 -119 -84.5 -203.5t-203.5 -84.5h-960q-119 0 -203.5 84.5t-84.5 203.5v960q0 119 84.5 203.5t203.5 84.5h960q119 0 203.5 -84.5 t84.5 -203.5z"),n.setAttribute("class","svg-pan-zoom-control-element"),e.appendChild(n),e},disable:function(t){t.controlIcons&&(t.controlIcons.parentNode.removeChild(t.controlIcons),t.controlIcons=null)}}},{"./svg-utilities":5}],2:[function(t,e,o){function n(t,e){this.init(t,e)}var i=t("./svg-utilities"),r=t("./utilities");n.prototype.init=function(t,e){this.viewport=t,this.options=e,this.originalState={zoom:1,x:0,y:0},this.activeState={zoom:1,x:0,y:0},this.updateCTMCached=r.proxy(this.updateCTM,this),this.requestAnimationFrame=r.createRequestAnimationFrame(this.options.refreshRate),this.viewBox={x:0,y:0,width:0,height:0},this.cacheViewBox();var o=this.processCTM();this.setCTM(o),this.updateCTM()},n.prototype.cacheViewBox=function(){var t=this.options.svg.getAttribute("viewBox");if(t){var e=t.split(/[\s\,]/).filter(function(t){return t}).map(parseFloat);this.viewBox.x=e[0],this.viewBox.y=e[1],this.viewBox.width=e[2],this.viewBox.height=e[3];var o=Math.min(this.options.width/this.viewBox.width,this.options.height/this.viewBox.height);this.activeState.zoom=o,this.activeState.x=(this.options.width-this.viewBox.width*o)/2,this.activeState.y=(this.options.height-this.viewBox.height*o)/2,this.updateCTMOnNextFrame(),this.options.svg.removeAttribute("viewBox")}else this.simpleViewBoxCache()},n.prototype.simpleViewBoxCache=function(){var t=this.viewport.getBBox();this.viewBox.x=t.x,this.viewBox.y=t.y,this.viewBox.width=t.width,this.viewBox.height=t.height},n.prototype.getViewBox=function(){return r.extend({},this.viewBox)},n.prototype.processCTM=function(){var t,e=this.getCTM();(this.options.fit||this.options.contain)&&(t=this.options.fit?Math.min(this.options.width/this.viewBox.width,this.options.height/this.viewBox.height):Math.max(this.options.width/this.viewBox.width,this.options.height/this.viewBox.height),e.a=t,e.d=t,e.e=-this.viewBox.x*t,e.f=-this.viewBox.y*t);if(this.options.center){var o=.5*(this.options.width-(this.viewBox.width+2*this.viewBox.x)*e.a),n=.5*(this.options.height-(this.viewBox.height+2*this.viewBox.y)*e.a);e.e=o,e.f=n}return this.originalState.zoom=e.a,this.originalState.x=e.e,this.originalState.y=e.f,e},n.prototype.getOriginalState=function(){return r.extend({},this.originalState)},n.prototype.getState=function(){return r.extend({},this.activeState)},n.prototype.getZoom=function(){return this.activeState.zoom},n.prototype.getRelativeZoom=function(){return this.activeState.zoom/this.originalState.zoom},n.prototype.computeRelativeZoom=function(t){return t/this.originalState.zoom},n.prototype.getPan=function(){return{x:this.activeState.x,y:this.activeState.y}},n.prototype.getCTM=function(){var t=this.options.svg.createSVGMatrix();return t.a=this.activeState.zoom,t.b=0,t.c=0,t.d=this.activeState.zoom,t.e=this.activeState.x,t.f=this.activeState.y,t},n.prototype.setCTM=function(t){var e=this.isZoomDifferent(t),o=this.isPanDifferent(t);if(e||o){if(e&&(!1===this.options.beforeZoom(this.getRelativeZoom(),this.computeRelativeZoom(t.a))?(t.a=t.d=this.activeState.zoom,e=!1):(this.updateCache(t),this.options.onZoom(this.getRelativeZoom()))),o){var n=this.options.beforePan(this.getPan(),{x:t.e,y:t.f}),i=!1,s=!1;!1===n?(t.e=this.getPan().x,t.f=this.getPan().y,i=s=!0):r.isObject(n)&&(!1===n.x?(t.e=this.getPan().x,i=!0):r.isNumber(n.x)&&(t.e=n.x),!1===n.y?(t.f=this.getPan().y,s=!0):r.isNumber(n.y)&&(t.f=n.y)),i&&s||!this.isPanDifferent(t)?o=!1:(this.updateCache(t),this.options.onPan(this.getPan()))}(e||o)&&this.updateCTMOnNextFrame()}},n.prototype.isZoomDifferent=function(t){return this.activeState.zoom!==t.a},n.prototype.isPanDifferent=function(t){return this.activeState.x!==t.e||this.activeState.y!==t.f},n.prototype.updateCache=function(t){this.activeState.zoom=t.a,this.activeState.x=t.e,this.activeState.y=t.f},n.prototype.pendingUpdate=!1,n.prototype.updateCTMOnNextFrame=function(){this.pendingUpdate||(this.pendingUpdate=!0,this.requestAnimationFrame.call(window,this.updateCTMCached))},n.prototype.updateCTM=function(){var t=this.getCTM();i.setCTM(this.viewport,t,this.defs),this.pendingUpdate=!1,this.options.onUpdatedCTM&&this.options.onUpdatedCTM(t)},e.exports=function(t,e){return new n(t,e)}},{"./svg-utilities":5,"./utilities":7}],3:[function(t,e,o){var n,i=t("./svg-pan-zoom.js");n=window,document,"function"==typeof define&&define.amd?define("svg-pan-zoom",function(){return i}):void 0!==e&&e.exports&&(e.exports=i,n.svgPanZoom=i)},{"./svg-pan-zoom.js":4}],4:[function(t,e,o){function i(t,e){this.init(t,e)}var n=t("./uniwheel"),s=t("./control-icons"),r=t("./utilities"),a=t("./svg-utilities"),l=t("./shadow-viewport"),u={viewportSelector:".svg-pan-zoom_viewport",panEnabled:!0,controlIconsEnabled:!1,zoomEnabled:!0,dblClickZoomEnabled:!0,mouseWheelZoomEnabled:!0,preventMouseEventsDefault:!0,zoomScaleSensitivity:.1,minZoom:.5,maxZoom:10,fit:!0,contain:!1,center:!0,refreshRate:"auto",beforeZoom:null,onZoom:null,beforePan:null,onPan:null,customEventsHandler:null,eventsListenerElement:null,onUpdatedCTM:null},h={passive:!0};i.prototype.init=function(t,e){var o=this;this.svg=t,this.defs=t.querySelector("defs"),a.setupSvgAttributes(this.svg),this.options=r.extend(r.extend({},u),e),this.state="none";var n=a.getBoundingClientRectNormalized(t);this.width=n.width,this.height=n.height,this.viewport=l(a.getOrCreateViewport(this.svg,this.options.viewportSelector),{svg:this.svg,width:this.width,height:this.height,fit:this.options.fit,contain:this.options.contain,center:this.options.center,refreshRate:this.options.refreshRate,beforeZoom:function(t,e){if(o.viewport&&o.options.beforeZoom)return o.options.beforeZoom(t,e)},onZoom:function(t){if(o.viewport&&o.options.onZoom)return o.options.onZoom(t)},beforePan:function(t,e){if(o.viewport&&o.options.beforePan)return o.options.beforePan(t,e)},onPan:function(t){if(o.viewport&&o.options.onPan)return o.options.onPan(t)},onUpdatedCTM:function(t){if(o.viewport&&o.options.onUpdatedCTM)return o.options.onUpdatedCTM(t)}});var i=this.getPublicInstance();i.setBeforeZoom(this.options.beforeZoom),i.setOnZoom(this.options.onZoom),i.setBeforePan(this.options.beforePan),i.setOnPan(this.options.onPan),i.setOnUpdatedCTM(this.options.onUpdatedCTM),this.options.controlIconsEnabled&&s.enable(this),this.lastMouseWheelEventTime=Date.now(),this.setupHandlers()},i.prototype.setupHandlers=function(){var o=this,n=null;if(this.eventListeners={mousedown:function(t){var e=o.handleMouseDown(t,n);return n=t,e},touchstart:function(t){var e=o.handleMouseDown(t,n);return n=t,e},mouseup:function(t){return o.handleMouseUp(t)},touchend:function(t){return o.handleMouseUp(t)},mousemove:function(t){return o.handleMouseMove(t)},touchmove:function(t){return o.handleMouseMove(t)},mouseleave:function(t){return o.handleMouseUp(t)},touchleave:function(t){return o.handleMouseUp(t)},touchcancel:function(t){return o.handleMouseUp(t)}},null!=this.options.customEventsHandler){this.options.customEventsHandler.init({svgElement:this.svg,eventsListenerElement:this.options.eventsListenerElement,instance:this.getPublicInstance()});var t=this.options.customEventsHandler.haltEventListeners;if(t&&t.length)for(var e=t.length-1;0<=e;e--)this.eventListeners.hasOwnProperty(t[e])&&delete this.eventListeners[t[e]]}for(var i in this.eventListeners)(this.options.eventsListenerElement||this.svg).addEventListener(i,this.eventListeners[i],!this.options.preventMouseEventsDefault&&h);this.options.mouseWheelZoomEnabled&&(this.options.mouseWheelZoomEnabled=!1,this.enableMouseWheelZoom())},i.prototype.enableMouseWheelZoom=function(){if(!this.options.mouseWheelZoomEnabled){var e=this;this.wheelListener=function(t){return e.handleMouseWheel(t)};var t=!this.options.preventMouseEventsDefault;n.on(this.options.eventsListenerElement||this.svg,this.wheelListener,t),this.options.mouseWheelZoomEnabled=!0}},i.prototype.disableMouseWheelZoom=function(){if(this.options.mouseWheelZoomEnabled){var t=!this.options.preventMouseEventsDefault;n.off(this.options.eventsListenerElement||this.svg,this.wheelListener,t),this.options.mouseWheelZoomEnabled=!1}},i.prototype.handleMouseWheel=function(t){if(this.options.zoomEnabled&&"none"===this.state){this.options.preventMouseEventsDefault&&(t.preventDefault?t.preventDefault():t.returnValue=!1);var e=t.deltaY||1,o=Date.now()-this.lastMouseWheelEventTime,n=3+Math.max(0,30-o);this.lastMouseWheelEventTime=Date.now(),"deltaMode"in t&&0===t.deltaMode&&t.wheelDelta&&(e=0===t.deltaY?0:Math.abs(t.wheelDelta)/t.deltaY),e=-.3<e&&e<.3?e:(0<e?1:-1)*Math.log(Math.abs(e)+10)/n;var i=this.svg.getScreenCTM().inverse(),s=a.getEventPoint(t,this.svg).matrixTransform(i),r=Math.pow(1+this.options.zoomScaleSensitivity,-1*e);this.zoomAtPoint(r,s)}},i.prototype.zoomAtPoint=function(t,e,o){var n=this.viewport.getOriginalState();o?(t=Math.max(this.options.minZoom*n.zoom,Math.min(this.options.maxZoom*n.zoom,t)),t/=this.getZoom()):this.getZoom()*t<this.options.minZoom*n.zoom?t=this.options.minZoom*n.zoom/this.getZoom():this.getZoom()*t>this.options.maxZoom*n.zoom&&(t=this.options.maxZoom*n.zoom/this.getZoom());var i=this.viewport.getCTM(),s=e.matrixTransform(i.inverse()),r=this.svg.createSVGMatrix().translate(s.x,s.y).scale(t).translate(-s.x,-s.y),a=i.multiply(r);a.a!==i.a&&this.viewport.setCTM(a)},i.prototype.zoom=function(t,e){this.zoomAtPoint(t,a.getSvgCenterPoint(this.svg,this.width,this.height),e)},i.prototype.publicZoom=function(t,e){e&&(t=this.computeFromRelativeZoom(t)),this.zoom(t,e)},i.prototype.publicZoomAtPoint=function(t,e,o){if(o&&(t=this.computeFromRelativeZoom(t)),"SVGPoint"!==r.getType(e)){if(!("x"in e&&"y"in e))throw new Error("Given point is invalid");e=a.createSVGPoint(this.svg,e.x,e.y)}this.zoomAtPoint(t,e,o)},i.prototype.getZoom=function(){return this.viewport.getZoom()},i.prototype.getRelativeZoom=function(){return this.viewport.getRelativeZoom()},i.prototype.computeFromRelativeZoom=function(t){return t*this.viewport.getOriginalState().zoom},i.prototype.resetZoom=function(){var t=this.viewport.getOriginalState();this.zoom(t.zoom,!0)},i.prototype.resetPan=function(){this.pan(this.viewport.getOriginalState())},i.prototype.reset=function(){this.resetZoom(),this.resetPan()},i.prototype.handleDblClick=function(t){var e;if((this.options.preventMouseEventsDefault&&(t.preventDefault?t.preventDefault():t.returnValue=!1),this.options.controlIconsEnabled)&&-1<(t.target.getAttribute("class")||"").indexOf("svg-pan-zoom-control"))return!1;e=t.shiftKey?1/(2*(1+this.options.zoomScaleSensitivity)):2*(1+this.options.zoomScaleSensitivity);var o=a.getEventPoint(t,this.svg).matrixTransform(this.svg.getScreenCTM().inverse());this.zoomAtPoint(e,o)},i.prototype.handleMouseDown=function(t,e){this.options.preventMouseEventsDefault&&(t.preventDefault?t.preventDefault():t.returnValue=!1),r.mouseAndTouchNormalize(t,this.svg),this.options.dblClickZoomEnabled&&r.isDblClick(t,e)?this.handleDblClick(t):(this.state="pan",this.firstEventCTM=this.viewport.getCTM(),this.stateOrigin=a.getEventPoint(t,this.svg).matrixTransform(this.firstEventCTM.inverse()))},i.prototype.handleMouseMove=function(t){if(this.options.preventMouseEventsDefault&&(t.preventDefault?t.preventDefault():t.returnValue=!1),"pan"===this.state&&this.options.panEnabled){var e=a.getEventPoint(t,this.svg).matrixTransform(this.firstEventCTM.inverse()),o=this.firstEventCTM.translate(e.x-this.stateOrigin.x,e.y-this.stateOrigin.y);this.viewport.setCTM(o)}},i.prototype.handleMouseUp=function(t){this.options.preventMouseEventsDefault&&(t.preventDefault?t.preventDefault():t.returnValue=!1),"pan"===this.state&&(this.state="none")},i.prototype.fit=function(){var t=this.viewport.getViewBox(),e=Math.min(this.width/t.width,this.height/t.height);this.zoom(e,!0)},i.prototype.contain=function(){var t=this.viewport.getViewBox(),e=Math.max(this.width/t.width,this.height/t.height);this.zoom(e,!0)},i.prototype.center=function(){var t=this.viewport.getViewBox(),e=.5*(this.width-(t.width+2*t.x)*this.getZoom()),o=.5*(this.height-(t.height+2*t.y)*this.getZoom());this.getPublicInstance().pan({x:e,y:o})},i.prototype.updateBBox=function(){this.viewport.simpleViewBoxCache()},i.prototype.pan=function(t){var e=this.viewport.getCTM();e.e=t.x,e.f=t.y,this.viewport.setCTM(e)},i.prototype.panBy=function(t){var e=this.viewport.getCTM();e.e+=t.x,e.f+=t.y,this.viewport.setCTM(e)},i.prototype.getPan=function(){var t=this.viewport.getState();return{x:t.x,y:t.y}},i.prototype.resize=function(){var t=a.getBoundingClientRectNormalized(this.svg);this.width=t.width,this.height=t.height;var e=this.viewport;e.options.width=this.width,e.options.height=this.height,e.processCTM(),this.options.controlIconsEnabled&&(this.getPublicInstance().disableControlIcons(),this.getPublicInstance().enableControlIcons())},i.prototype.destroy=function(){var e=this;for(var t in this.beforeZoom=null,this.onZoom=null,this.beforePan=null,this.onPan=null,(this.onUpdatedCTM=null)!=this.options.customEventsHandler&&this.options.customEventsHandler.destroy({svgElement:this.svg,eventsListenerElement:this.options.eventsListenerElement,instance:this.getPublicInstance()}),this.eventListeners)(this.options.eventsListenerElement||this.svg).removeEventListener(t,this.eventListeners[t],!this.options.preventMouseEventsDefault&&h);this.disableMouseWheelZoom(),this.getPublicInstance().disableControlIcons(),this.reset(),c=c.filter(function(t){return t.svg!==e.svg}),delete this.options,delete this.viewport,delete this.publicInstance,delete this.pi,this.getPublicInstance=function(){return null}},i.prototype.getPublicInstance=function(){var o=this;return this.publicInstance||(this.publicInstance=this.pi={enablePan:function(){return o.options.panEnabled=!0,o.pi},disablePan:function(){return o.options.panEnabled=!1,o.pi},isPanEnabled:function(){return!!o.options.panEnabled},pan:function(t){return o.pan(t),o.pi},panBy:function(t){return o.panBy(t),o.pi},getPan:function(){return o.getPan()},setBeforePan:function(t){return o.options.beforePan=null===t?null:r.proxy(t,o.publicInstance),o.pi},setOnPan:function(t){return o.options.onPan=null===t?null:r.proxy(t,o.publicInstance),o.pi},enableZoom:function(){return o.options.zoomEnabled=!0,o.pi},disableZoom:function(){return o.options.zoomEnabled=!1,o.pi},isZoomEnabled:function(){return!!o.options.zoomEnabled},enableControlIcons:function(){return o.options.controlIconsEnabled||(o.options.controlIconsEnabled=!0,s.enable(o)),o.pi},disableControlIcons:function(){return o.options.controlIconsEnabled&&(o.options.controlIconsEnabled=!1,s.disable(o)),o.pi},isControlIconsEnabled:function(){return!!o.options.controlIconsEnabled},enableDblClickZoom:function(){return o.options.dblClickZoomEnabled=!0,o.pi},disableDblClickZoom:function(){return o.options.dblClickZoomEnabled=!1,o.pi},isDblClickZoomEnabled:function(){return!!o.options.dblClickZoomEnabled},enableMouseWheelZoom:function(){return o.enableMouseWheelZoom(),o.pi},disableMouseWheelZoom:function(){return o.disableMouseWheelZoom(),o.pi},isMouseWheelZoomEnabled:function(){return!!o.options.mouseWheelZoomEnabled},setZoomScaleSensitivity:function(t){return o.options.zoomScaleSensitivity=t,o.pi},setMinZoom:function(t){return o.options.minZoom=t,o.pi},setMaxZoom:function(t){return o.options.maxZoom=t,o.pi},setBeforeZoom:function(t){return o.options.beforeZoom=null===t?null:r.proxy(t,o.publicInstance),o.pi},setOnZoom:function(t){return o.options.onZoom=null===t?null:r.proxy(t,o.publicInstance),o.pi},zoom:function(t){return o.publicZoom(t,!0),o.pi},zoomBy:function(t){return o.publicZoom(t,!1),o.pi},zoomAtPoint:function(t,e){return o.publicZoomAtPoint(t,e,!0),o.pi},zoomAtPointBy:function(t,e){return o.publicZoomAtPoint(t,e,!1),o.pi},zoomIn:function(){return this.zoomBy(1+o.options.zoomScaleSensitivity),o.pi},zoomOut:function(){return this.zoomBy(1/(1+o.options.zoomScaleSensitivity)),o.pi},getZoom:function(){return o.getRelativeZoom()},setOnUpdatedCTM:function(t){return o.options.onUpdatedCTM=null===t?null:r.proxy(t,o.publicInstance),o.pi},resetZoom:function(){return o.resetZoom(),o.pi},resetPan:function(){return o.resetPan(),o.pi},reset:function(){return o.reset(),o.pi},fit:function(){return o.fit(),o.pi},contain:function(){return o.contain(),o.pi},center:function(){return o.center(),o.pi},updateBBox:function(){return o.updateBBox(),o.pi},resize:function(){return o.resize(),o.pi},getSizes:function(){return{width:o.width,height:o.height,realZoom:o.getZoom(),viewBox:o.viewport.getViewBox()}},destroy:function(){return o.destroy(),o.pi}}),this.publicInstance};var c=[];e.exports=function(t,e){var o=r.getSvg(t);if(null===o)return null;for(var n=c.length-1;0<=n;n--)if(c[n].svg===o)return c[n].instance.getPublicInstance();return c.push({svg:o,instance:new i(o,e)}),c[c.length-1].instance.getPublicInstance()}},{"./control-icons":1,"./shadow-viewport":2,"./svg-utilities":5,"./uniwheel":6,"./utilities":7}],5:[function(t,e,o){var l=t("./utilities"),s="unknown";document.documentMode&&(s="ie"),e.exports={svgNS:"http://www.w3.org/2000/svg",xmlNS:"http://www.w3.org/XML/1998/namespace",xmlnsNS:"http://www.w3.org/2000/xmlns/",xlinkNS:"http://www.w3.org/1999/xlink",evNS:"http://www.w3.org/2001/xml-events",getBoundingClientRectNormalized:function(t){if(t.clientWidth&&t.clientHeight)return{width:t.clientWidth,height:t.clientHeight};if(t.getBoundingClientRect())return t.getBoundingClientRect();throw new Error("Cannot get BoundingClientRect for SVG.")},getOrCreateViewport:function(t,e){var o=null;if(!(o=l.isElement(e)?e:t.querySelector(e))){var n=Array.prototype.slice.call(t.childNodes||t.children).filter(function(t){return"defs"!==t.nodeName&&"#text"!==t.nodeName});1===n.length&&"g"===n[0].nodeName&&null===n[0].getAttribute("transform")&&(o=n[0])}if(!o){var i="viewport-"+(new Date).toISOString().replace(/\D/g,"");(o=document.createElementNS(this.svgNS,"g")).setAttribute("id",i);var s=t.childNodes||t.children;if(s&&0<s.length)for(var r=s.length;0<r;r--)"defs"!==s[s.length-r].nodeName&&o.appendChild(s[s.length-r]);t.appendChild(o)}var a=[];return o.getAttribute("class")&&(a=o.getAttribute("class").split(" ")),~a.indexOf("svg-pan-zoom_viewport")||(a.push("svg-pan-zoom_viewport"),o.setAttribute("class",a.join(" "))),o},setupSvgAttributes:function(t){if(t.setAttribute("xmlns",this.svgNS),t.setAttributeNS(this.xmlnsNS,"xmlns:xlink",this.xlinkNS),t.setAttributeNS(this.xmlnsNS,"xmlns:ev",this.evNS),null!==t.parentNode){var e=t.getAttribute("style")||"";-1===e.toLowerCase().indexOf("overflow")&&t.setAttribute("style","overflow: hidden; "+e)}},internetExplorerRedisplayInterval:300,refreshDefsGlobal:l.throttle(function(){for(var t=document.querySelectorAll("defs"),e=t.length,o=0;o<e;o++){var n=t[o];n.parentNode.insertBefore(n,n)}},this?this.internetExplorerRedisplayInterval:null),setCTM:function(t,e,o){var n=this,i="matrix("+e.a+","+e.b+","+e.c+","+e.d+","+e.e+","+e.f+")";t.setAttributeNS(null,"transform",i),"transform"in t.style?t.style.transform=i:"-ms-transform"in t.style?t.style["-ms-transform"]=i:"-webkit-transform"in t.style&&(t.style["-webkit-transform"]=i),"ie"===s&&o&&(o.parentNode.insertBefore(o,o),window.setTimeout(function(){n.refreshDefsGlobal()},n.internetExplorerRedisplayInterval))},getEventPoint:function(t,e){var o=e.createSVGPoint();return l.mouseAndTouchNormalize(t,e),o.x=t.clientX,o.y=t.clientY,o},getSvgCenterPoint:function(t,e,o){return this.createSVGPoint(t,e/2,o/2)},createSVGPoint:function(t,e,o){var n=t.createSVGPoint();return n.x=e,n.y=o,n}}},{"./utilities":7}],6:[function(t,e,o){function s(t,o){function e(t){var e={originalEvent:t=t||window.event,target:t.target||t.srcElement,type:"wheel",deltaMode:"MozMousePixelScroll"==t.type?0:1,deltaX:0,delatZ:0,preventDefault:function(){t.preventDefault?t.preventDefault():t.returnValue=!1}};return"mousewheel"==l?(e.deltaY=-.025*t.wheelDelta,t.wheelDeltaX&&(e.deltaX=-.025*t.wheelDeltaX)):e.deltaY=t.detail,o(e)}return h.push({element:t,fn:e}),e}function n(t,e,o,n){var i;i="wheel"===l?o:s(t,o),t[r](u+e,i,n?c:p)}function i(t,e,o,n){var i;i="wheel"===l?o:function(t){for(var e=0;e<h.length;e++)if(h[e].element===t)return h[e].fn;return function(){}}(t),t[a](u+e,i,n?c:p),function(t){for(var e=0;e<h.length;e++)if(h[e].element===t)return h.splice(e,1)}(t)}var r,a,l,u,h,c,p;e.exports=(h=[],p={passive:!(c={passive:!(u="")})},window.addEventListener?(r="addEventListener",a="removeEventListener"):(r="attachEvent",a="detachEvent",u="on"),l="onwheel"in document.createElement("div")?"wheel":void 0!==document.onmousewheel?"mousewheel":"DOMMouseScroll",{on:function(t,e,o){n(t,l,e,o),"DOMMouseScroll"==l&&n(t,"MozMousePixelScroll",e,o)},off:function(t,e,o){i(t,l,e,o),"DOMMouseScroll"==l&&i(t,"MozMousePixelScroll",e,o)}})},{}],7:[function(t,e,o){function n(e){return function(t){window.setTimeout(t,e)}}e.exports={extend:function(t,e){for(var o in t=t||{},e)this.isObject(e[o])?t[o]=this.extend(t[o],e[o]):t[o]=e[o];return t},isElement:function(t){return t instanceof HTMLElement||t instanceof SVGElement||t instanceof SVGSVGElement||t&&"object"==typeof t&&null!==t&&1===t.nodeType&&"string"==typeof t.nodeName},isObject:function(t){return"[object Object]"===Object.prototype.toString.call(t)},isNumber:function(t){return!isNaN(parseFloat(t))&&isFinite(t)},getSvg:function(t){var e,o;if(this.isElement(t))e=t;else{if(!("string"==typeof t||t instanceof String))throw new Error("Provided selector is not an HTML object nor String");if(!(e=document.querySelector(t)))throw new Error("Provided selector did not find any elements. Selector: "+t)}if("svg"===e.tagName.toLowerCase())o=e;else if("object"===e.tagName.toLowerCase())o=e.contentDocument.documentElement;else{if("embed"!==e.tagName.toLowerCase())throw"img"===e.tagName.toLowerCase()?new Error('Cannot script an SVG in an "img" element. Please use an "object" element or an in-line SVG.'):new Error("Cannot get SVG.");o=e.getSVGDocument().documentElement}return o},proxy:function(t,e){return function(){return t.apply(e,arguments)}},getType:function(t){return Object.prototype.toString.apply(t).replace(/^\[object\s/,"").replace(/\]$/,"")},mouseAndTouchNormalize:function(t,e){if(void 0===t.clientX||null===t.clientX)if(t.clientX=0,void(t.clientY=0)!==t.touches&&t.touches.length){if(void 0!==t.touches[0].clientX)t.clientX=t.touches[0].clientX,t.clientY=t.touches[0].clientY;else if(void 0!==t.touches[0].pageX){var o=e.getBoundingClientRect();t.clientX=t.touches[0].pageX-o.left,t.clientY=t.touches[0].pageY-o.top}}else void 0!==t.originalEvent&&void 0!==t.originalEvent.clientX&&(t.clientX=t.originalEvent.clientX,t.clientY=t.originalEvent.clientY)},isDblClick:function(t,e){if(2===t.detail)return!0;if(null==e)return!1;var o=t.timeStamp-e.timeStamp,n=Math.sqrt(Math.pow(t.clientX-e.clientX,2)+Math.pow(t.clientY-e.clientY,2));return o<250&&n<10},now:Date.now||function(){return(new Date).getTime()},throttle:function(o,n,i){var s,r,a,l=this,u=null,h=0;i=i||{};function c(){h=!1===i.leading?0:l.now(),u=null,a=o.apply(s,r),u||(s=r=null)}return function(){var t=l.now();h||!1!==i.leading||(h=t);var e=n-(t-h);return s=this,r=arguments,e<=0||n<e?(clearTimeout(u),u=null,h=t,a=o.apply(s,r),u||(s=r=null)):u||!1===i.trailing||(u=setTimeout(c,e)),a}},createRequestAnimationFrame:function(t){var e=null;return"auto"!==t&&t<60&&1<t&&(e=Math.floor(1e3/t)),null===e?window.requestAnimationFrame||n(33):n(e)}}},{}]},{},[3]);</script>
+    
+    <!-- B2: severity tooltip -->
+    <div id="severity-tooltip" style="display:none;position:fixed;z-index:2000;background:rgba(30,30,30,0.92);color:#fff;padding:6px 10px;border-radius:5px;font-size:12px;pointer-events:none;max-width:220px;line-height:1.4;"></div>
+
+    <script>
+        let panZoomInstance; // Declare panZoomInstance globally
+        let globalGraphMetadata = null;
+        let currentlySelectedElementId = null;
+        let protocolVisibilityState = {};
+
+        // B2: report URL for "View threats" link
+        const REPORT_URL = "main_threat_report.html";
+
+        // B2: severity heat-map state
+        const SEV_COLORS = { CRITICAL: '#dc2626', HIGH: '#ea580c', MEDIUM: '#d97706', LOW: '#16a34a' };
+        let severityMap = {};
+        let severityOverlayActive = false;
+        let originalNodeFills = {};
+
+        function toggleSeverityOverlay() {
+            const btn = document.getElementById('severity-overlay-btn');
+            const svg = document.querySelector('#svg-container svg');
+            if (!svg) return;
+            severityOverlayActive = !severityOverlayActive;
+            if (severityOverlayActive) {
+                Object.entries(severityMap).forEach(([nodeId, level]) => {
+                    const g = svg.querySelector(`g[id="${CSS.escape(nodeId)}"]`);
+                    if (!g) return;
+                    const shape = g.querySelector('polygon,ellipse,path,rect');
+                    if (!shape) return;
+                    if (!originalNodeFills[nodeId]) {
+                        originalNodeFills[nodeId] = { fill: shape.getAttribute('fill'), stroke: shape.getAttribute('stroke') };
+                    }
+                    const color = SEV_COLORS[level] || '#aaa';
+                    shape.setAttribute('fill', color);
+                    shape.setAttribute('stroke', color);
+                });
+                if (btn) { btn.textContent = '✕ Hide Heat Map'; btn.style.background = '#fee2e2'; }
+            } else {
+                Object.entries(originalNodeFills).forEach(([nodeId, orig]) => {
+                    const g = svg.querySelector(`g[id="${CSS.escape(nodeId)}"]`);
+                    if (!g) return;
+                    const shape = g.querySelector('polygon,ellipse,path,rect');
+                    if (!shape) return;
+                    if (orig.fill !== null) shape.setAttribute('fill', orig.fill);
+                    else shape.removeAttribute('fill');
+                    if (orig.stroke !== null) shape.setAttribute('stroke', orig.stroke);
+                    else shape.removeAttribute('stroke');
+                });
+                if (btn) { btn.textContent = '⬤ Show Heat Map'; btn.style.background = '#f5f5f5'; }
+            }
+        }
+
+        function showSeverityTooltip(e, nodeId) {
+            if (!severityOverlayActive) return;
+            const level = severityMap[nodeId];
+            if (!level) return;
+            const meta = globalGraphMetadata && globalGraphMetadata.nodes && globalGraphMetadata.nodes[nodeId];
+            const label = meta ? meta.label : nodeId;
+            const tip = document.getElementById('severity-tooltip');
+            // Built with the DOM API: label/nodeId/REPORT_URL derive from model names.
+            tip.textContent = '';
+            const strong = document.createElement('strong');
+            strong.textContent = label;
+            tip.appendChild(strong);
+            tip.appendChild(document.createElement('br'));
+            tip.appendChild(document.createTextNode('Max Severity: '));
+            const sevSpan = document.createElement('span');
+            sevSpan.style.color = SEV_COLORS[level];
+            sevSpan.style.fontWeight = 'bold';
+            sevSpan.textContent = level;
+            tip.appendChild(sevSpan);
+            // A report URL starting with a scheme ("javascript:...") is never a sibling file.
+            if (REPORT_URL && !/^\s*[a-z][a-z0-9+.\-]*:/i.test(REPORT_URL)) {
+                tip.appendChild(document.createElement('br'));
+                const link = document.createElement('a');
+                link.href = REPORT_URL + '#component-' + nodeId;
+                link.target = '_top';
+                link.style.cssText = 'color:#90cdf4;font-size:11px;';
+                link.textContent = 'View threats →';
+                tip.appendChild(link);
+            }
+            tip.style.display = 'block';
+            tip.style.left = (e.clientX + 12) + 'px';
+            tip.style.top  = (e.clientY + 12) + 'px';
+        }
+
+        function hideSeverityTooltip() {
+            const tip = document.getElementById('severity-tooltip');
+            if (tip) tip.style.display = 'none';
+        }
+
+        // Function to apply highlighting
+        function highlightElement(elementId) {
+            // If the clicked element is already selected, clear highlighting and return.
+            if (currentlySelectedElementId === elementId) {
+                clearHighlighting();
+                return;
+            }
+
+            // Clear previous highlighting
+            clearHighlighting();
+            currentlySelectedElementId = elementId;
+
+            const svg = document.querySelector('#svg-container svg');
+            if (!svg || !globalGraphMetadata) {
+                return;
+            }
+
+            // Target element can be a node or an edge
+            const targetElement = globalGraphMetadata.nodes[elementId] || globalGraphMetadata.edges[elementId];
+            if (!targetElement) {
+                return;
+            }
+
+            // Get all visible SVG groups (nodes and edges)
+            const allSvgGroups = svg.querySelectorAll('g[id]');
+
+            // Apply faded class to all elements first
+            // Not the pan-zoom viewport (svg-pan-zoom gives it an id): fading it would
+            // fade the selected element and the threat badges along with everything.
+            allSvgGroups.forEach(g => {
+                if (!g.classList.contains('svg-pan-zoom_viewport')) g.classList.add('faded');
+            });
+
+            // Highlight the selected element
+            const selectedSvgElement = svg.querySelector(`g[id="${CSS.escape(elementId)}"]`);
+            if (selectedSvgElement) {
+                selectedSvgElement.classList.add('selected');
+                selectedSvgElement.classList.remove('faded');
+            }
+
+            // Highlight connected elements
+            const connectedElements = new Set();
+            const connectedEdges = new Set();
+
+            if (globalGraphMetadata.nodes[elementId]) { // If a node was clicked
+                globalGraphMetadata.nodes[elementId].connections.forEach(edgeId => {
+                    connectedEdges.add(edgeId);
+                    const edge = globalGraphMetadata.edges[edgeId];
+                    if (edge) {
+                        connectedElements.add(edge.source);
+                        connectedElements.add(edge.target);
+                    }
+                });
+            } else if (globalGraphMetadata.edges[elementId]) { // If an edge was clicked
+                const edge = globalGraphMetadata.edges[elementId];
+                if (edge) {
+                    connectedElements.add(edge.source);
+                    connectedElements.add(edge.target);
+                    connectedEdges.add(elementId);
+                }
+            }
+
+            connectedElements.forEach(connId => {
+                // Special handling for boundary clusters
+                if (connId.startsWith('__hidden_node_')) {
+                    const originalBoundaryId = connId.replace('__hidden_node_', '');
+                    const boundaryCluster = svg.querySelector(`g[id="cluster_${CSS.escape(originalBoundaryId)}"]`);
+                     if (boundaryCluster) {
+                        boundaryCluster.classList.add('highlighted');
+                        boundaryCluster.classList.remove('faded');
+                    }
+                }
+
+                const connSvgElementActual = svg.querySelector(`g[id="${CSS.escape(connId)}"]`);
+                if (connSvgElementActual) {
+                    connSvgElementActual.classList.add('highlighted');
+                    connSvgElementActual.classList.remove('faded');
+                }
+            });
+
+            connectedEdges.forEach(edgeId => {
+                const edgeSvgElement = svg.querySelector(`g[id="${CSS.escape(edgeId)}"]`);
+                if (edgeSvgElement) {
+                    edgeSvgElement.classList.add('highlighted');
+                    edgeSvgElement.classList.remove('faded');
+                }
+            });
+        }
+
+        // Function to clear all highlighting
+        function clearHighlighting() {
+            const svg = document.querySelector('#svg-container svg');
+            if (!svg) return;
+
+            const allSvgGroups = svg.querySelectorAll('g[id]');
+            allSvgGroups.forEach(g => {
+                g.classList.remove('selected', 'highlighted', 'faded');
+            });
+            currentlySelectedElementId = null;
+        }
+
+        function toggleLegend() {
+            const legend = document.getElementById('legend');
+            legend.classList.toggle('hidden');
+        }
+
+        function toggleProtocolVisibility(protocolClass) {
+            const legendItem = document.querySelector(`.legend-item[data-protocol="${protocolClass}"]`);
+            if (protocolVisibilityState[protocolClass] === 'hidden') {
+                protocolVisibilityState[protocolClass] = 'visible';
+                if(legendItem) legendItem.style.opacity = 1;
+            } else {
+                protocolVisibilityState[protocolClass] = 'hidden';
+                if(legendItem) legendItem.style.opacity = 0.5;
+            }
+            applyProtocolVisibility();
+        }
+
+        function applyProtocolVisibility() {
+            const svg = document.querySelector('#svg-container svg');
+            if (!svg) return;
+
+            const allElements = svg.querySelectorAll('g.edge');
+            allElements.forEach(el => el.classList.remove('svg-element-hidden'));
+
+            for (const protocolClass in protocolVisibilityState) {
+                if (protocolVisibilityState[protocolClass] === 'hidden') {
+                    const elementsToHide = svg.querySelectorAll(`.protocol-${protocolClass}`);
+                    elementsToHide.forEach(el => {
+                        el.classList.add('svg-element-hidden');
+                    });
+                }
+            }
+            // Badges of hidden dataflows follow them (threat layer, _threat_layer.html).
+            if (window.refreshThreatBadges) window.refreshThreatBadges();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var svgElement = document.querySelector('#svg-container svg');
+
+            // Inject graph_metadata from Jinja2 context
+            const rawGraphMetadata = JSON.parse("{\"nodes\": {\"APIService\": {\"id\": \"APIService\", \"type\": \"server\", \"label\": \"APIService\", \"connections\": []}, \"NormalService\": {\"id\": \"NormalService\", \"type\": \"server\", \"label\": \"NormalService\", \"connections\": []}}, \"edges\": {}}");
+            if (Object.keys(rawGraphMetadata).length > 0) {
+                globalGraphMetadata = rawGraphMetadata;
+            } else {
+                console.warn("No graph metadata provided to navigable_diagram_template.html");
+            }
+
+            // B2: inject severity map
+            const rawSeverityMap = JSON.parse("{\"APIService\": \"CRITICAL\", \"NormalService\": \"CRITICAL\"}");
+            if (Object.keys(rawSeverityMap).length > 0) {
+                severityMap = rawSeverityMap;
+            } else {
+                const sevSection = document.getElementById('severity-legend-section');
+                if (sevSection) sevSection.style.display = 'none';
+            }
+
+            if (svgElement) {
+                panZoomInstance = svgPanZoom(svgElement, {
+                    zoomEnabled: true,
+                    controlIconsEnabled: false,
+                    fit: true,
+                    center: true,
+                    minZoom: 0.5,
+                    maxZoom: 10
+                });
+
+                document.getElementById('zoom-in').addEventListener('click', function(e) {
+                    e.preventDefault();
+                    panZoomInstance.zoomIn();
+                });
+
+                document.getElementById('zoom-out').addEventListener('click', function(e) {
+                    e.preventDefault();
+                    panZoomInstance.zoomOut();
+                });
+
+                // Add a single click listener to the SVG container for event delegation
+                svgElement.addEventListener('click', (e) => {
+                    // Find the closest parent group that is a graph element
+                    const g = e.target.closest('.graph-element');
+
+                    if (g) {
+                        // A graph element (node or edge) was clicked
+                        // Check if the original click target was a link, if so, do not highlight
+                        if (e.target.closest('a')) {
+                            return;
+                        }
+                        e.stopPropagation(); // Stop event from propagating further, just in case
+                        e.preventDefault(); // Prevent default link behavior if any
+                        highlightElement(g.id);
+                    } else {
+                        // The background was clicked, clear any highlighting
+                        clearHighlighting();
+                    }
+                });
+
+                // Add graph-element class to all groups with an ID for easy identification by the listener
+                const allSvgGroups = svgElement.querySelectorAll('g[id]');
+                allSvgGroups.forEach(g => {
+                    g.classList.add('graph-element');
+                });
+
+                // B2: severity tooltip on hover
+                svgElement.addEventListener('mousemove', (e) => {
+                    const g = e.target.closest('.graph-element');
+                    if (g) showSeverityTooltip(e, g.id);
+                    else hideSeverityTooltip();
+                });
+                svgElement.addEventListener('mouseleave', hideSeverityTooltip);
+
+                // --- Hover effect logic for sub-model links ---
+                const clickableLinks = svgElement.querySelectorAll('a');
+                clickableLinks.forEach(function(link) {
+                    const group = link.closest('.graph-element');
+                    if (group) {
+                        try {
+                            group.classList.add('hover-effect');
+                            group.style.cursor = 'pointer';
+
+                            const bbox = group.getBBox();
+                            const cx = bbox.x + bbox.width / 2;
+                            const cy = bbox.y + bbox.height / 2;
+                            group.style.transformOrigin = `${cx}px ${cy}px`;
+
+                            group.addEventListener('mouseover', function() {
+                                group.classList.add('hovered');
+                            });
+
+                            group.addEventListener('mouseout', function() {
+                                group.classList.remove('hovered');
+                            });
+                        } catch (e) {
+                            // BBox can fail on hidden elements, not critical
+                        }
+                    }
+                });
+
+                // Add event listener for legend item clicks
+                const legend = document.getElementById('legend');
+                legend.addEventListener('click', (event) => {
+                    const legendItem = event.target.closest('.legend-item');
+                    if (legendItem) {
+                        const protocolClass = legendItem.dataset.protocol;
+                        if (protocolClass) {
+                            toggleProtocolVisibility(protocolClass);
+                        }
+                    }
+                });
+
+                applyProtocolVisibility();
+
+            } else {
+                console.warn("SVG element not found for pan/zoom and highlighting initialization.");
+            }
+        });
+    </script>
+    
+<style>
+    .threat-layer .threat-badge { cursor: pointer; }
+    .threat-layer .threat-badge circle { stroke: #ffffff; stroke-width: 1.5px; }
+    .threat-layer .threat-badge text {
+        fill: #ffffff; font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 10px;
+        font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none;
+    }
+    .threat-layer .threat-badge:hover circle { stroke: #111827; }
+    .threat-layer .threat-badge.dimmed { opacity: 0.35; }
+    .threat-layer .threat-badge.active circle { stroke: #111827; stroke-width: 2.5px; }
+    .threat-sev-filter.off { opacity: 0.35; }
+    .threat-stride-filter {
+        flex: 1; min-width: 0; padding: 2px 0; font-size: 10px; font-weight: 700; line-height: 1.3;
+        border: 1px solid #c7c7c7; border-radius: 3px; background: #f5f5f5; color: #374151; cursor: pointer;
+    }
+    .threat-stride-filter:hover { border-color: #6b7280; }
+    .threat-stride-filter.on { background: #1f2937; border-color: #1f2937; color: #ffffff; }
+    .threat-stride-filter.empty { opacity: 0.4; }
+    .threat-sev-filter.off span:first-of-type { text-decoration: line-through; }
+    #threat-panel {
+        display: none; position: absolute; top: 20px; left: 20px; z-index: 1500;
+        width: 340px; max-width: calc(100vw - 40px); max-height: calc(100vh - 110px);
+        overflow: auto; background: rgba(255, 255, 255, 0.98); border: 1px solid #ddd;
+        border-radius: 6px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+        font-size: 12px; color: #1f2937;
+    }
+    #threat-panel.open { display: block; }
+    #threat-panel .tp-header {
+        display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px 6px;
+        border-bottom: 1px solid #eee; position: sticky; top: 0; background: inherit;
+    }
+    #threat-panel .tp-title { flex: 1; font-weight: 700; font-size: 13px; word-break: break-word; }
+    #threat-panel .tp-kind { display: block; font-weight: 400; font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; }
+    #threat-panel .tp-close { border: none; background: none; font-size: 18px; line-height: 1; cursor: pointer; color: #6b7280; padding: 0 2px; }
+    #threat-panel .tp-summary { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 12px 4px; }
+    #threat-panel .tp-chip { border-radius: 10px; padding: 1px 8px; font-size: 10px; font-weight: 700; color: #fff; }
+    #threat-panel ul { list-style: none; margin: 0; padding: 4px 12px 8px; }
+    #threat-panel li { padding: 6px 0; border-bottom: 1px solid #f1f1f1; }
+    #threat-panel li:last-child { border-bottom: none; }
+    #threat-panel .tp-sev { display: inline-block; min-width: 54px; text-align: center; border-radius: 3px; padding: 0 4px; margin-right: 6px; font-size: 9px; font-weight: 700; color: #fff; }
+    #threat-panel .tp-meta { display: block; margin-top: 2px; font-size: 10px; color: #6b7280; }
+    #threat-panel .tp-footer { padding: 6px 12px 10px; font-size: 11px; color: #6b7280; }
+    #threat-panel .tp-footer a { color: #2563eb; }
+</style>
+
+<div id="threat-panel" role="dialog" aria-labelledby="threat-panel-title">
+    <div class="tp-header">
+        <div class="tp-title" id="threat-panel-title"></div>
+        <button class="tp-close" type="button" onclick="closeThreatPanel()" title="Close" aria-label="Close">×</button>
+    </div>
+    <div class="tp-summary" id="threat-panel-summary"></div>
+    <ul id="threat-panel-list"></ul>
+    <div class="tp-footer" id="threat-panel-footer"></div>
+</div>
+
+<script>
+(function () {
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+    const LEVELS = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
+    const COLORS = { CRITICAL: '#dc2626', HIGH: '#ea580c', MEDIUM: '#d97706', LOW: '#16a34a' };
+    const KIND_LABELS = { actor: 'Actor', server: 'Component', dataflow: 'Dataflow', boundary: 'Trust boundary' };
+    const LAYER_REPORT_URL = "main_threat_report.html";
+
+    const state = { layer: {}, visible: true, levels: new Set(LEVELS), strides: null, openId: null, layerGroup: null };
+
+    function svgRoot() { return document.querySelector('#svg-container svg'); }
+
+    // Graphviz keeps the DOT id on nodes and edges; clusters get "clustN" with the
+    // DOT name in their <title>, so fall back to the title.
+    function findGroup(svg, id) {
+        const byId = svg.querySelector(`g[id="${CSS.escape(id)}"]`);
+        if (byId) return byId;
+        for (const g of svg.querySelectorAll('g.cluster, g.node, g.edge')) {
+            const t = g.querySelector(':scope > title');
+            if (t && t.textContent.trim() === id) return g;
+        }
+        return null;
+    }
+
+    // Maps a point of `node`'s user space into the layer's user space. Works whatever
+    // transforms sit in between (the generated SVG flips its y axis, pan-zoom scales).
+    function toLayer(node, layerGroup, x, y) {
+        const svg = svgRoot();
+        const m = layerGroup.getScreenCTM().inverse().multiply(node.getScreenCTM());
+        const p = svg.createSVGPoint();
+        p.x = x; p.y = y;
+        return p.matrixTransform(m);
+    }
+
+    function anchorPoint(g, kind, layerGroup) {
+        if (kind === 'dataflow') {
+            const path = g.querySelector('path');
+            if (path && path.getTotalLength) {
+                const mid = path.getPointAtLength(path.getTotalLength() / 2);
+                return toLayer(path, layerGroup, mid.x, mid.y);
+            }
+        }
+        // Element outline: its first own shape (icons are nested <svg>, skip them).
+        const shape = g.querySelector(':scope > polygon, :scope > ellipse, :scope > rect, :scope > path, :scope > a > polygon, :scope > a > ellipse, :scope > a > rect, :scope > a > path')
+            || g.querySelector('polygon, ellipse, rect, path') || g;
+        const bb = shape.getBBox();
+        const corners = [[bb.x, bb.y], [bb.x + bb.width, bb.y], [bb.x, bb.y + bb.height], [bb.x + bb.width, bb.y + bb.height]]
+            .map(([x, y]) => toLayer(shape, layerGroup, x, y));
+        const right = Math.max(...corners.map(c => c.x));
+        const top = Math.min(...corners.map(c => c.y));
+        if (kind === 'boundary') return { x: right - 14, y: top + 14 };
+        return { x: right - 2, y: top + 2 };
+    }
+
+    // Badges keep the same on-screen size whatever the zoom level.
+    function badgeScale(layerGroup) {
+        const ctm = layerGroup.getScreenCTM();
+        const zoom = ctm ? Math.hypot(ctm.a, ctm.b) : 1;
+        return zoom > 0 ? 1 / zoom : 1;
+    }
+
+    // STRIDE filter: null = every category (including "Other"), else the selected set.
+    function strideShown(stride) { return !state.strides || state.strides.has(stride); }
+
+    // Visible threats of an element at one severity level, under the STRIDE filter.
+    function levelCount(entry, lvl) {
+        if (!state.levels.has(lvl)) return 0;
+        if (!state.strides || !entry.by_stride) return entry.counts[lvl] || 0;
+        return Object.entries(entry.by_stride)
+            .reduce((n, [stride, perLevel]) => n + (strideShown(stride) ? (perLevel[lvl] || 0) : 0), 0);
+    }
+
+    function visibleCount(entry) {
+        return LEVELS.reduce((n, lvl) => n + levelCount(entry, lvl), 0);
+    }
+
+    function worstVisible(entry) {
+        return LEVELS.find(lvl => levelCount(entry, lvl) > 0) || null;
+    }
+
+    function plural(n, word) { return `${n} ${word}${n === 1 ? '' : 's'}`; }
+
+    function buildBadges() {
+        const svg = svgRoot();
+        if (!svg) return;
+        // Inside the pan-zoom viewport so badges pan with the diagram, on top of it.
+        const host = svg.querySelector('.svg-pan-zoom_viewport') || svg;
+        const layerGroup = document.createElementNS(SVG_NS, 'g');
+        // A class, not an id: the page fades every g[id] when it highlights an element.
+        layerGroup.setAttribute('class', 'threat-layer');
+        state.layerGroup = layerGroup;
+        host.appendChild(layerGroup);
+
+        Object.entries(state.layer).forEach(([id, entry]) => {
+            const target = findGroup(svg, id);
+            if (!target) return;
+            let pt;
+            try { pt = anchorPoint(target, entry.kind, layerGroup); } catch (e) { return; }
+            const badge = document.createElementNS(SVG_NS, 'g');
+            badge.setAttribute('class', 'threat-badge');
+            badge.dataset.elementId = id;
+            badge._target = target;
+            badge._pos = pt;
+            const circle = document.createElementNS(SVG_NS, 'circle');
+            const text = document.createElementNS(SVG_NS, 'text');
+            const title = document.createElementNS(SVG_NS, 'title');
+            badge.append(title, circle, text);
+            badge.addEventListener('click', (e) => {
+                // Keep the page's own click handler out of it: the badge does its own
+                // highlighting, the same toggle a click on the element does.
+                e.stopPropagation();
+                e.preventDefault();
+                if (entry.kind !== 'boundary' && typeof highlightElement === 'function') highlightElement(id);
+                toggleThreatPanel(id);
+            });
+            layerGroup.appendChild(badge);
+        });
+        if (typeof panZoomInstance !== 'undefined' && panZoomInstance && panZoomInstance.setOnZoom) {
+            panZoomInstance.setOnZoom(() => rescaleBadges());
+        }
+        window.addEventListener('resize', () => rescaleBadges());
+        refreshThreatBadges();
+    }
+
+    function rescaleBadges() {
+        const layerGroup = state.layerGroup;
+        if (!layerGroup) return;
+        const k = badgeScale(layerGroup);
+        layerGroup.querySelectorAll('.threat-badge').forEach(badge => {
+            badge.setAttribute('transform', `translate(${badge._pos.x},${badge._pos.y}) scale(${k})`);
+        });
+    }
+
+    function refreshThreatBadges() {
+        const layerGroup = state.layerGroup;
+        if (!layerGroup) return;
+        layerGroup.style.display = state.visible ? '' : 'none';
+        layerGroup.querySelectorAll('.threat-badge').forEach(badge => {
+            const entry = state.layer[badge.dataset.elementId];
+            const n = visibleCount(entry);
+            const worst = worstVisible(entry);
+            const hiddenTarget = badge._target && badge._target.closest('.svg-element-hidden');
+            if (!n || !worst || hiddenTarget) { badge.style.display = 'none'; return; }
+            badge.style.display = '';
+            const label = n > 99 ? '99+' : String(n);
+            const circle = badge.querySelector('circle');
+            circle.setAttribute('r', label.length > 1 ? 9 : 8);
+            circle.setAttribute('fill', COLORS[worst]);
+            badge.querySelector('text').textContent = label;
+            badge.querySelector('title').textContent =
+                `${entry.label}: ${plural(n, 'threat')} (worst: ${worst.toLowerCase()}). Click for details.`;
+            badge.classList.toggle('active', state.openId === badge.dataset.elementId);
+            badge.classList.toggle('dimmed', badge._target.classList.contains('faded'));
+        });
+        rescaleBadges();
+        document.querySelectorAll('.threat-sev-filter').forEach(item => {
+            item.classList.toggle('off', !state.levels.has(item.dataset.severity));
+        });
+        document.querySelectorAll('.threat-stride-filter').forEach(chip => {
+            const on = !!state.strides && state.strides.has(chip.dataset.stride);
+            chip.classList.toggle('on', on);
+            chip.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+        if (state.openId) renderPanel(state.openId);
+    }
+
+    function el(tag, cls, text) {
+        const node = document.createElement(tag);
+        if (cls) node.className = cls;
+        if (text !== undefined) node.textContent = text;
+        return node;
+    }
+
+    // Built with the DOM API only: labels and titles come from the model.
+    function renderPanel(id) {
+        const entry = state.layer[id];
+        if (!entry) return;
+        const title = document.getElementById('threat-panel-title');
+        title.textContent = entry.label;
+        title.appendChild(el('span', 'tp-kind', KIND_LABELS[entry.kind] || entry.kind));
+
+        const summary = document.getElementById('threat-panel-summary');
+        summary.textContent = '';
+        LEVELS.forEach(lvl => {
+            const n = entry.counts[lvl] || 0;
+            if (!n) return;
+            const chip = el('span', 'tp-chip', `${n} ${lvl.toLowerCase()}`);
+            chip.style.background = COLORS[lvl];
+            if (!levelCount(entry, lvl)) chip.style.opacity = '0.35';
+            summary.appendChild(chip);
+        });
+
+        const list = document.getElementById('threat-panel-list');
+        list.textContent = '';
+        const shown = entry.threats.filter(t => state.levels.has(t.severity) && strideShown(t.stride));
+        shown.forEach(t => {
+            const li = el('li');
+            const sev = el('span', 'tp-sev', t.score ? `${t.severity} ${t.score}` : t.severity);
+            sev.style.background = COLORS[t.severity];
+            li.appendChild(sev);
+            li.appendChild(document.createTextNode(t.title));
+            const meta = [t.stride, t.id, t.source && t.source !== 'pytm' ? t.source : ''].filter(Boolean).join(' · ');
+            if (meta) li.appendChild(el('span', 'tp-meta', meta));
+            list.appendChild(li);
+        });
+        if (!shown.length) list.appendChild(el('li', 'tp-meta', 'No threat matches the legend filters.'));
+
+        const footer = document.getElementById('threat-panel-footer');
+        footer.textContent = '';
+        const listed = entry.threats.length;
+        if (entry.total > listed) footer.appendChild(document.createTextNode(`Showing the ${listed} worst of ${entry.total} threats. `));
+        // A report URL starting with a scheme ("javascript:...") is never a sibling file.
+        if (LAYER_REPORT_URL && !/^\s*[a-z][a-z0-9+.\-]*:/i.test(LAYER_REPORT_URL)) {
+            const link = el('a', '', 'Open in the full report →');
+            link.href = LAYER_REPORT_URL + '#' + entry.anchor;
+            link.target = '_top';
+            footer.appendChild(link);
+        }
+    }
+
+    function openThreatPanel(id) {
+        if (!state.layer[id]) return;
+        state.openId = id;
+        renderPanel(id);
+        document.getElementById('threat-panel').classList.add('open');
+        refreshThreatBadges();
+    }
+
+    // Same toggle as the page's highlighting: a second click on the element closes it.
+    function toggleThreatPanel(id) {
+        if (state.openId === id) closeThreatPanel(); else openThreatPanel(id);
+    }
+
+    function closeThreatPanel() {
+        state.openId = null;
+        document.getElementById('threat-panel').classList.remove('open');
+        refreshThreatBadges();
+    }
+
+    function setThreatLayerVisible(visible) {
+        state.visible = !!visible;
+        const box = document.getElementById('threat-layer-toggle');
+        if (box) box.checked = state.visible;
+        if (!state.visible) closeThreatPanel();
+        refreshThreatBadges();
+    }
+
+    // Click: show only this category (again: back to all). Shift/Ctrl/Cmd-click: add or
+    // remove it from the current selection.
+    function toggleThreatStride(stride, additive) {
+        if (additive) {
+            const next = new Set(state.strides || []);
+            if (next.has(stride)) next.delete(stride); else next.add(stride);
+            state.strides = next.size ? next : null;
+        } else {
+            const solo = state.strides && state.strides.size === 1 && state.strides.has(stride);
+            state.strides = solo ? null : new Set([stride]);
+        }
+        refreshThreatBadges();
+    }
+
+    function toggleThreatSeverity(level) {
+        if (state.levels.has(level)) state.levels.delete(level); else state.levels.add(level);
+        refreshThreatBadges();
+    }
+
+    window.refreshThreatBadges = refreshThreatBadges;
+    window.openThreatPanel = openThreatPanel;
+    window.closeThreatPanel = closeThreatPanel;
+    window.setThreatLayerVisible = setThreatLayerVisible;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        try { state.layer = JSON.parse("{\"APIService\": {\"label\": \"APIService\", \"kind\": \"server\", \"anchor\": \"component-APIService\", \"counts\": {\"CRITICAL\": 2, \"HIGH\": 1, \"MEDIUM\": 1, \"LOW\": 0}, \"by_stride\": {\"Tampering\": {\"CRITICAL\": 1}, \"Elevation of Privilege\": {\"CRITICAL\": 1}, \"Repudiation\": {\"HIGH\": 1}, \"Information Disclosure\": {\"MEDIUM\": 1}}, \"total\": 4, \"max\": \"CRITICAL\", \"threats\": [{\"id\": \"T-0001\", \"title\": \"Unpatched OS or software vulnerabilities on APIService leading to system compromise\", \"severity\": \"CRITICAL\", \"score\": 10.0, \"stride\": \"Tampering\", \"source\": \"pytm\"}, {\"id\": \"T-0003\", \"title\": \"Unauthorized privilege escalation on APIService due to misconfiguration or vulnerability\", \"severity\": \"CRITICAL\", \"score\": 9.2, \"stride\": \"Elevation of Privilege\", \"source\": \"pytm\"}, {\"id\": \"T-0005\", \"title\": \"Lack of monitoring or logging on APIService, preventing detection of malicious activities and enabling repudiation\", \"severity\": \"HIGH\", \"score\": 7.6, \"stride\": \"Repudiation\", \"source\": \"pytm\"}, {\"id\": \"T-0007\", \"title\": \"Insecure security configuration or hardening on APIService leading to information exposure\", \"severity\": \"MEDIUM\", \"score\": 7.0, \"stride\": \"Information Disclosure\", \"source\": \"pytm\"}]}, \"NormalService\": {\"label\": \"NormalService\", \"kind\": \"server\", \"anchor\": \"component-NormalService\", \"counts\": {\"CRITICAL\": 2, \"HIGH\": 1, \"MEDIUM\": 1, \"LOW\": 0}, \"by_stride\": {\"Tampering\": {\"CRITICAL\": 1}, \"Elevation of Privilege\": {\"CRITICAL\": 1}, \"Repudiation\": {\"HIGH\": 1}, \"Information Disclosure\": {\"MEDIUM\": 1}}, \"total\": 4, \"max\": \"CRITICAL\", \"threats\": [{\"id\": \"T-0002\", \"title\": \"Unpatched OS or software vulnerabilities on NormalService leading to system compromise\", \"severity\": \"CRITICAL\", \"score\": 10.0, \"stride\": \"Tampering\", \"source\": \"pytm\"}, {\"id\": \"T-0004\", \"title\": \"Unauthorized privilege escalation on NormalService due to misconfiguration or vulnerability\", \"severity\": \"CRITICAL\", \"score\": 9.2, \"stride\": \"Elevation of Privilege\", \"source\": \"pytm\"}, {\"id\": \"T-0006\", \"title\": \"Lack of monitoring or logging on NormalService, preventing detection of malicious activities and enabling repudiation\", \"severity\": \"HIGH\", \"score\": 7.6, \"stride\": \"Repudiation\", \"source\": \"pytm\"}, {\"id\": \"T-0008\", \"title\": \"Insecure security configuration or hardening on NormalService leading to information exposure\", \"severity\": \"MEDIUM\", \"score\": 7.0, \"stride\": \"Information Disclosure\", \"source\": \"pytm\"}]}}") || {}; } catch (e) { state.layer = {}; }
+        const hasLayer = Object.keys(state.layer).length > 0;
+
+        if (!hasLayer) {
+            const row = document.getElementById('threat-layer-toggle-row');
+            if (row) row.style.display = 'none';
+            document.querySelectorAll('.threat-sev-filter').forEach(i => i.classList.remove('legend-item'));
+            const strideRow = document.getElementById('threat-stride-row');
+            if (strideRow) strideRow.style.display = 'none';
+            return;
+        }
+        // The section is hidden by the page when it has no heat-map data; the layer needs it.
+        const section = document.getElementById('severity-legend-section');
+        if (section) section.style.display = '';
+
+        const totals = {};
+        LEVELS.forEach(lvl => { totals[lvl] = Object.values(state.layer).reduce((n, e) => n + (e.counts[lvl] || 0), 0); });
+        document.querySelectorAll('.threat-sev-count').forEach(span => { span.textContent = totals[span.dataset.severity] || 0; });
+        document.querySelectorAll('.threat-sev-filter').forEach(item => {
+            item.addEventListener('click', () => toggleThreatSeverity(item.dataset.severity));
+        });
+        const strideTotals = {};
+        Object.values(state.layer).forEach(e => Object.entries(e.by_stride || {}).forEach(([stride, perLevel]) => {
+            strideTotals[stride] = (strideTotals[stride] || 0) + Object.values(perLevel).reduce((a, b) => a + b, 0);
+        }));
+        document.querySelectorAll('.threat-stride-filter').forEach(chip => {
+            const n = strideTotals[chip.dataset.stride] || 0;
+            chip.title = `${chip.dataset.stride}: ${plural(n, 'threat')}. Click to show only this category, Shift-click to combine.`;
+            if (!n) chip.classList.add('empty');
+            chip.addEventListener('click', (e) => toggleThreatStride(chip.dataset.stride, e.shiftKey || e.ctrlKey || e.metaKey));
+        });
+
+        buildBadges();
+
+        const svg = svgRoot();
+        if (svg) {
+            // Clicking a node or dataflow that has threats toggles its panel (in step with
+            // the page's highlighting); anything else closes it. Boundaries open from
+            // their badge only, so a click inside a boundary is not hijacked.
+            svg.addEventListener('click', (e) => {
+                if (!state.visible || e.target.closest('a')) return;
+                // Nearest enclosing element of the layer (icons nest their own <g id>).
+                let g = e.target;
+                while (g && g !== svg && !(g.id && state.layer[g.id])) g = g.parentNode;
+                const id = g && g !== svg ? g.id : null;
+                if (id && state.layer[id].kind !== 'boundary') toggleThreatPanel(id);
+                else closeThreatPanel();  // also re-syncs badge dimming with the highlight
+            });
+        }
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeThreatPanel(); });
+    });
+})();
+</script>
+</body>
+</html>

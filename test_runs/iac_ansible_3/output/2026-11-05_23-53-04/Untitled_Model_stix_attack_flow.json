@@ -1,0 +1,995 @@
+{
+    "type": "bundle",
+    "id": "bundle--f7012539-1519-4c70-9bda-0192aca08b57",
+    "spec_version": "2.1",
+    "objects": [
+        {
+            "type": "extension-definition",
+            "id": "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4",
+            "spec_version": "2.1",
+            "created": "2022-08-02T19:34:35.143Z",
+            "modified": "2022-08-02T19:34:35.143Z",
+            "name": "Attack Flow",
+            "description": "Extends STIX 2.1 with features to create Attack Flows.",
+            "created_by_ref": "identity--4796363c-d13f-4f34-b454-795b1bf7516d",
+            "schema": "https://center-for-threat-informed-defense.github.io/attack-flow/stix/attack-flow-schema-2.0.0.json",
+            "version": "2.0.0",
+            "extension_types": [
+                "new-sdo"
+            ]
+        },
+        {
+            "type": "identity",
+            "id": "identity--4796363c-d13f-4f34-b454-795b1bf7516d",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:53:06.975084Z",
+            "modified": "2026-11-05T23:53:06.975101Z",
+            "name": "Threat Model Analysis Tool",
+            "identity_class": "tool"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--5b63781f-0bae-475c-9ffd-89fd42c49967",
+            "created": "2026-11-05T23:53:06.975112Z",
+            "modified": "2026-11-05T23:53:06.975115Z",
+            "name": "Potential for spoofing attacks on data crossing trust boundaries from External User to WebServer_1 without proper authentication",
+            "description": "Potential for spoofing attacks on data crossing trust boundaries from External User to WebServer_1 without proper authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--f0622861-f045-4efc-86cd-3d9904e319df"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--f0622861-f045-4efc-86cd-3d9904e319df",
+            "created": "2026-11-05T23:53:06.975125Z",
+            "modified": "2026-11-05T23:53:06.975127Z",
+            "name": "User to WebServer",
+            "description": "Asset targeted by threat: Potential for spoofing attacks on data crossing trust boundaries from External User to WebServer_1 without proper authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--9e41e882-f652-482f-96d8-856d48843723",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:53:06.975136Z",
+            "modified": "2026-11-05T23:53:06.975140Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--5b63781f-0bae-475c-9ffd-89fd42c49967",
+            "target_ref": "attack-asset--f0622861-f045-4efc-86cd-3d9904e319df"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--20af3e6a-dd7c-4aaf-87f2-ff180d045458",
+            "created": "2026-11-05T23:53:06.975150Z",
+            "modified": "2026-11-05T23:53:06.975153Z",
+            "name": "Unpatched OS or software vulnerabilities on WebServer_1 leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on WebServer_1 leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--c6ac4498-4426-41ea-a1bb-9b180807bb76"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--c6ac4498-4426-41ea-a1bb-9b180807bb76",
+            "created": "2026-11-05T23:53:06.975205Z",
+            "modified": "2026-11-05T23:53:06.975211Z",
+            "name": "WebServer_1",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on WebServer_1 leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--3264a102-5cf0-4f02-b4db-0436d082c321",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:53:06.975224Z",
+            "modified": "2026-11-05T23:53:06.975226Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--20af3e6a-dd7c-4aaf-87f2-ff180d045458",
+            "target_ref": "attack-asset--c6ac4498-4426-41ea-a1bb-9b180807bb76"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--b7736ab2-92ec-4880-9763-586cc91142af",
+            "created": "2026-11-05T23:53:06.975235Z",
+            "modified": "2026-11-05T23:53:06.975237Z",
+            "name": "Unpatched OS or software vulnerabilities on AppServer_1 leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on AppServer_1 leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--789ae62f-f905-482d-99e0-31d35a2ef993"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--789ae62f-f905-482d-99e0-31d35a2ef993",
+            "created": "2026-11-05T23:53:06.975245Z",
+            "modified": "2026-11-05T23:53:06.975247Z",
+            "name": "AppServer_1",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on AppServer_1 leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--7413185e-d2f7-4551-9a4a-410779d46ff6",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:53:06.975254Z",
+            "modified": "2026-11-05T23:53:06.975256Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--b7736ab2-92ec-4880-9763-586cc91142af",
+            "target_ref": "attack-asset--789ae62f-f905-482d-99e0-31d35a2ef993"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--d9c10105-ead7-4964-9cab-12c817410667",
+            "created": "2026-11-05T23:53:06.975263Z",
+            "modified": "2026-11-05T23:53:06.975265Z",
+            "name": "Unpatched OS or software vulnerabilities on DBServer_1 leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on DBServer_1 leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--2cdfceb0-b338-453d-8b1d-f4b280142559"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--2cdfceb0-b338-453d-8b1d-f4b280142559",
+            "created": "2026-11-05T23:53:06.975272Z",
+            "modified": "2026-11-05T23:53:06.975274Z",
+            "name": "DBServer_1",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on DBServer_1 leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--2322d3bf-05f6-45e3-973f-a5f9d281ed0e",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:53:06.975280Z",
+            "modified": "2026-11-05T23:53:06.975283Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--d9c10105-ead7-4964-9cab-12c817410667",
+            "target_ref": "attack-asset--2cdfceb0-b338-453d-8b1d-f4b280142559"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--3212abbd-0f35-4d8a-9d78-43d83d5f5b59",
+            "created": "2026-11-05T23:53:06.975290Z",
+            "modified": "2026-11-05T23:53:06.975292Z",
+            "name": "Spoofing of data from External User to WebServer_1 due to lack of authentication",
+            "description": "Spoofing of data from External User to WebServer_1 due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--726ed62c-eac6-4918-919f-fb2e2ca542ce"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--726ed62c-eac6-4918-919f-fb2e2ca542ce",
+            "created": "2026-11-05T23:53:06.975298Z",
+            "modified": "2026-11-05T23:53:06.975300Z",
+            "name": "User to WebServer",
+            "description": "Asset targeted by threat: Spoofing of data from External User to WebServer_1 due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--fd685fb0-271d-4989-9586-8af8c4e6387e",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:53:06.975306Z",
+            "modified": "2026-11-05T23:53:06.975308Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--3212abbd-0f35-4d8a-9d78-43d83d5f5b59",
+            "target_ref": "attack-asset--726ed62c-eac6-4918-919f-fb2e2ca542ce"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--f3063539-58da-4da2-b583-92d14c1368d4",
+            "created": "2026-11-05T23:53:06.975315Z",
+            "modified": "2026-11-05T23:53:06.975318Z",
+            "name": "Spoofing of data from WebServer_1 to AppServer_1 due to lack of authentication",
+            "description": "Spoofing of data from WebServer_1 to AppServer_1 due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--0b8cd151-d75f-4f6c-ac51-7072a36ade66"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--0b8cd151-d75f-4f6c-ac51-7072a36ade66",
+            "created": "2026-11-05T23:53:06.975325Z",
+            "modified": "2026-11-05T23:53:06.975327Z",
+            "name": "WebServer to AppServer",
+            "description": "Asset targeted by threat: Spoofing of data from WebServer_1 to AppServer_1 due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--b11297cd-bbc1-4596-8583-c65a2b8f6c9f",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:53:06.975334Z",
+            "modified": "2026-11-05T23:53:06.975336Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--f3063539-58da-4da2-b583-92d14c1368d4",
+            "target_ref": "attack-asset--0b8cd151-d75f-4f6c-ac51-7072a36ade66"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--e2010f4e-5f40-4972-873c-dd5eb8f45fea",
+            "created": "2026-11-05T23:53:06.975342Z",
+            "modified": "2026-11-05T23:53:06.975344Z",
+            "name": "Spoofing of data from AppServer_1 to DBServer_1 due to lack of authentication",
+            "description": "Spoofing of data from AppServer_1 to DBServer_1 due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--d0409a2a-c269-423b-9c82-80a1a68c6ef1"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--d0409a2a-c269-423b-9c82-80a1a68c6ef1",
+            "created": "2026-11-05T23:53:06.975351Z",
+            "modified": "2026-11-05T23:53:06.975353Z",
+            "name": "AppServer to DBServer",
+            "description": "Asset targeted by threat: Spoofing of data from AppServer_1 to DBServer_1 due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--f94bce61-6a76-4369-be26-f6c7b33dd17c",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:53:06.975359Z",
+            "modified": "2026-11-05T23:53:06.975361Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--e2010f4e-5f40-4972-873c-dd5eb8f45fea",
+            "target_ref": "attack-asset--d0409a2a-c269-423b-9c82-80a1a68c6ef1"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--47a4e800-4e04-4221-b57d-3bcfe052c11c",
+            "created": "2026-11-05T23:53:06.975376Z",
+            "modified": "2026-11-05T23:53:06.975378Z",
+            "name": "Identity spoofing of the actor External User via phishing or credential theft",
+            "description": "Identity spoofing of the actor External User via phishing or credential theft",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--c8b781e4-86a1-4682-9257-8e27bbaf9cc3"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--c8b781e4-86a1-4682-9257-8e27bbaf9cc3",
+            "created": "2026-11-05T23:53:06.975386Z",
+            "modified": "2026-11-05T23:53:06.975388Z",
+            "name": "External User",
+            "description": "Asset targeted by threat: Identity spoofing of the actor External User via phishing or credential theft",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--fd6d3882-44ea-4764-95ef-6b99e4b4be9a",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:53:06.975395Z",
+            "modified": "2026-11-05T23:53:06.975397Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--47a4e800-4e04-4221-b57d-3bcfe052c11c",
+            "target_ref": "attack-asset--c8b781e4-86a1-4682-9257-8e27bbaf9cc3"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--9763aebc-17c5-4962-af72-b7bd94c6ada7",
+            "created": "2026-11-05T23:53:06.975404Z",
+            "modified": "2026-11-05T23:53:06.975406Z",
+            "name": "Data interception on an unencrypted channel from External User to WebServer_1 (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from External User to WebServer_1 (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--18b2be8e-d2a8-422a-a5e7-927113ce00c3"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--18b2be8e-d2a8-422a-a5e7-927113ce00c3",
+            "created": "2026-11-05T23:53:06.975412Z",
+            "modified": "2026-11-05T23:53:06.975414Z",
+            "name": "User to WebServer",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from External User to WebServer_1 (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--a3a487fd-8032-4789-a378-02cf5980bf82",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:53:06.975420Z",
+            "modified": "2026-11-05T23:53:06.975422Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--9763aebc-17c5-4962-af72-b7bd94c6ada7",
+            "target_ref": "attack-asset--18b2be8e-d2a8-422a-a5e7-927113ce00c3"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--9f674ae6-c86b-4f46-8994-6935d0bae7b4",
+            "created": "2026-11-05T23:53:06.975428Z",
+            "modified": "2026-11-05T23:53:06.975430Z",
+            "name": "Data interception on an unencrypted channel from WebServer_1 to AppServer_1 (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from WebServer_1 to AppServer_1 (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--45db26de-28cf-48ed-bf9a-1a5078da6c7e"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--45db26de-28cf-48ed-bf9a-1a5078da6c7e",
+            "created": "2026-11-05T23:53:06.975436Z",
+            "modified": "2026-11-05T23:53:06.975438Z",
+            "name": "WebServer to AppServer",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from WebServer_1 to AppServer_1 (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--167229a3-869f-4e1e-a1ff-2d38f4807919",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:53:06.975444Z",
+            "modified": "2026-11-05T23:53:06.975446Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--9f674ae6-c86b-4f46-8994-6935d0bae7b4",
+            "target_ref": "attack-asset--45db26de-28cf-48ed-bf9a-1a5078da6c7e"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--2be9871a-4b08-4343-be68-60f7da21877a",
+            "created": "2026-11-05T23:53:06.975452Z",
+            "modified": "2026-11-05T23:53:06.975454Z",
+            "name": "Data interception on an unencrypted channel from AppServer_1 to DBServer_1 (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from AppServer_1 to DBServer_1 (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--a2f33b45-2711-425c-a6e6-e6806e8886b2"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--a2f33b45-2711-425c-a6e6-e6806e8886b2",
+            "created": "2026-11-05T23:53:06.975462Z",
+            "modified": "2026-11-05T23:53:06.975464Z",
+            "name": "AppServer to DBServer",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from AppServer_1 to DBServer_1 (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--4efb1a1e-ade4-4aae-b4e2-9040fa5c4d5f",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:53:06.975470Z",
+            "modified": "2026-11-05T23:53:06.975472Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--2be9871a-4b08-4343-be68-60f7da21877a",
+            "target_ref": "attack-asset--a2f33b45-2711-425c-a6e6-e6806e8886b2"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--9a0fadbc-15a1-4712-9aef-b0aeef3f5f32",
+            "created": "2026-11-05T23:53:06.975478Z",
+            "modified": "2026-11-05T23:53:06.975480Z",
+            "name": "Unauthorized privilege escalation on WebServer_1 due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on WebServer_1 due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--bbabf8a4-21b1-4150-9534-126bd7760834"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--bbabf8a4-21b1-4150-9534-126bd7760834",
+            "created": "2026-11-05T23:53:06.975485Z",
+            "modified": "2026-11-05T23:53:06.975488Z",
+            "name": "WebServer_1",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on WebServer_1 due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--a88e5cd1-9108-484e-9068-ca337f5d217d",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:53:06.975495Z",
+            "modified": "2026-11-05T23:53:06.975497Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--9a0fadbc-15a1-4712-9aef-b0aeef3f5f32",
+            "target_ref": "attack-asset--bbabf8a4-21b1-4150-9534-126bd7760834"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--10c930c1-4b4f-466a-8356-0db3a0113dc5",
+            "created": "2026-11-05T23:53:06.975502Z",
+            "modified": "2026-11-05T23:53:06.975504Z",
+            "name": "Unauthorized privilege escalation on AppServer_1 due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on AppServer_1 due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--ab17facf-8a54-4db2-89aa-eaac51695241"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--ab17facf-8a54-4db2-89aa-eaac51695241",
+            "created": "2026-11-05T23:53:06.975509Z",
+            "modified": "2026-11-05T23:53:06.975511Z",
+            "name": "AppServer_1",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on AppServer_1 due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--e07144eb-cb30-4fc5-9e53-d7b51be18863",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:53:06.975517Z",
+            "modified": "2026-11-05T23:53:06.975518Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--10c930c1-4b4f-466a-8356-0db3a0113dc5",
+            "target_ref": "attack-asset--ab17facf-8a54-4db2-89aa-eaac51695241"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--8dbe5ebd-f159-45d2-a976-472556a7d066",
+            "created": "2026-11-05T23:53:06.975525Z",
+            "modified": "2026-11-05T23:53:06.975527Z",
+            "name": "Unauthorized privilege escalation on DBServer_1 due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on DBServer_1 due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--1ce1cf85-74e5-46d0-9ec8-85dc8837f31d"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--1ce1cf85-74e5-46d0-9ec8-85dc8837f31d",
+            "created": "2026-11-05T23:53:06.975532Z",
+            "modified": "2026-11-05T23:53:06.975534Z",
+            "name": "DBServer_1",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on DBServer_1 due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--08ae48de-7901-4419-bc0c-7b1a0393f97f",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:53:06.975540Z",
+            "modified": "2026-11-05T23:53:06.975541Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--8dbe5ebd-f159-45d2-a976-472556a7d066",
+            "target_ref": "attack-asset--1ce1cf85-74e5-46d0-9ec8-85dc8837f31d"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--1da86103-5cb1-4fc0-90e7-63297b77336d",
+            "created": "2026-11-05T23:53:06.975547Z",
+            "modified": "2026-11-05T23:53:06.975549Z",
+            "name": "Privilege abuse by actor External User to gain unauthorized access or perform unauthorized actions",
+            "description": "Privilege abuse by actor External User to gain unauthorized access or perform unauthorized actions",
+            "technique_id": "T1548",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--325ec7ef-4e07-464b-972d-6133b5eaf251"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--325ec7ef-4e07-464b-972d-6133b5eaf251",
+            "created": "2026-11-05T23:53:06.975555Z",
+            "modified": "2026-11-05T23:53:06.975557Z",
+            "name": "External User",
+            "description": "Asset targeted by threat: Privilege abuse by actor External User to gain unauthorized access or perform unauthorized actions",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--3f85c676-91bf-4ce7-aef2-85b39356b300",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:53:06.975562Z",
+            "modified": "2026-11-05T23:53:06.975564Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--1da86103-5cb1-4fc0-90e7-63297b77336d",
+            "target_ref": "attack-asset--325ec7ef-4e07-464b-972d-6133b5eaf251"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--a432f35c-2a5c-4621-aa1b-27f3271106d9",
+            "created": "2026-11-05T23:53:06.975572Z",
+            "modified": "2026-11-05T23:53:06.975574Z",
+            "name": "Repudiation of critical actions performed by External User due to insufficient logging or non-repudiation controls",
+            "description": "Repudiation of critical actions performed by External User due to insufficient logging or non-repudiation controls",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--5cad9b3f-4dbb-4f11-9804-2595a22778d9"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--5cad9b3f-4dbb-4f11-9804-2595a22778d9",
+            "created": "2026-11-05T23:53:06.975580Z",
+            "modified": "2026-11-05T23:53:06.975581Z",
+            "name": "External User",
+            "description": "Asset targeted by threat: Repudiation of critical actions performed by External User due to insufficient logging or non-repudiation controls",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--ee4f40c0-fbc6-4709-8033-28bfeffdf18d",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:53:06.975587Z",
+            "modified": "2026-11-05T23:53:06.975590Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--a432f35c-2a5c-4621-aa1b-27f3271106d9",
+            "target_ref": "attack-asset--5cad9b3f-4dbb-4f11-9804-2595a22778d9"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--3f17c760-22e5-45f8-be54-cd304e35bacd",
+            "created": "2026-11-05T23:53:06.975597Z",
+            "modified": "2026-11-05T23:53:06.975598Z",
+            "name": "Lack of monitoring or logging on WebServer_1, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on WebServer_1, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--ad9dcb71-b833-471c-b6ec-4b40cf6a2a84"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--ad9dcb71-b833-471c-b6ec-4b40cf6a2a84",
+            "created": "2026-11-05T23:53:06.975603Z",
+            "modified": "2026-11-05T23:53:06.975605Z",
+            "name": "WebServer_1",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on WebServer_1, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--1abdeb83-4652-4027-8011-c77de69ebb86",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:53:06.975611Z",
+            "modified": "2026-11-05T23:53:06.975612Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--3f17c760-22e5-45f8-be54-cd304e35bacd",
+            "target_ref": "attack-asset--ad9dcb71-b833-471c-b6ec-4b40cf6a2a84"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--dfbc7c33-1d36-42e7-a2cd-ee7fe6ef4a0e",
+            "created": "2026-11-05T23:53:06.975619Z",
+            "modified": "2026-11-05T23:53:06.975621Z",
+            "name": "Lack of monitoring or logging on AppServer_1, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on AppServer_1, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--5fb70efb-4c93-4b66-b7c0-6a640aa65c30"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--5fb70efb-4c93-4b66-b7c0-6a640aa65c30",
+            "created": "2026-11-05T23:53:06.975626Z",
+            "modified": "2026-11-05T23:53:06.975628Z",
+            "name": "AppServer_1",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on AppServer_1, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--63cd4787-f800-45de-8cbc-16e3c88bf155",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:53:06.975633Z",
+            "modified": "2026-11-05T23:53:06.975635Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--dfbc7c33-1d36-42e7-a2cd-ee7fe6ef4a0e",
+            "target_ref": "attack-asset--5fb70efb-4c93-4b66-b7c0-6a640aa65c30"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--294a613a-f73c-47c6-9218-1bf1ee070089",
+            "created": "2026-11-05T23:53:06.975640Z",
+            "modified": "2026-11-05T23:53:06.975642Z",
+            "name": "Lack of monitoring or logging on DBServer_1, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on DBServer_1, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--dc975162-8fdb-4d16-94a2-aab4a18525c8"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--dc975162-8fdb-4d16-94a2-aab4a18525c8",
+            "created": "2026-11-05T23:53:06.975647Z",
+            "modified": "2026-11-05T23:53:06.975649Z",
+            "name": "DBServer_1",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on DBServer_1, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--480215e6-0303-47a8-8d6a-b17d47cbf9f3",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:53:06.975655Z",
+            "modified": "2026-11-05T23:53:06.975656Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--294a613a-f73c-47c6-9218-1bf1ee070089",
+            "target_ref": "attack-asset--dc975162-8fdb-4d16-94a2-aab4a18525c8"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--3676bcd9-4973-4368-b9c3-34ca77dfd2d4",
+            "created": "2026-11-05T23:53:06.975662Z",
+            "modified": "2026-11-05T23:53:06.975664Z",
+            "name": "Insecure security configuration or hardening on WebServer_1 leading to information exposure",
+            "description": "Insecure security configuration or hardening on WebServer_1 leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--b7f9464a-e79a-4a1c-8b4c-0174d69afedb"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--b7f9464a-e79a-4a1c-8b4c-0174d69afedb",
+            "created": "2026-11-05T23:53:06.975669Z",
+            "modified": "2026-11-05T23:53:06.975671Z",
+            "name": "WebServer_1",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on WebServer_1 leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--e279a148-682c-4ade-985b-cf06cbfcd7b2",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:53:06.975676Z",
+            "modified": "2026-11-05T23:53:06.975678Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--3676bcd9-4973-4368-b9c3-34ca77dfd2d4",
+            "target_ref": "attack-asset--b7f9464a-e79a-4a1c-8b4c-0174d69afedb"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--32065b45-138c-412b-a054-a53af523dd8a",
+            "created": "2026-11-05T23:53:06.975684Z",
+            "modified": "2026-11-05T23:53:06.975686Z",
+            "name": "Insecure security configuration or hardening on AppServer_1 leading to information exposure",
+            "description": "Insecure security configuration or hardening on AppServer_1 leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--e398037c-26df-4337-bab4-4ef35b48009a"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--e398037c-26df-4337-bab4-4ef35b48009a",
+            "created": "2026-11-05T23:53:06.975691Z",
+            "modified": "2026-11-05T23:53:06.975692Z",
+            "name": "AppServer_1",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on AppServer_1 leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--0fb16da3-e5f5-4797-b531-4d4655c8af17",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:53:06.975698Z",
+            "modified": "2026-11-05T23:53:06.975700Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--32065b45-138c-412b-a054-a53af523dd8a",
+            "target_ref": "attack-asset--e398037c-26df-4337-bab4-4ef35b48009a"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--7a21395a-b787-458f-9be8-40b22904dcd5",
+            "created": "2026-11-05T23:53:06.975705Z",
+            "modified": "2026-11-05T23:53:06.975707Z",
+            "name": "Insecure security configuration or hardening on DBServer_1 leading to information exposure",
+            "description": "Insecure security configuration or hardening on DBServer_1 leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--8e2cb457-07b3-42ab-9160-4b0d11e7b9d9"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--8e2cb457-07b3-42ab-9160-4b0d11e7b9d9",
+            "created": "2026-11-05T23:53:06.975712Z",
+            "modified": "2026-11-05T23:53:06.975714Z",
+            "name": "DBServer_1",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on DBServer_1 leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--752440b6-eaee-4e7e-aedc-895003e5461b",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:53:06.975719Z",
+            "modified": "2026-11-05T23:53:06.975721Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--7a21395a-b787-458f-9be8-40b22904dcd5",
+            "target_ref": "attack-asset--8e2cb457-07b3-42ab-9160-4b0d11e7b9d9"
+        },
+        {
+            "type": "attack-flow",
+            "spec_version": "2.1",
+            "id": "attack-flow--2cba889c-5ae5-48a0-b058-736f21137eea",
+            "created_by_ref": "identity--4796363c-d13f-4f34-b454-795b1bf7516d",
+            "created": "2026-11-05T23:53:06.975728Z",
+            "modified": "2026-11-05T23:53:06.975730Z",
+            "name": "Attack Flow for Untitled Model",
+            "description": "This Attack Flow was generated from the threat model 'Untitled Model'.",
+            "scope": "attack-tree",
+            "start_refs": [
+                "attack-action--5b63781f-0bae-475c-9ffd-89fd42c49967",
+                "attack-action--20af3e6a-dd7c-4aaf-87f2-ff180d045458",
+                "attack-action--b7736ab2-92ec-4880-9763-586cc91142af",
+                "attack-action--d9c10105-ead7-4964-9cab-12c817410667",
+                "attack-action--3212abbd-0f35-4d8a-9d78-43d83d5f5b59",
+                "attack-action--f3063539-58da-4da2-b583-92d14c1368d4",
+                "attack-action--e2010f4e-5f40-4972-873c-dd5eb8f45fea",
+                "attack-action--47a4e800-4e04-4221-b57d-3bcfe052c11c",
+                "attack-action--9763aebc-17c5-4962-af72-b7bd94c6ada7",
+                "attack-action--9f674ae6-c86b-4f46-8994-6935d0bae7b4",
+                "attack-action--2be9871a-4b08-4343-be68-60f7da21877a",
+                "attack-action--9a0fadbc-15a1-4712-9aef-b0aeef3f5f32",
+                "attack-action--10c930c1-4b4f-466a-8356-0db3a0113dc5",
+                "attack-action--8dbe5ebd-f159-45d2-a976-472556a7d066",
+                "attack-action--1da86103-5cb1-4fc0-90e7-63297b77336d",
+                "attack-action--a432f35c-2a5c-4621-aa1b-27f3271106d9",
+                "attack-action--3f17c760-22e5-45f8-be54-cd304e35bacd",
+                "attack-action--dfbc7c33-1d36-42e7-a2cd-ee7fe6ef4a0e",
+                "attack-action--294a613a-f73c-47c6-9218-1bf1ee070089",
+                "attack-action--3676bcd9-4973-4368-b9c3-34ca77dfd2d4",
+                "attack-action--32065b45-138c-412b-a054-a53af523dd8a",
+                "attack-action--7a21395a-b787-458f-9be8-40b22904dcd5"
+            ],
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        }
+    ]
+}

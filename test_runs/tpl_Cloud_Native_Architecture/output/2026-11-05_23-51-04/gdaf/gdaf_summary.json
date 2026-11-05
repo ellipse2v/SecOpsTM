@@ -1,0 +1,271 @@
+{
+  "model": "GDAF Summary",
+  "scenarios": [
+    {
+      "scenario_id": "GDAF-05CA8905",
+      "objective": "Data Exfiltration via Misconfigured S3 Bucket",
+      "actor": "Cloud Opportunist (Automated Scanner)",
+      "entry_point": "End User",
+      "target": "ObjectStorage",
+      "hops": 4,
+      "path_score": 4.28,
+      "risk_level": "CRITICAL",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "CDNEdge",
+          "tech_id": "T1190",
+          "tech_name": "Exploit Public-Facing Application"
+        },
+        {
+          "hop": "APIGateway",
+          "tech_id": "T1190",
+          "tech_name": "Exploit Public-Facing Application"
+        },
+        {
+          "hop": "LambdaFunction",
+          "tech_id": "T1190",
+          "tech_name": "Exploit Public-Facing Application"
+        },
+        {
+          "hop": "ObjectStorage",
+          "tech_id": "T1530",
+          "tech_name": "Data from Cloud Storage"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-676A0B7D",
+      "objective": "Data Exfiltration via Misconfigured S3 Bucket",
+      "actor": "Rogue Cloud Operator (Insider)",
+      "entry_point": "Developer/Cloud Operator",
+      "target": "ObjectStorage",
+      "hops": 3,
+      "path_score": 2.78,
+      "risk_level": "MEDIUM",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "APIGateway",
+          "tech_id": "T1056",
+          "tech_name": "Input Capture"
+        },
+        {
+          "hop": "LambdaFunction",
+          "tech_id": "T1048",
+          "tech_name": "Exfiltration Over Alternative Protocol"
+        },
+        {
+          "hop": "ObjectStorage",
+          "tech_id": "T1530",
+          "tech_name": "Data from Cloud Storage"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-EF76419F",
+      "objective": "Serverless Function Code Injection via Event Payload",
+      "actor": "Sophisticated Cloud Attacker (IAM Lateral Movement)",
+      "entry_point": "End User",
+      "target": "LambdaFunction",
+      "hops": 3,
+      "path_score": 4.27,
+      "risk_level": "CRITICAL",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "CDNEdge",
+          "tech_id": "T1190",
+          "tech_name": "Exploit Public-Facing Application"
+        },
+        {
+          "hop": "APIGateway",
+          "tech_id": "T1078",
+          "tech_name": "Valid Accounts"
+        },
+        {
+          "hop": "LambdaFunction",
+          "tech_id": "T1078.004",
+          "tech_name": "Cloud Accounts"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-479B90A8",
+      "objective": "IAM Privilege Escalation via Over-Permissioned Lambda Role",
+      "actor": "Sophisticated Cloud Attacker (IAM Lateral Movement)",
+      "entry_point": "End User",
+      "target": "LambdaFunction",
+      "hops": 3,
+      "path_score": 4.27,
+      "risk_level": "CRITICAL",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "CDNEdge",
+          "tech_id": "T1190",
+          "tech_name": "Exploit Public-Facing Application"
+        },
+        {
+          "hop": "APIGateway",
+          "tech_id": "T1078",
+          "tech_name": "Valid Accounts"
+        },
+        {
+          "hop": "LambdaFunction",
+          "tech_id": "T1078.004",
+          "tech_name": "Cloud Accounts"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-594AC95B",
+      "objective": "IAM Privilege Escalation via Over-Permissioned Lambda Role",
+      "actor": "Sophisticated Cloud Attacker (IAM Lateral Movement)",
+      "entry_point": "End User",
+      "target": "NoSQLDatabase",
+      "hops": 4,
+      "path_score": 4.28,
+      "risk_level": "CRITICAL",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "CDNEdge",
+          "tech_id": "T1190",
+          "tech_name": "Exploit Public-Facing Application"
+        },
+        {
+          "hop": "APIGateway",
+          "tech_id": "T1078",
+          "tech_name": "Valid Accounts"
+        },
+        {
+          "hop": "LambdaFunction",
+          "tech_id": "T1078.004",
+          "tech_name": "Cloud Accounts"
+        },
+        {
+          "hop": "NoSQLDatabase",
+          "tech_id": "T1078",
+          "tech_name": "Valid Accounts"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-0746AB31",
+      "objective": "IAM Privilege Escalation via Over-Permissioned Lambda Role",
+      "actor": "Sophisticated Cloud Attacker (IAM Lateral Movement)",
+      "entry_point": "End User",
+      "target": "ObjectStorage",
+      "hops": 4,
+      "path_score": 4.31,
+      "risk_level": "CRITICAL",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "CDNEdge",
+          "tech_id": "T1190",
+          "tech_name": "Exploit Public-Facing Application"
+        },
+        {
+          "hop": "APIGateway",
+          "tech_id": "T1078",
+          "tech_name": "Valid Accounts"
+        },
+        {
+          "hop": "LambdaFunction",
+          "tech_id": "T1078.004",
+          "tech_name": "Cloud Accounts"
+        },
+        {
+          "hop": "ObjectStorage",
+          "tech_id": "T1537",
+          "tech_name": "Transfer Data to Cloud Account"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-E77FFD51",
+      "objective": "NoSQL Database Direct Access via Leaked Credentials",
+      "actor": "Sophisticated Cloud Attacker (IAM Lateral Movement)",
+      "entry_point": "End User",
+      "target": "NoSQLDatabase",
+      "hops": 4,
+      "path_score": 4.28,
+      "risk_level": "CRITICAL",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "CDNEdge",
+          "tech_id": "T1190",
+          "tech_name": "Exploit Public-Facing Application"
+        },
+        {
+          "hop": "APIGateway",
+          "tech_id": "T1078",
+          "tech_name": "Valid Accounts"
+        },
+        {
+          "hop": "LambdaFunction",
+          "tech_id": "T1078.004",
+          "tech_name": "Cloud Accounts"
+        },
+        {
+          "hop": "NoSQLDatabase",
+          "tech_id": "T1078",
+          "tech_name": "Valid Accounts"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-80E9E0C5",
+      "objective": "NoSQL Database Direct Access via Leaked Credentials",
+      "actor": "Rogue Cloud Operator (Insider)",
+      "entry_point": "Developer/Cloud Operator",
+      "target": "NoSQLDatabase",
+      "hops": 3,
+      "path_score": 2.7,
+      "risk_level": "MEDIUM",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "APIGateway",
+          "tech_id": "T1056",
+          "tech_name": "Input Capture"
+        },
+        {
+          "hop": "LambdaFunction",
+          "tech_id": "T1048",
+          "tech_name": "Exfiltration Over Alternative Protocol"
+        },
+        {
+          "hop": "NoSQLDatabase",
+          "tech_id": "T1048",
+          "tech_name": "Exfiltration Over Alternative Protocol"
+        }
+      ]
+    }
+  ],
+  "files": {
+    "OBJ-CLOUD-001/TA-CLOUD-001": [
+      "TA-CLOUD-001_GDAF-05CA8905.afb"
+    ],
+    "OBJ-CLOUD-001/TA-CLOUD-003": [
+      "TA-CLOUD-003_GDAF-676A0B7D.afb"
+    ],
+    "OBJ-CLOUD-002/TA-CLOUD-002": [
+      "TA-CLOUD-002_GDAF-EF76419F.afb"
+    ],
+    "OBJ-CLOUD-003/TA-CLOUD-002": [
+      "TA-CLOUD-002_GDAF-479B90A8.afb",
+      "TA-CLOUD-002_GDAF-594AC95B.afb",
+      "TA-CLOUD-002_GDAF-0746AB31.afb"
+    ],
+    "OBJ-CLOUD-004/TA-CLOUD-002": [
+      "TA-CLOUD-002_GDAF-E77FFD51.afb"
+    ],
+    "OBJ-CLOUD-004/TA-CLOUD-003": [
+      "TA-CLOUD-003_GDAF-80E9E0C5.afb"
+    ]
+  }
+}

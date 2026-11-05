@@ -1,0 +1,131 @@
+digraph ThreatModel {
+  rankdir=LR;
+  node [shape=box];
+  edge [fontsize=10];
+  splines=true;
+  overlap=false;
+  nodesep=0.5;
+  ranksep=0.6;
+  charset="UTF-8";
+
+  
+
+  
+    
+  subgraph cluster_internet {
+    label="Internet";
+    "__hidden_node_internet" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,dashed";
+    
+    fillcolor="red";
+    
+    
+    color="#c62828";
+    penwidth=2;
+    
+    
+    "MerchantAPI" [fixedsize=shape, shape=circle, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>MerchantAPI</TD></TR></TABLE>>, id="MerchantAPI"];
+    
+    "CardHolder" [fixedsize=shape, shape=circle, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>CardHolder</TD></TR></TABLE>>, id="CardHolder"];
+    
+    "ExternalAttacker" [fixedsize=shape, shape=circle, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>ExternalAttacker</TD></TR></TABLE>>, id="ExternalAttacker"];
+    
+    "ComplianceAuditor" [fixedsize=shape, shape=circle, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>ComplianceAuditor</TD></TR></TABLE>>, id="ComplianceAuditor"];
+    
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_dmz {
+    label="DMZ";
+    "__hidden_node_dmz" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,dashed";
+    
+    fillcolor="orange";
+    
+    
+    color="#c62828";
+    penwidth=2;
+    
+    
+    
+    "WAF" [fixedsize=shape, shape=hexagon, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/firewall.svg" SCALE="TRUE"/></TD></TR><TR><TD>WAF</TD></TR></TABLE>>, id="WAF"];
+    
+    "APIGateway" [shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/web-server.svg" SCALE="TRUE"/></TD></TR><TR><TD>APIGateway</TD></TR></TABLE>>, id="APIGateway"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_payment_zone {
+    label="Payment Zone";
+    "__hidden_node_payment_zone" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="lightblue";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    "PlatformEngineer" [fixedsize=shape, shape=circle, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/actor.svg" SCALE="TRUE"/></TD></TR><TR><TD>PlatformEngineer</TD></TR></TABLE>>, id="PlatformEngineer"];
+    
+    
+    "PaymentAPI" [width=1.5, height=0.75, shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/server.svg" SCALE="TRUE"/></TD><TD ALIGN="LEFT">PaymentAPI</TD></TR></TABLE>>, id="PaymentAPI"];
+    
+    "FraudEngine" [width=1.5, height=0.75, shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/server.svg" SCALE="TRUE"/></TD><TD ALIGN="LEFT">FraudEngine</TD></TR></TABLE>>, id="FraudEngine"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_vault_zone {
+    label="Vault Zone";
+    "__hidden_node_vault_zone" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="lavender";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    
+    "CardVault" [shape=cylinder, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/database.svg" SCALE="TRUE"/></TD></TR><TR><TD>CardVault</TD></TR></TABLE>>, id="CardVault"];
+    
+    
+  }
+  
+  
+
+  
+
+  
+
+  
+  "MerchantAPI" -> "WAF" [label="", color="darkgreen", style="solid", label=<MerchantToWAF<BR/>Protocol: HTTPS<BR/>Data: PaymentRequest>, id="edge_MerchantAPI_WAF", fontsize=7, class="protocol-HTTPS"];
+  
+  "WAF" -> "APIGateway" [label="", color="darkgreen", style="solid", label=<WAFToGateway<BR/>Protocol: HTTPS<BR/>Data: PaymentRequest>, id="edge_WAF_APIGateway", fontsize=7, class="protocol-HTTPS"];
+  
+  "APIGateway" -> "PaymentAPI" [dir="both", label="
+↔️ Bidirectional", color="orange", style="dashed", label=<GatewayToPayment<BR/>Protocol: HTTP<BR/>Data: PaymentRequest>, id="edge_APIGateway_PaymentAPI", fontsize=7, class="protocol-HTTP"];
+  
+  "APIGateway" -> "FraudEngine" [dir="both", label="
+↔️ Bidirectional", color="blue", style="solid", label=<GatewayToFraud<BR/>Protocol: gRPC<BR/>Data: FraudSignal>, id="edge_APIGateway_FraudEngine", fontsize=7, class="protocol-gRPC"];
+  
+  "PaymentAPI" -> "CardVault" [dir="both", label="
+↔️ Bidirectional", color="blue", style="solid", label=<PaymentToVault<BR/>Protocol: gRPC<BR/>Data: CardData>, id="edge_PaymentAPI_CardVault", fontsize=7, class="protocol-gRPC"];
+  
+
+  
+}

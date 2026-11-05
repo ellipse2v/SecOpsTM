@@ -1,0 +1,189 @@
+{
+  "model": "GDAF Summary",
+  "scenarios": [
+    {
+      "scenario_id": "GDAF-199E04B5",
+      "objective": "Golden SAML / Identity Provider Compromise",
+      "actor": "Nation-State APT (Identity Infrastructure Attack)",
+      "entry_point": "User",
+      "target": "Authentication Service",
+      "hops": 1,
+      "path_score": 5.55,
+      "risk_level": "CRITICAL",
+      "unacceptable_risk": true,
+      "techniques": [
+        {
+          "hop": "Authentication Service",
+          "tech_id": "T1078",
+          "tech_name": "Valid Accounts"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-8076176B",
+      "objective": "Policy Engine Manipulation via Admin Interface",
+      "actor": "Nation-State APT (Identity Infrastructure Attack)",
+      "entry_point": "User",
+      "target": "Policy Engine",
+      "hops": 1,
+      "path_score": 5.02,
+      "risk_level": "CRITICAL",
+      "unacceptable_risk": true,
+      "techniques": [
+        {
+          "hop": "Policy Engine",
+          "tech_id": "T1078",
+          "tech_name": "Valid Accounts"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-8D1DA3E7",
+      "objective": "Policy Engine Manipulation via Admin Interface",
+      "actor": "Compromised Administrator (Insider / Phished Admin)",
+      "entry_point": "Administrator",
+      "target": "Policy Engine",
+      "hops": 1,
+      "path_score": 4.64,
+      "risk_level": "CRITICAL",
+      "unacceptable_risk": true,
+      "techniques": [
+        {
+          "hop": "Policy Engine",
+          "tech_id": "T1078",
+          "tech_name": "Valid Accounts"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-1DF9E98E",
+      "objective": "OAuth2/OIDC Token Replay and Session Hijacking",
+      "actor": "Credential Thief (OAuth Token Theft)",
+      "entry_point": "User",
+      "target": "Authentication Service",
+      "hops": 1,
+      "path_score": 5.35,
+      "risk_level": "CRITICAL",
+      "unacceptable_risk": true,
+      "techniques": [
+        {
+          "hop": "Authentication Service",
+          "tech_id": "T1566",
+          "tech_name": "Phishing"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-6E47EAB5",
+      "objective": "OAuth2/OIDC Token Replay and Session Hijacking",
+      "actor": "Credential Thief (OAuth Token Theft)",
+      "entry_point": "User",
+      "target": "Policy Engine",
+      "hops": 1,
+      "path_score": 4.64,
+      "risk_level": "CRITICAL",
+      "unacceptable_risk": true,
+      "techniques": [
+        {
+          "hop": "Policy Engine",
+          "tech_id": "T1566",
+          "tech_name": "Phishing"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-2AB7F921",
+      "objective": "Authorization Policy Bypass via Attribute Manipulation",
+      "actor": "Credential Thief (OAuth Token Theft)",
+      "entry_point": "User",
+      "target": "Authorization Service",
+      "hops": 2,
+      "path_score": 4.02,
+      "risk_level": "CRITICAL",
+      "unacceptable_risk": true,
+      "techniques": [
+        {
+          "hop": "Policy Engine",
+          "tech_id": "T1566",
+          "tech_name": "Phishing"
+        },
+        {
+          "hop": "Authorization Service",
+          "tech_id": "T1110",
+          "tech_name": "Brute Force"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-7DA7DF47",
+      "objective": "Authorization Policy Bypass via Attribute Manipulation",
+      "actor": "Credential Thief (OAuth Token Theft)",
+      "entry_point": "User",
+      "target": "Microservice A",
+      "hops": 2,
+      "path_score": 3.82,
+      "risk_level": "HIGH",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "Policy Engine",
+          "tech_id": "T1566",
+          "tech_name": "Phishing"
+        },
+        {
+          "hop": "Microservice A",
+          "tech_id": "T1566",
+          "tech_name": "Phishing"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-DFCB2A60",
+      "objective": "Authorization Policy Bypass via Attribute Manipulation",
+      "actor": "Credential Thief (OAuth Token Theft)",
+      "entry_point": "User",
+      "target": "Microservice B",
+      "hops": 3,
+      "path_score": 3.59,
+      "risk_level": "HIGH",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "Policy Engine",
+          "tech_id": "T1566",
+          "tech_name": "Phishing"
+        },
+        {
+          "hop": "Microservice A",
+          "tech_id": "T1566",
+          "tech_name": "Phishing"
+        },
+        {
+          "hop": "Microservice B",
+          "tech_id": "T1566",
+          "tech_name": "Phishing"
+        }
+      ]
+    }
+  ],
+  "files": {
+    "OBJ-ZT-001/TA-ZT-001": [
+      "TA-ZT-001_GDAF-199E04B5.afb"
+    ],
+    "OBJ-ZT-002/TA-ZT-001": [
+      "TA-ZT-001_GDAF-8076176B.afb"
+    ],
+    "OBJ-ZT-002/TA-ZT-003": [
+      "TA-ZT-003_GDAF-8D1DA3E7.afb"
+    ],
+    "OBJ-ZT-003/TA-ZT-002": [
+      "TA-ZT-002_GDAF-1DF9E98E.afb",
+      "TA-ZT-002_GDAF-6E47EAB5.afb"
+    ],
+    "OBJ-ZT-004/TA-ZT-002": [
+      "TA-ZT-002_GDAF-2AB7F921.afb",
+      "TA-ZT-002_GDAF-7DA7DF47.afb",
+      "TA-ZT-002_GDAF-DFCB2A60.afb"
+    ]
+  }
+}

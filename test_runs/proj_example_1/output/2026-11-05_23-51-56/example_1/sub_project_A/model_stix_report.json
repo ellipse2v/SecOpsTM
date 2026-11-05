@@ -1,0 +1,350 @@
+{
+    "type": "bundle",
+    "id": "bundle--009b2771-04b4-44a0-b277-641b6598434f",
+    "spec_version": "2.1",
+    "objects": [
+        {
+            "type": "extension-definition",
+            "id": "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4",
+            "spec_version": "2.1",
+            "created": "2022-08-02T19:34:35.143Z",
+            "modified": "2022-08-02T19:34:35.143Z",
+            "name": "Attack Flow",
+            "description": "Extends STIX 2.1 with features to create Attack Flows.",
+            "created_by_ref": "identity--be841d89-bb7e-4671-8f8f-38ce042e2658",
+            "schema": "https://center-for-threat-informed-defense.github.io/attack-flow/stix/attack-flow-schema-2.0.0.json",
+            "version": "2.0.0",
+            "extension_types": [
+                "new-sdo"
+            ]
+        },
+        {
+            "type": "identity",
+            "id": "identity--be841d89-bb7e-4671-8f8f-38ce042e2658",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:58.662442Z",
+            "modified": "2026-11-05T23:51:58.662457Z",
+            "name": "Threat Model Analysis Tool",
+            "identity_class": "tool"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--dff11556-9938-4ded-8112-4e8fbaa91ff0",
+            "created": "2026-11-05T23:51:58.662466Z",
+            "modified": "2026-11-05T23:51:58.662469Z",
+            "name": "Unpatched OS or software vulnerabilities on Database leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on Database leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--d675ce3a-febb-4351-9041-e9a053166cb3"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--d675ce3a-febb-4351-9041-e9a053166cb3",
+            "created": "2026-11-05T23:51:58.662477Z",
+            "modified": "2026-11-05T23:51:58.662480Z",
+            "name": "Database",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on Database leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--1ebab206-2e5a-48bd-b5d6-6ab4848fe594",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:58.662487Z",
+            "modified": "2026-11-05T23:51:58.662489Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--dff11556-9938-4ded-8112-4e8fbaa91ff0",
+            "target_ref": "attack-asset--d675ce3a-febb-4351-9041-e9a053166cb3"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--10c5b707-62a8-4cb7-b4ba-d1cfd8ff575f",
+            "created": "2026-11-05T23:51:58.662497Z",
+            "modified": "2026-11-05T23:51:58.662499Z",
+            "name": "Data corruption or tampering in Database via unauthorized write access",
+            "description": "Data corruption or tampering in Database via unauthorized write access",
+            "technique_id": "T1221",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--beb05336-a118-45dc-8189-14326fa000d0"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--beb05336-a118-45dc-8189-14326fa000d0",
+            "created": "2026-11-05T23:51:58.662505Z",
+            "modified": "2026-11-05T23:51:58.662507Z",
+            "name": "Database",
+            "description": "Asset targeted by threat: Data corruption or tampering in Database via unauthorized write access",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--33398881-e9e9-4d12-a22c-982f46e59ccd",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:58.662514Z",
+            "modified": "2026-11-05T23:51:58.662516Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--10c5b707-62a8-4cb7-b4ba-d1cfd8ff575f",
+            "target_ref": "attack-asset--beb05336-a118-45dc-8189-14326fa000d0"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--cf83cc70-b01e-45c4-8d5a-4c69e4e519d4",
+            "created": "2026-11-05T23:51:58.662523Z",
+            "modified": "2026-11-05T23:51:58.662525Z",
+            "name": "Unauthorized access to sensitive data stored in Database leading to data breach",
+            "description": "Unauthorized access to sensitive data stored in Database leading to data breach",
+            "technique_id": "T1078",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--e70eaf7d-3fc0-4e06-a066-1986d1b32028"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--e70eaf7d-3fc0-4e06-a066-1986d1b32028",
+            "created": "2026-11-05T23:51:58.662532Z",
+            "modified": "2026-11-05T23:51:58.662534Z",
+            "name": "Database",
+            "description": "Asset targeted by threat: Unauthorized access to sensitive data stored in Database leading to data breach",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--1006dc3b-1bf3-4112-90c8-7d6671c51100",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:58.662540Z",
+            "modified": "2026-11-05T23:51:58.662543Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--cf83cc70-b01e-45c4-8d5a-4c69e4e519d4",
+            "target_ref": "attack-asset--e70eaf7d-3fc0-4e06-a066-1986d1b32028"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--e1ab08d5-6d84-4ac2-94fc-354eb573e39f",
+            "created": "2026-11-05T23:51:58.662549Z",
+            "modified": "2026-11-05T23:51:58.662551Z",
+            "name": "Unauthorized privilege escalation on Database due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on Database due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--aa710830-95b0-4826-995c-fd1c7b957b25"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--aa710830-95b0-4826-995c-fd1c7b957b25",
+            "created": "2026-11-05T23:51:58.662557Z",
+            "modified": "2026-11-05T23:51:58.662560Z",
+            "name": "Database",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on Database due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--53df7a7e-3ee0-4bc4-bc8f-f5d3350a5a1a",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:58.662565Z",
+            "modified": "2026-11-05T23:51:58.662567Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--e1ab08d5-6d84-4ac2-94fc-354eb573e39f",
+            "target_ref": "attack-asset--aa710830-95b0-4826-995c-fd1c7b957b25"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--62db58ae-fffd-4ce2-91e8-a88284d97708",
+            "created": "2026-11-05T23:51:58.662574Z",
+            "modified": "2026-11-05T23:51:58.662576Z",
+            "name": "Lack of monitoring or logging on Database, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on Database, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--00ba8d19-fea1-4283-b71e-4bde34036b48"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--00ba8d19-fea1-4283-b71e-4bde34036b48",
+            "created": "2026-11-05T23:51:58.662583Z",
+            "modified": "2026-11-05T23:51:58.662585Z",
+            "name": "Database",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on Database, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--ef62b9a2-9509-4938-a31a-7b7d48c01275",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:58.662591Z",
+            "modified": "2026-11-05T23:51:58.662593Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--62db58ae-fffd-4ce2-91e8-a88284d97708",
+            "target_ref": "attack-asset--00ba8d19-fea1-4283-b71e-4bde34036b48"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--4511b06f-c445-456c-a159-9a35a4219dc2",
+            "created": "2026-11-05T23:51:58.662600Z",
+            "modified": "2026-11-05T23:51:58.662602Z",
+            "name": "Denial of Service against Database through resource-intensive queries or excessive connections",
+            "description": "Denial of Service against Database through resource-intensive queries or excessive connections",
+            "technique_id": "T1499",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--15614abf-d9bc-4512-8630-95ccca96552a"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--15614abf-d9bc-4512-8630-95ccca96552a",
+            "created": "2026-11-05T23:51:58.662608Z",
+            "modified": "2026-11-05T23:51:58.662610Z",
+            "name": "Database",
+            "description": "Asset targeted by threat: Denial of Service against Database through resource-intensive queries or excessive connections",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--ac8a066d-1b00-420b-b14c-11d6c798f069",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:58.662616Z",
+            "modified": "2026-11-05T23:51:58.662618Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--4511b06f-c445-456c-a159-9a35a4219dc2",
+            "target_ref": "attack-asset--15614abf-d9bc-4512-8630-95ccca96552a"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--6da5b41f-4a65-4fdd-80d4-476fc325667e",
+            "created": "2026-11-05T23:51:58.662625Z",
+            "modified": "2026-11-05T23:51:58.662627Z",
+            "name": "Insecure security configuration or hardening on Database leading to information exposure",
+            "description": "Insecure security configuration or hardening on Database leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--73f29407-c5e3-497c-91d3-60e5540eadfa"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--73f29407-c5e3-497c-91d3-60e5540eadfa",
+            "created": "2026-11-05T23:51:58.662632Z",
+            "modified": "2026-11-05T23:51:58.662634Z",
+            "name": "Database",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on Database leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--a6821393-a8b4-4c11-8220-e28b2bab465f",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:58.662640Z",
+            "modified": "2026-11-05T23:51:58.662642Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--6da5b41f-4a65-4fdd-80d4-476fc325667e",
+            "target_ref": "attack-asset--73f29407-c5e3-497c-91d3-60e5540eadfa"
+        },
+        {
+            "type": "attack-flow",
+            "spec_version": "2.1",
+            "id": "attack-flow--9cc1c15e-778c-42c0-bd11-7e2ce3deebf4",
+            "created_by_ref": "identity--be841d89-bb7e-4671-8f8f-38ce042e2658",
+            "created": "2026-11-05T23:51:58.662649Z",
+            "modified": "2026-11-05T23:51:58.662651Z",
+            "name": "Attack Flow for model",
+            "description": "This Attack Flow was generated from the threat model 'model'.",
+            "scope": "attack-tree",
+            "start_refs": [
+                "attack-action--dff11556-9938-4ded-8112-4e8fbaa91ff0",
+                "attack-action--10c5b707-62a8-4cb7-b4ba-d1cfd8ff575f",
+                "attack-action--cf83cc70-b01e-45c4-8d5a-4c69e4e519d4",
+                "attack-action--e1ab08d5-6d84-4ac2-94fc-354eb573e39f",
+                "attack-action--62db58ae-fffd-4ce2-91e8-a88284d97708",
+                "attack-action--4511b06f-c445-456c-a159-9a35a4219dc2",
+                "attack-action--6da5b41f-4a65-4fdd-80d4-476fc325667e"
+            ],
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        }
+    ]
+}

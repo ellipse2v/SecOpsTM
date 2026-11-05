@@ -1,0 +1,134 @@
+digraph ThreatModel {
+  rankdir=LR;
+  node [shape=box];
+  edge [fontsize=10];
+  splines=true;
+  overlap=false;
+  nodesep=0.5;
+  ranksep=0.6;
+  charset="UTF-8";
+
+  
+
+  
+    
+  subgraph cluster_dmz_perimeter {
+    label="DMZ Perimeter";
+    "__hidden_node_dmz_perimeter" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,dashed";
+    
+    fillcolor="orange";
+    
+    
+    color="#c62828";
+    penwidth=2;
+    
+    
+    
+    "Firewall_1" [fixedsize=shape, shape=hexagon, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/firewall.svg" SCALE="TRUE"/></TD></TR><TR><TD>Firewall_1</TD></TR></TABLE>>, id="Firewall_1"];
+    
+    "Firewall_2" [fixedsize=shape, shape=hexagon, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/firewall.svg" SCALE="TRUE"/></TD></TR><TR><TD>Firewall_2</TD></TR></TABLE>>, id="Firewall_2"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_api_gateway_zone {
+    label="API Gateway Zone";
+    "__hidden_node_api_gateway_zone" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,dashed";
+    
+    fillcolor="lightyellow";
+    
+    
+    color="#c62828";
+    penwidth=2;
+    
+    
+    
+    "ApiGateway" [shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/api-gateway.svg" SCALE="TRUE"/></TD></TR><TR><TD>ApiGateway</TD></TR></TABLE>>, id="ApiGateway"];
+    
+    
+  }
+  
+  
+
+  
+
+  
+
+  
+  "Firewall_1" -> "ApiGateway" [label="", color="darkgreen", style="solid", label=<Firewall1ToApiGateway<BR/>Protocol: HTTPS<BR/>Data: FilteredRequest>, id="edge_Firewall_1_ApiGateway", fontsize=7, class="protocol-HTTPS"];
+  
+  "Firewall_2" -> "ApiGateway" [label="", color="darkgreen", style="solid", label=<Firewall2ToApiGateway<BR/>Protocol: HTTPS<BR/>Data: FilteredRequest>, id="edge_Firewall_2_ApiGateway", fontsize=7, class="protocol-HTTPS"];
+  
+
+  
+  
+  
+  
+  subgraph cluster__external_parent_in {
+    label="External connections in (parent model)";
+    style="dashed,filled";
+    fillcolor="#e8f5e9";
+    color="#66bb6a";
+    penwidth=1;
+    fontsize=9;
+    fontcolor="#2e7d32";
+    
+    
+    
+    
+    "__ghost_WebApp" [label="WebApp", shape=ellipse, style="dashed,filled", fillcolor="#c8e6c9", color="#66bb6a", fontcolor="#1b5e20", fontsize=9];
+    
+    
+    
+    
+    
+    
+    "__ghost_Payment_Processor" [label="Payment Processor", shape=ellipse, style="dashed,filled", fillcolor="#c8e6c9", color="#66bb6a", fontcolor="#1b5e20", fontsize=9];
+    
+    
+    
+    
+  }
+  
+  "__ghost_WebApp" -> "Firewall_1" [style=dashed, color="#66bb6a", label="HTTPS", fontsize=7, arrowsize=0.7];
+  
+  "__ghost_WebApp" -> "Firewall_2" [style=dashed, color="#66bb6a", label="HTTPS", fontsize=7, arrowsize=0.7];
+  
+  "__ghost_Payment_Processor" -> "Firewall_1" [style=dashed, color="#66bb6a", label="HTTPS", fontsize=7, arrowsize=0.7];
+  
+  "__ghost_Payment_Processor" -> "Firewall_2" [style=dashed, color="#66bb6a", label="HTTPS", fontsize=7, arrowsize=0.7];
+  
+  
+  
+  subgraph cluster__external_parent_out {
+    label="External connections out (parent model)";
+    style="dashed,filled";
+    fillcolor="#fff3e0";
+    color="#ffa726";
+    penwidth=1;
+    fontsize=9;
+    fontcolor="#e65100";
+    
+    
+    
+    
+    "__ghost_BackendServices" [label="BackendServices", shape=ellipse, style="dashed,filled", fillcolor="#ffe0b2", color="#ffa726", fontcolor="#bf360c", fontsize=9];
+    
+    
+    
+    
+  }
+  
+  "Firewall_1" -> "__ghost_BackendServices" [style=dashed, color="#ffa726", label="HTTP", fontsize=7, arrowsize=0.7];
+  
+  "Firewall_2" -> "__ghost_BackendServices" [style=dashed, color="#ffa726", label="HTTP", fontsize=7, arrowsize=0.7];
+  
+  
+  
+}

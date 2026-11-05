@@ -1,0 +1,127 @@
+digraph ThreatModel {
+  rankdir=LR;
+  node [shape=box];
+  edge [fontsize=10];
+  splines=true;
+  overlap=false;
+  nodesep=0.5;
+  ranksep=0.6;
+  charset="UTF-8";
+
+  
+
+  
+    
+  subgraph cluster_trusted_application_zone {
+    label="Trusted Application Zone";
+    "__hidden_node_trusted_application_zone" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="lightblue";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    
+    "CoreSwitch" [shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/switch.svg" SCALE="TRUE"/></TD></TR><TR><TD>CoreSwitch</TD></TR></TABLE>>, id="CoreSwitch"];
+    
+    "AuthService" [width=1.5, height=0.75, shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/server.svg" SCALE="TRUE"/></TD><TD ALIGN="LEFT">AuthService</TD></TR></TABLE>>, id="AuthService"];
+    
+    "OrderService" [width=1.5, height=0.75, shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/server.svg" SCALE="TRUE"/></TD><TD ALIGN="LEFT">OrderService</TD></TR></TABLE>>, id="OrderService"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_protected_db_zone {
+    label="Protected DB Zone";
+    "__hidden_node_protected_db_zone" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="lavender";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    
+    "DBSwitch" [shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/switch.svg" SCALE="TRUE"/></TD></TR><TR><TD>DBSwitch</TD></TR></TABLE>>, id="DBSwitch"];
+    
+    "DBFirewall" [fixedsize=shape, shape=hexagon, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/firewall.svg" SCALE="TRUE"/></TD></TR><TR><TD>DBFirewall</TD></TR></TABLE>>, id="DBFirewall"];
+    
+    "ProductDB" [shape=cylinder, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/database.svg" SCALE="TRUE"/></TD></TR><TR><TD>ProductDB</TD></TR></TABLE>>, id="ProductDB"];
+    
+    
+  }
+  
+  
+
+  
+
+  
+
+  
+  "CoreSwitch" -> "AuthService" [label="", color="blue", style="solid", label=<SwitchToAuth<BR/>Protocol: gRPC<BR/>Data: AuthRequest>, id="edge_CoreSwitch_AuthService", fontsize=7, class="protocol-gRPC"];
+  
+  "CoreSwitch" -> "OrderService" [label="", color="blue", style="solid", label=<SwitchToOrders<BR/>Protocol: gRPC<BR/>Data: OrderProcessingRequest>, id="edge_CoreSwitch_OrderService", fontsize=7, class="protocol-gRPC"];
+  
+  "OrderService" -> "DBSwitch" [label="", color="darkgray", style="dotted", label=<OrdersToDBSwitch<BR/>Protocol: TCP<BR/>Data: DBTransaction>, id="edge_OrderService_DBSwitch", fontsize=7, class="protocol-TCP"];
+  
+  "DBSwitch" -> "DBFirewall" [label="", color="darkgray", style="dotted", label=<DBSwitchToFirewall<BR/>Protocol: TCP<BR/>Data: DBTransaction>, id="edge_DBSwitch_DBFirewall", fontsize=7, class="protocol-TCP"];
+  
+  "DBFirewall" -> "ProductDB" [label="", color="darkgray", style="dotted", label=<FirewallToDB<BR/>Protocol: TCP<BR/>Data: DBTransaction>, id="edge_DBFirewall_ProductDB", fontsize=7, class="protocol-TCP"];
+  
+
+  
+  
+  
+  
+  subgraph cluster__external_parent_in {
+    label="External connections in (parent model)";
+    style="dashed,filled";
+    fillcolor="#e8f5e9";
+    color="#66bb6a";
+    penwidth=1;
+    fontsize=9;
+    fontcolor="#2e7d32";
+    
+    
+    
+    
+    "__ghost_DMZTier" [label="DMZTier", shape=ellipse, style="dashed,filled", fillcolor="#c8e6c9", color="#66bb6a", fontcolor="#1b5e20", fontsize=9];
+    
+    
+  }
+  
+  "__ghost_DMZTier" -> "CoreSwitch" [style=dashed, color="#66bb6a", label="HTTP", fontsize=7, arrowsize=0.7];
+  
+  
+  
+  subgraph cluster__external_parent_out {
+    label="External connections out (parent model)";
+    style="dashed,filled";
+    fillcolor="#fff3e0";
+    color="#ffa726";
+    penwidth=1;
+    fontsize=9;
+    fontcolor="#e65100";
+    
+    
+    
+    
+    "__ghost_DatabaseCluster" [label="DatabaseCluster", shape=ellipse, style="dashed,filled", fillcolor="#ffe0b2", color="#ffa726", fontcolor="#bf360c", fontsize=9];
+    
+    
+  }
+  
+  "CoreSwitch" -> "__ghost_DatabaseCluster" [style=dashed, color="#ffa726", label="PostgreSQL", fontsize=7, arrowsize=0.7];
+  
+  
+  
+}

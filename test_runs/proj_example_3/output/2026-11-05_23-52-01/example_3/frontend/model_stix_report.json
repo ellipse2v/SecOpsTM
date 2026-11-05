@@ -1,0 +1,651 @@
+{
+    "type": "bundle",
+    "id": "bundle--db252f82-66c3-4369-b85a-a3816a3555e6",
+    "spec_version": "2.1",
+    "objects": [
+        {
+            "type": "extension-definition",
+            "id": "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4",
+            "spec_version": "2.1",
+            "created": "2022-08-02T19:34:35.143Z",
+            "modified": "2022-08-02T19:34:35.143Z",
+            "name": "Attack Flow",
+            "description": "Extends STIX 2.1 with features to create Attack Flows.",
+            "created_by_ref": "identity--563004c6-c760-4fc8-a398-286869d237d8",
+            "schema": "https://center-for-threat-informed-defense.github.io/attack-flow/stix/attack-flow-schema-2.0.0.json",
+            "version": "2.0.0",
+            "extension_types": [
+                "new-sdo"
+            ]
+        },
+        {
+            "type": "identity",
+            "id": "identity--563004c6-c760-4fc8-a398-286869d237d8",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.319958Z",
+            "modified": "2026-11-05T23:52:04.319972Z",
+            "name": "Threat Model Analysis Tool",
+            "identity_class": "tool"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--ab5d14e5-912d-4a54-9852-68e9bdf43b43",
+            "created": "2026-11-05T23:52:04.319981Z",
+            "modified": "2026-11-05T23:52:04.319985Z",
+            "name": "Unpatched OS or software vulnerabilities on LoadBalancer leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on LoadBalancer leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--75826d27-be8a-49e8-8af2-fc699172ef30"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--75826d27-be8a-49e8-8af2-fc699172ef30",
+            "created": "2026-11-05T23:52:04.319993Z",
+            "modified": "2026-11-05T23:52:04.319996Z",
+            "name": "LoadBalancer",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on LoadBalancer leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--ff1db74f-dc5d-4821-b294-c35b7785851d",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.320003Z",
+            "modified": "2026-11-05T23:52:04.320005Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--ab5d14e5-912d-4a54-9852-68e9bdf43b43",
+            "target_ref": "attack-asset--75826d27-be8a-49e8-8af2-fc699172ef30"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--5c3da036-e13b-45ec-99ec-1033ce0440d0",
+            "created": "2026-11-05T23:52:04.320013Z",
+            "modified": "2026-11-05T23:52:04.320015Z",
+            "name": "Unpatched OS or software vulnerabilities on WebServer leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on WebServer leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--50469133-4749-45cf-b1f5-eb202f560047"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--50469133-4749-45cf-b1f5-eb202f560047",
+            "created": "2026-11-05T23:52:04.320021Z",
+            "modified": "2026-11-05T23:52:04.320023Z",
+            "name": "WebServer",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on WebServer leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--ff4c0d80-863b-43de-93cd-08d256e68daa",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.320029Z",
+            "modified": "2026-11-05T23:52:04.320031Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--5c3da036-e13b-45ec-99ec-1033ce0440d0",
+            "target_ref": "attack-asset--50469133-4749-45cf-b1f5-eb202f560047"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--abecd22f-43b6-4b37-a65a-6cd763cc0b91",
+            "created": "2026-11-05T23:52:04.320038Z",
+            "modified": "2026-11-05T23:52:04.320040Z",
+            "name": "Unauthorized privilege escalation on LoadBalancer due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on LoadBalancer due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--f45a3fcd-6ecd-4f8e-b497-22f85ebbe2e0"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--f45a3fcd-6ecd-4f8e-b497-22f85ebbe2e0",
+            "created": "2026-11-05T23:52:04.320046Z",
+            "modified": "2026-11-05T23:52:04.320048Z",
+            "name": "LoadBalancer",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on LoadBalancer due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--92dc3033-796c-4f99-8cde-7b324f0efb56",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.320054Z",
+            "modified": "2026-11-05T23:52:04.320056Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--abecd22f-43b6-4b37-a65a-6cd763cc0b91",
+            "target_ref": "attack-asset--f45a3fcd-6ecd-4f8e-b497-22f85ebbe2e0"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--ccd1f1dc-ae65-4091-9405-356bd60bda51",
+            "created": "2026-11-05T23:52:04.320063Z",
+            "modified": "2026-11-05T23:52:04.320065Z",
+            "name": "Unauthorized privilege escalation on WebServer due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on WebServer due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--f5da1bc0-4383-41b5-a24b-7345799b60ad"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--f5da1bc0-4383-41b5-a24b-7345799b60ad",
+            "created": "2026-11-05T23:52:04.320071Z",
+            "modified": "2026-11-05T23:52:04.320073Z",
+            "name": "WebServer",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on WebServer due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--458a50d7-f719-4152-9ef5-2af8c02ead8c",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.320079Z",
+            "modified": "2026-11-05T23:52:04.320081Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--ccd1f1dc-ae65-4091-9405-356bd60bda51",
+            "target_ref": "attack-asset--f5da1bc0-4383-41b5-a24b-7345799b60ad"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--db9d5293-1b5e-43fe-b4c5-1f42879a38c1",
+            "created": "2026-11-05T23:52:04.320088Z",
+            "modified": "2026-11-05T23:52:04.320090Z",
+            "name": "Session hijacking or fixation attack against the LoadBalancer leading to unauthorized access",
+            "description": "Session hijacking or fixation attack against the LoadBalancer leading to unauthorized access",
+            "technique_id": "T1547",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--0afc3197-1a28-45b0-8025-6ef8acb9755b"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--0afc3197-1a28-45b0-8025-6ef8acb9755b",
+            "created": "2026-11-05T23:52:04.320097Z",
+            "modified": "2026-11-05T23:52:04.320100Z",
+            "name": "LoadBalancer",
+            "description": "Asset targeted by threat: Session hijacking or fixation attack against the LoadBalancer leading to unauthorized access",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--cf3d1a92-4f67-422f-b263-e80e8d45bb64",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.320105Z",
+            "modified": "2026-11-05T23:52:04.320107Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--db9d5293-1b5e-43fe-b4c5-1f42879a38c1",
+            "target_ref": "attack-asset--0afc3197-1a28-45b0-8025-6ef8acb9755b"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--10cdf40b-8d9c-483f-9cd5-63bdac661092",
+            "created": "2026-11-05T23:52:04.320113Z",
+            "modified": "2026-11-05T23:52:04.320115Z",
+            "name": "Spoofing of data from LoadBalancer to WebServer due to lack of authentication",
+            "description": "Spoofing of data from LoadBalancer to WebServer due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--7538ac29-1218-443b-aaad-c6960a701de2"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--7538ac29-1218-443b-aaad-c6960a701de2",
+            "created": "2026-11-05T23:52:04.320122Z",
+            "modified": "2026-11-05T23:52:04.320124Z",
+            "name": "LBToWebServer",
+            "description": "Asset targeted by threat: Spoofing of data from LoadBalancer to WebServer due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--b7253f9d-fbf9-45e2-aa12-913cc0c6ad35",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.320129Z",
+            "modified": "2026-11-05T23:52:04.320131Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--10cdf40b-8d9c-483f-9cd5-63bdac661092",
+            "target_ref": "attack-asset--7538ac29-1218-443b-aaad-c6960a701de2"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--205c2e30-e149-4dd4-868f-7ae076e74797",
+            "created": "2026-11-05T23:52:04.320137Z",
+            "modified": "2026-11-05T23:52:04.320139Z",
+            "name": "Spoofing of data from WebServer to LoadBalancer due to lack of authentication",
+            "description": "Spoofing of data from WebServer to LoadBalancer due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--7a385874-c5d8-43e4-b5cc-17e2bc714b2d"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--7a385874-c5d8-43e4-b5cc-17e2bc714b2d",
+            "created": "2026-11-05T23:52:04.320145Z",
+            "modified": "2026-11-05T23:52:04.320147Z",
+            "name": "WebServerLoop",
+            "description": "Asset targeted by threat: Spoofing of data from WebServer to LoadBalancer due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--a385e0bb-e767-4758-8d08-c71594fd3b48",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.320153Z",
+            "modified": "2026-11-05T23:52:04.320155Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--205c2e30-e149-4dd4-868f-7ae076e74797",
+            "target_ref": "attack-asset--7a385874-c5d8-43e4-b5cc-17e2bc714b2d"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--3c2e7b3f-a149-4340-8802-c7a9b7edee77",
+            "created": "2026-11-05T23:52:04.320161Z",
+            "modified": "2026-11-05T23:52:04.320163Z",
+            "name": "Data interception on an unencrypted channel from LoadBalancer to WebServer (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from LoadBalancer to WebServer (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--8175bc3e-d1ed-442f-8ac4-ce02fdfd3861"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--8175bc3e-d1ed-442f-8ac4-ce02fdfd3861",
+            "created": "2026-11-05T23:52:04.320170Z",
+            "modified": "2026-11-05T23:52:04.320172Z",
+            "name": "LBToWebServer",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from LoadBalancer to WebServer (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--ad3701ed-a3bc-4767-abd8-64e90ebb0aa3",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.320177Z",
+            "modified": "2026-11-05T23:52:04.320180Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--3c2e7b3f-a149-4340-8802-c7a9b7edee77",
+            "target_ref": "attack-asset--8175bc3e-d1ed-442f-8ac4-ce02fdfd3861"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--4e250312-2f70-4e18-8fbf-84ff87bde372",
+            "created": "2026-11-05T23:52:04.320187Z",
+            "modified": "2026-11-05T23:52:04.320189Z",
+            "name": "Data interception on an unencrypted channel from WebServer to LoadBalancer (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from WebServer to LoadBalancer (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--c9de0253-0bf7-4fa1-9d4c-7b31d3f8ad45"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--c9de0253-0bf7-4fa1-9d4c-7b31d3f8ad45",
+            "created": "2026-11-05T23:52:04.320194Z",
+            "modified": "2026-11-05T23:52:04.320196Z",
+            "name": "WebServerLoop",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from WebServer to LoadBalancer (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--f1dabb37-6710-41dd-9bc0-6a687d89615e",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.320203Z",
+            "modified": "2026-11-05T23:52:04.320205Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--4e250312-2f70-4e18-8fbf-84ff87bde372",
+            "target_ref": "attack-asset--c9de0253-0bf7-4fa1-9d4c-7b31d3f8ad45"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--d9265e60-89ad-4f00-be5f-bff44ab6f0f3",
+            "created": "2026-11-05T23:52:04.320212Z",
+            "modified": "2026-11-05T23:52:04.320214Z",
+            "name": "Lack of monitoring or logging on WebServer, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on WebServer, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--4b878d87-3ae7-4151-a0d5-e2812c3736f9"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--4b878d87-3ae7-4151-a0d5-e2812c3736f9",
+            "created": "2026-11-05T23:52:04.320220Z",
+            "modified": "2026-11-05T23:52:04.320222Z",
+            "name": "WebServer",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on WebServer, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--37751c44-ca25-4b91-bf4a-671d441962a9",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.320227Z",
+            "modified": "2026-11-05T23:52:04.320229Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--d9265e60-89ad-4f00-be5f-bff44ab6f0f3",
+            "target_ref": "attack-asset--4b878d87-3ae7-4151-a0d5-e2812c3736f9"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--46868a64-6585-49be-8275-4ae722da7f38",
+            "created": "2026-11-05T23:52:04.320235Z",
+            "modified": "2026-11-05T23:52:04.320238Z",
+            "name": "Lack of monitoring or logging on LoadBalancer, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on LoadBalancer, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--41d062c9-98ea-4fbd-adb1-e0ea13fc6dac"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--41d062c9-98ea-4fbd-adb1-e0ea13fc6dac",
+            "created": "2026-11-05T23:52:04.320243Z",
+            "modified": "2026-11-05T23:52:04.320245Z",
+            "name": "LoadBalancer",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on LoadBalancer, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--17a51d81-7da0-4c20-b0ec-40cc7f72ffe0",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.320284Z",
+            "modified": "2026-11-05T23:52:04.320288Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--46868a64-6585-49be-8275-4ae722da7f38",
+            "target_ref": "attack-asset--41d062c9-98ea-4fbd-adb1-e0ea13fc6dac"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--12f15ab7-6194-46ac-ae29-cea30dbb0895",
+            "created": "2026-11-05T23:52:04.320296Z",
+            "modified": "2026-11-05T23:52:04.320298Z",
+            "name": "Insecure security configuration or hardening on WebServer leading to information exposure",
+            "description": "Insecure security configuration or hardening on WebServer leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--ce78abf3-e217-4696-87a0-373e5f285945"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--ce78abf3-e217-4696-87a0-373e5f285945",
+            "created": "2026-11-05T23:52:04.320305Z",
+            "modified": "2026-11-05T23:52:04.320313Z",
+            "name": "WebServer",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on WebServer leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--1ab73c7e-2039-497c-93ac-f7e262c2cd5f",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.320320Z",
+            "modified": "2026-11-05T23:52:04.320322Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--12f15ab7-6194-46ac-ae29-cea30dbb0895",
+            "target_ref": "attack-asset--ce78abf3-e217-4696-87a0-373e5f285945"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--0a99a751-62e2-4517-947c-daefd98e22a6",
+            "created": "2026-11-05T23:52:04.320328Z",
+            "modified": "2026-11-05T23:52:04.320330Z",
+            "name": "Insecure security configuration or hardening on LoadBalancer leading to information exposure",
+            "description": "Insecure security configuration or hardening on LoadBalancer leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--d9c0717c-761c-4b36-828a-62978cda985c"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--d9c0717c-761c-4b36-828a-62978cda985c",
+            "created": "2026-11-05T23:52:04.320336Z",
+            "modified": "2026-11-05T23:52:04.320338Z",
+            "name": "LoadBalancer",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on LoadBalancer leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--602ff6e5-5734-48b7-abd1-972605c65906",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.320343Z",
+            "modified": "2026-11-05T23:52:04.320345Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--0a99a751-62e2-4517-947c-daefd98e22a6",
+            "target_ref": "attack-asset--d9c0717c-761c-4b36-828a-62978cda985c"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--7b1f4f5b-8b53-44de-8e9f-85b2a660fa05",
+            "created": "2026-11-05T23:52:04.320351Z",
+            "modified": "2026-11-05T23:52:04.320353Z",
+            "name": "Weak SSL/TLS configuration or ciphers used by LoadBalancer leading to information disclosure",
+            "description": "Weak SSL/TLS configuration or ciphers used by LoadBalancer leading to information disclosure",
+            "technique_id": "T1557",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--c33224b3-5fc4-4c2a-8f0e-6f41d1919c0e"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--c33224b3-5fc4-4c2a-8f0e-6f41d1919c0e",
+            "created": "2026-11-05T23:52:04.320359Z",
+            "modified": "2026-11-05T23:52:04.320361Z",
+            "name": "LoadBalancer",
+            "description": "Asset targeted by threat: Weak SSL/TLS configuration or ciphers used by LoadBalancer leading to information disclosure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--f7c542c4-1cc2-4fca-8e35-a91713fa2640",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:04.320366Z",
+            "modified": "2026-11-05T23:52:04.320369Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--7b1f4f5b-8b53-44de-8e9f-85b2a660fa05",
+            "target_ref": "attack-asset--c33224b3-5fc4-4c2a-8f0e-6f41d1919c0e"
+        },
+        {
+            "type": "attack-flow",
+            "spec_version": "2.1",
+            "id": "attack-flow--28967ff7-b67d-4829-bb2f-ac15f0f25c88",
+            "created_by_ref": "identity--563004c6-c760-4fc8-a398-286869d237d8",
+            "created": "2026-11-05T23:52:04.320375Z",
+            "modified": "2026-11-05T23:52:04.320377Z",
+            "name": "Attack Flow for model",
+            "description": "This Attack Flow was generated from the threat model 'model'.",
+            "scope": "attack-tree",
+            "start_refs": [
+                "attack-action--ab5d14e5-912d-4a54-9852-68e9bdf43b43",
+                "attack-action--5c3da036-e13b-45ec-99ec-1033ce0440d0",
+                "attack-action--abecd22f-43b6-4b37-a65a-6cd763cc0b91",
+                "attack-action--ccd1f1dc-ae65-4091-9405-356bd60bda51",
+                "attack-action--db9d5293-1b5e-43fe-b4c5-1f42879a38c1",
+                "attack-action--10cdf40b-8d9c-483f-9cd5-63bdac661092",
+                "attack-action--205c2e30-e149-4dd4-868f-7ae076e74797",
+                "attack-action--3c2e7b3f-a149-4340-8802-c7a9b7edee77",
+                "attack-action--4e250312-2f70-4e18-8fbf-84ff87bde372",
+                "attack-action--d9265e60-89ad-4f00-be5f-bff44ab6f0f3",
+                "attack-action--46868a64-6585-49be-8275-4ae722da7f38",
+                "attack-action--12f15ab7-6194-46ac-ae29-cea30dbb0895",
+                "attack-action--0a99a751-62e2-4517-947c-daefd98e22a6",
+                "attack-action--7b1f4f5b-8b53-44de-8e9f-85b2a660fa05"
+            ],
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        }
+    ]
+}

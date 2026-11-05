@@ -1,0 +1,1088 @@
+<!--
+ Copyright 2025 ellipse2v
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+        }
+        .diagram-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .svg-container {
+            width: 98%;
+            height: 98%;
+            border: 1px solid #ddd;
+            background-color: white;
+        }
+        .svg-container svg {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .navigation-ui {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+        }
+        .back-button, .legend-toggle-btn {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 8px 12px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-decoration: none;
+            color: #333;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .legend-toggle-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+        .zoom-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 5px;
+        }
+        .zoom-btn {
+            width: 30px;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .legend {
+            position: absolute;
+            top: 70px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            max-width: 200px;
+            z-index: 1000;
+        }
+        .legend.hidden {
+            display: none;
+        }
+        .legend-header {
+            padding: 8px;
+            font-weight: bold;
+            border-bottom: 1px solid #eee;
+        }
+        .legend-content {
+            padding: 8px;
+        }
+        .breadcrumb {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #666;
+            z-index: 1001;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 3px;
+            padding: 1px 0;
+            cursor: pointer;
+            border-radius: 2px;
+        }
+        .legend-item:hover {
+            background-color: rgba(0, 122, 204, 0.1);
+        }
+        .svg-element-hidden {
+            display: none !important;
+        }
+        /* --- Hover effect styles --- */
+        g > a > polygon,
+        g > a > rect,
+        g > a > ellipse,
+        g > a > circle,
+        g > a > path {
+            transition: stroke-width 0.2s ease-in-out;
+        }
+
+        g.hover-effect {
+            transition: transform 0.2s ease-in-out, filter 0.2s ease-in-out;
+            transform-origin: center; /* Fallback */
+        }
+
+        g.hover-effect.hovered {
+            transform: scale(1.05);
+            filter: drop-shadow(3px 5px 2px rgb(0 0 0 / 0.4)) brightness(1.1);
+        }
+
+        g.hover-effect.hovered > a > polygon,
+        g.hover-effect.hovered > a > rect,
+        g.hover-effect.hovered > a > ellipse,
+        g.hover-effect.hovered > a > circle,
+        g.hover-effect.hovered > a > path {
+            stroke-width: 3px !important;
+        }
+
+        /* New styles for highlighting */
+        .highlighted { /* Group-level styling for related elements */
+            opacity: 1 !important;
+        }
+        /* Style ONLY the shapes of related elements */
+        .highlighted path, .highlighted polygon, .highlighted ellipse {
+            stroke: #007bff !important; /* Bright blue */
+            stroke-width: 3px !important;
+            transition: stroke 0.2s, stroke-width 0.2s;
+        }
+        /* More specific rule for EDGES to ensure they are highlighted */
+        g.edge.highlighted path, g.edge.highlighted polygon {
+            stroke: #007bff !important;
+            stroke-width: 4px !important;
+        }
+
+        /* Ensure text within related elements remains readable */
+        .highlighted text {
+            stroke: none !important;
+            fill: inherit !important;
+        }
+
+        .selected { /* Group-level styling for selected element */
+            opacity: 1 !important;
+        }
+        /* Style ONLY the shapes of the selected element */
+        .selected path, .selected polygon, .selected ellipse {
+            stroke: red !important;
+            stroke-width: 3px !important;
+            fill: rgba(255, 0, 0, 0.15) !important; /* A more subtle fill */
+            transition: stroke 0.2s, stroke-width 0.2s, fill 0.2s;
+        }
+        /* More specific rule for EDGES to ensure they are highlighted */
+        g.edge.selected path, g.edge.selected polygon {
+            stroke: red !important;
+            stroke-width: 4px !important;
+        }
+        
+        /* Ensure text within the selected element remains perfectly readable */
+        .selected text {
+            stroke: none !important;
+            fill: inherit !important; /* Inherit original text color */
+        }
+        
+        .faded {
+            opacity: 0.5 !important;
+            transition: opacity 0.2s ease-in-out;
+        }
+        /* Specific rules for text within faded elements to remain visible */
+        .faded text {
+            fill: inherit !important; /* Keep original text color */
+            opacity: 1 !important;   /* Keep text opaque */
+        }
+        /* Remove graph-element's conflicting styles - let Graphviz set defaults, then override with !important */
+        .graph-element {
+            /* No conflicting fill/stroke here */
+        }
+    </style>
+</head>
+<body>
+    <div class="diagram-container">
+        <div id="svg-container" class="svg-container">
+            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="477.15" height="380.0" viewBox="0 0 477.15 380.0">
+  <g transform="translate(0, 380.0) scale(1, -1)">
+<rect fill="#ffffff" stroke="none" x="0" y="0" width="477.15" height="380.0" />
+  <g id="cluster_hsm_zone">
+    <path d="M 20.0,245.0 C 20.0,245.0 428.0,245.0 428.0,245.0 434.0,245.0 440.0,251.0 440.0,257.0 440.0,257.0 440.0,360.0 440.0,360.0 440.0,366.0 434.0,372.0 428.0,372.0 428.0,372.0 20.0,372.0 20.0,372.0 14.0,372.0 8.0,366.0 8.0,360.0 8.0,360.0 8.0,257.0 8.0,257.0 8.0,251.0 14.0,245.0 20.0,245.0" fill="#e6e6fa" stroke="#2e7d32" />
+    <text x="224.0" y="360.0" transform="translate(224.0,360.0) scale(1,-1) translate(-224.0,-360.0)" font-family="Times-Roman" font-size="10.0" text-anchor="middle" fill="#000000">HSM Zone</text>
+  </g>
+  <g id="cluster_vault_data_zone">
+    <path d="M 341.5,86.0 C 341.5,86.0 415.5,86.0 415.5,86.0 421.5,86.0 427.5,92.0 427.5,98.0 427.5,98.0 427.5,225.0 427.5,225.0 427.5,231.0 421.5,237.0 415.5,237.0 415.5,237.0 341.5,237.0 341.5,237.0 335.5,237.0 329.5,231.0 329.5,225.0 329.5,225.0 329.5,98.0 329.5,98.0 329.5,92.0 335.5,86.0 341.5,86.0" fill="#000000" stroke="#2e7d32" />
+    <text x="378.5" y="225.0" transform="translate(378.5,225.0) scale(1,-1) translate(-378.5,-225.0)" font-family="Times-Roman" font-size="10.0" text-anchor="middle" fill="#000000">Vault Data Zone</text>
+  </g>
+  <g id="cluster__external_parent_in">
+    <polygon points="278.85,8.0 278.85,78.0 477.15,78.0 477.15,8.0" fill="#e8f5e9" stroke="#66bb6a" stroke-dasharray="5,2" />
+    <text x="378.0" y="66.8" transform="translate(378.0,66.8) scale(1,-1) translate(-378.0,-66.8)" font-family="Times-Roman" font-size="9.0" text-anchor="middle" fill="#2e7d32">External connections in (parent model)</text>
+  </g>
+  <g id="cluster__external_parent_out">
+  </g>
+  <g id="edge_TokenProxy_HSM" class="edge protocol-PKCS11">
+    <path d="M 150.12,282.03 C 199.13,283.54 265.51,285.58 313.81,287.06" fill="none" stroke="#000000" />
+    <polygon points="313.72,290.56 323.83,287.37 313.94,283.56" fill="#000000" stroke="#000000" />
+    <text x="191.0" y="303.4" transform="translate(191.0,303.4) scale(1,-1) translate(-191.0,-303.4)" font-family="Times-Roman" font-size="7.0" text-anchor="start" fill="#000000">ProxyToHSM</text>
+    <text x="182.5" y="295.4" transform="translate(182.5,295.4) scale(1,-1) translate(-182.5,-295.4)" font-family="Times-Roman" font-size="7.0" text-anchor="start" fill="#000000">Protocol: PKCS11</text>
+    <text x="172.0" y="287.4" transform="translate(172.0,287.4) scale(1,-1) translate(-172.0,-287.4)" font-family="Times-Roman" font-size="7.0" text-anchor="start" fill="#000000">Data: TokenizeRequest</text>
+  </g>
+  <g id="edge_TokenProxy_VaultDB" class="edge protocol-PostgreSQL">
+    <path d="M 138.08,252.87 C 192.83,225.4 276.69,183.32 329.11,157.03" fill="none" stroke="#0000ff" />
+    <polygon points="330.83,160.08 338.2,152.47 327.69,153.82" fill="#0000ff" stroke="#0000ff" />
+    <text x="185.5" y="250.4" transform="translate(185.5,250.4) scale(1,-1) translate(-185.5,-250.4)" font-family="Times-Roman" font-size="7.0" text-anchor="start" fill="#000000">ProxyToVaultDB</text>
+    <text x="175.5" y="242.4" transform="translate(175.5,242.4) scale(1,-1) translate(-175.5,-242.4)" font-family="Times-Roman" font-size="7.0" text-anchor="start" fill="#000000">Protocol: PostgreSQL</text>
+    <text x="182.5" y="234.4" transform="translate(182.5,234.4) scale(1,-1) translate(-182.5,-234.4)" font-family="Times-Roman" font-size="7.0" text-anchor="start" fill="#000000">Data: VaultToken</text>
+  </g>
+  <g id="edge_TokenProxy___ghost_PaymentAPI" class="edge">
+    <path d="M 103.47,252.9 C 135.53,210.04 203.47,126.4 278.85,77.0 297.01,65.1 319.0,55.12 337.56,47.78" fill="none" stroke="#ffa726" stroke-dasharray="5,2" />
+    <polygon points="338.59,50.0 344.23,45.19 336.82,45.44" fill="#ffa726" stroke="#ffa726" />
+    <text x="214.5" y="169.4" transform="translate(214.5,169.4) scale(1,-1) translate(-214.5,-169.4)" font-family="Times-Roman" font-size="7.0" text-anchor="middle" fill="#000000">gRPC</text>
+  </g>
+  <g id="edge___ghost_PaymentAPI_TokenProxy" class="edge">
+    <path d="M 335.73,33.3 C 290.63,34.67 218.61,43.43 172.0,82.0 121.21,124.03 98.72,201.3 89.58,245.87" fill="none" stroke="#66bb6a" stroke-dasharray="5,2" />
+    <polygon points="87.13,245.65 88.18,253.0 91.94,246.6" fill="#66bb6a" stroke="#66bb6a" />
+    <text x="214.5" y="84.4" transform="translate(214.5,84.4) scale(1,-1) translate(-214.5,-84.4)" font-family="Times-Roman" font-size="7.0" text-anchor="middle" fill="#000000">gRPC</text>
+  </g>
+  <g id="__hidden_node_hsm_zone">
+  </g>
+  <g id="TokenProxy">
+    <polygon points="150.0,307.0 16.0,307.0 16.0,253.0 150.0,253.0" fill="#add8e6" stroke="#000000" />
+    <g transform="translate(83.0,280.0) scale(0.020053475935828877,-0.020053475935828877) translate(-2094.3800533333333,-748.0)">
+
+<svg version="1.1" id="svg1" width="1496" height="1496" viewBox="0 0 1496 1496">
+  <defs id="defs1" />
+  <g id="g1">
+    <path style="fill:#000000" d="m 759.39439,1093.423 c -15.7869,-0.7393 -31.6634,-6.537 -44.6684,-16.3118 -6.3177,-4.7485 -11.9814,-10.4704 -16.6959,-16.8674 l -2.047,-2.7777 -79.0853,-0.16 c -76.5912,-0.155 -79.1236,-0.179 -80.2964,-0.7617 -2.3339,-1.1596 -2.149,2.7674 -2.149,-45.6383 0,-48.40556 -0.1849,-44.47866 2.149,-45.63816 1.1742,-0.5835 3.632,-0.6043 80.768,-0.6855 l 79.557,-0.084 2.3479,-3.1163 c 3.0735,-4.0793 10.8216,-11.8031 14.8581,-14.8114 1.76,-1.3116 3.3062,-2.5288 3.436,-2.7048 0.1298,-0.176 0.2018,-14.936 0.16,-32.8 l -0.076,-32.48 -136.16,-0.16 -136.16,-0.16 -1.8063,-0.7304 c -4.6593,-1.884 -8.1323,-5.6493 -9.6447,-10.4563 l -0.709,-2.2534 v -86.24 -86.24 l 0.7398,-2.1409 c 1.7101,-4.9494 5.0632,-8.4428 9.9907,-10.4087 1.3612,-0.5431 7.9345,-0.578 137.5895,-0.7304 l 136.16,-0.16 0.083,-14.8 0.083,-14.8 h -134.4832 c -90.6746,0 -135.1607,-0.1097 -136.5632,-0.3319 -6.762,-1.0713 -12.4625,-6.8391 -13.427,-13.5856 -0.4459,-3.1187 -0.4475,-169.18448 0,-171.93173 0.4786,-2.94952 1.4604,-5.30147 3.1429,-7.52934 1.7563,-2.32551 4.9796,-4.6605 7.6374,-5.5325 1.8099,-0.59412 8.91,-0.60686 337.8487,-0.60686 328.93881,0 336.03891,0.0127 337.84851,0.60644 2.6577,0.872 5.8811,3.20699 7.6374,5.5325 1.6825,2.22787 2.6643,4.57982 3.1429,7.52934 0.4458,2.74725 0.4442,168.81305 0,171.93165 -0.9646,6.7466 -6.6651,12.5144 -13.4271,13.5857 -1.4053,0.2226 -51.4655,0.3303 -154.32011,0.3319 h -152.24 v 14.88 14.88 h 153.4063 c 152.12221,0 153.42361,0.01 155.46321,0.6353 4.9737,1.5362 8.7536,5.3055 10.5596,10.53 l 0.731,2.1147 v 86.4 86.4 l -0.731,2.1148 c -1.806,5.2245 -5.5859,8.9937 -10.5596,10.5299 -2.0396,0.63 -3.341,0.6353 -155.46321,0.6353 h -153.4079 v 32.7666 32.7666 l 2.6383,1.9682 c 5.93,4.4237 11.781,10.2462 16.206,16.1271 l 1.7243,2.2915 71.0757,0.16 c 65.4412,0.1473 71.1689,0.2023 72.2508,0.6933 2.396,1.0873 2.2057,-2.8549 2.2057,45.70666 0,48.5617 0.1903,44.6194 -2.2057,45.7067 -1.083,0.4915 -6.7047,0.5416 -71.7351,0.6396 l -70.56,0.1062 -2.6691,3.627 c -9.9784,13.5593 -25.498,24.3728 -41.9709,29.2438 -9.0197,2.6671 -17.9082,3.6745 -28.178,3.1936 z m 13.458,-8.4403 c 0.616,-0.1019 2.416,-0.3988 4,-0.6597 27.5246,-4.5341 50.6316,-25.4423 58.3733,-52.8183 1.8857,-6.6679 2.7405,-13.217 2.6887,-20.5986 -0.1513,-21.56596 -9.9488,-42.23226 -26.5863,-56.07976 -14.9709,-12.4602 -34.2502,-18.4566 -54.0064,-16.7974 -11.3087,0.9498 -23.9423,5.3707 -33.5687,11.7469 -18.677,12.371 -30.1321,30.866 -33.006,53.29026 -0.643,5.0168 -0.4769,14.4395 0.3469,19.68 2.5501,16.2231 10.0154,30.5351 21.9572,42.0952 3.9615,3.8348 6.2978,5.696 11.0013,8.7642 9.071,5.9172 20.201,9.9545 31.3721,11.3797 3.4274,0.4373 14.7786,0.4357 17.4279,0 z m -15.9657,-8.8209 c -26.5978,-2.9927 -48.9564,-22.3873 -55.5787,-48.2112 -5.7883,-22.5713 0.6591,-46.06266 17.1566,-62.51046 14.4559,-14.4124 35.1238,-21.119 55.5078,-18.0118 25.7592,3.9264 46.7705,23.084 53.1247,48.4378 1.8508,7.38476 2.3579,17.31106 1.274,24.93836 -2.7212,19.1484 -14.1923,36.4162 -30.8787,46.4825 -6.866,4.1421 -14.7977,7.0452 -23.04,8.4328 -3.6437,0.6135 -13.7755,0.8684 -17.5657,0.442 z M 1093.1576,848.34614 c 1.6644,-0.9343 3.3698,-3.0341 3.8403,-4.728 0.4295,-1.5463 0.4295,-10.7576 0,-12.3039 -0.4705,-1.694 -2.1759,-3.7937 -3.8403,-4.7281 l -1.4251,-0.8 h -128.64011 -128.64 l -1.4887,0.8752 c -1.8932,1.1129 -3.3447,3.0828 -3.8101,5.1706 -0.2191,0.9827 -0.3186,3.6117 -0.2496,6.5942 0.1291,5.5806 0.4136,6.5452 2.5642,8.6958 2.337,2.337 -9.6872,2.1477 132.2642,2.0828 l 128.00011,-0.059 z m -1.7687,-54.0666 c 1.7966,-0.4167 3.6961,-1.8669 4.816,-3.677 l 0.9676,-1.5638 0.1066,-5.7506 c 0.089,-4.8275 0.019,-5.98 -0.4394,-7.1799 -0.6919,-1.8117 -2.1186,-3.4428 -3.7969,-4.3409 l -1.3103,-0.7012 -127.96001,-0.082 c -87.2083,-0.056 -128.3506,0.024 -129.1866,0.2487 -1.8056,0.4862 -3.8259,2.1799 -4.756,3.9872 -0.79,1.5353 -0.8175,1.7874 -0.8175,7.5171 v 5.9285 l 0.9932,1.76 c 1.0757,1.9061 2.9229,3.4325 4.6463,3.8394 1.5323,0.3618 255.17781,0.3756 256.73701,0.014 z m -574.69651,-22.5596 c 11.5795,-3.3742 20.0505,-12.1722 22.9674,-23.8538 0.5401,-2.1629 0.6798,-3.7031 0.6823,-7.52 0,-4.229 -0.099,-5.1724 -0.8585,-7.9307 -4.3094,-15.6575 -18.6557,-25.7196 -34.4701,-24.1764 -17.1146,1.67 -29.8944,16.3186 -29.2674,33.5471 0.5436,14.9346 11.5973,27.7609 26.3381,30.5616 3.8935,0.7398 10.9569,0.4362 14.6082,-0.6278 z m 576.54931,-32.9009 c 0.83,-0.4879 1.8712,-1.3618 2.3137,-1.942 1.5065,-1.9751 1.7777,-3.374 1.7701,-9.1311 -0.01,-4.6579 -0.088,-5.4989 -0.6589,-6.7598 -0.8037,-1.7754 -1.9784,-3.0451 -3.6541,-3.9493 l -1.28,-0.6907 -127.96001,-0.082 c -87.2083,-0.056 -128.3506,0.024 -129.1866,0.2487 -1.8038,0.4858 -3.8258,2.1801 -4.756,3.9853 -0.7658,1.4862 -0.8239,1.9275 -0.9189,6.9868 -0.1191,6.3428 0.2247,7.7827 2.3916,10.0142 2.4788,2.5526 -10.4821,2.3309 132.4298,2.2653 l 128.00011,-0.059 z m -1.2874,-119.3292 c 1.7936,-0.5374 3.8813,-2.5027 4.7135,-4.4372 0.6533,-1.5186 0.6973,-2.0495 0.6046,-7.3026 -0.094,-5.3458 -0.1459,-5.7542 -0.9174,-7.2514 -1.0238,-1.9871 -2.9828,-3.508 -5.1045,-3.963 -2.2291,-0.4781 -254.23541,-0.4819 -256.30991,0 -1.9317,0.4451 -3.9442,2.0349 -5.0313,3.9744 -0.8671,1.5469 -0.9004,1.778 -1.0038,6.9564 -0.085,4.2611 0,5.6701 0.4025,6.8902 0.6992,2.1048 2.2291,3.8517 4.1618,4.7516 l 1.6226,0.7556 h 127.8029 c 97.03661,0 128.10531,-0.087 129.05901,-0.3732 z m 0.7405,-55.096 c 1.9055,-0.8874 3.3952,-2.4866 4.1449,-4.4497 0.4581,-1.1993 0.5288,-2.3507 0.4394,-7.1536 -0.1045,-5.6122 -0.1243,-5.7544 -1.008,-7.2578 -1.1359,-1.9325 -2.9917,-3.2896 -5.1222,-3.746 -1.2011,-0.2573 -36.6614,-0.3281 -129.01651,-0.2576 l -127.36,0.097 -1.596,0.84 c -1.7534,0.9228 -3.4459,3.0513 -3.9932,5.0218 -0.5299,1.908 -0.4182,10.5676 0.1582,12.2591 0.6883,2.02 2.2322,3.7543 4.1284,4.6372 l 1.6226,0.7556 h 128 128.00011 z m -578.44231,-21.5306 c 12.234,-2.1577 22.2024,-11.7111 25.396,-24.3388 0.9952,-3.9349 1.0014,-10.87274 0.013,-14.81823 -2.9862,-11.92378 -11.694,-20.76443 -23.7132,-24.07489 -2.0543,-0.56582 -3.3462,-0.6765 -7.8961,-0.6765 -5.9803,0 -7.9901,0.3696 -12.7223,2.33964 -5.0738,2.11222 -10.8791,6.88392 -13.9835,11.49372 -4.7424,7.04229 -6.6225,15.83054 -5.1381,24.01696 2.5902,14.2836 14.6357,25.3353 28.9639,26.574 3.0367,0.2626 5.4407,0.126 9.08,-0.5159 z m 577.47961,-32.7903 c 1.8639,-0.46935 3.9129,-2.27629 4.8408,-4.26894 0.6952,-1.49296 0.7536,-2.02697 0.7565,-6.92079 0,-6.29692 -0.3434,-7.70033 -2.4173,-9.77421 -2.5975,-2.59752 10.498,-2.36279 -131.81971,-2.36279 -141.4705,0 -129.2366,-0.20338 -131.6282,2.18825 -2.1773,2.17731 -2.4352,3.08222 -2.5586,8.97908 -0.073,3.50215 0.021,5.71561 0.2844,6.65532 0.4553,1.62619 1.8489,3.67785 3.019,4.44452 2.2182,1.45341 -4.2739,1.38391 130.6617,1.39878 91.95741,0.0101 127.84921,-0.0843 128.86141,-0.33922 z" id="path1" />
+  </g>
+</svg>
+</g>
+
+    <text x="66.0004" y="276.3" transform="translate(66.0004,276.3) scale(1,-1) translate(-66.0004,-276.3)" font-family="Times-Roman" font-size="14.0" text-anchor="start" fill="#000000">TokenProxy</text>
+  </g>
+  <g id="HSM">
+    <polygon points="432.0,316.0 324.0,316.0 324.0,262.0 432.0,262.0" fill="#add8e6" stroke="#000000" />
+    <g transform="translate(378.0,289.0) scale(0.020053475935828877,-0.020053475935828877) translate(-1446.1333333333332,-748.0)">
+
+<svg version="1.1" id="svg1" width="1496" height="1496" viewBox="0 0 1496 1496">
+  <defs id="defs1" />
+  <g id="g1">
+    <path style="fill:#000000" d="m 759.39439,1093.423 c -15.7869,-0.7393 -31.6634,-6.537 -44.6684,-16.3118 -6.3177,-4.7485 -11.9814,-10.4704 -16.6959,-16.8674 l -2.047,-2.7777 -79.0853,-0.16 c -76.5912,-0.155 -79.1236,-0.179 -80.2964,-0.7617 -2.3339,-1.1596 -2.149,2.7674 -2.149,-45.6383 0,-48.40556 -0.1849,-44.47866 2.149,-45.63816 1.1742,-0.5835 3.632,-0.6043 80.768,-0.6855 l 79.557,-0.084 2.3479,-3.1163 c 3.0735,-4.0793 10.8216,-11.8031 14.8581,-14.8114 1.76,-1.3116 3.3062,-2.5288 3.436,-2.7048 0.1298,-0.176 0.2018,-14.936 0.16,-32.8 l -0.076,-32.48 -136.16,-0.16 -136.16,-0.16 -1.8063,-0.7304 c -4.6593,-1.884 -8.1323,-5.6493 -9.6447,-10.4563 l -0.709,-2.2534 v -86.24 -86.24 l 0.7398,-2.1409 c 1.7101,-4.9494 5.0632,-8.4428 9.9907,-10.4087 1.3612,-0.5431 7.9345,-0.578 137.5895,-0.7304 l 136.16,-0.16 0.083,-14.8 0.083,-14.8 h -134.4832 c -90.6746,0 -135.1607,-0.1097 -136.5632,-0.3319 -6.762,-1.0713 -12.4625,-6.8391 -13.427,-13.5856 -0.4459,-3.1187 -0.4475,-169.18448 0,-171.93173 0.4786,-2.94952 1.4604,-5.30147 3.1429,-7.52934 1.7563,-2.32551 4.9796,-4.6605 7.6374,-5.5325 1.8099,-0.59412 8.91,-0.60686 337.8487,-0.60686 328.93881,0 336.03891,0.0127 337.84851,0.60644 2.6577,0.872 5.8811,3.20699 7.6374,5.5325 1.6825,2.22787 2.6643,4.57982 3.1429,7.52934 0.4458,2.74725 0.4442,168.81305 0,171.93165 -0.9646,6.7466 -6.6651,12.5144 -13.4271,13.5857 -1.4053,0.2226 -51.4655,0.3303 -154.32011,0.3319 h -152.24 v 14.88 14.88 h 153.4063 c 152.12221,0 153.42361,0.01 155.46321,0.6353 4.9737,1.5362 8.7536,5.3055 10.5596,10.53 l 0.731,2.1147 v 86.4 86.4 l -0.731,2.1148 c -1.806,5.2245 -5.5859,8.9937 -10.5596,10.5299 -2.0396,0.63 -3.341,0.6353 -155.46321,0.6353 h -153.4079 v 32.7666 32.7666 l 2.6383,1.9682 c 5.93,4.4237 11.781,10.2462 16.206,16.1271 l 1.7243,2.2915 71.0757,0.16 c 65.4412,0.1473 71.1689,0.2023 72.2508,0.6933 2.396,1.0873 2.2057,-2.8549 2.2057,45.70666 0,48.5617 0.1903,44.6194 -2.2057,45.7067 -1.083,0.4915 -6.7047,0.5416 -71.7351,0.6396 l -70.56,0.1062 -2.6691,3.627 c -9.9784,13.5593 -25.498,24.3728 -41.9709,29.2438 -9.0197,2.6671 -17.9082,3.6745 -28.178,3.1936 z m 13.458,-8.4403 c 0.616,-0.1019 2.416,-0.3988 4,-0.6597 27.5246,-4.5341 50.6316,-25.4423 58.3733,-52.8183 1.8857,-6.6679 2.7405,-13.217 2.6887,-20.5986 -0.1513,-21.56596 -9.9488,-42.23226 -26.5863,-56.07976 -14.9709,-12.4602 -34.2502,-18.4566 -54.0064,-16.7974 -11.3087,0.9498 -23.9423,5.3707 -33.5687,11.7469 -18.677,12.371 -30.1321,30.866 -33.006,53.29026 -0.643,5.0168 -0.4769,14.4395 0.3469,19.68 2.5501,16.2231 10.0154,30.5351 21.9572,42.0952 3.9615,3.8348 6.2978,5.696 11.0013,8.7642 9.071,5.9172 20.201,9.9545 31.3721,11.3797 3.4274,0.4373 14.7786,0.4357 17.4279,0 z m -15.9657,-8.8209 c -26.5978,-2.9927 -48.9564,-22.3873 -55.5787,-48.2112 -5.7883,-22.5713 0.6591,-46.06266 17.1566,-62.51046 14.4559,-14.4124 35.1238,-21.119 55.5078,-18.0118 25.7592,3.9264 46.7705,23.084 53.1247,48.4378 1.8508,7.38476 2.3579,17.31106 1.274,24.93836 -2.7212,19.1484 -14.1923,36.4162 -30.8787,46.4825 -6.866,4.1421 -14.7977,7.0452 -23.04,8.4328 -3.6437,0.6135 -13.7755,0.8684 -17.5657,0.442 z M 1093.1576,848.34614 c 1.6644,-0.9343 3.3698,-3.0341 3.8403,-4.728 0.4295,-1.5463 0.4295,-10.7576 0,-12.3039 -0.4705,-1.694 -2.1759,-3.7937 -3.8403,-4.7281 l -1.4251,-0.8 h -128.64011 -128.64 l -1.4887,0.8752 c -1.8932,1.1129 -3.3447,3.0828 -3.8101,5.1706 -0.2191,0.9827 -0.3186,3.6117 -0.2496,6.5942 0.1291,5.5806 0.4136,6.5452 2.5642,8.6958 2.337,2.337 -9.6872,2.1477 132.2642,2.0828 l 128.00011,-0.059 z m -1.7687,-54.0666 c 1.7966,-0.4167 3.6961,-1.8669 4.816,-3.677 l 0.9676,-1.5638 0.1066,-5.7506 c 0.089,-4.8275 0.019,-5.98 -0.4394,-7.1799 -0.6919,-1.8117 -2.1186,-3.4428 -3.7969,-4.3409 l -1.3103,-0.7012 -127.96001,-0.082 c -87.2083,-0.056 -128.3506,0.024 -129.1866,0.2487 -1.8056,0.4862 -3.8259,2.1799 -4.756,3.9872 -0.79,1.5353 -0.8175,1.7874 -0.8175,7.5171 v 5.9285 l 0.9932,1.76 c 1.0757,1.9061 2.9229,3.4325 4.6463,3.8394 1.5323,0.3618 255.17781,0.3756 256.73701,0.014 z m -574.69651,-22.5596 c 11.5795,-3.3742 20.0505,-12.1722 22.9674,-23.8538 0.5401,-2.1629 0.6798,-3.7031 0.6823,-7.52 0,-4.229 -0.099,-5.1724 -0.8585,-7.9307 -4.3094,-15.6575 -18.6557,-25.7196 -34.4701,-24.1764 -17.1146,1.67 -29.8944,16.3186 -29.2674,33.5471 0.5436,14.9346 11.5973,27.7609 26.3381,30.5616 3.8935,0.7398 10.9569,0.4362 14.6082,-0.6278 z m 576.54931,-32.9009 c 0.83,-0.4879 1.8712,-1.3618 2.3137,-1.942 1.5065,-1.9751 1.7777,-3.374 1.7701,-9.1311 -0.01,-4.6579 -0.088,-5.4989 -0.6589,-6.7598 -0.8037,-1.7754 -1.9784,-3.0451 -3.6541,-3.9493 l -1.28,-0.6907 -127.96001,-0.082 c -87.2083,-0.056 -128.3506,0.024 -129.1866,0.2487 -1.8038,0.4858 -3.8258,2.1801 -4.756,3.9853 -0.7658,1.4862 -0.8239,1.9275 -0.9189,6.9868 -0.1191,6.3428 0.2247,7.7827 2.3916,10.0142 2.4788,2.5526 -10.4821,2.3309 132.4298,2.2653 l 128.00011,-0.059 z m -1.2874,-119.3292 c 1.7936,-0.5374 3.8813,-2.5027 4.7135,-4.4372 0.6533,-1.5186 0.6973,-2.0495 0.6046,-7.3026 -0.094,-5.3458 -0.1459,-5.7542 -0.9174,-7.2514 -1.0238,-1.9871 -2.9828,-3.508 -5.1045,-3.963 -2.2291,-0.4781 -254.23541,-0.4819 -256.30991,0 -1.9317,0.4451 -3.9442,2.0349 -5.0313,3.9744 -0.8671,1.5469 -0.9004,1.778 -1.0038,6.9564 -0.085,4.2611 0,5.6701 0.4025,6.8902 0.6992,2.1048 2.2291,3.8517 4.1618,4.7516 l 1.6226,0.7556 h 127.8029 c 97.03661,0 128.10531,-0.087 129.05901,-0.3732 z m 0.7405,-55.096 c 1.9055,-0.8874 3.3952,-2.4866 4.1449,-4.4497 0.4581,-1.1993 0.5288,-2.3507 0.4394,-7.1536 -0.1045,-5.6122 -0.1243,-5.7544 -1.008,-7.2578 -1.1359,-1.9325 -2.9917,-3.2896 -5.1222,-3.746 -1.2011,-0.2573 -36.6614,-0.3281 -129.01651,-0.2576 l -127.36,0.097 -1.596,0.84 c -1.7534,0.9228 -3.4459,3.0513 -3.9932,5.0218 -0.5299,1.908 -0.4182,10.5676 0.1582,12.2591 0.6883,2.02 2.2322,3.7543 4.1284,4.6372 l 1.6226,0.7556 h 128 128.00011 z m -578.44231,-21.5306 c 12.234,-2.1577 22.2024,-11.7111 25.396,-24.3388 0.9952,-3.9349 1.0014,-10.87274 0.013,-14.81823 -2.9862,-11.92378 -11.694,-20.76443 -23.7132,-24.07489 -2.0543,-0.56582 -3.3462,-0.6765 -7.8961,-0.6765 -5.9803,0 -7.9901,0.3696 -12.7223,2.33964 -5.0738,2.11222 -10.8791,6.88392 -13.9835,11.49372 -4.7424,7.04229 -6.6225,15.83054 -5.1381,24.01696 2.5902,14.2836 14.6357,25.3353 28.9639,26.574 3.0367,0.2626 5.4407,0.126 9.08,-0.5159 z m 577.47961,-32.7903 c 1.8639,-0.46935 3.9129,-2.27629 4.8408,-4.26894 0.6952,-1.49296 0.7536,-2.02697 0.7565,-6.92079 0,-6.29692 -0.3434,-7.70033 -2.4173,-9.77421 -2.5975,-2.59752 10.498,-2.36279 -131.81971,-2.36279 -141.4705,0 -129.2366,-0.20338 -131.6282,2.18825 -2.1773,2.17731 -2.4352,3.08222 -2.5586,8.97908 -0.073,3.50215 0.021,5.71561 0.2844,6.65532 0.4553,1.62619 1.8489,3.67785 3.019,4.44452 2.2182,1.45341 -4.2739,1.38391 130.6617,1.39878 91.95741,0.0101 127.84921,-0.0843 128.86141,-0.33922 z" id="path1" />
+  </g>
+</svg>
+</g>
+
+    <text x="374.0" y="285.3" transform="translate(374.0,285.3) scale(1,-1) translate(-374.0,-285.3)" font-family="Times-Roman" font-size="14.0" text-anchor="start" fill="#000000">HSM</text>
+  </g>
+  <g id="__hidden_node_vault_data_zone">
+  </g>
+  <g id="VaultDB">
+    <path d="M 417.5,165.22 C 417.5,169.17 399.8,172.38 378.0,172.38 356.2,172.38 338.5,169.17 338.5,165.22 338.5,165.22 338.5,100.78 338.5,100.78 338.5,96.83 356.2,93.62 378.0,93.62 399.8,93.62 417.5,96.83 417.5,100.78 417.5,100.78 417.5,165.22 417.5,165.22" fill="#add8e6" stroke="#000000" />
+    <path d="M 417.5,165.22 C 417.5,161.27 399.8,158.06 378.0,158.06 356.2,158.06 338.5,161.27 338.5,165.22" fill="#add8e6" stroke="#000000" />
+    <g transform="translate(378.0,133.0) scale(0.043945310997963005,-0.043945310997963005) translate(-341.333345,-341.333345)">
+
+<svg version="1.1" id="svg1" width="682.66669" height="682.66669" viewBox="0 0 682.66669 682.66669">
+  <defs id="defs1" />
+  <g id="g1">
+    <image width="682.66669" height="682.66669" preserveAspectRatio="none" xlink:href="data:image/png;base64,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&#10;fwC/WDsVgba1XwAAAABJRU5ErkJggg==&#10;" id="image1" />
+  </g>
+</svg>
+</g>
+
+    <text x="349.0" y="103.8" transform="translate(349.0,103.8) scale(1,-1) translate(-349.0,-103.8)" font-family="Times-Roman" font-size="14.0" text-anchor="start" fill="#000000">VaultDB</text>
+  </g>
+  <g id="__ghost_PaymentAPI">
+    <ellipse cx="378.0" cy="34.0" rx="42.29" ry="18.0" fill="#ffe0b2" stroke="#ffa726" stroke-dasharray="5,2" />
+    <text x="378.0" y="31.8" transform="translate(378.0,31.8) scale(1,-1) translate(-378.0,-31.8)" font-family="Times-Roman" font-size="9.0" text-anchor="middle" fill="#bf360c">PaymentAPI</text>
+  </g>
+  </g>
+</svg>
+        </div>
+
+        <div class="navigation-ui">
+            
+                <a href="../main_diagram.html" class="back-button">← Back</a>
+            
+            <button class="legend-toggle-btn" onclick="toggleLegend()" title="Legend">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zm0 13c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6zm0-10c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z" fill="currentColor"/></svg>
+            </button>
+        </div>
+
+        <div class="zoom-controls">
+            <button class="zoom-btn" id="zoom-in">+</button>
+            <button class="zoom-btn" id="zoom-out">-</button>
+        </div>
+
+        <div class="breadcrumb">
+            
+                <a href="../main_diagram.html">main</a> &gt; 
+            
+                <a href="model_diagram.html">card_vault</a>
+            
+        </div>
+
+        <div class="legend hidden" id="legend">
+            <div class="legend-header">Legend</div>
+            <div class="legend-content">
+                <div style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 12px; height: 8px; background-color: #FFFF99; border: 1px solid #999; margin-right: 8px; border-radius: 2px;"></div><span style="font-size: 9px;">👤 Actor</span></div><div style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 12px; height: 8px; background-color: #90EE90; border: 1px solid #999; margin-right: 8px; border-radius: 2px;"></div><span style="font-size: 9px;">🖥️ Server</span></div><div style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 12px; height: 8px; background-color: #ADD8D6; border: 1px solid #999; margin-right: 8px; border-radius: 2px;"></div><span style="font-size: 9px;">🗄️ Database</span></div><div style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 12px; height: 8px; background-color: #FF6B6B; border: 1px solid #999; margin-right: 8px; border-radius: 2px;"></div><span style="font-size: 9px;">🔥 Firewall</span></div><div style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 12px; height: 8px; background-color: #FFD700; border: 1px solid #999; margin-right: 8px; border-radius: 2px;"></div><span style="font-size: 9px;">🌐 Router</span></div><div style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 12px; height: 8px; background-color: orange; border: 1px solid #999; margin-right: 8px; border-radius: 2px;"></div><span style="font-size: 9px;">🔀 Switch</span></div><div style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 12px; height: 8px; background-color: lightgreen; border: 1px solid #999; margin-right: 8px; border-radius: 2px;"></div><span style="font-size: 9px;">🌐 Web Server</span></div><div style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 12px; height: 8px; background-color: lightyellow; border: 1px solid #999; margin-right: 8px; border-radius: 2px;"></div><span style="font-size: 9px;">🔌 API Gateway</span></div><div style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 20px; height: 15px; border: 2px solid #2e7d32; margin-right: 8px; border-radius: 2px;"></div><span style="font-size: 11px;">🔒 Trusted Zone</span></div><div style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 20px; height: 15px; border: 2px dashed #c62828; margin-right: 8px; border-radius: 2px;"></div><span style="font-size: 11px;">⚠ Untrusted Zone</span></div><div id="severity-legend-section" style="margin-top: 5px; border-top: 1px solid #eee; padding-top: 5px;"><div style="margin-bottom: 3px; font-weight: bold; font-size: 10px;">Threats:</div><label id="threat-layer-toggle-row" style="display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:10px;cursor:pointer;"><input type="checkbox" id="threat-layer-toggle" checked onchange="setThreatLayerVisible(this.checked)" style="margin:0;">Show threat badges</label><div class="legend-item threat-sev-filter" data-severity="CRITICAL" title="Click to show/hide critical threats" style="display:flex;align-items:center;margin-bottom:3px;"><div style="width:12px;height:12px;border-radius:50%;background:#dc2626;margin-right:8px;"></div><span style="font-size:10px;flex:1;">Critical</span><span class="threat-sev-count" data-severity="CRITICAL" style="font-size:10px;color:#666;margin-left:6px;"></span></div><div class="legend-item threat-sev-filter" data-severity="HIGH" title="Click to show/hide high threats" style="display:flex;align-items:center;margin-bottom:3px;"><div style="width:12px;height:12px;border-radius:50%;background:#ea580c;margin-right:8px;"></div><span style="font-size:10px;flex:1;">High</span><span class="threat-sev-count" data-severity="HIGH" style="font-size:10px;color:#666;margin-left:6px;"></span></div><div class="legend-item threat-sev-filter" data-severity="MEDIUM" title="Click to show/hide medium threats" style="display:flex;align-items:center;margin-bottom:3px;"><div style="width:12px;height:12px;border-radius:50%;background:#d97706;margin-right:8px;"></div><span style="font-size:10px;flex:1;">Medium</span><span class="threat-sev-count" data-severity="MEDIUM" style="font-size:10px;color:#666;margin-left:6px;"></span></div><div class="legend-item threat-sev-filter" data-severity="LOW" title="Click to show/hide low threats" style="display:flex;align-items:center;margin-bottom:3px;"><div style="width:12px;height:12px;border-radius:50%;background:#16a34a;margin-right:8px;"></div><span style="font-size:10px;flex:1;">Low</span><span class="threat-sev-count" data-severity="LOW" style="font-size:10px;color:#666;margin-left:6px;"></span></div><div id="threat-stride-row" style="margin:5px 0 2px;"><div style="font-size:9px;color:#666;margin-bottom:3px;">STRIDE (click to isolate)</div><div style="display:flex;gap:3px;"><button type="button" class="threat-stride-filter" data-stride="Spoofing" title="Spoofing" aria-pressed="false">S</button><button type="button" class="threat-stride-filter" data-stride="Tampering" title="Tampering" aria-pressed="false">T</button><button type="button" class="threat-stride-filter" data-stride="Repudiation" title="Repudiation" aria-pressed="false">R</button><button type="button" class="threat-stride-filter" data-stride="Information Disclosure" title="Information Disclosure" aria-pressed="false">I</button><button type="button" class="threat-stride-filter" data-stride="Denial of Service" title="Denial of Service" aria-pressed="false">D</button><button type="button" class="threat-stride-filter" data-stride="Elevation of Privilege" title="Elevation of Privilege" aria-pressed="false">E</button></div></div><div style="margin-top:4px;"><button id="severity-overlay-btn" onclick="toggleSeverityOverlay()" style="font-size:10px;padding:2px 7px;border:1px solid #aaa;border-radius:3px;cursor:pointer;background:#f5f5f5;">⬤ Show Heat Map</button></div></div><div style="margin-top: 5px; margin-bottom: 3px; font-weight: bold; font-size: 10px;">Protocoles:</div><div class="legend-item" data-protocol="HTTP" style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 20px; height: 0; border-top: 2px dashed orange; margin-right: 8px;"></div><span style="font-size: 11px;">HTTP</span></div><div class="legend-item" data-protocol="HTTPS" style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 20px; height: 0; border-top: 2px solid darkgreen; margin-right: 8px;"></div><span style="font-size: 11px;">HTTPS</span></div><div class="legend-item" data-protocol="Kafka" style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 20px; height: 0; border-top: 2px solid purple; margin-right: 8px;"></div><span style="font-size: 11px;">Kafka</span></div><div class="legend-item" data-protocol="PKCS11" style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 20px; height: 0; border-top: 2px solid darkpurple; margin-right: 8px;"></div><span style="font-size: 11px;">PKCS11</span></div><div class="legend-item" data-protocol="PostgreSQL" style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 20px; height: 0; border-top: 2px solid blue; margin-right: 8px;"></div><span style="font-size: 11px;">PostgreSQL</span></div><div class="legend-item" data-protocol="Redis" style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 20px; height: 0; border-top: 2px solid crimson; margin-right: 8px;"></div><span style="font-size: 11px;">Redis</span></div><div class="legend-item" data-protocol="gRPC" style="display: flex; align-items: center; margin-bottom: 3px;"><div style="width: 20px; height: 0; border-top: 2px solid blue; margin-right: 8px;"></div><span style="font-size: 11px;">gRPC</span></div>
+            </div>
+        </div>
+    </div>
+
+    
+    <script>// svg-pan-zoom v3.6.2
+// https://github.com/bumbu/svg-pan-zoom
+!function s(r,a,l){function u(e,t){if(!a[e]){if(!r[e]){var o="function"==typeof require&&require;if(!t&&o)return o(e,!0);if(h)return h(e,!0);var n=new Error("Cannot find module '"+e+"'");throw n.code="MODULE_NOT_FOUND",n}var i=a[e]={exports:{}};r[e][0].call(i.exports,function(t){return u(r[e][1][t]||t)},i,i.exports,s,r,a,l)}return a[e].exports}for(var h="function"==typeof require&&require,t=0;t<l.length;t++)u(l[t]);return u}({1:[function(t,e,o){var s=t("./svg-utilities");e.exports={enable:function(t){var e=t.svg.querySelector("defs");if(e||(e=document.createElementNS(s.svgNS,"defs"),t.svg.appendChild(e)),!e.querySelector("style#svg-pan-zoom-controls-styles")){var o=document.createElementNS(s.svgNS,"style");o.setAttribute("id","svg-pan-zoom-controls-styles"),o.setAttribute("type","text/css"),o.textContent=".svg-pan-zoom-control { cursor: pointer; fill: black; fill-opacity: 0.333; } .svg-pan-zoom-control:hover { fill-opacity: 0.8; } .svg-pan-zoom-control-background { fill: white; fill-opacity: 0.5; } .svg-pan-zoom-control-background { fill-opacity: 0.8; }",e.appendChild(o)}var n=document.createElementNS(s.svgNS,"g");n.setAttribute("id","svg-pan-zoom-controls"),n.setAttribute("transform","translate("+(t.width-70)+" "+(t.height-76)+") scale(0.75)"),n.setAttribute("class","svg-pan-zoom-control"),n.appendChild(this._createZoomIn(t)),n.appendChild(this._createZoomReset(t)),n.appendChild(this._createZoomOut(t)),t.svg.appendChild(n),t.controlIcons=n},_createZoomIn:function(t){var e=document.createElementNS(s.svgNS,"g");e.setAttribute("id","svg-pan-zoom-zoom-in"),e.setAttribute("transform","translate(30.5 5) scale(0.015)"),e.setAttribute("class","svg-pan-zoom-control"),e.addEventListener("click",function(){t.getPublicInstance().zoomIn()},!1),e.addEventListener("touchstart",function(){t.getPublicInstance().zoomIn()},!1);var o=document.createElementNS(s.svgNS,"rect");o.setAttribute("x","0"),o.setAttribute("y","0"),o.setAttribute("width","1500"),o.setAttribute("height","1400"),o.setAttribute("class","svg-pan-zoom-control-background"),e.appendChild(o);var n=document.createElementNS(s.svgNS,"path");return n.setAttribute("d","M1280 576v128q0 26 -19 45t-45 19h-320v320q0 26 -19 45t-45 19h-128q-26 0 -45 -19t-19 -45v-320h-320q-26 0 -45 -19t-19 -45v-128q0 -26 19 -45t45 -19h320v-320q0 -26 19 -45t45 -19h128q26 0 45 19t19 45v320h320q26 0 45 19t19 45zM1536 1120v-960 q0 -119 -84.5 -203.5t-203.5 -84.5h-960q-119 0 -203.5 84.5t-84.5 203.5v960q0 119 84.5 203.5t203.5 84.5h960q119 0 203.5 -84.5t84.5 -203.5z"),n.setAttribute("class","svg-pan-zoom-control-element"),e.appendChild(n),e},_createZoomReset:function(t){var e=document.createElementNS(s.svgNS,"g");e.setAttribute("id","svg-pan-zoom-reset-pan-zoom"),e.setAttribute("transform","translate(5 35) scale(0.4)"),e.setAttribute("class","svg-pan-zoom-control"),e.addEventListener("click",function(){t.getPublicInstance().reset()},!1),e.addEventListener("touchstart",function(){t.getPublicInstance().reset()},!1);var o=document.createElementNS(s.svgNS,"rect");o.setAttribute("x","2"),o.setAttribute("y","2"),o.setAttribute("width","182"),o.setAttribute("height","58"),o.setAttribute("class","svg-pan-zoom-control-background"),e.appendChild(o);var n=document.createElementNS(s.svgNS,"path");n.setAttribute("d","M33.051,20.632c-0.742-0.406-1.854-0.609-3.338-0.609h-7.969v9.281h7.769c1.543,0,2.701-0.188,3.473-0.562c1.365-0.656,2.048-1.953,2.048-3.891C35.032,22.757,34.372,21.351,33.051,20.632z"),n.setAttribute("class","svg-pan-zoom-control-element"),e.appendChild(n);var i=document.createElementNS(s.svgNS,"path");return i.setAttribute("d","M170.231,0.5H15.847C7.102,0.5,0.5,5.708,0.5,11.84v38.861C0.5,56.833,7.102,61.5,15.847,61.5h154.384c8.745,0,15.269-4.667,15.269-10.798V11.84C185.5,5.708,178.976,0.5,170.231,0.5z M42.837,48.569h-7.969c-0.219-0.766-0.375-1.383-0.469-1.852c-0.188-0.969-0.289-1.961-0.305-2.977l-0.047-3.211c-0.03-2.203-0.41-3.672-1.142-4.406c-0.732-0.734-2.103-1.102-4.113-1.102h-7.05v13.547h-7.055V14.022h16.524c2.361,0.047,4.178,0.344,5.45,0.891c1.272,0.547,2.351,1.352,3.234,2.414c0.731,0.875,1.31,1.844,1.737,2.906s0.64,2.273,0.64,3.633c0,1.641-0.414,3.254-1.242,4.84s-2.195,2.707-4.102,3.363c1.594,0.641,2.723,1.551,3.387,2.73s0.996,2.98,0.996,5.402v2.32c0,1.578,0.063,2.648,0.19,3.211c0.19,0.891,0.635,1.547,1.333,1.969V48.569z M75.579,48.569h-26.18V14.022h25.336v6.117H56.454v7.336h16.781v6H56.454v8.883h19.125V48.569z M104.497,46.331c-2.44,2.086-5.887,3.129-10.34,3.129c-4.548,0-8.125-1.027-10.731-3.082s-3.909-4.879-3.909-8.473h6.891c0.224,1.578,0.662,2.758,1.316,3.539c1.196,1.422,3.246,2.133,6.15,2.133c1.739,0,3.151-0.188,4.236-0.562c2.058-0.719,3.087-2.055,3.087-4.008c0-1.141-0.504-2.023-1.512-2.648c-1.008-0.609-2.607-1.148-4.796-1.617l-3.74-0.82c-3.676-0.812-6.201-1.695-7.576-2.648c-2.328-1.594-3.492-4.086-3.492-7.477c0-3.094,1.139-5.664,3.417-7.711s5.623-3.07,10.036-3.07c3.685,0,6.829,0.965,9.431,2.895c2.602,1.93,3.966,4.73,4.093,8.402h-6.938c-0.128-2.078-1.057-3.555-2.787-4.43c-1.154-0.578-2.587-0.867-4.301-0.867c-1.907,0-3.428,0.375-4.565,1.125c-1.138,0.75-1.706,1.797-1.706,3.141c0,1.234,0.561,2.156,1.682,2.766c0.721,0.406,2.25,0.883,4.589,1.43l6.063,1.43c2.657,0.625,4.648,1.461,5.975,2.508c2.059,1.625,3.089,3.977,3.089,7.055C108.157,41.624,106.937,44.245,104.497,46.331z M139.61,48.569h-26.18V14.022h25.336v6.117h-18.281v7.336h16.781v6h-16.781v8.883h19.125V48.569z M170.337,20.14h-10.336v28.43h-7.266V20.14h-10.383v-6.117h27.984V20.14z"),i.setAttribute("class","svg-pan-zoom-control-element"),e.appendChild(i),e},_createZoomOut:function(t){var e=document.createElementNS(s.svgNS,"g");e.setAttribute("id","svg-pan-zoom-zoom-out"),e.setAttribute("transform","translate(30.5 70) scale(0.015)"),e.setAttribute("class","svg-pan-zoom-control"),e.addEventListener("click",function(){t.getPublicInstance().zoomOut()},!1),e.addEventListener("touchstart",function(){t.getPublicInstance().zoomOut()},!1);var o=document.createElementNS(s.svgNS,"rect");o.setAttribute("x","0"),o.setAttribute("y","0"),o.setAttribute("width","1500"),o.setAttribute("height","1400"),o.setAttribute("class","svg-pan-zoom-control-background"),e.appendChild(o);var n=document.createElementNS(s.svgNS,"path");return n.setAttribute("d","M1280 576v128q0 26 -19 45t-45 19h-896q-26 0 -45 -19t-19 -45v-128q0 -26 19 -45t45 -19h896q26 0 45 19t19 45zM1536 1120v-960q0 -119 -84.5 -203.5t-203.5 -84.5h-960q-119 0 -203.5 84.5t-84.5 203.5v960q0 119 84.5 203.5t203.5 84.5h960q119 0 203.5 -84.5 t84.5 -203.5z"),n.setAttribute("class","svg-pan-zoom-control-element"),e.appendChild(n),e},disable:function(t){t.controlIcons&&(t.controlIcons.parentNode.removeChild(t.controlIcons),t.controlIcons=null)}}},{"./svg-utilities":5}],2:[function(t,e,o){function n(t,e){this.init(t,e)}var i=t("./svg-utilities"),r=t("./utilities");n.prototype.init=function(t,e){this.viewport=t,this.options=e,this.originalState={zoom:1,x:0,y:0},this.activeState={zoom:1,x:0,y:0},this.updateCTMCached=r.proxy(this.updateCTM,this),this.requestAnimationFrame=r.createRequestAnimationFrame(this.options.refreshRate),this.viewBox={x:0,y:0,width:0,height:0},this.cacheViewBox();var o=this.processCTM();this.setCTM(o),this.updateCTM()},n.prototype.cacheViewBox=function(){var t=this.options.svg.getAttribute("viewBox");if(t){var e=t.split(/[\s\,]/).filter(function(t){return t}).map(parseFloat);this.viewBox.x=e[0],this.viewBox.y=e[1],this.viewBox.width=e[2],this.viewBox.height=e[3];var o=Math.min(this.options.width/this.viewBox.width,this.options.height/this.viewBox.height);this.activeState.zoom=o,this.activeState.x=(this.options.width-this.viewBox.width*o)/2,this.activeState.y=(this.options.height-this.viewBox.height*o)/2,this.updateCTMOnNextFrame(),this.options.svg.removeAttribute("viewBox")}else this.simpleViewBoxCache()},n.prototype.simpleViewBoxCache=function(){var t=this.viewport.getBBox();this.viewBox.x=t.x,this.viewBox.y=t.y,this.viewBox.width=t.width,this.viewBox.height=t.height},n.prototype.getViewBox=function(){return r.extend({},this.viewBox)},n.prototype.processCTM=function(){var t,e=this.getCTM();(this.options.fit||this.options.contain)&&(t=this.options.fit?Math.min(this.options.width/this.viewBox.width,this.options.height/this.viewBox.height):Math.max(this.options.width/this.viewBox.width,this.options.height/this.viewBox.height),e.a=t,e.d=t,e.e=-this.viewBox.x*t,e.f=-this.viewBox.y*t);if(this.options.center){var o=.5*(this.options.width-(this.viewBox.width+2*this.viewBox.x)*e.a),n=.5*(this.options.height-(this.viewBox.height+2*this.viewBox.y)*e.a);e.e=o,e.f=n}return this.originalState.zoom=e.a,this.originalState.x=e.e,this.originalState.y=e.f,e},n.prototype.getOriginalState=function(){return r.extend({},this.originalState)},n.prototype.getState=function(){return r.extend({},this.activeState)},n.prototype.getZoom=function(){return this.activeState.zoom},n.prototype.getRelativeZoom=function(){return this.activeState.zoom/this.originalState.zoom},n.prototype.computeRelativeZoom=function(t){return t/this.originalState.zoom},n.prototype.getPan=function(){return{x:this.activeState.x,y:this.activeState.y}},n.prototype.getCTM=function(){var t=this.options.svg.createSVGMatrix();return t.a=this.activeState.zoom,t.b=0,t.c=0,t.d=this.activeState.zoom,t.e=this.activeState.x,t.f=this.activeState.y,t},n.prototype.setCTM=function(t){var e=this.isZoomDifferent(t),o=this.isPanDifferent(t);if(e||o){if(e&&(!1===this.options.beforeZoom(this.getRelativeZoom(),this.computeRelativeZoom(t.a))?(t.a=t.d=this.activeState.zoom,e=!1):(this.updateCache(t),this.options.onZoom(this.getRelativeZoom()))),o){var n=this.options.beforePan(this.getPan(),{x:t.e,y:t.f}),i=!1,s=!1;!1===n?(t.e=this.getPan().x,t.f=this.getPan().y,i=s=!0):r.isObject(n)&&(!1===n.x?(t.e=this.getPan().x,i=!0):r.isNumber(n.x)&&(t.e=n.x),!1===n.y?(t.f=this.getPan().y,s=!0):r.isNumber(n.y)&&(t.f=n.y)),i&&s||!this.isPanDifferent(t)?o=!1:(this.updateCache(t),this.options.onPan(this.getPan()))}(e||o)&&this.updateCTMOnNextFrame()}},n.prototype.isZoomDifferent=function(t){return this.activeState.zoom!==t.a},n.prototype.isPanDifferent=function(t){return this.activeState.x!==t.e||this.activeState.y!==t.f},n.prototype.updateCache=function(t){this.activeState.zoom=t.a,this.activeState.x=t.e,this.activeState.y=t.f},n.prototype.pendingUpdate=!1,n.prototype.updateCTMOnNextFrame=function(){this.pendingUpdate||(this.pendingUpdate=!0,this.requestAnimationFrame.call(window,this.updateCTMCached))},n.prototype.updateCTM=function(){var t=this.getCTM();i.setCTM(this.viewport,t,this.defs),this.pendingUpdate=!1,this.options.onUpdatedCTM&&this.options.onUpdatedCTM(t)},e.exports=function(t,e){return new n(t,e)}},{"./svg-utilities":5,"./utilities":7}],3:[function(t,e,o){var n,i=t("./svg-pan-zoom.js");n=window,document,"function"==typeof define&&define.amd?define("svg-pan-zoom",function(){return i}):void 0!==e&&e.exports&&(e.exports=i,n.svgPanZoom=i)},{"./svg-pan-zoom.js":4}],4:[function(t,e,o){function i(t,e){this.init(t,e)}var n=t("./uniwheel"),s=t("./control-icons"),r=t("./utilities"),a=t("./svg-utilities"),l=t("./shadow-viewport"),u={viewportSelector:".svg-pan-zoom_viewport",panEnabled:!0,controlIconsEnabled:!1,zoomEnabled:!0,dblClickZoomEnabled:!0,mouseWheelZoomEnabled:!0,preventMouseEventsDefault:!0,zoomScaleSensitivity:.1,minZoom:.5,maxZoom:10,fit:!0,contain:!1,center:!0,refreshRate:"auto",beforeZoom:null,onZoom:null,beforePan:null,onPan:null,customEventsHandler:null,eventsListenerElement:null,onUpdatedCTM:null},h={passive:!0};i.prototype.init=function(t,e){var o=this;this.svg=t,this.defs=t.querySelector("defs"),a.setupSvgAttributes(this.svg),this.options=r.extend(r.extend({},u),e),this.state="none";var n=a.getBoundingClientRectNormalized(t);this.width=n.width,this.height=n.height,this.viewport=l(a.getOrCreateViewport(this.svg,this.options.viewportSelector),{svg:this.svg,width:this.width,height:this.height,fit:this.options.fit,contain:this.options.contain,center:this.options.center,refreshRate:this.options.refreshRate,beforeZoom:function(t,e){if(o.viewport&&o.options.beforeZoom)return o.options.beforeZoom(t,e)},onZoom:function(t){if(o.viewport&&o.options.onZoom)return o.options.onZoom(t)},beforePan:function(t,e){if(o.viewport&&o.options.beforePan)return o.options.beforePan(t,e)},onPan:function(t){if(o.viewport&&o.options.onPan)return o.options.onPan(t)},onUpdatedCTM:function(t){if(o.viewport&&o.options.onUpdatedCTM)return o.options.onUpdatedCTM(t)}});var i=this.getPublicInstance();i.setBeforeZoom(this.options.beforeZoom),i.setOnZoom(this.options.onZoom),i.setBeforePan(this.options.beforePan),i.setOnPan(this.options.onPan),i.setOnUpdatedCTM(this.options.onUpdatedCTM),this.options.controlIconsEnabled&&s.enable(this),this.lastMouseWheelEventTime=Date.now(),this.setupHandlers()},i.prototype.setupHandlers=function(){var o=this,n=null;if(this.eventListeners={mousedown:function(t){var e=o.handleMouseDown(t,n);return n=t,e},touchstart:function(t){var e=o.handleMouseDown(t,n);return n=t,e},mouseup:function(t){return o.handleMouseUp(t)},touchend:function(t){return o.handleMouseUp(t)},mousemove:function(t){return o.handleMouseMove(t)},touchmove:function(t){return o.handleMouseMove(t)},mouseleave:function(t){return o.handleMouseUp(t)},touchleave:function(t){return o.handleMouseUp(t)},touchcancel:function(t){return o.handleMouseUp(t)}},null!=this.options.customEventsHandler){this.options.customEventsHandler.init({svgElement:this.svg,eventsListenerElement:this.options.eventsListenerElement,instance:this.getPublicInstance()});var t=this.options.customEventsHandler.haltEventListeners;if(t&&t.length)for(var e=t.length-1;0<=e;e--)this.eventListeners.hasOwnProperty(t[e])&&delete this.eventListeners[t[e]]}for(var i in this.eventListeners)(this.options.eventsListenerElement||this.svg).addEventListener(i,this.eventListeners[i],!this.options.preventMouseEventsDefault&&h);this.options.mouseWheelZoomEnabled&&(this.options.mouseWheelZoomEnabled=!1,this.enableMouseWheelZoom())},i.prototype.enableMouseWheelZoom=function(){if(!this.options.mouseWheelZoomEnabled){var e=this;this.wheelListener=function(t){return e.handleMouseWheel(t)};var t=!this.options.preventMouseEventsDefault;n.on(this.options.eventsListenerElement||this.svg,this.wheelListener,t),this.options.mouseWheelZoomEnabled=!0}},i.prototype.disableMouseWheelZoom=function(){if(this.options.mouseWheelZoomEnabled){var t=!this.options.preventMouseEventsDefault;n.off(this.options.eventsListenerElement||this.svg,this.wheelListener,t),this.options.mouseWheelZoomEnabled=!1}},i.prototype.handleMouseWheel=function(t){if(this.options.zoomEnabled&&"none"===this.state){this.options.preventMouseEventsDefault&&(t.preventDefault?t.preventDefault():t.returnValue=!1);var e=t.deltaY||1,o=Date.now()-this.lastMouseWheelEventTime,n=3+Math.max(0,30-o);this.lastMouseWheelEventTime=Date.now(),"deltaMode"in t&&0===t.deltaMode&&t.wheelDelta&&(e=0===t.deltaY?0:Math.abs(t.wheelDelta)/t.deltaY),e=-.3<e&&e<.3?e:(0<e?1:-1)*Math.log(Math.abs(e)+10)/n;var i=this.svg.getScreenCTM().inverse(),s=a.getEventPoint(t,this.svg).matrixTransform(i),r=Math.pow(1+this.options.zoomScaleSensitivity,-1*e);this.zoomAtPoint(r,s)}},i.prototype.zoomAtPoint=function(t,e,o){var n=this.viewport.getOriginalState();o?(t=Math.max(this.options.minZoom*n.zoom,Math.min(this.options.maxZoom*n.zoom,t)),t/=this.getZoom()):this.getZoom()*t<this.options.minZoom*n.zoom?t=this.options.minZoom*n.zoom/this.getZoom():this.getZoom()*t>this.options.maxZoom*n.zoom&&(t=this.options.maxZoom*n.zoom/this.getZoom());var i=this.viewport.getCTM(),s=e.matrixTransform(i.inverse()),r=this.svg.createSVGMatrix().translate(s.x,s.y).scale(t).translate(-s.x,-s.y),a=i.multiply(r);a.a!==i.a&&this.viewport.setCTM(a)},i.prototype.zoom=function(t,e){this.zoomAtPoint(t,a.getSvgCenterPoint(this.svg,this.width,this.height),e)},i.prototype.publicZoom=function(t,e){e&&(t=this.computeFromRelativeZoom(t)),this.zoom(t,e)},i.prototype.publicZoomAtPoint=function(t,e,o){if(o&&(t=this.computeFromRelativeZoom(t)),"SVGPoint"!==r.getType(e)){if(!("x"in e&&"y"in e))throw new Error("Given point is invalid");e=a.createSVGPoint(this.svg,e.x,e.y)}this.zoomAtPoint(t,e,o)},i.prototype.getZoom=function(){return this.viewport.getZoom()},i.prototype.getRelativeZoom=function(){return this.viewport.getRelativeZoom()},i.prototype.computeFromRelativeZoom=function(t){return t*this.viewport.getOriginalState().zoom},i.prototype.resetZoom=function(){var t=this.viewport.getOriginalState();this.zoom(t.zoom,!0)},i.prototype.resetPan=function(){this.pan(this.viewport.getOriginalState())},i.prototype.reset=function(){this.resetZoom(),this.resetPan()},i.prototype.handleDblClick=function(t){var e;if((this.options.preventMouseEventsDefault&&(t.preventDefault?t.preventDefault():t.returnValue=!1),this.options.controlIconsEnabled)&&-1<(t.target.getAttribute("class")||"").indexOf("svg-pan-zoom-control"))return!1;e=t.shiftKey?1/(2*(1+this.options.zoomScaleSensitivity)):2*(1+this.options.zoomScaleSensitivity);var o=a.getEventPoint(t,this.svg).matrixTransform(this.svg.getScreenCTM().inverse());this.zoomAtPoint(e,o)},i.prototype.handleMouseDown=function(t,e){this.options.preventMouseEventsDefault&&(t.preventDefault?t.preventDefault():t.returnValue=!1),r.mouseAndTouchNormalize(t,this.svg),this.options.dblClickZoomEnabled&&r.isDblClick(t,e)?this.handleDblClick(t):(this.state="pan",this.firstEventCTM=this.viewport.getCTM(),this.stateOrigin=a.getEventPoint(t,this.svg).matrixTransform(this.firstEventCTM.inverse()))},i.prototype.handleMouseMove=function(t){if(this.options.preventMouseEventsDefault&&(t.preventDefault?t.preventDefault():t.returnValue=!1),"pan"===this.state&&this.options.panEnabled){var e=a.getEventPoint(t,this.svg).matrixTransform(this.firstEventCTM.inverse()),o=this.firstEventCTM.translate(e.x-this.stateOrigin.x,e.y-this.stateOrigin.y);this.viewport.setCTM(o)}},i.prototype.handleMouseUp=function(t){this.options.preventMouseEventsDefault&&(t.preventDefault?t.preventDefault():t.returnValue=!1),"pan"===this.state&&(this.state="none")},i.prototype.fit=function(){var t=this.viewport.getViewBox(),e=Math.min(this.width/t.width,this.height/t.height);this.zoom(e,!0)},i.prototype.contain=function(){var t=this.viewport.getViewBox(),e=Math.max(this.width/t.width,this.height/t.height);this.zoom(e,!0)},i.prototype.center=function(){var t=this.viewport.getViewBox(),e=.5*(this.width-(t.width+2*t.x)*this.getZoom()),o=.5*(this.height-(t.height+2*t.y)*this.getZoom());this.getPublicInstance().pan({x:e,y:o})},i.prototype.updateBBox=function(){this.viewport.simpleViewBoxCache()},i.prototype.pan=function(t){var e=this.viewport.getCTM();e.e=t.x,e.f=t.y,this.viewport.setCTM(e)},i.prototype.panBy=function(t){var e=this.viewport.getCTM();e.e+=t.x,e.f+=t.y,this.viewport.setCTM(e)},i.prototype.getPan=function(){var t=this.viewport.getState();return{x:t.x,y:t.y}},i.prototype.resize=function(){var t=a.getBoundingClientRectNormalized(this.svg);this.width=t.width,this.height=t.height;var e=this.viewport;e.options.width=this.width,e.options.height=this.height,e.processCTM(),this.options.controlIconsEnabled&&(this.getPublicInstance().disableControlIcons(),this.getPublicInstance().enableControlIcons())},i.prototype.destroy=function(){var e=this;for(var t in this.beforeZoom=null,this.onZoom=null,this.beforePan=null,this.onPan=null,(this.onUpdatedCTM=null)!=this.options.customEventsHandler&&this.options.customEventsHandler.destroy({svgElement:this.svg,eventsListenerElement:this.options.eventsListenerElement,instance:this.getPublicInstance()}),this.eventListeners)(this.options.eventsListenerElement||this.svg).removeEventListener(t,this.eventListeners[t],!this.options.preventMouseEventsDefault&&h);this.disableMouseWheelZoom(),this.getPublicInstance().disableControlIcons(),this.reset(),c=c.filter(function(t){return t.svg!==e.svg}),delete this.options,delete this.viewport,delete this.publicInstance,delete this.pi,this.getPublicInstance=function(){return null}},i.prototype.getPublicInstance=function(){var o=this;return this.publicInstance||(this.publicInstance=this.pi={enablePan:function(){return o.options.panEnabled=!0,o.pi},disablePan:function(){return o.options.panEnabled=!1,o.pi},isPanEnabled:function(){return!!o.options.panEnabled},pan:function(t){return o.pan(t),o.pi},panBy:function(t){return o.panBy(t),o.pi},getPan:function(){return o.getPan()},setBeforePan:function(t){return o.options.beforePan=null===t?null:r.proxy(t,o.publicInstance),o.pi},setOnPan:function(t){return o.options.onPan=null===t?null:r.proxy(t,o.publicInstance),o.pi},enableZoom:function(){return o.options.zoomEnabled=!0,o.pi},disableZoom:function(){return o.options.zoomEnabled=!1,o.pi},isZoomEnabled:function(){return!!o.options.zoomEnabled},enableControlIcons:function(){return o.options.controlIconsEnabled||(o.options.controlIconsEnabled=!0,s.enable(o)),o.pi},disableControlIcons:function(){return o.options.controlIconsEnabled&&(o.options.controlIconsEnabled=!1,s.disable(o)),o.pi},isControlIconsEnabled:function(){return!!o.options.controlIconsEnabled},enableDblClickZoom:function(){return o.options.dblClickZoomEnabled=!0,o.pi},disableDblClickZoom:function(){return o.options.dblClickZoomEnabled=!1,o.pi},isDblClickZoomEnabled:function(){return!!o.options.dblClickZoomEnabled},enableMouseWheelZoom:function(){return o.enableMouseWheelZoom(),o.pi},disableMouseWheelZoom:function(){return o.disableMouseWheelZoom(),o.pi},isMouseWheelZoomEnabled:function(){return!!o.options.mouseWheelZoomEnabled},setZoomScaleSensitivity:function(t){return o.options.zoomScaleSensitivity=t,o.pi},setMinZoom:function(t){return o.options.minZoom=t,o.pi},setMaxZoom:function(t){return o.options.maxZoom=t,o.pi},setBeforeZoom:function(t){return o.options.beforeZoom=null===t?null:r.proxy(t,o.publicInstance),o.pi},setOnZoom:function(t){return o.options.onZoom=null===t?null:r.proxy(t,o.publicInstance),o.pi},zoom:function(t){return o.publicZoom(t,!0),o.pi},zoomBy:function(t){return o.publicZoom(t,!1),o.pi},zoomAtPoint:function(t,e){return o.publicZoomAtPoint(t,e,!0),o.pi},zoomAtPointBy:function(t,e){return o.publicZoomAtPoint(t,e,!1),o.pi},zoomIn:function(){return this.zoomBy(1+o.options.zoomScaleSensitivity),o.pi},zoomOut:function(){return this.zoomBy(1/(1+o.options.zoomScaleSensitivity)),o.pi},getZoom:function(){return o.getRelativeZoom()},setOnUpdatedCTM:function(t){return o.options.onUpdatedCTM=null===t?null:r.proxy(t,o.publicInstance),o.pi},resetZoom:function(){return o.resetZoom(),o.pi},resetPan:function(){return o.resetPan(),o.pi},reset:function(){return o.reset(),o.pi},fit:function(){return o.fit(),o.pi},contain:function(){return o.contain(),o.pi},center:function(){return o.center(),o.pi},updateBBox:function(){return o.updateBBox(),o.pi},resize:function(){return o.resize(),o.pi},getSizes:function(){return{width:o.width,height:o.height,realZoom:o.getZoom(),viewBox:o.viewport.getViewBox()}},destroy:function(){return o.destroy(),o.pi}}),this.publicInstance};var c=[];e.exports=function(t,e){var o=r.getSvg(t);if(null===o)return null;for(var n=c.length-1;0<=n;n--)if(c[n].svg===o)return c[n].instance.getPublicInstance();return c.push({svg:o,instance:new i(o,e)}),c[c.length-1].instance.getPublicInstance()}},{"./control-icons":1,"./shadow-viewport":2,"./svg-utilities":5,"./uniwheel":6,"./utilities":7}],5:[function(t,e,o){var l=t("./utilities"),s="unknown";document.documentMode&&(s="ie"),e.exports={svgNS:"http://www.w3.org/2000/svg",xmlNS:"http://www.w3.org/XML/1998/namespace",xmlnsNS:"http://www.w3.org/2000/xmlns/",xlinkNS:"http://www.w3.org/1999/xlink",evNS:"http://www.w3.org/2001/xml-events",getBoundingClientRectNormalized:function(t){if(t.clientWidth&&t.clientHeight)return{width:t.clientWidth,height:t.clientHeight};if(t.getBoundingClientRect())return t.getBoundingClientRect();throw new Error("Cannot get BoundingClientRect for SVG.")},getOrCreateViewport:function(t,e){var o=null;if(!(o=l.isElement(e)?e:t.querySelector(e))){var n=Array.prototype.slice.call(t.childNodes||t.children).filter(function(t){return"defs"!==t.nodeName&&"#text"!==t.nodeName});1===n.length&&"g"===n[0].nodeName&&null===n[0].getAttribute("transform")&&(o=n[0])}if(!o){var i="viewport-"+(new Date).toISOString().replace(/\D/g,"");(o=document.createElementNS(this.svgNS,"g")).setAttribute("id",i);var s=t.childNodes||t.children;if(s&&0<s.length)for(var r=s.length;0<r;r--)"defs"!==s[s.length-r].nodeName&&o.appendChild(s[s.length-r]);t.appendChild(o)}var a=[];return o.getAttribute("class")&&(a=o.getAttribute("class").split(" ")),~a.indexOf("svg-pan-zoom_viewport")||(a.push("svg-pan-zoom_viewport"),o.setAttribute("class",a.join(" "))),o},setupSvgAttributes:function(t){if(t.setAttribute("xmlns",this.svgNS),t.setAttributeNS(this.xmlnsNS,"xmlns:xlink",this.xlinkNS),t.setAttributeNS(this.xmlnsNS,"xmlns:ev",this.evNS),null!==t.parentNode){var e=t.getAttribute("style")||"";-1===e.toLowerCase().indexOf("overflow")&&t.setAttribute("style","overflow: hidden; "+e)}},internetExplorerRedisplayInterval:300,refreshDefsGlobal:l.throttle(function(){for(var t=document.querySelectorAll("defs"),e=t.length,o=0;o<e;o++){var n=t[o];n.parentNode.insertBefore(n,n)}},this?this.internetExplorerRedisplayInterval:null),setCTM:function(t,e,o){var n=this,i="matrix("+e.a+","+e.b+","+e.c+","+e.d+","+e.e+","+e.f+")";t.setAttributeNS(null,"transform",i),"transform"in t.style?t.style.transform=i:"-ms-transform"in t.style?t.style["-ms-transform"]=i:"-webkit-transform"in t.style&&(t.style["-webkit-transform"]=i),"ie"===s&&o&&(o.parentNode.insertBefore(o,o),window.setTimeout(function(){n.refreshDefsGlobal()},n.internetExplorerRedisplayInterval))},getEventPoint:function(t,e){var o=e.createSVGPoint();return l.mouseAndTouchNormalize(t,e),o.x=t.clientX,o.y=t.clientY,o},getSvgCenterPoint:function(t,e,o){return this.createSVGPoint(t,e/2,o/2)},createSVGPoint:function(t,e,o){var n=t.createSVGPoint();return n.x=e,n.y=o,n}}},{"./utilities":7}],6:[function(t,e,o){function s(t,o){function e(t){var e={originalEvent:t=t||window.event,target:t.target||t.srcElement,type:"wheel",deltaMode:"MozMousePixelScroll"==t.type?0:1,deltaX:0,delatZ:0,preventDefault:function(){t.preventDefault?t.preventDefault():t.returnValue=!1}};return"mousewheel"==l?(e.deltaY=-.025*t.wheelDelta,t.wheelDeltaX&&(e.deltaX=-.025*t.wheelDeltaX)):e.deltaY=t.detail,o(e)}return h.push({element:t,fn:e}),e}function n(t,e,o,n){var i;i="wheel"===l?o:s(t,o),t[r](u+e,i,n?c:p)}function i(t,e,o,n){var i;i="wheel"===l?o:function(t){for(var e=0;e<h.length;e++)if(h[e].element===t)return h[e].fn;return function(){}}(t),t[a](u+e,i,n?c:p),function(t){for(var e=0;e<h.length;e++)if(h[e].element===t)return h.splice(e,1)}(t)}var r,a,l,u,h,c,p;e.exports=(h=[],p={passive:!(c={passive:!(u="")})},window.addEventListener?(r="addEventListener",a="removeEventListener"):(r="attachEvent",a="detachEvent",u="on"),l="onwheel"in document.createElement("div")?"wheel":void 0!==document.onmousewheel?"mousewheel":"DOMMouseScroll",{on:function(t,e,o){n(t,l,e,o),"DOMMouseScroll"==l&&n(t,"MozMousePixelScroll",e,o)},off:function(t,e,o){i(t,l,e,o),"DOMMouseScroll"==l&&i(t,"MozMousePixelScroll",e,o)}})},{}],7:[function(t,e,o){function n(e){return function(t){window.setTimeout(t,e)}}e.exports={extend:function(t,e){for(var o in t=t||{},e)this.isObject(e[o])?t[o]=this.extend(t[o],e[o]):t[o]=e[o];return t},isElement:function(t){return t instanceof HTMLElement||t instanceof SVGElement||t instanceof SVGSVGElement||t&&"object"==typeof t&&null!==t&&1===t.nodeType&&"string"==typeof t.nodeName},isObject:function(t){return"[object Object]"===Object.prototype.toString.call(t)},isNumber:function(t){return!isNaN(parseFloat(t))&&isFinite(t)},getSvg:function(t){var e,o;if(this.isElement(t))e=t;else{if(!("string"==typeof t||t instanceof String))throw new Error("Provided selector is not an HTML object nor String");if(!(e=document.querySelector(t)))throw new Error("Provided selector did not find any elements. Selector: "+t)}if("svg"===e.tagName.toLowerCase())o=e;else if("object"===e.tagName.toLowerCase())o=e.contentDocument.documentElement;else{if("embed"!==e.tagName.toLowerCase())throw"img"===e.tagName.toLowerCase()?new Error('Cannot script an SVG in an "img" element. Please use an "object" element or an in-line SVG.'):new Error("Cannot get SVG.");o=e.getSVGDocument().documentElement}return o},proxy:function(t,e){return function(){return t.apply(e,arguments)}},getType:function(t){return Object.prototype.toString.apply(t).replace(/^\[object\s/,"").replace(/\]$/,"")},mouseAndTouchNormalize:function(t,e){if(void 0===t.clientX||null===t.clientX)if(t.clientX=0,void(t.clientY=0)!==t.touches&&t.touches.length){if(void 0!==t.touches[0].clientX)t.clientX=t.touches[0].clientX,t.clientY=t.touches[0].clientY;else if(void 0!==t.touches[0].pageX){var o=e.getBoundingClientRect();t.clientX=t.touches[0].pageX-o.left,t.clientY=t.touches[0].pageY-o.top}}else void 0!==t.originalEvent&&void 0!==t.originalEvent.clientX&&(t.clientX=t.originalEvent.clientX,t.clientY=t.originalEvent.clientY)},isDblClick:function(t,e){if(2===t.detail)return!0;if(null==e)return!1;var o=t.timeStamp-e.timeStamp,n=Math.sqrt(Math.pow(t.clientX-e.clientX,2)+Math.pow(t.clientY-e.clientY,2));return o<250&&n<10},now:Date.now||function(){return(new Date).getTime()},throttle:function(o,n,i){var s,r,a,l=this,u=null,h=0;i=i||{};function c(){h=!1===i.leading?0:l.now(),u=null,a=o.apply(s,r),u||(s=r=null)}return function(){var t=l.now();h||!1!==i.leading||(h=t);var e=n-(t-h);return s=this,r=arguments,e<=0||n<e?(clearTimeout(u),u=null,h=t,a=o.apply(s,r),u||(s=r=null)):u||!1===i.trailing||(u=setTimeout(c,e)),a}},createRequestAnimationFrame:function(t){var e=null;return"auto"!==t&&t<60&&1<t&&(e=Math.floor(1e3/t)),null===e?window.requestAnimationFrame||n(33):n(e)}}},{}]},{},[3]);</script>
+    
+    <!-- B2: severity tooltip -->
+    <div id="severity-tooltip" style="display:none;position:fixed;z-index:2000;background:rgba(30,30,30,0.92);color:#fff;padding:6px 10px;border-radius:5px;font-size:12px;pointer-events:none;max-width:220px;line-height:1.4;"></div>
+
+    <script>
+        let panZoomInstance; // Declare panZoomInstance globally
+        let globalGraphMetadata = null;
+        let currentlySelectedElementId = null;
+        let protocolVisibilityState = {};
+
+        // B2: report URL for "View threats" link
+        const REPORT_URL = "model_threat_report.html";
+
+        // B2: severity heat-map state
+        const SEV_COLORS = { CRITICAL: '#dc2626', HIGH: '#ea580c', MEDIUM: '#d97706', LOW: '#16a34a' };
+        let severityMap = {};
+        let severityOverlayActive = false;
+        let originalNodeFills = {};
+
+        function toggleSeverityOverlay() {
+            const btn = document.getElementById('severity-overlay-btn');
+            const svg = document.querySelector('#svg-container svg');
+            if (!svg) return;
+            severityOverlayActive = !severityOverlayActive;
+            if (severityOverlayActive) {
+                Object.entries(severityMap).forEach(([nodeId, level]) => {
+                    const g = svg.querySelector(`g[id="${CSS.escape(nodeId)}"]`);
+                    if (!g) return;
+                    const shape = g.querySelector('polygon,ellipse,path,rect');
+                    if (!shape) return;
+                    if (!originalNodeFills[nodeId]) {
+                        originalNodeFills[nodeId] = { fill: shape.getAttribute('fill'), stroke: shape.getAttribute('stroke') };
+                    }
+                    const color = SEV_COLORS[level] || '#aaa';
+                    shape.setAttribute('fill', color);
+                    shape.setAttribute('stroke', color);
+                });
+                if (btn) { btn.textContent = '✕ Hide Heat Map'; btn.style.background = '#fee2e2'; }
+            } else {
+                Object.entries(originalNodeFills).forEach(([nodeId, orig]) => {
+                    const g = svg.querySelector(`g[id="${CSS.escape(nodeId)}"]`);
+                    if (!g) return;
+                    const shape = g.querySelector('polygon,ellipse,path,rect');
+                    if (!shape) return;
+                    if (orig.fill !== null) shape.setAttribute('fill', orig.fill);
+                    else shape.removeAttribute('fill');
+                    if (orig.stroke !== null) shape.setAttribute('stroke', orig.stroke);
+                    else shape.removeAttribute('stroke');
+                });
+                if (btn) { btn.textContent = '⬤ Show Heat Map'; btn.style.background = '#f5f5f5'; }
+            }
+        }
+
+        function showSeverityTooltip(e, nodeId) {
+            if (!severityOverlayActive) return;
+            const level = severityMap[nodeId];
+            if (!level) return;
+            const meta = globalGraphMetadata && globalGraphMetadata.nodes && globalGraphMetadata.nodes[nodeId];
+            const label = meta ? meta.label : nodeId;
+            const tip = document.getElementById('severity-tooltip');
+            // Built with the DOM API: label/nodeId/REPORT_URL derive from model names.
+            tip.textContent = '';
+            const strong = document.createElement('strong');
+            strong.textContent = label;
+            tip.appendChild(strong);
+            tip.appendChild(document.createElement('br'));
+            tip.appendChild(document.createTextNode('Max Severity: '));
+            const sevSpan = document.createElement('span');
+            sevSpan.style.color = SEV_COLORS[level];
+            sevSpan.style.fontWeight = 'bold';
+            sevSpan.textContent = level;
+            tip.appendChild(sevSpan);
+            // A report URL starting with a scheme ("javascript:...") is never a sibling file.
+            if (REPORT_URL && !/^\s*[a-z][a-z0-9+.\-]*:/i.test(REPORT_URL)) {
+                tip.appendChild(document.createElement('br'));
+                const link = document.createElement('a');
+                link.href = REPORT_URL + '#component-' + nodeId;
+                link.target = '_top';
+                link.style.cssText = 'color:#90cdf4;font-size:11px;';
+                link.textContent = 'View threats →';
+                tip.appendChild(link);
+            }
+            tip.style.display = 'block';
+            tip.style.left = (e.clientX + 12) + 'px';
+            tip.style.top  = (e.clientY + 12) + 'px';
+        }
+
+        function hideSeverityTooltip() {
+            const tip = document.getElementById('severity-tooltip');
+            if (tip) tip.style.display = 'none';
+        }
+
+        // Function to apply highlighting
+        function highlightElement(elementId) {
+            // If the clicked element is already selected, clear highlighting and return.
+            if (currentlySelectedElementId === elementId) {
+                clearHighlighting();
+                return;
+            }
+
+            // Clear previous highlighting
+            clearHighlighting();
+            currentlySelectedElementId = elementId;
+
+            const svg = document.querySelector('#svg-container svg');
+            if (!svg || !globalGraphMetadata) {
+                return;
+            }
+
+            // Target element can be a node or an edge
+            const targetElement = globalGraphMetadata.nodes[elementId] || globalGraphMetadata.edges[elementId];
+            if (!targetElement) {
+                return;
+            }
+
+            // Get all visible SVG groups (nodes and edges)
+            const allSvgGroups = svg.querySelectorAll('g[id]');
+
+            // Apply faded class to all elements first
+            // Not the pan-zoom viewport (svg-pan-zoom gives it an id): fading it would
+            // fade the selected element and the threat badges along with everything.
+            allSvgGroups.forEach(g => {
+                if (!g.classList.contains('svg-pan-zoom_viewport')) g.classList.add('faded');
+            });
+
+            // Highlight the selected element
+            const selectedSvgElement = svg.querySelector(`g[id="${CSS.escape(elementId)}"]`);
+            if (selectedSvgElement) {
+                selectedSvgElement.classList.add('selected');
+                selectedSvgElement.classList.remove('faded');
+            }
+
+            // Highlight connected elements
+            const connectedElements = new Set();
+            const connectedEdges = new Set();
+
+            if (globalGraphMetadata.nodes[elementId]) { // If a node was clicked
+                globalGraphMetadata.nodes[elementId].connections.forEach(edgeId => {
+                    connectedEdges.add(edgeId);
+                    const edge = globalGraphMetadata.edges[edgeId];
+                    if (edge) {
+                        connectedElements.add(edge.source);
+                        connectedElements.add(edge.target);
+                    }
+                });
+            } else if (globalGraphMetadata.edges[elementId]) { // If an edge was clicked
+                const edge = globalGraphMetadata.edges[elementId];
+                if (edge) {
+                    connectedElements.add(edge.source);
+                    connectedElements.add(edge.target);
+                    connectedEdges.add(elementId);
+                }
+            }
+
+            connectedElements.forEach(connId => {
+                // Special handling for boundary clusters
+                if (connId.startsWith('__hidden_node_')) {
+                    const originalBoundaryId = connId.replace('__hidden_node_', '');
+                    const boundaryCluster = svg.querySelector(`g[id="cluster_${CSS.escape(originalBoundaryId)}"]`);
+                     if (boundaryCluster) {
+                        boundaryCluster.classList.add('highlighted');
+                        boundaryCluster.classList.remove('faded');
+                    }
+                }
+
+                const connSvgElementActual = svg.querySelector(`g[id="${CSS.escape(connId)}"]`);
+                if (connSvgElementActual) {
+                    connSvgElementActual.classList.add('highlighted');
+                    connSvgElementActual.classList.remove('faded');
+                }
+            });
+
+            connectedEdges.forEach(edgeId => {
+                const edgeSvgElement = svg.querySelector(`g[id="${CSS.escape(edgeId)}"]`);
+                if (edgeSvgElement) {
+                    edgeSvgElement.classList.add('highlighted');
+                    edgeSvgElement.classList.remove('faded');
+                }
+            });
+        }
+
+        // Function to clear all highlighting
+        function clearHighlighting() {
+            const svg = document.querySelector('#svg-container svg');
+            if (!svg) return;
+
+            const allSvgGroups = svg.querySelectorAll('g[id]');
+            allSvgGroups.forEach(g => {
+                g.classList.remove('selected', 'highlighted', 'faded');
+            });
+            currentlySelectedElementId = null;
+        }
+
+        function toggleLegend() {
+            const legend = document.getElementById('legend');
+            legend.classList.toggle('hidden');
+        }
+
+        function toggleProtocolVisibility(protocolClass) {
+            const legendItem = document.querySelector(`.legend-item[data-protocol="${protocolClass}"]`);
+            if (protocolVisibilityState[protocolClass] === 'hidden') {
+                protocolVisibilityState[protocolClass] = 'visible';
+                if(legendItem) legendItem.style.opacity = 1;
+            } else {
+                protocolVisibilityState[protocolClass] = 'hidden';
+                if(legendItem) legendItem.style.opacity = 0.5;
+            }
+            applyProtocolVisibility();
+        }
+
+        function applyProtocolVisibility() {
+            const svg = document.querySelector('#svg-container svg');
+            if (!svg) return;
+
+            const allElements = svg.querySelectorAll('g.edge');
+            allElements.forEach(el => el.classList.remove('svg-element-hidden'));
+
+            for (const protocolClass in protocolVisibilityState) {
+                if (protocolVisibilityState[protocolClass] === 'hidden') {
+                    const elementsToHide = svg.querySelectorAll(`.protocol-${protocolClass}`);
+                    elementsToHide.forEach(el => {
+                        el.classList.add('svg-element-hidden');
+                    });
+                }
+            }
+            // Badges of hidden dataflows follow them (threat layer, _threat_layer.html).
+            if (window.refreshThreatBadges) window.refreshThreatBadges();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var svgElement = document.querySelector('#svg-container svg');
+
+            // Inject graph_metadata from Jinja2 context
+            const rawGraphMetadata = JSON.parse("{\"nodes\": {\"cluster_hsm_zone\": {\"id\": \"cluster_hsm_zone\", \"type\": \"boundary\", \"label\": \"hsm zone\", \"connections\": []}, \"__hidden_node_hsm_zone\": {\"id\": \"__hidden_node_hsm_zone\", \"type\": \"hidden_boundary_node\", \"label\": \"Hidden node for hsm zone\", \"connections\": []}, \"cluster_vault_data_zone\": {\"id\": \"cluster_vault_data_zone\", \"type\": \"boundary\", \"label\": \"vault data zone\", \"connections\": []}, \"__hidden_node_vault_data_zone\": {\"id\": \"__hidden_node_vault_data_zone\", \"type\": \"hidden_boundary_node\", \"label\": \"Hidden node for vault data zone\", \"connections\": []}, \"TokenProxy\": {\"id\": \"TokenProxy\", \"type\": \"server\", \"label\": \"TokenProxy\", \"connections\": [\"edge_TokenProxy_HSM\", \"edge_TokenProxy_VaultDB\"]}, \"HSM\": {\"id\": \"HSM\", \"type\": \"server\", \"label\": \"HSM\", \"connections\": [\"edge_TokenProxy_HSM\"]}, \"VaultDB\": {\"id\": \"VaultDB\", \"type\": \"server\", \"label\": \"VaultDB\", \"connections\": [\"edge_TokenProxy_VaultDB\"]}}, \"edges\": {\"edge_TokenProxy_HSM\": {\"id\": \"edge_TokenProxy_HSM\", \"source\": \"TokenProxy\", \"target\": \"HSM\", \"protocol\": \"PKCS11\", \"label\": \"ProxyToHSM\"}, \"edge_TokenProxy_VaultDB\": {\"id\": \"edge_TokenProxy_VaultDB\", \"source\": \"TokenProxy\", \"target\": \"VaultDB\", \"protocol\": \"PostgreSQL\", \"label\": \"ProxyToVaultDB\"}}}");
+            if (Object.keys(rawGraphMetadata).length > 0) {
+                globalGraphMetadata = rawGraphMetadata;
+            } else {
+                console.warn("No graph metadata provided to navigable_diagram_template.html");
+            }
+
+            // B2: inject severity map
+            const rawSeverityMap = JSON.parse("{\"TokenProxy\": \"CRITICAL\", \"HSM\": \"CRITICAL\", \"VaultDB\": \"CRITICAL\", \"ProxyToHSM\": \"HIGH\", \"ProxyToVaultDB\": \"CRITICAL\"}");
+            if (Object.keys(rawSeverityMap).length > 0) {
+                severityMap = rawSeverityMap;
+            } else {
+                const sevSection = document.getElementById('severity-legend-section');
+                if (sevSection) sevSection.style.display = 'none';
+            }
+
+            if (svgElement) {
+                panZoomInstance = svgPanZoom(svgElement, {
+                    zoomEnabled: true,
+                    controlIconsEnabled: false,
+                    fit: true,
+                    center: true,
+                    minZoom: 0.5,
+                    maxZoom: 10
+                });
+
+                document.getElementById('zoom-in').addEventListener('click', function(e) {
+                    e.preventDefault();
+                    panZoomInstance.zoomIn();
+                });
+
+                document.getElementById('zoom-out').addEventListener('click', function(e) {
+                    e.preventDefault();
+                    panZoomInstance.zoomOut();
+                });
+
+                // Add a single click listener to the SVG container for event delegation
+                svgElement.addEventListener('click', (e) => {
+                    // Find the closest parent group that is a graph element
+                    const g = e.target.closest('.graph-element');
+
+                    if (g) {
+                        // A graph element (node or edge) was clicked
+                        // Check if the original click target was a link, if so, do not highlight
+                        if (e.target.closest('a')) {
+                            return;
+                        }
+                        e.stopPropagation(); // Stop event from propagating further, just in case
+                        e.preventDefault(); // Prevent default link behavior if any
+                        highlightElement(g.id);
+                    } else {
+                        // The background was clicked, clear any highlighting
+                        clearHighlighting();
+                    }
+                });
+
+                // Add graph-element class to all groups with an ID for easy identification by the listener
+                const allSvgGroups = svgElement.querySelectorAll('g[id]');
+                allSvgGroups.forEach(g => {
+                    g.classList.add('graph-element');
+                });
+
+                // B2: severity tooltip on hover
+                svgElement.addEventListener('mousemove', (e) => {
+                    const g = e.target.closest('.graph-element');
+                    if (g) showSeverityTooltip(e, g.id);
+                    else hideSeverityTooltip();
+                });
+                svgElement.addEventListener('mouseleave', hideSeverityTooltip);
+
+                // --- Hover effect logic for sub-model links ---
+                const clickableLinks = svgElement.querySelectorAll('a');
+                clickableLinks.forEach(function(link) {
+                    const group = link.closest('.graph-element');
+                    if (group) {
+                        try {
+                            group.classList.add('hover-effect');
+                            group.style.cursor = 'pointer';
+
+                            const bbox = group.getBBox();
+                            const cx = bbox.x + bbox.width / 2;
+                            const cy = bbox.y + bbox.height / 2;
+                            group.style.transformOrigin = `${cx}px ${cy}px`;
+
+                            group.addEventListener('mouseover', function() {
+                                group.classList.add('hovered');
+                            });
+
+                            group.addEventListener('mouseout', function() {
+                                group.classList.remove('hovered');
+                            });
+                        } catch (e) {
+                            // BBox can fail on hidden elements, not critical
+                        }
+                    }
+                });
+
+                // Add event listener for legend item clicks
+                const legend = document.getElementById('legend');
+                legend.addEventListener('click', (event) => {
+                    const legendItem = event.target.closest('.legend-item');
+                    if (legendItem) {
+                        const protocolClass = legendItem.dataset.protocol;
+                        if (protocolClass) {
+                            toggleProtocolVisibility(protocolClass);
+                        }
+                    }
+                });
+
+                applyProtocolVisibility();
+
+            } else {
+                console.warn("SVG element not found for pan/zoom and highlighting initialization.");
+            }
+        });
+    </script>
+    
+<style>
+    .threat-layer .threat-badge { cursor: pointer; }
+    .threat-layer .threat-badge circle { stroke: #ffffff; stroke-width: 1.5px; }
+    .threat-layer .threat-badge text {
+        fill: #ffffff; font-family: 'Segoe UI', Tahoma, sans-serif; font-size: 10px;
+        font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none;
+    }
+    .threat-layer .threat-badge:hover circle { stroke: #111827; }
+    .threat-layer .threat-badge.dimmed { opacity: 0.35; }
+    .threat-layer .threat-badge.active circle { stroke: #111827; stroke-width: 2.5px; }
+    .threat-sev-filter.off { opacity: 0.35; }
+    .threat-stride-filter {
+        flex: 1; min-width: 0; padding: 2px 0; font-size: 10px; font-weight: 700; line-height: 1.3;
+        border: 1px solid #c7c7c7; border-radius: 3px; background: #f5f5f5; color: #374151; cursor: pointer;
+    }
+    .threat-stride-filter:hover { border-color: #6b7280; }
+    .threat-stride-filter.on { background: #1f2937; border-color: #1f2937; color: #ffffff; }
+    .threat-stride-filter.empty { opacity: 0.4; }
+    .threat-sev-filter.off span:first-of-type { text-decoration: line-through; }
+    #threat-panel {
+        display: none; position: absolute; top: 20px; left: 20px; z-index: 1500;
+        width: 340px; max-width: calc(100vw - 40px); max-height: calc(100vh - 110px);
+        overflow: auto; background: rgba(255, 255, 255, 0.98); border: 1px solid #ddd;
+        border-radius: 6px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+        font-size: 12px; color: #1f2937;
+    }
+    #threat-panel.open { display: block; }
+    #threat-panel .tp-header {
+        display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px 6px;
+        border-bottom: 1px solid #eee; position: sticky; top: 0; background: inherit;
+    }
+    #threat-panel .tp-title { flex: 1; font-weight: 700; font-size: 13px; word-break: break-word; }
+    #threat-panel .tp-kind { display: block; font-weight: 400; font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; }
+    #threat-panel .tp-close { border: none; background: none; font-size: 18px; line-height: 1; cursor: pointer; color: #6b7280; padding: 0 2px; }
+    #threat-panel .tp-summary { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 12px 4px; }
+    #threat-panel .tp-chip { border-radius: 10px; padding: 1px 8px; font-size: 10px; font-weight: 700; color: #fff; }
+    #threat-panel ul { list-style: none; margin: 0; padding: 4px 12px 8px; }
+    #threat-panel li { padding: 6px 0; border-bottom: 1px solid #f1f1f1; }
+    #threat-panel li:last-child { border-bottom: none; }
+    #threat-panel .tp-sev { display: inline-block; min-width: 54px; text-align: center; border-radius: 3px; padding: 0 4px; margin-right: 6px; font-size: 9px; font-weight: 700; color: #fff; }
+    #threat-panel .tp-meta { display: block; margin-top: 2px; font-size: 10px; color: #6b7280; }
+    #threat-panel .tp-footer { padding: 6px 12px 10px; font-size: 11px; color: #6b7280; }
+    #threat-panel .tp-footer a { color: #2563eb; }
+</style>
+
+<div id="threat-panel" role="dialog" aria-labelledby="threat-panel-title">
+    <div class="tp-header">
+        <div class="tp-title" id="threat-panel-title"></div>
+        <button class="tp-close" type="button" onclick="closeThreatPanel()" title="Close" aria-label="Close">×</button>
+    </div>
+    <div class="tp-summary" id="threat-panel-summary"></div>
+    <ul id="threat-panel-list"></ul>
+    <div class="tp-footer" id="threat-panel-footer"></div>
+</div>
+
+<script>
+(function () {
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+    const LEVELS = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
+    const COLORS = { CRITICAL: '#dc2626', HIGH: '#ea580c', MEDIUM: '#d97706', LOW: '#16a34a' };
+    const KIND_LABELS = { actor: 'Actor', server: 'Component', dataflow: 'Dataflow', boundary: 'Trust boundary' };
+    const LAYER_REPORT_URL = "model_threat_report.html";
+
+    const state = { layer: {}, visible: true, levels: new Set(LEVELS), strides: null, openId: null, layerGroup: null };
+
+    function svgRoot() { return document.querySelector('#svg-container svg'); }
+
+    // Graphviz keeps the DOT id on nodes and edges; clusters get "clustN" with the
+    // DOT name in their <title>, so fall back to the title.
+    function findGroup(svg, id) {
+        const byId = svg.querySelector(`g[id="${CSS.escape(id)}"]`);
+        if (byId) return byId;
+        for (const g of svg.querySelectorAll('g.cluster, g.node, g.edge')) {
+            const t = g.querySelector(':scope > title');
+            if (t && t.textContent.trim() === id) return g;
+        }
+        return null;
+    }
+
+    // Maps a point of `node`'s user space into the layer's user space. Works whatever
+    // transforms sit in between (the generated SVG flips its y axis, pan-zoom scales).
+    function toLayer(node, layerGroup, x, y) {
+        const svg = svgRoot();
+        const m = layerGroup.getScreenCTM().inverse().multiply(node.getScreenCTM());
+        const p = svg.createSVGPoint();
+        p.x = x; p.y = y;
+        return p.matrixTransform(m);
+    }
+
+    function anchorPoint(g, kind, layerGroup) {
+        if (kind === 'dataflow') {
+            const path = g.querySelector('path');
+            if (path && path.getTotalLength) {
+                const mid = path.getPointAtLength(path.getTotalLength() / 2);
+                return toLayer(path, layerGroup, mid.x, mid.y);
+            }
+        }
+        // Element outline: its first own shape (icons are nested <svg>, skip them).
+        const shape = g.querySelector(':scope > polygon, :scope > ellipse, :scope > rect, :scope > path, :scope > a > polygon, :scope > a > ellipse, :scope > a > rect, :scope > a > path')
+            || g.querySelector('polygon, ellipse, rect, path') || g;
+        const bb = shape.getBBox();
+        const corners = [[bb.x, bb.y], [bb.x + bb.width, bb.y], [bb.x, bb.y + bb.height], [bb.x + bb.width, bb.y + bb.height]]
+            .map(([x, y]) => toLayer(shape, layerGroup, x, y));
+        const right = Math.max(...corners.map(c => c.x));
+        const top = Math.min(...corners.map(c => c.y));
+        if (kind === 'boundary') return { x: right - 14, y: top + 14 };
+        return { x: right - 2, y: top + 2 };
+    }
+
+    // Badges keep the same on-screen size whatever the zoom level.
+    function badgeScale(layerGroup) {
+        const ctm = layerGroup.getScreenCTM();
+        const zoom = ctm ? Math.hypot(ctm.a, ctm.b) : 1;
+        return zoom > 0 ? 1 / zoom : 1;
+    }
+
+    // STRIDE filter: null = every category (including "Other"), else the selected set.
+    function strideShown(stride) { return !state.strides || state.strides.has(stride); }
+
+    // Visible threats of an element at one severity level, under the STRIDE filter.
+    function levelCount(entry, lvl) {
+        if (!state.levels.has(lvl)) return 0;
+        if (!state.strides || !entry.by_stride) return entry.counts[lvl] || 0;
+        return Object.entries(entry.by_stride)
+            .reduce((n, [stride, perLevel]) => n + (strideShown(stride) ? (perLevel[lvl] || 0) : 0), 0);
+    }
+
+    function visibleCount(entry) {
+        return LEVELS.reduce((n, lvl) => n + levelCount(entry, lvl), 0);
+    }
+
+    function worstVisible(entry) {
+        return LEVELS.find(lvl => levelCount(entry, lvl) > 0) || null;
+    }
+
+    function plural(n, word) { return `${n} ${word}${n === 1 ? '' : 's'}`; }
+
+    function buildBadges() {
+        const svg = svgRoot();
+        if (!svg) return;
+        // Inside the pan-zoom viewport so badges pan with the diagram, on top of it.
+        const host = svg.querySelector('.svg-pan-zoom_viewport') || svg;
+        const layerGroup = document.createElementNS(SVG_NS, 'g');
+        // A class, not an id: the page fades every g[id] when it highlights an element.
+        layerGroup.setAttribute('class', 'threat-layer');
+        state.layerGroup = layerGroup;
+        host.appendChild(layerGroup);
+
+        Object.entries(state.layer).forEach(([id, entry]) => {
+            const target = findGroup(svg, id);
+            if (!target) return;
+            let pt;
+            try { pt = anchorPoint(target, entry.kind, layerGroup); } catch (e) { return; }
+            const badge = document.createElementNS(SVG_NS, 'g');
+            badge.setAttribute('class', 'threat-badge');
+            badge.dataset.elementId = id;
+            badge._target = target;
+            badge._pos = pt;
+            const circle = document.createElementNS(SVG_NS, 'circle');
+            const text = document.createElementNS(SVG_NS, 'text');
+            const title = document.createElementNS(SVG_NS, 'title');
+            badge.append(title, circle, text);
+            badge.addEventListener('click', (e) => {
+                // Keep the page's own click handler out of it: the badge does its own
+                // highlighting, the same toggle a click on the element does.
+                e.stopPropagation();
+                e.preventDefault();
+                if (entry.kind !== 'boundary' && typeof highlightElement === 'function') highlightElement(id);
+                toggleThreatPanel(id);
+            });
+            layerGroup.appendChild(badge);
+        });
+        if (typeof panZoomInstance !== 'undefined' && panZoomInstance && panZoomInstance.setOnZoom) {
+            panZoomInstance.setOnZoom(() => rescaleBadges());
+        }
+        window.addEventListener('resize', () => rescaleBadges());
+        refreshThreatBadges();
+    }
+
+    function rescaleBadges() {
+        const layerGroup = state.layerGroup;
+        if (!layerGroup) return;
+        const k = badgeScale(layerGroup);
+        layerGroup.querySelectorAll('.threat-badge').forEach(badge => {
+            badge.setAttribute('transform', `translate(${badge._pos.x},${badge._pos.y}) scale(${k})`);
+        });
+    }
+
+    function refreshThreatBadges() {
+        const layerGroup = state.layerGroup;
+        if (!layerGroup) return;
+        layerGroup.style.display = state.visible ? '' : 'none';
+        layerGroup.querySelectorAll('.threat-badge').forEach(badge => {
+            const entry = state.layer[badge.dataset.elementId];
+            const n = visibleCount(entry);
+            const worst = worstVisible(entry);
+            const hiddenTarget = badge._target && badge._target.closest('.svg-element-hidden');
+            if (!n || !worst || hiddenTarget) { badge.style.display = 'none'; return; }
+            badge.style.display = '';
+            const label = n > 99 ? '99+' : String(n);
+            const circle = badge.querySelector('circle');
+            circle.setAttribute('r', label.length > 1 ? 9 : 8);
+            circle.setAttribute('fill', COLORS[worst]);
+            badge.querySelector('text').textContent = label;
+            badge.querySelector('title').textContent =
+                `${entry.label}: ${plural(n, 'threat')} (worst: ${worst.toLowerCase()}). Click for details.`;
+            badge.classList.toggle('active', state.openId === badge.dataset.elementId);
+            badge.classList.toggle('dimmed', badge._target.classList.contains('faded'));
+        });
+        rescaleBadges();
+        document.querySelectorAll('.threat-sev-filter').forEach(item => {
+            item.classList.toggle('off', !state.levels.has(item.dataset.severity));
+        });
+        document.querySelectorAll('.threat-stride-filter').forEach(chip => {
+            const on = !!state.strides && state.strides.has(chip.dataset.stride);
+            chip.classList.toggle('on', on);
+            chip.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+        if (state.openId) renderPanel(state.openId);
+    }
+
+    function el(tag, cls, text) {
+        const node = document.createElement(tag);
+        if (cls) node.className = cls;
+        if (text !== undefined) node.textContent = text;
+        return node;
+    }
+
+    // Built with the DOM API only: labels and titles come from the model.
+    function renderPanel(id) {
+        const entry = state.layer[id];
+        if (!entry) return;
+        const title = document.getElementById('threat-panel-title');
+        title.textContent = entry.label;
+        title.appendChild(el('span', 'tp-kind', KIND_LABELS[entry.kind] || entry.kind));
+
+        const summary = document.getElementById('threat-panel-summary');
+        summary.textContent = '';
+        LEVELS.forEach(lvl => {
+            const n = entry.counts[lvl] || 0;
+            if (!n) return;
+            const chip = el('span', 'tp-chip', `${n} ${lvl.toLowerCase()}`);
+            chip.style.background = COLORS[lvl];
+            if (!levelCount(entry, lvl)) chip.style.opacity = '0.35';
+            summary.appendChild(chip);
+        });
+
+        const list = document.getElementById('threat-panel-list');
+        list.textContent = '';
+        const shown = entry.threats.filter(t => state.levels.has(t.severity) && strideShown(t.stride));
+        shown.forEach(t => {
+            const li = el('li');
+            const sev = el('span', 'tp-sev', t.score ? `${t.severity} ${t.score}` : t.severity);
+            sev.style.background = COLORS[t.severity];
+            li.appendChild(sev);
+            li.appendChild(document.createTextNode(t.title));
+            const meta = [t.stride, t.id, t.source && t.source !== 'pytm' ? t.source : ''].filter(Boolean).join(' · ');
+            if (meta) li.appendChild(el('span', 'tp-meta', meta));
+            list.appendChild(li);
+        });
+        if (!shown.length) list.appendChild(el('li', 'tp-meta', 'No threat matches the legend filters.'));
+
+        const footer = document.getElementById('threat-panel-footer');
+        footer.textContent = '';
+        const listed = entry.threats.length;
+        if (entry.total > listed) footer.appendChild(document.createTextNode(`Showing the ${listed} worst of ${entry.total} threats. `));
+        // A report URL starting with a scheme ("javascript:...") is never a sibling file.
+        if (LAYER_REPORT_URL && !/^\s*[a-z][a-z0-9+.\-]*:/i.test(LAYER_REPORT_URL)) {
+            const link = el('a', '', 'Open in the full report →');
+            link.href = LAYER_REPORT_URL + '#' + entry.anchor;
+            link.target = '_top';
+            footer.appendChild(link);
+        }
+    }
+
+    function openThreatPanel(id) {
+        if (!state.layer[id]) return;
+        state.openId = id;
+        renderPanel(id);
+        document.getElementById('threat-panel').classList.add('open');
+        refreshThreatBadges();
+    }
+
+    // Same toggle as the page's highlighting: a second click on the element closes it.
+    function toggleThreatPanel(id) {
+        if (state.openId === id) closeThreatPanel(); else openThreatPanel(id);
+    }
+
+    function closeThreatPanel() {
+        state.openId = null;
+        document.getElementById('threat-panel').classList.remove('open');
+        refreshThreatBadges();
+    }
+
+    function setThreatLayerVisible(visible) {
+        state.visible = !!visible;
+        const box = document.getElementById('threat-layer-toggle');
+        if (box) box.checked = state.visible;
+        if (!state.visible) closeThreatPanel();
+        refreshThreatBadges();
+    }
+
+    // Click: show only this category (again: back to all). Shift/Ctrl/Cmd-click: add or
+    // remove it from the current selection.
+    function toggleThreatStride(stride, additive) {
+        if (additive) {
+            const next = new Set(state.strides || []);
+            if (next.has(stride)) next.delete(stride); else next.add(stride);
+            state.strides = next.size ? next : null;
+        } else {
+            const solo = state.strides && state.strides.size === 1 && state.strides.has(stride);
+            state.strides = solo ? null : new Set([stride]);
+        }
+        refreshThreatBadges();
+    }
+
+    function toggleThreatSeverity(level) {
+        if (state.levels.has(level)) state.levels.delete(level); else state.levels.add(level);
+        refreshThreatBadges();
+    }
+
+    window.refreshThreatBadges = refreshThreatBadges;
+    window.openThreatPanel = openThreatPanel;
+    window.closeThreatPanel = closeThreatPanel;
+    window.setThreatLayerVisible = setThreatLayerVisible;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        try { state.layer = JSON.parse("{\"edge_TokenProxy_HSM\": {\"label\": \"TokenProxy \\u2192 HSM\", \"kind\": \"dataflow\", \"anchor\": \"component-ProxyToHSM\", \"counts\": {\"CRITICAL\": 2, \"HIGH\": 0, \"MEDIUM\": 0, \"LOW\": 0}, \"by_stride\": {\"Information Disclosure\": {\"CRITICAL\": 1}, \"Spoofing\": {\"CRITICAL\": 1}}, \"total\": 2, \"max\": \"CRITICAL\", \"threats\": [{\"id\": \"T-0001\", \"title\": \"Data interception on an unencrypted channel from TokenProxy to HSM (Man-in-the-Middle attack)\", \"severity\": \"CRITICAL\", \"score\": 10.0, \"stride\": \"Information Disclosure\", \"source\": \"pytm\"}, {\"id\": \"T-0004\", \"title\": \"Spoofing of data from TokenProxy to HSM due to lack of authentication\", \"severity\": \"CRITICAL\", \"score\": 10.0, \"stride\": \"Spoofing\", \"source\": \"pytm\"}]}, \"edge_TokenProxy_VaultDB\": {\"label\": \"TokenProxy \\u2192 VaultDB\", \"kind\": \"dataflow\", \"anchor\": \"component-ProxyToVaultDB\", \"counts\": {\"CRITICAL\": 3, \"HIGH\": 0, \"MEDIUM\": 0, \"LOW\": 0}, \"by_stride\": {\"Information Disclosure\": {\"CRITICAL\": 2}, \"Spoofing\": {\"CRITICAL\": 1}}, \"total\": 3, \"max\": \"CRITICAL\", \"threats\": [{\"id\": \"T-0002\", \"title\": \"Data interception on an unencrypted channel from TokenProxy to VaultDB (Man-in-the-Middle attack)\", \"severity\": \"CRITICAL\", \"score\": 10.0, \"stride\": \"Information Disclosure\", \"source\": \"pytm\"}, {\"id\": \"T-0003\", \"title\": \"Credentials in dataflow from TokenProxy to VaultDB are sent over an unencrypted channel.\", \"severity\": \"CRITICAL\", \"score\": 10.0, \"stride\": \"Information Disclosure\", \"source\": \"pytm\"}, {\"id\": \"T-0005\", \"title\": \"Spoofing of data from TokenProxy to VaultDB due to lack of authentication\", \"severity\": \"CRITICAL\", \"score\": 10.0, \"stride\": \"Spoofing\", \"source\": \"pytm\"}]}, \"TokenProxy\": {\"label\": \"TokenProxy\", \"kind\": \"server\", \"anchor\": \"component-TokenProxy\", \"counts\": {\"CRITICAL\": 3, \"HIGH\": 1, \"MEDIUM\": 0, \"LOW\": 0}, \"by_stride\": {\"Tampering\": {\"CRITICAL\": 1}, \"Elevation of Privilege\": {\"CRITICAL\": 1}, \"Repudiation\": {\"CRITICAL\": 1}, \"Information Disclosure\": {\"HIGH\": 1}}, \"total\": 4, \"max\": \"CRITICAL\", \"threats\": [{\"id\": \"T-0006\", \"title\": \"Unpatched OS or software vulnerabilities on TokenProxy leading to system compromise\", \"severity\": \"CRITICAL\", \"score\": 10.0, \"stride\": \"Tampering\", \"source\": \"pytm\"}, {\"id\": \"T-0011\", \"title\": \"Unauthorized privilege escalation on TokenProxy due to misconfiguration or vulnerability\", \"severity\": \"CRITICAL\", \"score\": 10.0, \"stride\": \"Elevation of Privilege\", \"source\": \"pytm\"}, {\"id\": \"T-0017\", \"title\": \"Lack of monitoring or logging on TokenProxy, preventing detection of malicious activities and enabling repudiation\", \"severity\": \"CRITICAL\", \"score\": 9.4, \"stride\": \"Repudiation\", \"source\": \"pytm\"}, {\"id\": \"T-0020\", \"title\": \"Insecure security configuration or hardening on TokenProxy leading to information exposure\", \"severity\": \"HIGH\", \"score\": 8.8, \"stride\": \"Information Disclosure\", \"source\": \"pytm\"}]}, \"HSM\": {\"label\": \"HSM\", \"kind\": \"server\", \"anchor\": \"component-HSM\", \"counts\": {\"CRITICAL\": 4, \"HIGH\": 0, \"MEDIUM\": 0, \"LOW\": 0}, \"by_stride\": {\"Tampering\": {\"CRITICAL\": 1}, \"Elevation of Privilege\": {\"CRITICAL\": 1}, \"Repudiation\": {\"CRITICAL\": 1}, \"Information Disclosure\": {\"CRITICAL\": 1}}, \"total\": 4, \"max\": \"CRITICAL\", \"threats\": [{\"id\": \"T-0007\", \"title\": \"Unpatched OS or software vulnerabilities on HSM leading to system compromise\", \"severity\": \"CRITICAL\", \"score\": 10.0, \"stride\": \"Tampering\", \"source\": \"pytm\"}, {\"id\": \"T-0012\", \"title\": \"Unauthorized privilege escalation on HSM due to misconfiguration or vulnerability\", \"severity\": \"CRITICAL\", \"score\": 10.0, \"stride\": \"Elevation of Privilege\", \"source\": \"pytm\"}, {\"id\": \"T-0014\", \"title\": \"Lack of monitoring or logging on HSM, preventing detection of malicious activities and enabling repudiation\", \"severity\": \"CRITICAL\", \"score\": 9.9, \"stride\": \"Repudiation\", \"source\": \"pytm\"}, {\"id\": \"T-0018\", \"title\": \"Insecure security configuration or hardening on HSM leading to information exposure\", \"severity\": \"CRITICAL\", \"score\": 9.3, \"stride\": \"Information Disclosure\", \"source\": \"pytm\"}]}, \"VaultDB\": {\"label\": \"VaultDB\", \"kind\": \"server\", \"anchor\": \"component-VaultDB\", \"counts\": {\"CRITICAL\": 7, \"HIGH\": 0, \"MEDIUM\": 0, \"LOW\": 0}, \"by_stride\": {\"Tampering\": {\"CRITICAL\": 2}, \"Information Disclosure\": {\"CRITICAL\": 2}, \"Elevation of Privilege\": {\"CRITICAL\": 1}, \"Repudiation\": {\"CRITICAL\": 1}, \"Denial of Service\": {\"CRITICAL\": 1}}, \"total\": 7, \"max\": \"CRITICAL\", \"threats\": [{\"id\": \"T-0008\", \"title\": \"Unpatched OS or software vulnerabilities on VaultDB leading to system compromise\", \"severity\": \"CRITICAL\", \"score\": 10.0, \"stride\": \"Tampering\", \"source\": \"pytm\"}, {\"id\": \"T-0009\", \"title\": \"Data corruption or tampering in VaultDB via unauthorized write access\", \"severity\": \"CRITICAL\", \"score\": 10.0, \"stride\": \"Tampering\", \"source\": \"pytm\"}, {\"id\": \"T-0010\", \"title\": \"Unauthorized access to sensitive data stored in VaultDB leading to data breach\", \"severity\": \"CRITICAL\", \"score\": 10.0, \"stride\": \"Information Disclosure\", \"source\": \"pytm\"}, {\"id\": \"T-0013\", \"title\": \"Unauthorized privilege escalation on VaultDB due to misconfiguration or vulnerability\", \"severity\": \"CRITICAL\", \"score\": 10.0, \"stride\": \"Elevation of Privilege\", \"source\": \"pytm\"}, {\"id\": \"T-0015\", \"title\": \"Lack of monitoring or logging on VaultDB, preventing detection of malicious activities and enabling repudiation\", \"severity\": \"CRITICAL\", \"score\": 9.9, \"stride\": \"Repudiation\", \"source\": \"pytm\"}, {\"id\": \"T-0016\", \"title\": \"Denial of Service against VaultDB through resource-intensive queries or excessive connections\", \"severity\": \"CRITICAL\", \"score\": 9.9, \"stride\": \"Denial of Service\", \"source\": \"pytm\"}, {\"id\": \"T-0019\", \"title\": \"Insecure security configuration or hardening on VaultDB leading to information exposure\", \"severity\": \"CRITICAL\", \"score\": 9.3, \"stride\": \"Information Disclosure\", \"source\": \"pytm\"}]}}") || {}; } catch (e) { state.layer = {}; }
+        const hasLayer = Object.keys(state.layer).length > 0;
+
+        if (!hasLayer) {
+            const row = document.getElementById('threat-layer-toggle-row');
+            if (row) row.style.display = 'none';
+            document.querySelectorAll('.threat-sev-filter').forEach(i => i.classList.remove('legend-item'));
+            const strideRow = document.getElementById('threat-stride-row');
+            if (strideRow) strideRow.style.display = 'none';
+            return;
+        }
+        // The section is hidden by the page when it has no heat-map data; the layer needs it.
+        const section = document.getElementById('severity-legend-section');
+        if (section) section.style.display = '';
+
+        const totals = {};
+        LEVELS.forEach(lvl => { totals[lvl] = Object.values(state.layer).reduce((n, e) => n + (e.counts[lvl] || 0), 0); });
+        document.querySelectorAll('.threat-sev-count').forEach(span => { span.textContent = totals[span.dataset.severity] || 0; });
+        document.querySelectorAll('.threat-sev-filter').forEach(item => {
+            item.addEventListener('click', () => toggleThreatSeverity(item.dataset.severity));
+        });
+        const strideTotals = {};
+        Object.values(state.layer).forEach(e => Object.entries(e.by_stride || {}).forEach(([stride, perLevel]) => {
+            strideTotals[stride] = (strideTotals[stride] || 0) + Object.values(perLevel).reduce((a, b) => a + b, 0);
+        }));
+        document.querySelectorAll('.threat-stride-filter').forEach(chip => {
+            const n = strideTotals[chip.dataset.stride] || 0;
+            chip.title = `${chip.dataset.stride}: ${plural(n, 'threat')}. Click to show only this category, Shift-click to combine.`;
+            if (!n) chip.classList.add('empty');
+            chip.addEventListener('click', (e) => toggleThreatStride(chip.dataset.stride, e.shiftKey || e.ctrlKey || e.metaKey));
+        });
+
+        buildBadges();
+
+        const svg = svgRoot();
+        if (svg) {
+            // Clicking a node or dataflow that has threats toggles its panel (in step with
+            // the page's highlighting); anything else closes it. Boundaries open from
+            // their badge only, so a click inside a boundary is not hijacked.
+            svg.addEventListener('click', (e) => {
+                if (!state.visible || e.target.closest('a')) return;
+                // Nearest enclosing element of the layer (icons nest their own <g id>).
+                let g = e.target;
+                while (g && g !== svg && !(g.id && state.layer[g.id])) g = g.parentNode;
+                const id = g && g !== svg ? g.id : null;
+                if (id && state.layer[id].kind !== 'boundary') toggleThreatPanel(id);
+                else closeThreatPanel();  // also re-syncs badge dimming with the highlight
+            });
+        }
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeThreatPanel(); });
+    });
+})();
+</script>
+</body>
+</html>

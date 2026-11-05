@@ -1,0 +1,909 @@
+{
+    "type": "bundle",
+    "id": "bundle--ea3ff123-d3af-413a-8595-5ab4eaeb0983",
+    "spec_version": "2.1",
+    "objects": [
+        {
+            "type": "extension-definition",
+            "id": "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4",
+            "spec_version": "2.1",
+            "created": "2022-08-02T19:34:35.143Z",
+            "modified": "2022-08-02T19:34:35.143Z",
+            "name": "Attack Flow",
+            "description": "Extends STIX 2.1 with features to create Attack Flows.",
+            "created_by_ref": "identity--b66463d4-a15d-4f2d-89cf-6f9815d64655",
+            "schema": "https://center-for-threat-informed-defense.github.io/attack-flow/stix/attack-flow-schema-2.0.0.json",
+            "version": "2.0.0",
+            "extension_types": [
+                "new-sdo"
+            ]
+        },
+        {
+            "type": "identity",
+            "id": "identity--b66463d4-a15d-4f2d-89cf-6f9815d64655",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.450655Z",
+            "modified": "2026-11-05T23:52:11.450672Z",
+            "name": "Threat Model Analysis Tool",
+            "identity_class": "tool"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--6f9d8994-27c1-4dd8-8bd3-8e4fae44cb0b",
+            "created": "2026-11-05T23:52:11.450685Z",
+            "modified": "2026-11-05T23:52:11.450689Z",
+            "name": "Data interception on an unencrypted channel from TokenProxy to HSM (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from TokenProxy to HSM (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--a875ab85-7810-4a0d-a98d-a0328e827de0"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--a875ab85-7810-4a0d-a98d-a0328e827de0",
+            "created": "2026-11-05T23:52:11.450701Z",
+            "modified": "2026-11-05T23:52:11.450705Z",
+            "name": "ProxyToHSM",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from TokenProxy to HSM (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--e9c186ad-eb91-4edf-bfd9-e042948d92b0",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.450725Z",
+            "modified": "2026-11-05T23:52:11.450729Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--6f9d8994-27c1-4dd8-8bd3-8e4fae44cb0b",
+            "target_ref": "attack-asset--a875ab85-7810-4a0d-a98d-a0328e827de0"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--c5df4037-5441-4e79-8841-561e8dfba7e6",
+            "created": "2026-11-05T23:52:11.450741Z",
+            "modified": "2026-11-05T23:52:11.450745Z",
+            "name": "Data interception on an unencrypted channel from TokenProxy to VaultDB (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from TokenProxy to VaultDB (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--5df6894f-47d3-4169-bddc-c5602efe8f4e"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--5df6894f-47d3-4169-bddc-c5602efe8f4e",
+            "created": "2026-11-05T23:52:11.450755Z",
+            "modified": "2026-11-05T23:52:11.450759Z",
+            "name": "ProxyToVaultDB",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from TokenProxy to VaultDB (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--c01839ca-ccda-476b-9380-f57b9315f0d7",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.450769Z",
+            "modified": "2026-11-05T23:52:11.450772Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--c5df4037-5441-4e79-8841-561e8dfba7e6",
+            "target_ref": "attack-asset--5df6894f-47d3-4169-bddc-c5602efe8f4e"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--f5f35e6e-2461-455c-bdb9-59698df8f67a",
+            "created": "2026-11-05T23:52:11.450783Z",
+            "modified": "2026-11-05T23:52:11.450786Z",
+            "name": "Credentials in dataflow from TokenProxy to VaultDB are sent over an unencrypted channel.",
+            "description": "Credentials in dataflow from TokenProxy to VaultDB are sent over an unencrypted channel.",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--c21ae9f0-a4fd-4971-80ae-69bda57783a1"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--c21ae9f0-a4fd-4971-80ae-69bda57783a1",
+            "created": "2026-11-05T23:52:11.450795Z",
+            "modified": "2026-11-05T23:52:11.450799Z",
+            "name": "ProxyToVaultDB",
+            "description": "Asset targeted by threat: Credentials in dataflow from TokenProxy to VaultDB are sent over an unencrypted channel.",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--75a99798-242f-4b1c-8ff6-b7b5965601a7",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.450808Z",
+            "modified": "2026-11-05T23:52:11.450812Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--f5f35e6e-2461-455c-bdb9-59698df8f67a",
+            "target_ref": "attack-asset--c21ae9f0-a4fd-4971-80ae-69bda57783a1"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--beca6742-ad83-4408-80fb-107f3239f43c",
+            "created": "2026-11-05T23:52:11.450822Z",
+            "modified": "2026-11-05T23:52:11.450826Z",
+            "name": "Spoofing of data from TokenProxy to HSM due to lack of authentication",
+            "description": "Spoofing of data from TokenProxy to HSM due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--e07bdaae-7b2f-4541-b296-a3746e4e5a54"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--e07bdaae-7b2f-4541-b296-a3746e4e5a54",
+            "created": "2026-11-05T23:52:11.450836Z",
+            "modified": "2026-11-05T23:52:11.450840Z",
+            "name": "ProxyToHSM",
+            "description": "Asset targeted by threat: Spoofing of data from TokenProxy to HSM due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--2b4bedde-f98a-4243-8fa8-799b253f08ae",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.450849Z",
+            "modified": "2026-11-05T23:52:11.450853Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--beca6742-ad83-4408-80fb-107f3239f43c",
+            "target_ref": "attack-asset--e07bdaae-7b2f-4541-b296-a3746e4e5a54"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--9230fe55-6b35-41de-b1a3-f1234fab4baa",
+            "created": "2026-11-05T23:52:11.450863Z",
+            "modified": "2026-11-05T23:52:11.450866Z",
+            "name": "Spoofing of data from TokenProxy to VaultDB due to lack of authentication",
+            "description": "Spoofing of data from TokenProxy to VaultDB due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--cf41226b-1672-404e-8f90-5c234aa4a184"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--cf41226b-1672-404e-8f90-5c234aa4a184",
+            "created": "2026-11-05T23:52:11.450876Z",
+            "modified": "2026-11-05T23:52:11.450879Z",
+            "name": "ProxyToVaultDB",
+            "description": "Asset targeted by threat: Spoofing of data from TokenProxy to VaultDB due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--7b1e2e39-926a-4f7f-a44a-c2e3a6a52662",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.450889Z",
+            "modified": "2026-11-05T23:52:11.450892Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--9230fe55-6b35-41de-b1a3-f1234fab4baa",
+            "target_ref": "attack-asset--cf41226b-1672-404e-8f90-5c234aa4a184"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--045c9179-8848-41bd-9984-47bb5871a45a",
+            "created": "2026-11-05T23:52:11.450903Z",
+            "modified": "2026-11-05T23:52:11.450907Z",
+            "name": "Unpatched OS or software vulnerabilities on TokenProxy leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on TokenProxy leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--d21b1462-4f74-4eee-9609-822da5d367d8"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--d21b1462-4f74-4eee-9609-822da5d367d8",
+            "created": "2026-11-05T23:52:11.450917Z",
+            "modified": "2026-11-05T23:52:11.450921Z",
+            "name": "TokenProxy",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on TokenProxy leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--ad7e92c8-e724-4035-b11d-f434217274c2",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.450930Z",
+            "modified": "2026-11-05T23:52:11.450934Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--045c9179-8848-41bd-9984-47bb5871a45a",
+            "target_ref": "attack-asset--d21b1462-4f74-4eee-9609-822da5d367d8"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--8aea1817-63e5-4566-b729-86feeb6b47c2",
+            "created": "2026-11-05T23:52:11.450943Z",
+            "modified": "2026-11-05T23:52:11.450947Z",
+            "name": "Unpatched OS or software vulnerabilities on HSM leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on HSM leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--918128fe-0be1-4644-a9dc-7dc40de1142a"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--918128fe-0be1-4644-a9dc-7dc40de1142a",
+            "created": "2026-11-05T23:52:11.450956Z",
+            "modified": "2026-11-05T23:52:11.450959Z",
+            "name": "HSM",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on HSM leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--570256e7-78aa-4862-beaf-1f0b1871ec80",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.450969Z",
+            "modified": "2026-11-05T23:52:11.450972Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--8aea1817-63e5-4566-b729-86feeb6b47c2",
+            "target_ref": "attack-asset--918128fe-0be1-4644-a9dc-7dc40de1142a"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--bf2e58ef-7deb-4203-aba7-2d8983508fec",
+            "created": "2026-11-05T23:52:11.450982Z",
+            "modified": "2026-11-05T23:52:11.450986Z",
+            "name": "Unpatched OS or software vulnerabilities on VaultDB leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on VaultDB leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--f2520baa-3643-4f1b-9f0e-219ed4a9e125"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--f2520baa-3643-4f1b-9f0e-219ed4a9e125",
+            "created": "2026-11-05T23:52:11.450995Z",
+            "modified": "2026-11-05T23:52:11.450999Z",
+            "name": "VaultDB",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on VaultDB leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--00e00951-d828-4e1d-97d6-56d11b42c0c6",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.451010Z",
+            "modified": "2026-11-05T23:52:11.451014Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--bf2e58ef-7deb-4203-aba7-2d8983508fec",
+            "target_ref": "attack-asset--f2520baa-3643-4f1b-9f0e-219ed4a9e125"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--21055743-4199-4940-8fb0-5213d6871f04",
+            "created": "2026-11-05T23:52:11.451025Z",
+            "modified": "2026-11-05T23:52:11.451029Z",
+            "name": "Data corruption or tampering in VaultDB via unauthorized write access",
+            "description": "Data corruption or tampering in VaultDB via unauthorized write access",
+            "technique_id": "T1221",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--0855dbe7-af76-47ef-8082-3abda8aff880"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--0855dbe7-af76-47ef-8082-3abda8aff880",
+            "created": "2026-11-05T23:52:11.451039Z",
+            "modified": "2026-11-05T23:52:11.451043Z",
+            "name": "VaultDB",
+            "description": "Asset targeted by threat: Data corruption or tampering in VaultDB via unauthorized write access",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--1cd847d9-f7e0-43e6-b898-0060289b0cba",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.451052Z",
+            "modified": "2026-11-05T23:52:11.451056Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--21055743-4199-4940-8fb0-5213d6871f04",
+            "target_ref": "attack-asset--0855dbe7-af76-47ef-8082-3abda8aff880"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--7db284fc-3a01-41e8-85ab-1dd4fe5e8a68",
+            "created": "2026-11-05T23:52:11.451067Z",
+            "modified": "2026-11-05T23:52:11.451070Z",
+            "name": "Unauthorized access to sensitive data stored in VaultDB leading to data breach",
+            "description": "Unauthorized access to sensitive data stored in VaultDB leading to data breach",
+            "technique_id": "T1078",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--f635b438-8948-4623-8d6c-dc02f18c1c09"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--f635b438-8948-4623-8d6c-dc02f18c1c09",
+            "created": "2026-11-05T23:52:11.451079Z",
+            "modified": "2026-11-05T23:52:11.451083Z",
+            "name": "VaultDB",
+            "description": "Asset targeted by threat: Unauthorized access to sensitive data stored in VaultDB leading to data breach",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--8c71feb3-868e-4f58-a1bd-38ca32c3aef0",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.451093Z",
+            "modified": "2026-11-05T23:52:11.451096Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--7db284fc-3a01-41e8-85ab-1dd4fe5e8a68",
+            "target_ref": "attack-asset--f635b438-8948-4623-8d6c-dc02f18c1c09"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--82acd047-0319-4a36-ad83-993e8f3762b4",
+            "created": "2026-11-05T23:52:11.451107Z",
+            "modified": "2026-11-05T23:52:11.451111Z",
+            "name": "Unauthorized privilege escalation on TokenProxy due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on TokenProxy due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--b9e3bba0-a3b7-4ad0-8db7-693c9d45aa1e"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--b9e3bba0-a3b7-4ad0-8db7-693c9d45aa1e",
+            "created": "2026-11-05T23:52:11.451120Z",
+            "modified": "2026-11-05T23:52:11.451124Z",
+            "name": "TokenProxy",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on TokenProxy due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--96d7d0ae-736f-490d-85bd-039dffec1abc",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.451133Z",
+            "modified": "2026-11-05T23:52:11.451137Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--82acd047-0319-4a36-ad83-993e8f3762b4",
+            "target_ref": "attack-asset--b9e3bba0-a3b7-4ad0-8db7-693c9d45aa1e"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--ae1893b3-297d-4a43-bc18-323b59f164f7",
+            "created": "2026-11-05T23:52:11.451147Z",
+            "modified": "2026-11-05T23:52:11.451151Z",
+            "name": "Unauthorized privilege escalation on HSM due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on HSM due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--393d961a-c986-4510-9562-da2229b33225"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--393d961a-c986-4510-9562-da2229b33225",
+            "created": "2026-11-05T23:52:11.451253Z",
+            "modified": "2026-11-05T23:52:11.451261Z",
+            "name": "HSM",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on HSM due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--9fa59db0-0430-44b9-98e3-4b50df492716",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.451278Z",
+            "modified": "2026-11-05T23:52:11.451282Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--ae1893b3-297d-4a43-bc18-323b59f164f7",
+            "target_ref": "attack-asset--393d961a-c986-4510-9562-da2229b33225"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--509bda0b-8a6e-4d14-bd58-bf040852ccd8",
+            "created": "2026-11-05T23:52:11.451294Z",
+            "modified": "2026-11-05T23:52:11.451298Z",
+            "name": "Unauthorized privilege escalation on VaultDB due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on VaultDB due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--4bc5dfc0-72b9-46e2-997e-baeeee39b1c2"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--4bc5dfc0-72b9-46e2-997e-baeeee39b1c2",
+            "created": "2026-11-05T23:52:11.451308Z",
+            "modified": "2026-11-05T23:52:11.451312Z",
+            "name": "VaultDB",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on VaultDB due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--7ba89749-a8fc-4ddb-ac10-32770d0b3a6e",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.451322Z",
+            "modified": "2026-11-05T23:52:11.451326Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--509bda0b-8a6e-4d14-bd58-bf040852ccd8",
+            "target_ref": "attack-asset--4bc5dfc0-72b9-46e2-997e-baeeee39b1c2"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--dd926620-a9b7-4128-bc2d-372709cf7760",
+            "created": "2026-11-05T23:52:11.451337Z",
+            "modified": "2026-11-05T23:52:11.451340Z",
+            "name": "Lack of monitoring or logging on HSM, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on HSM, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--0eafe7f9-ab24-4684-bda4-de883aca95c3"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--0eafe7f9-ab24-4684-bda4-de883aca95c3",
+            "created": "2026-11-05T23:52:11.451351Z",
+            "modified": "2026-11-05T23:52:11.451354Z",
+            "name": "HSM",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on HSM, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--d2d5b9e6-8c1c-49b4-825e-723ebc4d911c",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.451363Z",
+            "modified": "2026-11-05T23:52:11.451367Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--dd926620-a9b7-4128-bc2d-372709cf7760",
+            "target_ref": "attack-asset--0eafe7f9-ab24-4684-bda4-de883aca95c3"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--5328ac01-3247-4a5a-a769-ed670dd4882f",
+            "created": "2026-11-05T23:52:11.451377Z",
+            "modified": "2026-11-05T23:52:11.451380Z",
+            "name": "Lack of monitoring or logging on VaultDB, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on VaultDB, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--50e2aa77-556a-4274-8410-03c7e028ac34"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--50e2aa77-556a-4274-8410-03c7e028ac34",
+            "created": "2026-11-05T23:52:11.451389Z",
+            "modified": "2026-11-05T23:52:11.451392Z",
+            "name": "VaultDB",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on VaultDB, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--a2dc2532-2e0b-4d01-83d3-2bc317e38b0d",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.451398Z",
+            "modified": "2026-11-05T23:52:11.451400Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--5328ac01-3247-4a5a-a769-ed670dd4882f",
+            "target_ref": "attack-asset--50e2aa77-556a-4274-8410-03c7e028ac34"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--39be35cf-33e1-4c8f-8b70-8ea3f5347b72",
+            "created": "2026-11-05T23:52:11.451406Z",
+            "modified": "2026-11-05T23:52:11.451408Z",
+            "name": "Denial of Service against VaultDB through resource-intensive queries or excessive connections",
+            "description": "Denial of Service against VaultDB through resource-intensive queries or excessive connections",
+            "technique_id": "T1499",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--402b3ac9-4434-4a36-a9ed-4fb0eb563ecc"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--402b3ac9-4434-4a36-a9ed-4fb0eb563ecc",
+            "created": "2026-11-05T23:52:11.451414Z",
+            "modified": "2026-11-05T23:52:11.451416Z",
+            "name": "VaultDB",
+            "description": "Asset targeted by threat: Denial of Service against VaultDB through resource-intensive queries or excessive connections",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--535dc104-4d72-4b59-8fba-965edfe65488",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.451422Z",
+            "modified": "2026-11-05T23:52:11.451425Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--39be35cf-33e1-4c8f-8b70-8ea3f5347b72",
+            "target_ref": "attack-asset--402b3ac9-4434-4a36-a9ed-4fb0eb563ecc"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--fa9cbc37-0f99-480f-b0de-b78c4f6cb345",
+            "created": "2026-11-05T23:52:11.451430Z",
+            "modified": "2026-11-05T23:52:11.451433Z",
+            "name": "Lack of monitoring or logging on TokenProxy, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on TokenProxy, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--97ae96f4-6ebc-4467-95eb-25b3d8ba41c5"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--97ae96f4-6ebc-4467-95eb-25b3d8ba41c5",
+            "created": "2026-11-05T23:52:11.451438Z",
+            "modified": "2026-11-05T23:52:11.451440Z",
+            "name": "TokenProxy",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on TokenProxy, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--0174a20a-f8a8-4788-bc74-d1a96b4ace5b",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.451446Z",
+            "modified": "2026-11-05T23:52:11.451448Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--fa9cbc37-0f99-480f-b0de-b78c4f6cb345",
+            "target_ref": "attack-asset--97ae96f4-6ebc-4467-95eb-25b3d8ba41c5"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--712c1e0d-2acc-44c6-9796-1f604c55b3e7",
+            "created": "2026-11-05T23:52:11.451454Z",
+            "modified": "2026-11-05T23:52:11.451456Z",
+            "name": "Insecure security configuration or hardening on HSM leading to information exposure",
+            "description": "Insecure security configuration or hardening on HSM leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--73d0f165-a751-4297-ac23-e76f18c21897"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--73d0f165-a751-4297-ac23-e76f18c21897",
+            "created": "2026-11-05T23:52:11.451464Z",
+            "modified": "2026-11-05T23:52:11.451467Z",
+            "name": "HSM",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on HSM leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--60eec484-5ac0-406b-85c9-0b90b57e96c9",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.451476Z",
+            "modified": "2026-11-05T23:52:11.451480Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--712c1e0d-2acc-44c6-9796-1f604c55b3e7",
+            "target_ref": "attack-asset--73d0f165-a751-4297-ac23-e76f18c21897"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--7459c5bc-e0e1-4bbc-a9eb-36120609e3b7",
+            "created": "2026-11-05T23:52:11.451489Z",
+            "modified": "2026-11-05T23:52:11.451493Z",
+            "name": "Insecure security configuration or hardening on VaultDB leading to information exposure",
+            "description": "Insecure security configuration or hardening on VaultDB leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--322d3845-e40d-4e11-bb78-d7170e187e28"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--322d3845-e40d-4e11-bb78-d7170e187e28",
+            "created": "2026-11-05T23:52:11.451502Z",
+            "modified": "2026-11-05T23:52:11.451506Z",
+            "name": "VaultDB",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on VaultDB leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--ac4da0e0-1345-43cc-a973-ee1219dd854e",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.451515Z",
+            "modified": "2026-11-05T23:52:11.451519Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--7459c5bc-e0e1-4bbc-a9eb-36120609e3b7",
+            "target_ref": "attack-asset--322d3845-e40d-4e11-bb78-d7170e187e28"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--10de42cd-5193-4ff0-a35a-f76816e5d857",
+            "created": "2026-11-05T23:52:11.451527Z",
+            "modified": "2026-11-05T23:52:11.451531Z",
+            "name": "Insecure security configuration or hardening on TokenProxy leading to information exposure",
+            "description": "Insecure security configuration or hardening on TokenProxy leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--e9f0d52c-efed-4007-a1d5-3b3d384650f0"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--e9f0d52c-efed-4007-a1d5-3b3d384650f0",
+            "created": "2026-11-05T23:52:11.451540Z",
+            "modified": "2026-11-05T23:52:11.451544Z",
+            "name": "TokenProxy",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on TokenProxy leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--deb6b3ac-467b-4293-a3e8-8c148e8d04ca",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:11.451553Z",
+            "modified": "2026-11-05T23:52:11.451556Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--10de42cd-5193-4ff0-a35a-f76816e5d857",
+            "target_ref": "attack-asset--e9f0d52c-efed-4007-a1d5-3b3d384650f0"
+        },
+        {
+            "type": "attack-flow",
+            "spec_version": "2.1",
+            "id": "attack-flow--a8b2f16d-a5b9-4be2-9fe4-c2327967b30a",
+            "created_by_ref": "identity--b66463d4-a15d-4f2d-89cf-6f9815d64655",
+            "created": "2026-11-05T23:52:11.451567Z",
+            "modified": "2026-11-05T23:52:11.451571Z",
+            "name": "Attack Flow for model",
+            "description": "This Attack Flow was generated from the threat model 'model'.",
+            "scope": "attack-tree",
+            "start_refs": [
+                "attack-action--6f9d8994-27c1-4dd8-8bd3-8e4fae44cb0b",
+                "attack-action--c5df4037-5441-4e79-8841-561e8dfba7e6",
+                "attack-action--f5f35e6e-2461-455c-bdb9-59698df8f67a",
+                "attack-action--beca6742-ad83-4408-80fb-107f3239f43c",
+                "attack-action--9230fe55-6b35-41de-b1a3-f1234fab4baa",
+                "attack-action--045c9179-8848-41bd-9984-47bb5871a45a",
+                "attack-action--8aea1817-63e5-4566-b729-86feeb6b47c2",
+                "attack-action--bf2e58ef-7deb-4203-aba7-2d8983508fec",
+                "attack-action--21055743-4199-4940-8fb0-5213d6871f04",
+                "attack-action--7db284fc-3a01-41e8-85ab-1dd4fe5e8a68",
+                "attack-action--82acd047-0319-4a36-ad83-993e8f3762b4",
+                "attack-action--ae1893b3-297d-4a43-bc18-323b59f164f7",
+                "attack-action--509bda0b-8a6e-4d14-bd58-bf040852ccd8",
+                "attack-action--dd926620-a9b7-4128-bc2d-372709cf7760",
+                "attack-action--5328ac01-3247-4a5a-a769-ed670dd4882f",
+                "attack-action--39be35cf-33e1-4c8f-8b70-8ea3f5347b72",
+                "attack-action--fa9cbc37-0f99-480f-b0de-b78c4f6cb345",
+                "attack-action--712c1e0d-2acc-44c6-9796-1f604c55b3e7",
+                "attack-action--7459c5bc-e0e1-4bbc-a9eb-36120609e3b7",
+                "attack-action--10de42cd-5193-4ff0-a35a-f76816e5d857"
+            ],
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,53 @@
+digraph ThreatModel {
+  rankdir=LR;
+  node [shape=box];
+  edge [fontsize=10];
+  splines=true;
+  overlap=false;
+  nodesep=0.5;
+  ranksep=0.6;
+  charset="UTF-8";
+
+  
+
+  
+
+  
+
+  
+  "PrimaryDB" [shape=cylinder, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/database.svg" SCALE="TRUE"/></TD></TR><TR><TD>PrimaryDB</TD></TR></TABLE>>, id="PrimaryDB"];
+  
+  "ReplicaDB" [shape=cylinder, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/database.svg" SCALE="TRUE"/></TD></TR><TR><TD>ReplicaDB</TD></TR></TABLE>>, id="ReplicaDB"];
+  
+
+  
+  "PrimaryDB" -> "ReplicaDB" [label="", color="purple", style="solid", label=<Replication<BR/>Protocol: DB Sync>, id="edge_PrimaryDB_ReplicaDB", fontsize=7, class="protocol-DB_Sync"];
+  
+
+  
+  
+  
+  
+  subgraph cluster__external_parent_in {
+    label="External connections in (parent model)";
+    style="dashed,filled";
+    fillcolor="#e8f5e9";
+    color="#66bb6a";
+    penwidth=1;
+    fontsize=9;
+    fontcolor="#2e7d32";
+    
+    
+    
+    
+    "__ghost_OrderService" [label="OrderService", shape=ellipse, style="dashed,filled", fillcolor="#c8e6c9", color="#66bb6a", fontcolor="#1b5e20", fontsize=9];
+    
+    
+  }
+  
+  "__ghost_OrderService" -> "PrimaryDB" [style=dashed, color="#66bb6a", label="TCP", fontsize=7, arrowsize=0.7];
+  
+  
+  
+  
+}

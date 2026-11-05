@@ -1,0 +1,2371 @@
+{
+    "type": "bundle",
+    "id": "bundle--10af1c6f-512c-4333-9835-96bc86596eb5",
+    "spec_version": "2.1",
+    "objects": [
+        {
+            "type": "extension-definition",
+            "id": "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4",
+            "spec_version": "2.1",
+            "created": "2022-08-02T19:34:35.143Z",
+            "modified": "2022-08-02T19:34:35.143Z",
+            "name": "Attack Flow",
+            "description": "Extends STIX 2.1 with features to create Attack Flows.",
+            "created_by_ref": "identity--33401f60-616b-4b0f-9d0d-756d0da90c24",
+            "schema": "https://center-for-threat-informed-defense.github.io/attack-flow/stix/attack-flow-schema-2.0.0.json",
+            "version": "2.0.0",
+            "extension_types": [
+                "new-sdo"
+            ]
+        },
+        {
+            "type": "identity",
+            "id": "identity--33401f60-616b-4b0f-9d0d-756d0da90c24",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.333361Z",
+            "modified": "2026-11-05T23:51:10.333379Z",
+            "name": "Threat Model Analysis Tool",
+            "identity_class": "tool"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--6a70d12f-5f5e-4343-a561-9eebd0c1376c",
+            "created": "2026-11-05T23:51:10.333388Z",
+            "modified": "2026-11-05T23:51:10.333391Z",
+            "name": "Unpatched OS or software vulnerabilities on BITools leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on BITools leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--f9201a30-ceaa-41f2-8a2e-4503dd0f4bfe"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--f9201a30-ceaa-41f2-8a2e-4503dd0f4bfe",
+            "created": "2026-11-05T23:51:10.333400Z",
+            "modified": "2026-11-05T23:51:10.333403Z",
+            "name": "BITools",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on BITools leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--c2de9bb3-5b2d-47e0-96a7-c8d326f31da0",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.333412Z",
+            "modified": "2026-11-05T23:51:10.333416Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--6a70d12f-5f5e-4343-a561-9eebd0c1376c",
+            "target_ref": "attack-asset--f9201a30-ceaa-41f2-8a2e-4503dd0f4bfe"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--a144d0da-264b-45a8-9460-ad437b54a3d1",
+            "created": "2026-11-05T23:51:10.333425Z",
+            "modified": "2026-11-05T23:51:10.333427Z",
+            "name": "Potential for spoofing attacks on data crossing trust boundaries from Data Provider to ETLPipeline without proper authentication",
+            "description": "Potential for spoofing attacks on data crossing trust boundaries from Data Provider to ETLPipeline without proper authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--30f0421c-acf9-4758-8c99-274aa951ce88"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--30f0421c-acf9-4758-8c99-274aa951ce88",
+            "created": "2026-11-05T23:51:10.333435Z",
+            "modified": "2026-11-05T23:51:10.333437Z",
+            "name": "Data Ingestion",
+            "description": "Asset targeted by threat: Potential for spoofing attacks on data crossing trust boundaries from Data Provider to ETLPipeline without proper authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--68f9aafb-c02a-44b1-9a32-f06eafb05707",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.333443Z",
+            "modified": "2026-11-05T23:51:10.333445Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--a144d0da-264b-45a8-9460-ad437b54a3d1",
+            "target_ref": "attack-asset--30f0421c-acf9-4758-8c99-274aa951ce88"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--5bbded78-b29b-4d01-977e-3b4188d7c600",
+            "created": "2026-11-05T23:51:10.333453Z",
+            "modified": "2026-11-05T23:51:10.333455Z",
+            "name": "Potential for spoofing attacks on data crossing trust boundaries from BITools to DataWarehouse without proper authentication",
+            "description": "Potential for spoofing attacks on data crossing trust boundaries from BITools to DataWarehouse without proper authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--84ad5ddc-e2cf-46e4-aea0-9b11115a3865"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--84ad5ddc-e2cf-46e4-aea0-9b11115a3865",
+            "created": "2026-11-05T23:51:10.333461Z",
+            "modified": "2026-11-05T23:51:10.333463Z",
+            "name": "Query Data",
+            "description": "Asset targeted by threat: Potential for spoofing attacks on data crossing trust boundaries from BITools to DataWarehouse without proper authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--417d62e8-ede8-457b-8698-5d38170e35a4",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.333469Z",
+            "modified": "2026-11-05T23:51:10.333472Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--5bbded78-b29b-4d01-977e-3b4188d7c600",
+            "target_ref": "attack-asset--84ad5ddc-e2cf-46e4-aea0-9b11115a3865"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--739d7d64-def6-4a4f-b87b-5a953e00214e",
+            "created": "2026-11-05T23:51:10.333479Z",
+            "modified": "2026-11-05T23:51:10.333481Z",
+            "name": "Potential for spoofing attacks on data crossing trust boundaries from Data Analyst to ObjectStorage without proper authentication",
+            "description": "Potential for spoofing attacks on data crossing trust boundaries from Data Analyst to ObjectStorage without proper authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--13fd0694-051d-4420-a7bd-fbf377e1db1a"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--13fd0694-051d-4420-a7bd-fbf377e1db1a",
+            "created": "2026-11-05T23:51:10.333487Z",
+            "modified": "2026-11-05T23:51:10.333489Z",
+            "name": "Access Raw Data",
+            "description": "Asset targeted by threat: Potential for spoofing attacks on data crossing trust boundaries from Data Analyst to ObjectStorage without proper authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--adc7cf6e-1b50-4364-ba05-cc5440666c01",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.333496Z",
+            "modified": "2026-11-05T23:51:10.333498Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--739d7d64-def6-4a4f-b87b-5a953e00214e",
+            "target_ref": "attack-asset--13fd0694-051d-4420-a7bd-fbf377e1db1a"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--e3fc85a6-2515-4184-9bcf-79f88ba32bf9",
+            "created": "2026-11-05T23:51:10.333505Z",
+            "modified": "2026-11-05T23:51:10.333507Z",
+            "name": "Potential for spoofing attacks on data crossing trust boundaries from Business User to DataLakehouse without proper authentication",
+            "description": "Potential for spoofing attacks on data crossing trust boundaries from Business User to DataLakehouse without proper authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--b493c378-158e-4fd8-b8c7-16fb6a22696c"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--b493c378-158e-4fd8-b8c7-16fb6a22696c",
+            "created": "2026-11-05T23:51:10.333513Z",
+            "modified": "2026-11-05T23:51:10.333515Z",
+            "name": "Access Curated Data",
+            "description": "Asset targeted by threat: Potential for spoofing attacks on data crossing trust boundaries from Business User to DataLakehouse without proper authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--c8f1fdcc-afb6-4549-9972-a0aef237ba86",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.333557Z",
+            "modified": "2026-11-05T23:51:10.333563Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--e3fc85a6-2515-4184-9bcf-79f88ba32bf9",
+            "target_ref": "attack-asset--b493c378-158e-4fd8-b8c7-16fb6a22696c"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--f243fc98-65f4-41f7-8d01-3df0699f7724",
+            "created": "2026-11-05T23:51:10.333572Z",
+            "modified": "2026-11-05T23:51:10.333575Z",
+            "name": "Unpatched OS or software vulnerabilities on ETLPipeline leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on ETLPipeline leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--104e4b12-edc2-4ac2-9288-d1b7ffd1aa96"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--104e4b12-edc2-4ac2-9288-d1b7ffd1aa96",
+            "created": "2026-11-05T23:51:10.333582Z",
+            "modified": "2026-11-05T23:51:10.333584Z",
+            "name": "ETLPipeline",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on ETLPipeline leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--6c8ddef4-ac5a-4c56-b19e-323eb75ddf69",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.333591Z",
+            "modified": "2026-11-05T23:51:10.333593Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--f243fc98-65f4-41f7-8d01-3df0699f7724",
+            "target_ref": "attack-asset--104e4b12-edc2-4ac2-9288-d1b7ffd1aa96"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--a393e1ce-a169-49d3-852e-ce4a05e43a5a",
+            "created": "2026-11-05T23:51:10.333600Z",
+            "modified": "2026-11-05T23:51:10.333602Z",
+            "name": "Unpatched OS or software vulnerabilities on ObjectStorage leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on ObjectStorage leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--1d7ea1ce-64a3-47ed-bfac-dcfa07426796"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--1d7ea1ce-64a3-47ed-bfac-dcfa07426796",
+            "created": "2026-11-05T23:51:10.333609Z",
+            "modified": "2026-11-05T23:51:10.333611Z",
+            "name": "ObjectStorage",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on ObjectStorage leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--55f2585f-fc1b-4bb7-8df7-027ca96e4cd5",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.333616Z",
+            "modified": "2026-11-05T23:51:10.333618Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--a393e1ce-a169-49d3-852e-ce4a05e43a5a",
+            "target_ref": "attack-asset--1d7ea1ce-64a3-47ed-bfac-dcfa07426796"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--6e340d80-b741-4a1c-8a3c-c98435d4faa8",
+            "created": "2026-11-05T23:51:10.333628Z",
+            "modified": "2026-11-05T23:51:10.333631Z",
+            "name": "Unpatched OS or software vulnerabilities on DataLakehouse leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on DataLakehouse leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--2fc4e519-f6dd-4d3e-b0bd-c984277938dc"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--2fc4e519-f6dd-4d3e-b0bd-c984277938dc",
+            "created": "2026-11-05T23:51:10.333638Z",
+            "modified": "2026-11-05T23:51:10.333640Z",
+            "name": "DataLakehouse",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on DataLakehouse leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--f28aad5b-001a-4772-8481-50e666f60821",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.333647Z",
+            "modified": "2026-11-05T23:51:10.333649Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--6e340d80-b741-4a1c-8a3c-c98435d4faa8",
+            "target_ref": "attack-asset--2fc4e519-f6dd-4d3e-b0bd-c984277938dc"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--b0b5e312-5c5d-4aee-820d-5236ae62d078",
+            "created": "2026-11-05T23:51:10.333656Z",
+            "modified": "2026-11-05T23:51:10.333659Z",
+            "name": "Unpatched OS or software vulnerabilities on SparkCluster leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on SparkCluster leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--60845d73-f522-47a6-ae3d-33981f04d03d"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--60845d73-f522-47a6-ae3d-33981f04d03d",
+            "created": "2026-11-05T23:51:10.333665Z",
+            "modified": "2026-11-05T23:51:10.333667Z",
+            "name": "SparkCluster",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on SparkCluster leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--616e6c7b-23cd-4f04-83d0-bffaced64974",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.333673Z",
+            "modified": "2026-11-05T23:51:10.333675Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--b0b5e312-5c5d-4aee-820d-5236ae62d078",
+            "target_ref": "attack-asset--60845d73-f522-47a6-ae3d-33981f04d03d"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--8d777623-b653-4d1d-a8eb-43d26b8d1517",
+            "created": "2026-11-05T23:51:10.333682Z",
+            "modified": "2026-11-05T23:51:10.333684Z",
+            "name": "Unpatched OS or software vulnerabilities on DataWarehouse leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on DataWarehouse leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--fd5cf830-25e7-419b-a58f-9219ff7985c7"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--fd5cf830-25e7-419b-a58f-9219ff7985c7",
+            "created": "2026-11-05T23:51:10.333689Z",
+            "modified": "2026-11-05T23:51:10.333691Z",
+            "name": "DataWarehouse",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on DataWarehouse leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--eff5f3fe-01d6-4963-9e5d-1c059d1683f0",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.333697Z",
+            "modified": "2026-11-05T23:51:10.333699Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--8d777623-b653-4d1d-a8eb-43d26b8d1517",
+            "target_ref": "attack-asset--fd5cf830-25e7-419b-a58f-9219ff7985c7"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--e4eb695a-b9c3-4194-ab12-c22f56e8b8f9",
+            "created": "2026-11-05T23:51:10.333705Z",
+            "modified": "2026-11-05T23:51:10.333707Z",
+            "name": "Unauthorized privilege escalation on ObjectStorage due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on ObjectStorage due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--25f8a8d6-cae8-4ed8-abcc-830ca5726c60"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--25f8a8d6-cae8-4ed8-abcc-830ca5726c60",
+            "created": "2026-11-05T23:51:10.333714Z",
+            "modified": "2026-11-05T23:51:10.333716Z",
+            "name": "ObjectStorage",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on ObjectStorage due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--402a97ae-7c53-45ab-b1d3-18000c2c97a5",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.333722Z",
+            "modified": "2026-11-05T23:51:10.333724Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--e4eb695a-b9c3-4194-ab12-c22f56e8b8f9",
+            "target_ref": "attack-asset--25f8a8d6-cae8-4ed8-abcc-830ca5726c60"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--62639131-6153-48c9-be6a-a74f6a9cc828",
+            "created": "2026-11-05T23:51:10.333731Z",
+            "modified": "2026-11-05T23:51:10.333733Z",
+            "name": "Unauthorized privilege escalation on DataLakehouse due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on DataLakehouse due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--f2a74be4-767a-4667-90f1-ed24a9745371"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--f2a74be4-767a-4667-90f1-ed24a9745371",
+            "created": "2026-11-05T23:51:10.333738Z",
+            "modified": "2026-11-05T23:51:10.333741Z",
+            "name": "DataLakehouse",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on DataLakehouse due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--068c9af6-caf4-499a-84ad-76a1c2c7183d",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.333747Z",
+            "modified": "2026-11-05T23:51:10.333749Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--62639131-6153-48c9-be6a-a74f6a9cc828",
+            "target_ref": "attack-asset--f2a74be4-767a-4667-90f1-ed24a9745371"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--4991e053-4085-4ca4-a249-f818495deae0",
+            "created": "2026-11-05T23:51:10.333757Z",
+            "modified": "2026-11-05T23:51:10.333759Z",
+            "name": "Unauthorized privilege escalation on SparkCluster due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on SparkCluster due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--fc833711-afcc-4e44-9359-d6a9ec93a9f4"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--fc833711-afcc-4e44-9359-d6a9ec93a9f4",
+            "created": "2026-11-05T23:51:10.333765Z",
+            "modified": "2026-11-05T23:51:10.333767Z",
+            "name": "SparkCluster",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on SparkCluster due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--51e9304e-9a5e-44bb-ac95-75d8db365554",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.333772Z",
+            "modified": "2026-11-05T23:51:10.333775Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--4991e053-4085-4ca4-a249-f818495deae0",
+            "target_ref": "attack-asset--fc833711-afcc-4e44-9359-d6a9ec93a9f4"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--30b0ac4c-bfe6-45f5-87c4-8c9157c2bd21",
+            "created": "2026-11-05T23:51:10.333781Z",
+            "modified": "2026-11-05T23:51:10.333783Z",
+            "name": "Unauthorized privilege escalation on DataWarehouse due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on DataWarehouse due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--3d54c158-2535-4e4c-8620-44f56eed736d"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--3d54c158-2535-4e4c-8620-44f56eed736d",
+            "created": "2026-11-05T23:51:10.333789Z",
+            "modified": "2026-11-05T23:51:10.333791Z",
+            "name": "DataWarehouse",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on DataWarehouse due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--9368c31a-42cf-4dc4-810c-d5f4320cd286",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.333798Z",
+            "modified": "2026-11-05T23:51:10.333800Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--30b0ac4c-bfe6-45f5-87c4-8c9157c2bd21",
+            "target_ref": "attack-asset--3d54c158-2535-4e4c-8620-44f56eed736d"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--01f7e18f-f4cb-4dca-a739-392da8f38c18",
+            "created": "2026-11-05T23:51:10.333806Z",
+            "modified": "2026-11-05T23:51:10.333809Z",
+            "name": "Unauthorized privilege escalation on BITools due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on BITools due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--9e34691c-3c89-4926-897b-c5e02b059c4d"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--9e34691c-3c89-4926-897b-c5e02b059c4d",
+            "created": "2026-11-05T23:51:10.333815Z",
+            "modified": "2026-11-05T23:51:10.333817Z",
+            "name": "BITools",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on BITools due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--f7b01ee8-8e44-437c-a606-0b35f1cdd240",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.333823Z",
+            "modified": "2026-11-05T23:51:10.333825Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--01f7e18f-f4cb-4dca-a739-392da8f38c18",
+            "target_ref": "attack-asset--9e34691c-3c89-4926-897b-c5e02b059c4d"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--62a77ddf-af5f-4666-92fa-0c914fc91aa4",
+            "created": "2026-11-05T23:51:10.333831Z",
+            "modified": "2026-11-05T23:51:10.333833Z",
+            "name": "Spoofing of data from Data Provider to ETLPipeline due to lack of authentication",
+            "description": "Spoofing of data from Data Provider to ETLPipeline due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--b889109e-6e7e-432d-9150-4289dffbac25"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--b889109e-6e7e-432d-9150-4289dffbac25",
+            "created": "2026-11-05T23:51:10.333839Z",
+            "modified": "2026-11-05T23:51:10.333841Z",
+            "name": "Data Ingestion",
+            "description": "Asset targeted by threat: Spoofing of data from Data Provider to ETLPipeline due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--6c1776d2-e692-41d2-9afe-934314e05e4e",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.333847Z",
+            "modified": "2026-11-05T23:51:10.333849Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--62a77ddf-af5f-4666-92fa-0c914fc91aa4",
+            "target_ref": "attack-asset--b889109e-6e7e-432d-9150-4289dffbac25"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--f3ac2dae-7bc3-4fcd-a0d4-35f26a494247",
+            "created": "2026-11-05T23:51:10.333855Z",
+            "modified": "2026-11-05T23:51:10.333857Z",
+            "name": "Spoofing of data from ETLPipeline to ObjectStorage due to lack of authentication",
+            "description": "Spoofing of data from ETLPipeline to ObjectStorage due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--43896e4d-a2ee-4cc8-8b33-096f9f15c09f"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--43896e4d-a2ee-4cc8-8b33-096f9f15c09f",
+            "created": "2026-11-05T23:51:10.333863Z",
+            "modified": "2026-11-05T23:51:10.333865Z",
+            "name": "Load to Raw Storage",
+            "description": "Asset targeted by threat: Spoofing of data from ETLPipeline to ObjectStorage due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--ac85e7b6-00f6-4b5a-8d8a-71c01af75c81",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.333871Z",
+            "modified": "2026-11-05T23:51:10.333873Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--f3ac2dae-7bc3-4fcd-a0d4-35f26a494247",
+            "target_ref": "attack-asset--43896e4d-a2ee-4cc8-8b33-096f9f15c09f"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--7b8f0e9f-ccdf-491c-81ac-bd85905a53fe",
+            "created": "2026-11-05T23:51:10.333881Z",
+            "modified": "2026-11-05T23:51:10.333884Z",
+            "name": "Spoofing of data from ObjectStorage to SparkCluster due to lack of authentication",
+            "description": "Spoofing of data from ObjectStorage to SparkCluster due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--c1a2ba55-d44a-4f16-a82c-7aafd5729edd"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--c1a2ba55-d44a-4f16-a82c-7aafd5729edd",
+            "created": "2026-11-05T23:51:10.333890Z",
+            "modified": "2026-11-05T23:51:10.333893Z",
+            "name": "Data Transformation",
+            "description": "Asset targeted by threat: Spoofing of data from ObjectStorage to SparkCluster due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--4affcf6b-83fb-4ae3-b09b-8fd71a5aeb78",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.333898Z",
+            "modified": "2026-11-05T23:51:10.333901Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--7b8f0e9f-ccdf-491c-81ac-bd85905a53fe",
+            "target_ref": "attack-asset--c1a2ba55-d44a-4f16-a82c-7aafd5729edd"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--2c52f905-cb7e-4de9-b26a-80565817fcbd",
+            "created": "2026-11-05T23:51:10.333906Z",
+            "modified": "2026-11-05T23:51:10.333908Z",
+            "name": "Spoofing of data from SparkCluster to DataLakehouse due to lack of authentication",
+            "description": "Spoofing of data from SparkCluster to DataLakehouse due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--804a5ee0-d58a-44cc-aad4-0ad785084d4c"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--804a5ee0-d58a-44cc-aad4-0ad785084d4c",
+            "created": "2026-11-05T23:51:10.333914Z",
+            "modified": "2026-11-05T23:51:10.333916Z",
+            "name": "Load to Curated",
+            "description": "Asset targeted by threat: Spoofing of data from SparkCluster to DataLakehouse due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--2393e46e-f132-45f5-a75e-fb0500f3693d",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.333921Z",
+            "modified": "2026-11-05T23:51:10.333924Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--2c52f905-cb7e-4de9-b26a-80565817fcbd",
+            "target_ref": "attack-asset--804a5ee0-d58a-44cc-aad4-0ad785084d4c"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--c7a6ae18-4b03-4b38-9c33-2bd6cdf6d161",
+            "created": "2026-11-05T23:51:10.333929Z",
+            "modified": "2026-11-05T23:51:10.333931Z",
+            "name": "Spoofing of data from BITools to DataWarehouse due to lack of authentication",
+            "description": "Spoofing of data from BITools to DataWarehouse due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--6a46696b-79fe-41eb-b101-c449dc312895"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--6a46696b-79fe-41eb-b101-c449dc312895",
+            "created": "2026-11-05T23:51:10.333937Z",
+            "modified": "2026-11-05T23:51:10.333939Z",
+            "name": "Query Data",
+            "description": "Asset targeted by threat: Spoofing of data from BITools to DataWarehouse due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--a11f4fc7-b47d-431c-bf7a-42f08760e569",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.333944Z",
+            "modified": "2026-11-05T23:51:10.333947Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--c7a6ae18-4b03-4b38-9c33-2bd6cdf6d161",
+            "target_ref": "attack-asset--6a46696b-79fe-41eb-b101-c449dc312895"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--d06b6f44-99bd-4bf7-8c01-a84ff3366850",
+            "created": "2026-11-05T23:51:10.333953Z",
+            "modified": "2026-11-05T23:51:10.333955Z",
+            "name": "Spoofing of data from Data Analyst to ObjectStorage due to lack of authentication",
+            "description": "Spoofing of data from Data Analyst to ObjectStorage due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--36d926ea-6926-4e93-a6e2-bb26a3a541b9"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--36d926ea-6926-4e93-a6e2-bb26a3a541b9",
+            "created": "2026-11-05T23:51:10.333961Z",
+            "modified": "2026-11-05T23:51:10.333963Z",
+            "name": "Access Raw Data",
+            "description": "Asset targeted by threat: Spoofing of data from Data Analyst to ObjectStorage due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--d14c629d-f98f-4312-a4e2-f3ab41093ce5",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.333975Z",
+            "modified": "2026-11-05T23:51:10.333977Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--d06b6f44-99bd-4bf7-8c01-a84ff3366850",
+            "target_ref": "attack-asset--36d926ea-6926-4e93-a6e2-bb26a3a541b9"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--14225bb5-b70c-47a2-bf86-ed5864716db7",
+            "created": "2026-11-05T23:51:10.333984Z",
+            "modified": "2026-11-05T23:51:10.333986Z",
+            "name": "Spoofing of data from Business User to DataLakehouse due to lack of authentication",
+            "description": "Spoofing of data from Business User to DataLakehouse due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--9ebcd1bf-5f54-4bee-a4c8-bc714fa93e64"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--9ebcd1bf-5f54-4bee-a4c8-bc714fa93e64",
+            "created": "2026-11-05T23:51:10.333991Z",
+            "modified": "2026-11-05T23:51:10.333993Z",
+            "name": "Access Curated Data",
+            "description": "Asset targeted by threat: Spoofing of data from Business User to DataLakehouse due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--4d5165c6-4f65-4a7f-b266-cc57eab63fa7",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.333998Z",
+            "modified": "2026-11-05T23:51:10.334000Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--14225bb5-b70c-47a2-bf86-ed5864716db7",
+            "target_ref": "attack-asset--9ebcd1bf-5f54-4bee-a4c8-bc714fa93e64"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--33fbb477-1a70-4223-91b5-af58016c4c9b",
+            "created": "2026-11-05T23:51:10.334007Z",
+            "modified": "2026-11-05T23:51:10.334009Z",
+            "name": "Identity spoofing of the actor Data Provider via phishing or credential theft",
+            "description": "Identity spoofing of the actor Data Provider via phishing or credential theft",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--7935671d-1e7b-4af8-b8d4-d8afd185f024"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--7935671d-1e7b-4af8-b8d4-d8afd185f024",
+            "created": "2026-11-05T23:51:10.334015Z",
+            "modified": "2026-11-05T23:51:10.334017Z",
+            "name": "Data Provider",
+            "description": "Asset targeted by threat: Identity spoofing of the actor Data Provider via phishing or credential theft",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--7c2c672c-00a5-4223-b949-0ee1cf8a35f1",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334023Z",
+            "modified": "2026-11-05T23:51:10.334026Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--33fbb477-1a70-4223-91b5-af58016c4c9b",
+            "target_ref": "attack-asset--7935671d-1e7b-4af8-b8d4-d8afd185f024"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--63c22aa4-f8b4-4de9-933b-77d032d3e1f1",
+            "created": "2026-11-05T23:51:10.334032Z",
+            "modified": "2026-11-05T23:51:10.334034Z",
+            "name": "Identity spoofing of the actor Data Analyst via phishing or credential theft",
+            "description": "Identity spoofing of the actor Data Analyst via phishing or credential theft",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--90448c32-72ae-4c64-899a-9d7d0e00fcc6"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--90448c32-72ae-4c64-899a-9d7d0e00fcc6",
+            "created": "2026-11-05T23:51:10.334040Z",
+            "modified": "2026-11-05T23:51:10.334042Z",
+            "name": "Data Analyst",
+            "description": "Asset targeted by threat: Identity spoofing of the actor Data Analyst via phishing or credential theft",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--730a4f7d-d382-464d-b33f-44390b9306fe",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334047Z",
+            "modified": "2026-11-05T23:51:10.334049Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--63c22aa4-f8b4-4de9-933b-77d032d3e1f1",
+            "target_ref": "attack-asset--90448c32-72ae-4c64-899a-9d7d0e00fcc6"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--40c970dd-d7ec-4949-852e-cadee1597282",
+            "created": "2026-11-05T23:51:10.334055Z",
+            "modified": "2026-11-05T23:51:10.334057Z",
+            "name": "Identity spoofing of the actor Business User via phishing or credential theft",
+            "description": "Identity spoofing of the actor Business User via phishing or credential theft",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--ccf8daa6-278c-4d25-a626-d6acc343b6b9"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--ccf8daa6-278c-4d25-a626-d6acc343b6b9",
+            "created": "2026-11-05T23:51:10.334062Z",
+            "modified": "2026-11-05T23:51:10.334064Z",
+            "name": "Business User",
+            "description": "Asset targeted by threat: Identity spoofing of the actor Business User via phishing or credential theft",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--240e209f-e497-4656-b60f-3550745c3c28",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334070Z",
+            "modified": "2026-11-05T23:51:10.334072Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--40c970dd-d7ec-4949-852e-cadee1597282",
+            "target_ref": "attack-asset--ccf8daa6-278c-4d25-a626-d6acc343b6b9"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--bf82932a-8386-4a6d-a9ce-a729b11a8b93",
+            "created": "2026-11-05T23:51:10.334078Z",
+            "modified": "2026-11-05T23:51:10.334080Z",
+            "name": "Lack of monitoring or logging on DataLakehouse, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on DataLakehouse, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--9d06cb0a-3774-4578-9f6a-367ca6b4501a"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--9d06cb0a-3774-4578-9f6a-367ca6b4501a",
+            "created": "2026-11-05T23:51:10.334085Z",
+            "modified": "2026-11-05T23:51:10.334087Z",
+            "name": "DataLakehouse",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on DataLakehouse, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--7c84f925-9556-457b-8fa5-3715d71af5e4",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334092Z",
+            "modified": "2026-11-05T23:51:10.334095Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--bf82932a-8386-4a6d-a9ce-a729b11a8b93",
+            "target_ref": "attack-asset--9d06cb0a-3774-4578-9f6a-367ca6b4501a"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--d381d261-61d3-4b4f-9161-c6720a6c4bf2",
+            "created": "2026-11-05T23:51:10.334101Z",
+            "modified": "2026-11-05T23:51:10.334103Z",
+            "name": "Lack of monitoring or logging on DataWarehouse, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on DataWarehouse, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--9ffb64e8-c6b6-4f38-808c-95a3f37bde35"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--9ffb64e8-c6b6-4f38-808c-95a3f37bde35",
+            "created": "2026-11-05T23:51:10.334108Z",
+            "modified": "2026-11-05T23:51:10.334110Z",
+            "name": "DataWarehouse",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on DataWarehouse, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--3093c965-8e29-41d0-ae40-96d05c557d83",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334115Z",
+            "modified": "2026-11-05T23:51:10.334117Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--d381d261-61d3-4b4f-9161-c6720a6c4bf2",
+            "target_ref": "attack-asset--9ffb64e8-c6b6-4f38-808c-95a3f37bde35"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--dc727fbc-d25d-4cfc-84ed-b48d7eef1943",
+            "created": "2026-11-05T23:51:10.334123Z",
+            "modified": "2026-11-05T23:51:10.334125Z",
+            "name": "Lack of monitoring or logging on ObjectStorage, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on ObjectStorage, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--7a5bae30-f29c-477c-a144-2cfccc899ecd"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--7a5bae30-f29c-477c-a144-2cfccc899ecd",
+            "created": "2026-11-05T23:51:10.334130Z",
+            "modified": "2026-11-05T23:51:10.334132Z",
+            "name": "ObjectStorage",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on ObjectStorage, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--5b86e3c6-5384-46b8-aeb8-b1d12575af1b",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334138Z",
+            "modified": "2026-11-05T23:51:10.334141Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--dc727fbc-d25d-4cfc-84ed-b48d7eef1943",
+            "target_ref": "attack-asset--7a5bae30-f29c-477c-a144-2cfccc899ecd"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--6ab15b18-ab6d-4b52-b09f-f23e24dad6a3",
+            "created": "2026-11-05T23:51:10.334147Z",
+            "modified": "2026-11-05T23:51:10.334149Z",
+            "name": "Data interception on an unencrypted channel from Data Provider to ETLPipeline (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from Data Provider to ETLPipeline (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--427f3475-7c81-42a4-9794-0486d681f764"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--427f3475-7c81-42a4-9794-0486d681f764",
+            "created": "2026-11-05T23:51:10.334155Z",
+            "modified": "2026-11-05T23:51:10.334158Z",
+            "name": "Data Ingestion",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from Data Provider to ETLPipeline (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--dab066f7-efe8-4d0d-b847-0084425d389d",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334163Z",
+            "modified": "2026-11-05T23:51:10.334166Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--6ab15b18-ab6d-4b52-b09f-f23e24dad6a3",
+            "target_ref": "attack-asset--427f3475-7c81-42a4-9794-0486d681f764"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--f48da5b7-d148-4fe4-98e2-449412c0266c",
+            "created": "2026-11-05T23:51:10.334172Z",
+            "modified": "2026-11-05T23:51:10.334174Z",
+            "name": "Data interception on an unencrypted channel from ETLPipeline to ObjectStorage (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from ETLPipeline to ObjectStorage (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--7a7619fe-8d39-4cb7-81de-640801d3379b"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--7a7619fe-8d39-4cb7-81de-640801d3379b",
+            "created": "2026-11-05T23:51:10.334180Z",
+            "modified": "2026-11-05T23:51:10.334182Z",
+            "name": "Load to Raw Storage",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from ETLPipeline to ObjectStorage (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--9ce2ddb5-e87b-42d2-a83c-5e1d4ed79ae5",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334187Z",
+            "modified": "2026-11-05T23:51:10.334190Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--f48da5b7-d148-4fe4-98e2-449412c0266c",
+            "target_ref": "attack-asset--7a7619fe-8d39-4cb7-81de-640801d3379b"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--4d61c41b-e368-43c0-af1c-bcc522506655",
+            "created": "2026-11-05T23:51:10.334196Z",
+            "modified": "2026-11-05T23:51:10.334198Z",
+            "name": "Data interception on an unencrypted channel from ObjectStorage to SparkCluster (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from ObjectStorage to SparkCluster (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--7752c4d2-be30-4111-ba09-ab9c748b8877"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--7752c4d2-be30-4111-ba09-ab9c748b8877",
+            "created": "2026-11-05T23:51:10.334204Z",
+            "modified": "2026-11-05T23:51:10.334206Z",
+            "name": "Data Transformation",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from ObjectStorage to SparkCluster (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--0aa7dfbe-89a4-4683-bd22-c99a81fa070b",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334212Z",
+            "modified": "2026-11-05T23:51:10.334214Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--4d61c41b-e368-43c0-af1c-bcc522506655",
+            "target_ref": "attack-asset--7752c4d2-be30-4111-ba09-ab9c748b8877"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--12cb0698-8d01-45c4-ab28-65f022405c3d",
+            "created": "2026-11-05T23:51:10.334221Z",
+            "modified": "2026-11-05T23:51:10.334223Z",
+            "name": "Data interception on an unencrypted channel from SparkCluster to DataLakehouse (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from SparkCluster to DataLakehouse (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--f63108f4-511f-4f19-953d-7adbfff35c67"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--f63108f4-511f-4f19-953d-7adbfff35c67",
+            "created": "2026-11-05T23:51:10.334228Z",
+            "modified": "2026-11-05T23:51:10.334230Z",
+            "name": "Load to Curated",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from SparkCluster to DataLakehouse (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--339aec6e-01c0-4aa1-958c-b1d53326bb2e",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334236Z",
+            "modified": "2026-11-05T23:51:10.334238Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--12cb0698-8d01-45c4-ab28-65f022405c3d",
+            "target_ref": "attack-asset--f63108f4-511f-4f19-953d-7adbfff35c67"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--ffa729ef-bdff-4038-9129-53c68ce21867",
+            "created": "2026-11-05T23:51:10.334244Z",
+            "modified": "2026-11-05T23:51:10.334246Z",
+            "name": "Data interception on an unencrypted channel from BITools to DataWarehouse (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from BITools to DataWarehouse (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--adf9391f-0e7d-4ae1-a78d-f82529362c20"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--adf9391f-0e7d-4ae1-a78d-f82529362c20",
+            "created": "2026-11-05T23:51:10.334253Z",
+            "modified": "2026-11-05T23:51:10.334255Z",
+            "name": "Query Data",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from BITools to DataWarehouse (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--190f1fb1-dd51-4cf9-9895-2db4961dc067",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334261Z",
+            "modified": "2026-11-05T23:51:10.334263Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--ffa729ef-bdff-4038-9129-53c68ce21867",
+            "target_ref": "attack-asset--adf9391f-0e7d-4ae1-a78d-f82529362c20"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--2f320e9b-13bb-4547-a87b-381ecb08dd3c",
+            "created": "2026-11-05T23:51:10.334270Z",
+            "modified": "2026-11-05T23:51:10.334272Z",
+            "name": "Data interception on an unencrypted channel from Data Analyst to ObjectStorage (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from Data Analyst to ObjectStorage (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--6df65b43-cec9-4f24-bb2a-75c168491796"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--6df65b43-cec9-4f24-bb2a-75c168491796",
+            "created": "2026-11-05T23:51:10.334278Z",
+            "modified": "2026-11-05T23:51:10.334280Z",
+            "name": "Access Raw Data",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from Data Analyst to ObjectStorage (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--6fd85628-90f7-49ad-a22f-0b741aee2c27",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334286Z",
+            "modified": "2026-11-05T23:51:10.334289Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--2f320e9b-13bb-4547-a87b-381ecb08dd3c",
+            "target_ref": "attack-asset--6df65b43-cec9-4f24-bb2a-75c168491796"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--0fca4d93-15d1-4be1-a925-5c7f9868eb60",
+            "created": "2026-11-05T23:51:10.334295Z",
+            "modified": "2026-11-05T23:51:10.334297Z",
+            "name": "Data interception on an unencrypted channel from Business User to DataLakehouse (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from Business User to DataLakehouse (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--d1cf6d96-3405-4db8-8185-1449e655c2d4"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--d1cf6d96-3405-4db8-8185-1449e655c2d4",
+            "created": "2026-11-05T23:51:10.334303Z",
+            "modified": "2026-11-05T23:51:10.334305Z",
+            "name": "Access Curated Data",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from Business User to DataLakehouse (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--2604ab26-28e5-4f7b-b7b2-3622919d7768",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334310Z",
+            "modified": "2026-11-05T23:51:10.334313Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--0fca4d93-15d1-4be1-a925-5c7f9868eb60",
+            "target_ref": "attack-asset--d1cf6d96-3405-4db8-8185-1449e655c2d4"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--8c5f9b34-71ad-48ef-aec9-c477051d2e0f",
+            "created": "2026-11-05T23:51:10.334319Z",
+            "modified": "2026-11-05T23:51:10.334321Z",
+            "name": "Unauthorized privilege escalation on ETLPipeline due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on ETLPipeline due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--aa461756-ab4d-4dbc-a720-207f4ef15806"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--aa461756-ab4d-4dbc-a720-207f4ef15806",
+            "created": "2026-11-05T23:51:10.334326Z",
+            "modified": "2026-11-05T23:51:10.334329Z",
+            "name": "ETLPipeline",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on ETLPipeline due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--955f469f-379d-4f07-9321-25a579f72b9e",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334334Z",
+            "modified": "2026-11-05T23:51:10.334336Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--8c5f9b34-71ad-48ef-aec9-c477051d2e0f",
+            "target_ref": "attack-asset--aa461756-ab4d-4dbc-a720-207f4ef15806"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--81fa714c-c790-4490-9645-5b6dd335c95d",
+            "created": "2026-11-05T23:51:10.334343Z",
+            "modified": "2026-11-05T23:51:10.334345Z",
+            "name": "Lack of monitoring or logging on SparkCluster, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on SparkCluster, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--f498917e-f700-4149-a596-d8c3791fc8bb"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--f498917e-f700-4149-a596-d8c3791fc8bb",
+            "created": "2026-11-05T23:51:10.334351Z",
+            "modified": "2026-11-05T23:51:10.334353Z",
+            "name": "SparkCluster",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on SparkCluster, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--36a7dfb3-3fca-4d64-ac75-88cf167b0570",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334359Z",
+            "modified": "2026-11-05T23:51:10.334361Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--81fa714c-c790-4490-9645-5b6dd335c95d",
+            "target_ref": "attack-asset--f498917e-f700-4149-a596-d8c3791fc8bb"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--0ec22209-47eb-4490-a883-853363069249",
+            "created": "2026-11-05T23:51:10.334367Z",
+            "modified": "2026-11-05T23:51:10.334369Z",
+            "name": "Insecure security configuration or hardening on DataLakehouse leading to information exposure",
+            "description": "Insecure security configuration or hardening on DataLakehouse leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--97f9470e-4964-40cc-bac8-b6869368341e"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--97f9470e-4964-40cc-bac8-b6869368341e",
+            "created": "2026-11-05T23:51:10.334375Z",
+            "modified": "2026-11-05T23:51:10.334377Z",
+            "name": "DataLakehouse",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on DataLakehouse leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--44de24ba-3cba-47e5-87d8-d451bb7e30ed",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334383Z",
+            "modified": "2026-11-05T23:51:10.334385Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--0ec22209-47eb-4490-a883-853363069249",
+            "target_ref": "attack-asset--97f9470e-4964-40cc-bac8-b6869368341e"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--0a974c9a-e896-4bf3-9797-87b1112140bd",
+            "created": "2026-11-05T23:51:10.334391Z",
+            "modified": "2026-11-05T23:51:10.334393Z",
+            "name": "Insecure security configuration or hardening on DataWarehouse leading to information exposure",
+            "description": "Insecure security configuration or hardening on DataWarehouse leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--5ada2457-51d3-460d-a2f0-87f9cc0919f0"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--5ada2457-51d3-460d-a2f0-87f9cc0919f0",
+            "created": "2026-11-05T23:51:10.334400Z",
+            "modified": "2026-11-05T23:51:10.334403Z",
+            "name": "DataWarehouse",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on DataWarehouse leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--c180986e-22a0-4d0d-979a-dcd3d7c10fba",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334409Z",
+            "modified": "2026-11-05T23:51:10.334411Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--0a974c9a-e896-4bf3-9797-87b1112140bd",
+            "target_ref": "attack-asset--5ada2457-51d3-460d-a2f0-87f9cc0919f0"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--f6121233-8c34-4c00-9634-a639d519584b",
+            "created": "2026-11-05T23:51:10.334417Z",
+            "modified": "2026-11-05T23:51:10.334419Z",
+            "name": "Identity spoofing of the actor Data Engineer via phishing or credential theft",
+            "description": "Identity spoofing of the actor Data Engineer via phishing or credential theft",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--9d29c818-9e23-4eef-92df-2e91c615c929"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--9d29c818-9e23-4eef-92df-2e91c615c929",
+            "created": "2026-11-05T23:51:10.334424Z",
+            "modified": "2026-11-05T23:51:10.334426Z",
+            "name": "Data Engineer",
+            "description": "Asset targeted by threat: Identity spoofing of the actor Data Engineer via phishing or credential theft",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--468efca7-c543-49a2-b21a-d32dc6d66dd7",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334431Z",
+            "modified": "2026-11-05T23:51:10.334433Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--f6121233-8c34-4c00-9634-a639d519584b",
+            "target_ref": "attack-asset--9d29c818-9e23-4eef-92df-2e91c615c929"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--f2f3f5b8-efb9-4a42-a236-60bcb8f43162",
+            "created": "2026-11-05T23:51:10.334440Z",
+            "modified": "2026-11-05T23:51:10.334442Z",
+            "name": "Insecure security configuration or hardening on ObjectStorage leading to information exposure",
+            "description": "Insecure security configuration or hardening on ObjectStorage leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--45fdca24-262a-4647-aeec-7162e83ce875"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--45fdca24-262a-4647-aeec-7162e83ce875",
+            "created": "2026-11-05T23:51:10.334447Z",
+            "modified": "2026-11-05T23:51:10.334449Z",
+            "name": "ObjectStorage",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on ObjectStorage leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--98110cf2-20aa-46d2-b2e5-15f283d0e2a6",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334454Z",
+            "modified": "2026-11-05T23:51:10.334457Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--f2f3f5b8-efb9-4a42-a236-60bcb8f43162",
+            "target_ref": "attack-asset--45fdca24-262a-4647-aeec-7162e83ce875"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--f02455af-368c-417f-8721-d89501dbf1dd",
+            "created": "2026-11-05T23:51:10.334462Z",
+            "modified": "2026-11-05T23:51:10.334465Z",
+            "name": "Privilege abuse by actor Data Provider to gain unauthorized access or perform unauthorized actions",
+            "description": "Privilege abuse by actor Data Provider to gain unauthorized access or perform unauthorized actions",
+            "technique_id": "T1548",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--a0cb46a7-784b-4c0b-80c5-cec60870a787"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--a0cb46a7-784b-4c0b-80c5-cec60870a787",
+            "created": "2026-11-05T23:51:10.334471Z",
+            "modified": "2026-11-05T23:51:10.334473Z",
+            "name": "Data Provider",
+            "description": "Asset targeted by threat: Privilege abuse by actor Data Provider to gain unauthorized access or perform unauthorized actions",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--f9699172-17d1-4a3e-8dac-8ce6cf0ef244",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334479Z",
+            "modified": "2026-11-05T23:51:10.334481Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--f02455af-368c-417f-8721-d89501dbf1dd",
+            "target_ref": "attack-asset--a0cb46a7-784b-4c0b-80c5-cec60870a787"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--0f7c8108-31e6-4c2f-bcb1-f0041a865dc3",
+            "created": "2026-11-05T23:51:10.334487Z",
+            "modified": "2026-11-05T23:51:10.334490Z",
+            "name": "Privilege abuse by actor Data Analyst to gain unauthorized access or perform unauthorized actions",
+            "description": "Privilege abuse by actor Data Analyst to gain unauthorized access or perform unauthorized actions",
+            "technique_id": "T1548",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--9a180aa7-6bca-47c6-a19d-eea73197b460"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--9a180aa7-6bca-47c6-a19d-eea73197b460",
+            "created": "2026-11-05T23:51:10.334495Z",
+            "modified": "2026-11-05T23:51:10.334497Z",
+            "name": "Data Analyst",
+            "description": "Asset targeted by threat: Privilege abuse by actor Data Analyst to gain unauthorized access or perform unauthorized actions",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--d8c7f92b-15e7-4b09-adfd-adaf61e0be71",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334503Z",
+            "modified": "2026-11-05T23:51:10.334505Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--0f7c8108-31e6-4c2f-bcb1-f0041a865dc3",
+            "target_ref": "attack-asset--9a180aa7-6bca-47c6-a19d-eea73197b460"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--8fb36c76-0c2f-4f85-9937-a127c1515d6a",
+            "created": "2026-11-05T23:51:10.334512Z",
+            "modified": "2026-11-05T23:51:10.334514Z",
+            "name": "Privilege abuse by actor Business User to gain unauthorized access or perform unauthorized actions",
+            "description": "Privilege abuse by actor Business User to gain unauthorized access or perform unauthorized actions",
+            "technique_id": "T1548",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--9590aacf-965b-4f80-80c4-c0cfc02a5e05"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--9590aacf-965b-4f80-80c4-c0cfc02a5e05",
+            "created": "2026-11-05T23:51:10.334541Z",
+            "modified": "2026-11-05T23:51:10.334546Z",
+            "name": "Business User",
+            "description": "Asset targeted by threat: Privilege abuse by actor Business User to gain unauthorized access or perform unauthorized actions",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--95abc98d-3c43-41e5-b70c-b18a69da7930",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334557Z",
+            "modified": "2026-11-05T23:51:10.334559Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--8fb36c76-0c2f-4f85-9937-a127c1515d6a",
+            "target_ref": "attack-asset--9590aacf-965b-4f80-80c4-c0cfc02a5e05"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--dddf3423-f083-41d2-9475-806976dc0080",
+            "created": "2026-11-05T23:51:10.334566Z",
+            "modified": "2026-11-05T23:51:10.334569Z",
+            "name": "Lack of monitoring or logging on BITools, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on BITools, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--088da645-6a57-44c8-9974-6b2e559e274d"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--088da645-6a57-44c8-9974-6b2e559e274d",
+            "created": "2026-11-05T23:51:10.334575Z",
+            "modified": "2026-11-05T23:51:10.334577Z",
+            "name": "BITools",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on BITools, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--04f62595-e898-43ff-b83a-951e504361ee",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334583Z",
+            "modified": "2026-11-05T23:51:10.334585Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--dddf3423-f083-41d2-9475-806976dc0080",
+            "target_ref": "attack-asset--088da645-6a57-44c8-9974-6b2e559e274d"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--eb00e7b1-ffde-4e5d-b106-f9e540cafa0f",
+            "created": "2026-11-05T23:51:10.334591Z",
+            "modified": "2026-11-05T23:51:10.334593Z",
+            "name": "Insecure security configuration or hardening on SparkCluster leading to information exposure",
+            "description": "Insecure security configuration or hardening on SparkCluster leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--7916a937-6889-4780-81c3-93396bfaa4a2"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--7916a937-6889-4780-81c3-93396bfaa4a2",
+            "created": "2026-11-05T23:51:10.334599Z",
+            "modified": "2026-11-05T23:51:10.334601Z",
+            "name": "SparkCluster",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on SparkCluster leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--8b5b09fb-9246-4396-b5c5-da71cb465b0e",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334607Z",
+            "modified": "2026-11-05T23:51:10.334609Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--eb00e7b1-ffde-4e5d-b106-f9e540cafa0f",
+            "target_ref": "attack-asset--7916a937-6889-4780-81c3-93396bfaa4a2"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--52b9aba6-d139-4402-93e3-8e6cdab42f36",
+            "created": "2026-11-05T23:51:10.334614Z",
+            "modified": "2026-11-05T23:51:10.334616Z",
+            "name": "Insecure security configuration or hardening on BITools leading to information exposure",
+            "description": "Insecure security configuration or hardening on BITools leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--5b1cc461-4268-483f-8aec-b4f8fbe96309"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--5b1cc461-4268-483f-8aec-b4f8fbe96309",
+            "created": "2026-11-05T23:51:10.334621Z",
+            "modified": "2026-11-05T23:51:10.334624Z",
+            "name": "BITools",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on BITools leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--38724afe-a949-4567-90b5-b39c1ad432e1",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334629Z",
+            "modified": "2026-11-05T23:51:10.334631Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--52b9aba6-d139-4402-93e3-8e6cdab42f36",
+            "target_ref": "attack-asset--5b1cc461-4268-483f-8aec-b4f8fbe96309"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--1212f7d7-b336-40dd-8458-40ba14817df3",
+            "created": "2026-11-05T23:51:10.334637Z",
+            "modified": "2026-11-05T23:51:10.334639Z",
+            "name": "Repudiation of critical actions performed by Data Provider due to insufficient logging or non-repudiation controls",
+            "description": "Repudiation of critical actions performed by Data Provider due to insufficient logging or non-repudiation controls",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--1486ab15-fdb5-42a2-a48e-c525afac01d1"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--1486ab15-fdb5-42a2-a48e-c525afac01d1",
+            "created": "2026-11-05T23:51:10.334645Z",
+            "modified": "2026-11-05T23:51:10.334647Z",
+            "name": "Data Provider",
+            "description": "Asset targeted by threat: Repudiation of critical actions performed by Data Provider due to insufficient logging or non-repudiation controls",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--279856bc-e70d-4612-b673-f5beacdbe953",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334652Z",
+            "modified": "2026-11-05T23:51:10.334655Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--1212f7d7-b336-40dd-8458-40ba14817df3",
+            "target_ref": "attack-asset--1486ab15-fdb5-42a2-a48e-c525afac01d1"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--af53c1eb-aa79-4526-b66e-91187d62dc22",
+            "created": "2026-11-05T23:51:10.334661Z",
+            "modified": "2026-11-05T23:51:10.334663Z",
+            "name": "Repudiation of critical actions performed by Data Analyst due to insufficient logging or non-repudiation controls",
+            "description": "Repudiation of critical actions performed by Data Analyst due to insufficient logging or non-repudiation controls",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--8d890496-b3e0-4cde-a8d4-a339e55dfc5b"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--8d890496-b3e0-4cde-a8d4-a339e55dfc5b",
+            "created": "2026-11-05T23:51:10.334668Z",
+            "modified": "2026-11-05T23:51:10.334670Z",
+            "name": "Data Analyst",
+            "description": "Asset targeted by threat: Repudiation of critical actions performed by Data Analyst due to insufficient logging or non-repudiation controls",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--f307ea8a-dd6b-47de-82a2-3d4e75ecd163",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334676Z",
+            "modified": "2026-11-05T23:51:10.334678Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--af53c1eb-aa79-4526-b66e-91187d62dc22",
+            "target_ref": "attack-asset--8d890496-b3e0-4cde-a8d4-a339e55dfc5b"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--96b01878-78e6-4e8d-a07e-6a39379fb484",
+            "created": "2026-11-05T23:51:10.334684Z",
+            "modified": "2026-11-05T23:51:10.334686Z",
+            "name": "Repudiation of critical actions performed by Business User due to insufficient logging or non-repudiation controls",
+            "description": "Repudiation of critical actions performed by Business User due to insufficient logging or non-repudiation controls",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--6579cbfa-c242-4eb5-a6c0-9a56f055af53"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--6579cbfa-c242-4eb5-a6c0-9a56f055af53",
+            "created": "2026-11-05T23:51:10.334692Z",
+            "modified": "2026-11-05T23:51:10.334694Z",
+            "name": "Business User",
+            "description": "Asset targeted by threat: Repudiation of critical actions performed by Business User due to insufficient logging or non-repudiation controls",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--6e17d417-10b1-4270-a609-f2f3e9734353",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334699Z",
+            "modified": "2026-11-05T23:51:10.334701Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--96b01878-78e6-4e8d-a07e-6a39379fb484",
+            "target_ref": "attack-asset--6579cbfa-c242-4eb5-a6c0-9a56f055af53"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--6c8e6943-1774-4090-b1f7-7fcc92a1ba5c",
+            "created": "2026-11-05T23:51:10.334707Z",
+            "modified": "2026-11-05T23:51:10.334709Z",
+            "name": "Privilege abuse by actor Data Engineer to gain unauthorized access or perform unauthorized actions",
+            "description": "Privilege abuse by actor Data Engineer to gain unauthorized access or perform unauthorized actions",
+            "technique_id": "T1548",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--c7124265-cba3-4765-bb22-ccda3eca5ce3"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--c7124265-cba3-4765-bb22-ccda3eca5ce3",
+            "created": "2026-11-05T23:51:10.334715Z",
+            "modified": "2026-11-05T23:51:10.334717Z",
+            "name": "Data Engineer",
+            "description": "Asset targeted by threat: Privilege abuse by actor Data Engineer to gain unauthorized access or perform unauthorized actions",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--6795fd86-48c3-4017-a209-fe4617b68057",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334723Z",
+            "modified": "2026-11-05T23:51:10.334725Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--6c8e6943-1774-4090-b1f7-7fcc92a1ba5c",
+            "target_ref": "attack-asset--c7124265-cba3-4765-bb22-ccda3eca5ce3"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--f412e269-f971-446d-b0aa-f3fc7c9b1eea",
+            "created": "2026-11-05T23:51:10.334731Z",
+            "modified": "2026-11-05T23:51:10.334733Z",
+            "name": "Lack of monitoring or logging on ETLPipeline, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on ETLPipeline, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--e170807c-deb9-437d-8cfa-08e4502af6bf"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--e170807c-deb9-437d-8cfa-08e4502af6bf",
+            "created": "2026-11-05T23:51:10.334739Z",
+            "modified": "2026-11-05T23:51:10.334741Z",
+            "name": "ETLPipeline",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on ETLPipeline, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--ad149b3a-bef7-4520-b203-e80f9cc09697",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334746Z",
+            "modified": "2026-11-05T23:51:10.334748Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--f412e269-f971-446d-b0aa-f3fc7c9b1eea",
+            "target_ref": "attack-asset--e170807c-deb9-437d-8cfa-08e4502af6bf"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--ed7d3650-b9a7-4b8e-87ec-a5ec9296be20",
+            "created": "2026-11-05T23:51:10.334754Z",
+            "modified": "2026-11-05T23:51:10.334755Z",
+            "name": "Insecure security configuration or hardening on ETLPipeline leading to information exposure",
+            "description": "Insecure security configuration or hardening on ETLPipeline leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--8457111f-7259-438c-8160-b142bc3b2ef0"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--8457111f-7259-438c-8160-b142bc3b2ef0",
+            "created": "2026-11-05T23:51:10.334761Z",
+            "modified": "2026-11-05T23:51:10.334763Z",
+            "name": "ETLPipeline",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on ETLPipeline leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--99ea9847-21c4-4a18-a236-81b497b315c5",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334769Z",
+            "modified": "2026-11-05T23:51:10.334771Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--ed7d3650-b9a7-4b8e-87ec-a5ec9296be20",
+            "target_ref": "attack-asset--8457111f-7259-438c-8160-b142bc3b2ef0"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--577217b5-c4fd-4059-912e-adf883c49cc7",
+            "created": "2026-11-05T23:51:10.334777Z",
+            "modified": "2026-11-05T23:51:10.334778Z",
+            "name": "Repudiation of critical actions performed by Data Engineer due to insufficient logging or non-repudiation controls",
+            "description": "Repudiation of critical actions performed by Data Engineer due to insufficient logging or non-repudiation controls",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--c5abc3bc-d60a-42e9-b4ee-3b8a284c0880"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--c5abc3bc-d60a-42e9-b4ee-3b8a284c0880",
+            "created": "2026-11-05T23:51:10.334784Z",
+            "modified": "2026-11-05T23:51:10.334786Z",
+            "name": "Data Engineer",
+            "description": "Asset targeted by threat: Repudiation of critical actions performed by Data Engineer due to insufficient logging or non-repudiation controls",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--2019401c-2aa5-4fc3-8734-092deed06df5",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:51:10.334792Z",
+            "modified": "2026-11-05T23:51:10.334794Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--577217b5-c4fd-4059-912e-adf883c49cc7",
+            "target_ref": "attack-asset--c5abc3bc-d60a-42e9-b4ee-3b8a284c0880"
+        },
+        {
+            "type": "attack-flow",
+            "spec_version": "2.1",
+            "id": "attack-flow--4e271d02-bf2c-42c0-9d7c-8196a1e29945",
+            "created_by_ref": "identity--33401f60-616b-4b0f-9d0d-756d0da90c24",
+            "created": "2026-11-05T23:51:10.334801Z",
+            "modified": "2026-11-05T23:51:10.334803Z",
+            "name": "Attack Flow for Data Warehouse / Data Lake Architecture",
+            "description": "This Attack Flow was generated from the threat model 'Data Warehouse / Data Lake Architecture'.",
+            "scope": "attack-tree",
+            "start_refs": [
+                "attack-action--6a70d12f-5f5e-4343-a561-9eebd0c1376c",
+                "attack-action--a144d0da-264b-45a8-9460-ad437b54a3d1",
+                "attack-action--5bbded78-b29b-4d01-977e-3b4188d7c600",
+                "attack-action--739d7d64-def6-4a4f-b87b-5a953e00214e",
+                "attack-action--e3fc85a6-2515-4184-9bcf-79f88ba32bf9",
+                "attack-action--f243fc98-65f4-41f7-8d01-3df0699f7724",
+                "attack-action--a393e1ce-a169-49d3-852e-ce4a05e43a5a",
+                "attack-action--6e340d80-b741-4a1c-8a3c-c98435d4faa8",
+                "attack-action--b0b5e312-5c5d-4aee-820d-5236ae62d078",
+                "attack-action--8d777623-b653-4d1d-a8eb-43d26b8d1517",
+                "attack-action--e4eb695a-b9c3-4194-ab12-c22f56e8b8f9",
+                "attack-action--62639131-6153-48c9-be6a-a74f6a9cc828",
+                "attack-action--4991e053-4085-4ca4-a249-f818495deae0",
+                "attack-action--30b0ac4c-bfe6-45f5-87c4-8c9157c2bd21",
+                "attack-action--01f7e18f-f4cb-4dca-a739-392da8f38c18",
+                "attack-action--62a77ddf-af5f-4666-92fa-0c914fc91aa4",
+                "attack-action--f3ac2dae-7bc3-4fcd-a0d4-35f26a494247",
+                "attack-action--7b8f0e9f-ccdf-491c-81ac-bd85905a53fe",
+                "attack-action--2c52f905-cb7e-4de9-b26a-80565817fcbd",
+                "attack-action--c7a6ae18-4b03-4b38-9c33-2bd6cdf6d161",
+                "attack-action--d06b6f44-99bd-4bf7-8c01-a84ff3366850",
+                "attack-action--14225bb5-b70c-47a2-bf86-ed5864716db7",
+                "attack-action--33fbb477-1a70-4223-91b5-af58016c4c9b",
+                "attack-action--63c22aa4-f8b4-4de9-933b-77d032d3e1f1",
+                "attack-action--40c970dd-d7ec-4949-852e-cadee1597282",
+                "attack-action--bf82932a-8386-4a6d-a9ce-a729b11a8b93",
+                "attack-action--d381d261-61d3-4b4f-9161-c6720a6c4bf2",
+                "attack-action--dc727fbc-d25d-4cfc-84ed-b48d7eef1943",
+                "attack-action--6ab15b18-ab6d-4b52-b09f-f23e24dad6a3",
+                "attack-action--f48da5b7-d148-4fe4-98e2-449412c0266c",
+                "attack-action--4d61c41b-e368-43c0-af1c-bcc522506655",
+                "attack-action--12cb0698-8d01-45c4-ab28-65f022405c3d",
+                "attack-action--ffa729ef-bdff-4038-9129-53c68ce21867",
+                "attack-action--2f320e9b-13bb-4547-a87b-381ecb08dd3c",
+                "attack-action--0fca4d93-15d1-4be1-a925-5c7f9868eb60",
+                "attack-action--8c5f9b34-71ad-48ef-aec9-c477051d2e0f",
+                "attack-action--81fa714c-c790-4490-9645-5b6dd335c95d",
+                "attack-action--0ec22209-47eb-4490-a883-853363069249",
+                "attack-action--0a974c9a-e896-4bf3-9797-87b1112140bd",
+                "attack-action--f6121233-8c34-4c00-9634-a639d519584b",
+                "attack-action--f2f3f5b8-efb9-4a42-a236-60bcb8f43162",
+                "attack-action--f02455af-368c-417f-8721-d89501dbf1dd",
+                "attack-action--0f7c8108-31e6-4c2f-bcb1-f0041a865dc3",
+                "attack-action--8fb36c76-0c2f-4f85-9937-a127c1515d6a",
+                "attack-action--dddf3423-f083-41d2-9475-806976dc0080",
+                "attack-action--eb00e7b1-ffde-4e5d-b106-f9e540cafa0f",
+                "attack-action--52b9aba6-d139-4402-93e3-8e6cdab42f36",
+                "attack-action--1212f7d7-b336-40dd-8458-40ba14817df3",
+                "attack-action--af53c1eb-aa79-4526-b66e-91187d62dc22",
+                "attack-action--96b01878-78e6-4e8d-a07e-6a39379fb484",
+                "attack-action--6c8e6943-1774-4090-b1f7-7fcc92a1ba5c",
+                "attack-action--f412e269-f971-446d-b0aa-f3fc7c9b1eea",
+                "attack-action--ed7d3650-b9a7-4b8e-87ec-a5ec9296be20",
+                "attack-action--577217b5-c4fd-4059-912e-adf883c49cc7"
+            ],
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,694 @@
+{
+    "type": "bundle",
+    "id": "bundle--58e2886b-656a-44a2-b559-ba4c647ff847",
+    "spec_version": "2.1",
+    "objects": [
+        {
+            "type": "extension-definition",
+            "id": "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4",
+            "spec_version": "2.1",
+            "created": "2022-08-02T19:34:35.143Z",
+            "modified": "2022-08-02T19:34:35.143Z",
+            "name": "Attack Flow",
+            "description": "Extends STIX 2.1 with features to create Attack Flows.",
+            "created_by_ref": "identity--750b23e2-4006-409d-b327-b4399b7e3180",
+            "schema": "https://center-for-threat-informed-defense.github.io/attack-flow/stix/attack-flow-schema-2.0.0.json",
+            "version": "2.0.0",
+            "extension_types": [
+                "new-sdo"
+            ]
+        },
+        {
+            "type": "identity",
+            "id": "identity--750b23e2-4006-409d-b327-b4399b7e3180",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:01.075813Z",
+            "modified": "2026-11-05T23:52:01.075823Z",
+            "name": "Threat Model Analysis Tool",
+            "identity_class": "tool"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--e9626f56-5f46-468a-a488-384c4050e019",
+            "created": "2026-11-05T23:52:01.075833Z",
+            "modified": "2026-11-05T23:52:01.075835Z",
+            "name": "Unpatched OS or software vulnerabilities on WebApp leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on WebApp leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--0348642f-6a76-4966-8e4a-4778dffb1295"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--0348642f-6a76-4966-8e4a-4778dffb1295",
+            "created": "2026-11-05T23:52:01.075844Z",
+            "modified": "2026-11-05T23:52:01.075847Z",
+            "name": "WebApp",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on WebApp leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--561082f1-ae5e-4cde-b4b3-222926206a31",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:01.075854Z",
+            "modified": "2026-11-05T23:52:01.075856Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--e9626f56-5f46-468a-a488-384c4050e019",
+            "target_ref": "attack-asset--0348642f-6a76-4966-8e4a-4778dffb1295"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--4efddda6-0fc3-47ff-8542-d372a50ce900",
+            "created": "2026-11-05T23:52:01.075865Z",
+            "modified": "2026-11-05T23:52:01.075867Z",
+            "name": "Unpatched OS or software vulnerabilities on BackendServices leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on BackendServices leading to system compromise",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--4a8a0f9b-a1d2-4e26-bf09-a057711c9ad8"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--4a8a0f9b-a1d2-4e26-bf09-a057711c9ad8",
+            "created": "2026-11-05T23:52:01.075874Z",
+            "modified": "2026-11-05T23:52:01.075877Z",
+            "name": "BackendServices",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on BackendServices leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--ca715c6a-e0cd-4c50-acda-18eba3d40cd6",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:01.075884Z",
+            "modified": "2026-11-05T23:52:01.075886Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--4efddda6-0fc3-47ff-8542-d372a50ce900",
+            "target_ref": "attack-asset--4a8a0f9b-a1d2-4e26-bf09-a057711c9ad8"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--243a9f63-aa6a-4802-99bd-43d93ad31a42",
+            "created": "2026-11-05T23:52:01.075894Z",
+            "modified": "2026-11-05T23:52:01.075897Z",
+            "name": "Unauthorized privilege escalation on WebApp due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on WebApp due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--83e4f285-31a7-4786-903e-ab9b7bb92617"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--83e4f285-31a7-4786-903e-ab9b7bb92617",
+            "created": "2026-11-05T23:52:01.075904Z",
+            "modified": "2026-11-05T23:52:01.075906Z",
+            "name": "WebApp",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on WebApp due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--52975450-6372-4d85-83be-a582139de71d",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:01.075912Z",
+            "modified": "2026-11-05T23:52:01.075915Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--243a9f63-aa6a-4802-99bd-43d93ad31a42",
+            "target_ref": "attack-asset--83e4f285-31a7-4786-903e-ab9b7bb92617"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--ff7dbd49-e00f-4a0c-b5c0-5a790ec1fbab",
+            "created": "2026-11-05T23:52:01.075922Z",
+            "modified": "2026-11-05T23:52:01.075924Z",
+            "name": "Unauthorized privilege escalation on BackendServices due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on BackendServices due to misconfiguration or vulnerability",
+            "technique_id": "T1574",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--7aa9fafd-f8b2-499f-9032-716dbee37b48"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--7aa9fafd-f8b2-499f-9032-716dbee37b48",
+            "created": "2026-11-05T23:52:01.075930Z",
+            "modified": "2026-11-05T23:52:01.075933Z",
+            "name": "BackendServices",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on BackendServices due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--a1f2ded1-76aa-4738-9ba9-de3256d04eb8",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:01.075939Z",
+            "modified": "2026-11-05T23:52:01.075941Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--ff7dbd49-e00f-4a0c-b5c0-5a790ec1fbab",
+            "target_ref": "attack-asset--7aa9fafd-f8b2-499f-9032-716dbee37b48"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--9e57808b-73ac-44aa-ba02-473e4d1c9a17",
+            "created": "2026-11-05T23:52:01.075948Z",
+            "modified": "2026-11-05T23:52:01.075950Z",
+            "name": "Spoofing of data from User to WebApp due to lack of authentication",
+            "description": "Spoofing of data from User to WebApp due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--207469dd-abf4-4a34-b173-cb11e8dc8a32"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--207469dd-abf4-4a34-b173-cb11e8dc8a32",
+            "created": "2026-11-05T23:52:01.075956Z",
+            "modified": "2026-11-05T23:52:01.075959Z",
+            "name": "UserToWebApp",
+            "description": "Asset targeted by threat: Spoofing of data from User to WebApp due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--ef13db9c-1725-4bdc-adbd-2c2a0565bca1",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:01.075965Z",
+            "modified": "2026-11-05T23:52:01.075967Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--9e57808b-73ac-44aa-ba02-473e4d1c9a17",
+            "target_ref": "attack-asset--207469dd-abf4-4a34-b173-cb11e8dc8a32"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--18bf5d06-fb08-4a4a-a9b4-6048d51f46ce",
+            "created": "2026-11-05T23:52:01.075974Z",
+            "modified": "2026-11-05T23:52:01.075976Z",
+            "name": "Spoofing of data from WebApp to BackendServices due to lack of authentication",
+            "description": "Spoofing of data from WebApp to BackendServices due to lack of authentication",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--d348c9b7-c62c-4a54-a2cb-64ac62241386"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--d348c9b7-c62c-4a54-a2cb-64ac62241386",
+            "created": "2026-11-05T23:52:01.075982Z",
+            "modified": "2026-11-05T23:52:01.075984Z",
+            "name": "WebAppToBackend",
+            "description": "Asset targeted by threat: Spoofing of data from WebApp to BackendServices due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--4efd6609-925f-41a5-88b0-0887033d3369",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:01.075990Z",
+            "modified": "2026-11-05T23:52:01.075993Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--18bf5d06-fb08-4a4a-a9b4-6048d51f46ce",
+            "target_ref": "attack-asset--d348c9b7-c62c-4a54-a2cb-64ac62241386"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--127a932a-5717-4274-8c6a-b8e9b59d715b",
+            "created": "2026-11-05T23:52:01.075999Z",
+            "modified": "2026-11-05T23:52:01.076002Z",
+            "name": "Identity spoofing of the actor User via phishing or credential theft",
+            "description": "Identity spoofing of the actor User via phishing or credential theft",
+            "technique_id": "T1552",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--a94102d3-3d91-4656-9424-e2efffae4abc"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--a94102d3-3d91-4656-9424-e2efffae4abc",
+            "created": "2026-11-05T23:52:01.076007Z",
+            "modified": "2026-11-05T23:52:01.076010Z",
+            "name": "User",
+            "description": "Asset targeted by threat: Identity spoofing of the actor User via phishing or credential theft",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--668d9901-9220-43cc-aa8e-08e3d41cbb76",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:01.076016Z",
+            "modified": "2026-11-05T23:52:01.076018Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--127a932a-5717-4274-8c6a-b8e9b59d715b",
+            "target_ref": "attack-asset--a94102d3-3d91-4656-9424-e2efffae4abc"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--4b977555-d2a5-491a-8237-65a67043a1da",
+            "created": "2026-11-05T23:52:01.076028Z",
+            "modified": "2026-11-05T23:52:01.076030Z",
+            "name": "Data interception on an unencrypted channel from User to WebApp (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from User to WebApp (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--e44cb9e3-4d67-49a5-b3ce-9a64e85a1a5f"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--e44cb9e3-4d67-49a5-b3ce-9a64e85a1a5f",
+            "created": "2026-11-05T23:52:01.076038Z",
+            "modified": "2026-11-05T23:52:01.076040Z",
+            "name": "UserToWebApp",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from User to WebApp (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--ecd0bcf0-8f4f-40d8-87a6-9b4b527a53f0",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:01.076048Z",
+            "modified": "2026-11-05T23:52:01.076050Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--4b977555-d2a5-491a-8237-65a67043a1da",
+            "target_ref": "attack-asset--e44cb9e3-4d67-49a5-b3ce-9a64e85a1a5f"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--363eb73a-ba24-481f-b702-939df2c1ec98",
+            "created": "2026-11-05T23:52:01.076056Z",
+            "modified": "2026-11-05T23:52:01.076059Z",
+            "name": "Data interception on an unencrypted channel from WebApp to BackendServices (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from WebApp to BackendServices (Man-in-the-Middle attack)",
+            "technique_id": "T1005",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--6121d081-fbdf-4782-ba76-fe51954e4b8d"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--6121d081-fbdf-4782-ba76-fe51954e4b8d",
+            "created": "2026-11-05T23:52:01.076065Z",
+            "modified": "2026-11-05T23:52:01.076067Z",
+            "name": "WebAppToBackend",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from WebApp to BackendServices (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--ece935e1-37a2-407b-bc8f-52dcbd40ac23",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:01.076073Z",
+            "modified": "2026-11-05T23:52:01.076075Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--363eb73a-ba24-481f-b702-939df2c1ec98",
+            "target_ref": "attack-asset--6121d081-fbdf-4782-ba76-fe51954e4b8d"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--2659efb7-2128-4708-95e9-26b68c3ca497",
+            "created": "2026-11-05T23:52:01.076082Z",
+            "modified": "2026-11-05T23:52:01.076084Z",
+            "name": "Privilege abuse by actor User to gain unauthorized access or perform unauthorized actions",
+            "description": "Privilege abuse by actor User to gain unauthorized access or perform unauthorized actions",
+            "technique_id": "T1548",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--bf20b518-43fd-4ce3-a81d-54044f9ee57b"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--bf20b518-43fd-4ce3-a81d-54044f9ee57b",
+            "created": "2026-11-05T23:52:01.076090Z",
+            "modified": "2026-11-05T23:52:01.076092Z",
+            "name": "User",
+            "description": "Asset targeted by threat: Privilege abuse by actor User to gain unauthorized access or perform unauthorized actions",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--6d6ee3be-8a74-42cc-b828-5ecd1ad8ad96",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:01.076098Z",
+            "modified": "2026-11-05T23:52:01.076101Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--2659efb7-2128-4708-95e9-26b68c3ca497",
+            "target_ref": "attack-asset--bf20b518-43fd-4ce3-a81d-54044f9ee57b"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--de363c5e-6dc9-4b6d-8818-e49f7f28693d",
+            "created": "2026-11-05T23:52:01.076107Z",
+            "modified": "2026-11-05T23:52:01.076109Z",
+            "name": "Lack of monitoring or logging on WebApp, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on WebApp, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--5c7d1c29-bfc6-4fc6-8e69-0d0d1b69914f"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--5c7d1c29-bfc6-4fc6-8e69-0d0d1b69914f",
+            "created": "2026-11-05T23:52:01.076115Z",
+            "modified": "2026-11-05T23:52:01.076117Z",
+            "name": "WebApp",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on WebApp, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--b37d5173-2be9-4627-8bee-85822ceeb8e4",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:01.076123Z",
+            "modified": "2026-11-05T23:52:01.076125Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--de363c5e-6dc9-4b6d-8818-e49f7f28693d",
+            "target_ref": "attack-asset--5c7d1c29-bfc6-4fc6-8e69-0d0d1b69914f"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--1002ea45-4f7f-4b3d-ae00-940a84893a16",
+            "created": "2026-11-05T23:52:01.076130Z",
+            "modified": "2026-11-05T23:52:01.076132Z",
+            "name": "Lack of monitoring or logging on BackendServices, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on BackendServices, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--78893ff2-d71e-46f5-909c-ee524a83539e"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--78893ff2-d71e-46f5-909c-ee524a83539e",
+            "created": "2026-11-05T23:52:01.076139Z",
+            "modified": "2026-11-05T23:52:01.076141Z",
+            "name": "BackendServices",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on BackendServices, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--6fa33d0c-807a-4e53-8090-f1373073b924",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:01.076147Z",
+            "modified": "2026-11-05T23:52:01.076149Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--1002ea45-4f7f-4b3d-ae00-940a84893a16",
+            "target_ref": "attack-asset--78893ff2-d71e-46f5-909c-ee524a83539e"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--8f63d622-4d7f-4898-9095-3b5b921a8529",
+            "created": "2026-11-05T23:52:01.076154Z",
+            "modified": "2026-11-05T23:52:01.076157Z",
+            "name": "Insecure security configuration or hardening on WebApp leading to information exposure",
+            "description": "Insecure security configuration or hardening on WebApp leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--54ec220f-8466-4e13-9ea7-20624083c687"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--54ec220f-8466-4e13-9ea7-20624083c687",
+            "created": "2026-11-05T23:52:01.076162Z",
+            "modified": "2026-11-05T23:52:01.076164Z",
+            "name": "WebApp",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on WebApp leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--0fc753cd-d1ec-4c72-8823-c61624df502b",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:01.076170Z",
+            "modified": "2026-11-05T23:52:01.076173Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--8f63d622-4d7f-4898-9095-3b5b921a8529",
+            "target_ref": "attack-asset--54ec220f-8466-4e13-9ea7-20624083c687"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--7392f845-15ba-4d6d-a577-d7241907cf46",
+            "created": "2026-11-05T23:52:01.076179Z",
+            "modified": "2026-11-05T23:52:01.076181Z",
+            "name": "Insecure security configuration or hardening on BackendServices leading to information exposure",
+            "description": "Insecure security configuration or hardening on BackendServices leading to information exposure",
+            "technique_id": "T1195",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--88f332be-7b02-491a-8496-27c277d1380d"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--88f332be-7b02-491a-8496-27c277d1380d",
+            "created": "2026-11-05T23:52:01.076187Z",
+            "modified": "2026-11-05T23:52:01.076189Z",
+            "name": "BackendServices",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on BackendServices leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--df9500d3-57dd-4515-8704-e9cadd40700e",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:01.076194Z",
+            "modified": "2026-11-05T23:52:01.076196Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--7392f845-15ba-4d6d-a577-d7241907cf46",
+            "target_ref": "attack-asset--88f332be-7b02-491a-8496-27c277d1380d"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--ec86df79-5edb-459d-9af0-1744b755bd64",
+            "created": "2026-11-05T23:52:01.076202Z",
+            "modified": "2026-11-05T23:52:01.076205Z",
+            "name": "Repudiation of critical actions performed by User due to insufficient logging or non-repudiation controls",
+            "description": "Repudiation of critical actions performed by User due to insufficient logging or non-repudiation controls",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--485366fe-1d7e-4b81-ad8d-e533862e12e6"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--485366fe-1d7e-4b81-ad8d-e533862e12e6",
+            "created": "2026-11-05T23:52:01.076210Z",
+            "modified": "2026-11-05T23:52:01.076213Z",
+            "name": "User",
+            "description": "Asset targeted by threat: Repudiation of critical actions performed by User due to insufficient logging or non-repudiation controls",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--f7d6f73f-f05f-4dbf-9a4f-ecac97e519f2",
+            "spec_version": "2.1",
+            "created": "2026-11-05T23:52:01.076218Z",
+            "modified": "2026-11-05T23:52:01.076220Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--ec86df79-5edb-459d-9af0-1744b755bd64",
+            "target_ref": "attack-asset--485366fe-1d7e-4b81-ad8d-e533862e12e6"
+        },
+        {
+            "type": "attack-flow",
+            "spec_version": "2.1",
+            "id": "attack-flow--2a4e00bf-6d9b-4915-8702-8f5125cb72f6",
+            "created_by_ref": "identity--750b23e2-4006-409d-b327-b4399b7e3180",
+            "created": "2026-11-05T23:52:01.076227Z",
+            "modified": "2026-11-05T23:52:01.076229Z",
+            "name": "Attack Flow for main",
+            "description": "This Attack Flow was generated from the threat model 'main'.",
+            "scope": "attack-tree",
+            "start_refs": [
+                "attack-action--e9626f56-5f46-468a-a488-384c4050e019",
+                "attack-action--4efddda6-0fc3-47ff-8542-d372a50ce900",
+                "attack-action--243a9f63-aa6a-4802-99bd-43d93ad31a42",
+                "attack-action--ff7dbd49-e00f-4a0c-b5c0-5a790ec1fbab",
+                "attack-action--9e57808b-73ac-44aa-ba02-473e4d1c9a17",
+                "attack-action--18bf5d06-fb08-4a4a-a9b4-6048d51f46ce",
+                "attack-action--127a932a-5717-4274-8c6a-b8e9b59d715b",
+                "attack-action--4b977555-d2a5-491a-8237-65a67043a1da",
+                "attack-action--363eb73a-ba24-481f-b702-939df2c1ec98",
+                "attack-action--2659efb7-2128-4708-95e9-26b68c3ca497",
+                "attack-action--de363c5e-6dc9-4b6d-8818-e49f7f28693d",
+                "attack-action--1002ea45-4f7f-4b3d-ae00-940a84893a16",
+                "attack-action--8f63d622-4d7f-4898-9095-3b5b921a8529",
+                "attack-action--7392f845-15ba-4d6d-a577-d7241907cf46",
+                "attack-action--ec86df79-5edb-459d-9af0-1744b755bd64"
+            ],
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        }
+    ]
+}

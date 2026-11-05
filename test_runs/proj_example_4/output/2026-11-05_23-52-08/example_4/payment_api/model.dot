@@ -1,0 +1,137 @@
+digraph ThreatModel {
+  rankdir=LR;
+  node [shape=box];
+  edge [fontsize=10];
+  splines=true;
+  overlap=false;
+  nodesep=0.5;
+  ranksep=0.6;
+  charset="UTF-8";
+
+  
+
+  
+    
+  subgraph cluster_payment_services_zone {
+    label="Payment Services Zone";
+    "__hidden_node_payment_services_zone" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="lightblue";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    
+    "InternalLB" [shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/web-server.svg" SCALE="TRUE"/></TD></TR><TR><TD>InternalLB</TD></TR></TABLE>>, id="InternalLB"];
+    
+    "AuthService" [width=1.5, height=0.75, shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/server.svg" SCALE="TRUE"/></TD><TD ALIGN="LEFT">AuthService</TD></TR></TABLE>>, id="AuthService"];
+    
+    "ChargeService" [width=1.5, height=0.75, shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/server.svg" SCALE="TRUE"/></TD><TD ALIGN="LEFT">ChargeService</TD></TR></TABLE>>, id="ChargeService"];
+    
+    
+  }
+  
+  
+    
+  subgraph cluster_settlement_zone {
+    label="Settlement Zone";
+    "__hidden_node_settlement_zone" [style=invis, width=0, height=0, label=""];
+    fontsize=10;
+    style="rounded,filled,solid";
+    
+    fillcolor="lightyellow";
+    
+    
+    color="#2e7d32";
+    penwidth=2;
+    
+    
+    
+    "MessageBroker" [shape=box, style=filled, fillcolor="lightblue", label="MessageBroker", id="MessageBroker"];
+    
+    "SettlementService" [width=1.5, height=0.75, shape=box, style=filled, fillcolor="lightblue", label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" FIXEDSIZE="TRUE"><IMG SRC="/home/user/SecOpsTM/threat_analysis/server/static/resources/icons/server.svg" SCALE="TRUE"/></TD><TD ALIGN="LEFT">SettlementService</TD></TR></TABLE>>, id="SettlementService"];
+    
+    
+  }
+  
+  
+
+  
+
+  
+
+  
+  "InternalLB" -> "AuthService" [label="", color="orange", style="dashed", label=<LBToAuth<BR/>Protocol: HTTP<BR/>Data: AuthToken>, id="edge_InternalLB_AuthService", fontsize=7, class="protocol-HTTP"];
+  
+  "InternalLB" -> "ChargeService" [label="", color="orange", style="dashed", label=<LBToCharge<BR/>Protocol: HTTP<BR/>Data: ChargePayload>, id="edge_InternalLB_ChargeService", fontsize=7, class="protocol-HTTP"];
+  
+  "ChargeService" -> "MessageBroker" [label="", color="purple", style="solid", label=<ChargeToMQ<BR/>Protocol: Kafka<BR/>Data: SettlementBatch>, id="edge_ChargeService_MessageBroker", fontsize=7, class="protocol-Kafka"];
+  
+  "MessageBroker" -> "SettlementService" [label="", color="purple", style="solid", label=<MQToSettlement<BR/>Protocol: Kafka<BR/>Data: SettlementBatch>, id="edge_MessageBroker_SettlementService", fontsize=7, class="protocol-Kafka"];
+  
+
+  
+  
+  
+  
+  subgraph cluster__external_parent_in {
+    label="External connections in (parent model)";
+    style="dashed,filled";
+    fillcolor="#e8f5e9";
+    color="#66bb6a";
+    penwidth=1;
+    fontsize=9;
+    fontcolor="#2e7d32";
+    
+    
+    
+    
+    "__ghost_APIGateway" [label="APIGateway", shape=ellipse, style="dashed,filled", fillcolor="#c8e6c9", color="#66bb6a", fontcolor="#1b5e20", fontsize=9];
+    
+    
+    
+    
+    "__ghost_CardVault" [label="CardVault", shape=ellipse, style="dashed,filled", fillcolor="#c8e6c9", color="#66bb6a", fontcolor="#1b5e20", fontsize=9];
+    
+    
+  }
+  
+  "__ghost_APIGateway" -> "InternalLB" [style=dashed, color="#66bb6a", label="HTTP", fontsize=7, arrowsize=0.7];
+  
+  "__ghost_CardVault" -> "InternalLB" [style=dashed, color="#66bb6a", label="gRPC", fontsize=7, arrowsize=0.7];
+  
+  
+  
+  subgraph cluster__external_parent_out {
+    label="External connections out (parent model)";
+    style="dashed,filled";
+    fillcolor="#fff3e0";
+    color="#ffa726";
+    penwidth=1;
+    fontsize=9;
+    fontcolor="#e65100";
+    
+    
+    
+    
+    "__ghost_APIGateway" [label="APIGateway", shape=ellipse, style="dashed,filled", fillcolor="#ffe0b2", color="#ffa726", fontcolor="#bf360c", fontsize=9];
+    
+    
+    
+    
+    "__ghost_CardVault" [label="CardVault", shape=ellipse, style="dashed,filled", fillcolor="#ffe0b2", color="#ffa726", fontcolor="#bf360c", fontsize=9];
+    
+    
+  }
+  
+  "InternalLB" -> "__ghost_APIGateway" [style=dashed, color="#ffa726", label="HTTP", fontsize=7, arrowsize=0.7];
+  
+  "InternalLB" -> "__ghost_CardVault" [style=dashed, color="#ffa726", label="gRPC", fontsize=7, arrowsize=0.7];
+  
+  
+  
+}

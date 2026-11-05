@@ -1,0 +1,317 @@
+{
+  "model": "GDAF Summary",
+  "scenarios": [
+    {
+      "scenario_id": "GDAF-3D5668C7",
+      "objective": "Bulk Data Exfiltration via Misconfigured Object Storage",
+      "actor": "Data Broker / Automated Exfiltration Actor",
+      "entry_point": "Data Provider",
+      "target": "ObjectStorage",
+      "hops": 2,
+      "path_score": 4.28,
+      "risk_level": "CRITICAL",
+      "unacceptable_risk": true,
+      "techniques": [
+        {
+          "hop": "ETLPipeline",
+          "tech_id": "T1552.001",
+          "tech_name": "Credentials In Files"
+        },
+        {
+          "hop": "ObjectStorage",
+          "tech_id": "T1530",
+          "tech_name": "Data from Cloud Storage"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-64A1555B",
+      "objective": "Bulk Data Exfiltration via Misconfigured Object Storage",
+      "actor": "Data Broker / Automated Exfiltration Actor",
+      "entry_point": "Data Analyst",
+      "target": "ObjectStorage",
+      "hops": 1,
+      "path_score": 3.47,
+      "risk_level": "HIGH",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "ObjectStorage",
+          "tech_id": "T1530",
+          "tech_name": "Data from Cloud Storage"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-149ED8A9",
+      "objective": "ETL Pipeline Code Injection",
+      "actor": "Insider Data Analyst",
+      "entry_point": "Data Provider",
+      "target": "ETLPipeline",
+      "hops": 1,
+      "path_score": 3.53,
+      "risk_level": "HIGH",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "ETLPipeline",
+          "tech_id": "T1078.002",
+          "tech_name": "Domain Accounts"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-A8E0379A",
+      "objective": "ETL Pipeline Code Injection",
+      "actor": "Insider Data Analyst",
+      "entry_point": "Data Provider",
+      "target": "ObjectStorage",
+      "hops": 2,
+      "path_score": 3.53,
+      "risk_level": "HIGH",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "ETLPipeline",
+          "tech_id": "T1078.002",
+          "tech_name": "Domain Accounts"
+        },
+        {
+          "hop": "ObjectStorage",
+          "tech_id": "T1530",
+          "tech_name": "Data from Cloud Storage"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-73A6212A",
+      "objective": "ETL Pipeline Code Injection",
+      "actor": "Insider Data Analyst",
+      "entry_point": "Data Analyst",
+      "target": "ObjectStorage",
+      "hops": 1,
+      "path_score": 2.93,
+      "risk_level": "HIGH",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "ObjectStorage",
+          "tech_id": "T1530",
+          "tech_name": "Data from Cloud Storage"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-62322470",
+      "objective": "ETL Pipeline Code Injection",
+      "actor": "External Attacker Targeting ETL Infrastructure",
+      "entry_point": "Data Provider",
+      "target": "ETLPipeline",
+      "hops": 1,
+      "path_score": 3.91,
+      "risk_level": "HIGH",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "ETLPipeline",
+          "tech_id": "T1059",
+          "tech_name": "Command and Scripting Interpreter"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-C0F7A8FE",
+      "objective": "ETL Pipeline Code Injection",
+      "actor": "External Attacker Targeting ETL Infrastructure",
+      "entry_point": "Data Provider",
+      "target": "ObjectStorage",
+      "hops": 2,
+      "path_score": 3.75,
+      "risk_level": "HIGH",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "ETLPipeline",
+          "tech_id": "T1059",
+          "tech_name": "Command and Scripting Interpreter"
+        },
+        {
+          "hop": "ObjectStorage",
+          "tech_id": "T1485",
+          "tech_name": "Data Destruction"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-3094366B",
+      "objective": "ETL Pipeline Code Injection",
+      "actor": "External Attacker Targeting ETL Infrastructure",
+      "entry_point": "Data Analyst",
+      "target": "ObjectStorage",
+      "hops": 1,
+      "path_score": 3.07,
+      "risk_level": "HIGH",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "ObjectStorage",
+          "tech_id": "T1190",
+          "tech_name": "Exploit Public-Facing Application"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-950B8728",
+      "objective": "Spark Cluster Privilege Escalation for Data Lake Access",
+      "actor": "External Attacker Targeting ETL Infrastructure",
+      "entry_point": "Data Provider",
+      "target": "DataLakehouse",
+      "hops": 4,
+      "path_score": 3.62,
+      "risk_level": "HIGH",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "ETLPipeline",
+          "tech_id": "T1059",
+          "tech_name": "Command and Scripting Interpreter"
+        },
+        {
+          "hop": "ObjectStorage",
+          "tech_id": "T1485",
+          "tech_name": "Data Destruction"
+        },
+        {
+          "hop": "SparkCluster",
+          "tech_id": "T1059",
+          "tech_name": "Command and Scripting Interpreter"
+        },
+        {
+          "hop": "DataLakehouse",
+          "tech_id": "T1485",
+          "tech_name": "Data Destruction"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-4A4D0EB9",
+      "objective": "Spark Cluster Privilege Escalation for Data Lake Access",
+      "actor": "External Attacker Targeting ETL Infrastructure",
+      "entry_point": "Data Analyst",
+      "target": "DataLakehouse",
+      "hops": 3,
+      "path_score": 3.55,
+      "risk_level": "HIGH",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "ObjectStorage",
+          "tech_id": "T1190",
+          "tech_name": "Exploit Public-Facing Application"
+        },
+        {
+          "hop": "SparkCluster",
+          "tech_id": "T1059",
+          "tech_name": "Command and Scripting Interpreter"
+        },
+        {
+          "hop": "DataLakehouse",
+          "tech_id": "T1485",
+          "tech_name": "Data Destruction"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-104E2475",
+      "objective": "Spark Cluster Privilege Escalation for Data Lake Access",
+      "actor": "External Attacker Targeting ETL Infrastructure",
+      "entry_point": "Business User",
+      "target": "DataLakehouse",
+      "hops": 1,
+      "path_score": 3.53,
+      "risk_level": "HIGH",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "DataLakehouse",
+          "tech_id": "T1190",
+          "tech_name": "Exploit Public-Facing Application"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-9DEF1AA5",
+      "objective": "Spark Cluster Privilege Escalation for Data Lake Access",
+      "actor": "External Attacker Targeting ETL Infrastructure",
+      "entry_point": "Data Provider",
+      "target": "SparkCluster",
+      "hops": 3,
+      "path_score": 3.58,
+      "risk_level": "HIGH",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "ETLPipeline",
+          "tech_id": "T1059",
+          "tech_name": "Command and Scripting Interpreter"
+        },
+        {
+          "hop": "ObjectStorage",
+          "tech_id": "T1485",
+          "tech_name": "Data Destruction"
+        },
+        {
+          "hop": "SparkCluster",
+          "tech_id": "T1496",
+          "tech_name": "Resource Hijacking"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-C2F8D964",
+      "objective": "Spark Cluster Privilege Escalation for Data Lake Access",
+      "actor": "External Attacker Targeting ETL Infrastructure",
+      "entry_point": "Data Analyst",
+      "target": "SparkCluster",
+      "hops": 2,
+      "path_score": 3.45,
+      "risk_level": "HIGH",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "ObjectStorage",
+          "tech_id": "T1190",
+          "tech_name": "Exploit Public-Facing Application"
+        },
+        {
+          "hop": "SparkCluster",
+          "tech_id": "T1496",
+          "tech_name": "Resource Hijacking"
+        }
+      ]
+    }
+  ],
+  "files": {
+    "OBJ-DWH-001/TA-DWH-001": [
+      "TA-DWH-001_GDAF-3D5668C7.afb",
+      "TA-DWH-001_GDAF-64A1555B.afb"
+    ],
+    "OBJ-DWH-002/TA-DWH-002": [
+      "TA-DWH-002_GDAF-149ED8A9.afb",
+      "TA-DWH-002_GDAF-A8E0379A.afb",
+      "TA-DWH-002_GDAF-73A6212A.afb"
+    ],
+    "OBJ-DWH-002/TA-DWH-003": [
+      "TA-DWH-003_GDAF-62322470.afb",
+      "TA-DWH-003_GDAF-C0F7A8FE.afb",
+      "TA-DWH-003_GDAF-3094366B.afb"
+    ],
+    "OBJ-DWH-004/TA-DWH-003": [
+      "TA-DWH-003_GDAF-950B8728.afb",
+      "TA-DWH-003_GDAF-4A4D0EB9.afb",
+      "TA-DWH-003_GDAF-104E2475.afb",
+      "TA-DWH-003_GDAF-9DEF1AA5.afb",
+      "TA-DWH-003_GDAF-C2F8D964.afb"
+    ]
+  }
+}

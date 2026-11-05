@@ -1,0 +1,101 @@
+{
+  "model": "GDAF Summary",
+  "scenarios": [
+    {
+      "scenario_id": "GDAF-F6FA205E",
+      "objective": "Supply Chain Compromise via Code Repository",
+      "actor": "Rogue Developer (Insider)",
+      "entry_point": "Developer",
+      "target": "Git Repository",
+      "hops": 1,
+      "path_score": 3.96,
+      "risk_level": "HIGH",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "Git Repository",
+          "tech_id": "T1078",
+          "tech_name": "Valid Accounts"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-2615F6AC",
+      "objective": "Container Image Tampering in Artifact Registry",
+      "actor": "Supply Chain Attacker",
+      "entry_point": "KubeCluster",
+      "target": "ArtifactRegistry",
+      "hops": 1,
+      "path_score": 4.37,
+      "risk_level": "CRITICAL",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "ArtifactRegistry",
+          "tech_id": "T1078",
+          "tech_name": "Valid Accounts"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-7F1A423D",
+      "objective": "Container Image Tampering in Artifact Registry",
+      "actor": "Opportunistic Cybercriminal",
+      "entry_point": "KubeCluster",
+      "target": "ArtifactRegistry",
+      "hops": 1,
+      "path_score": 4.03,
+      "risk_level": "CRITICAL",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "ArtifactRegistry",
+          "tech_id": "T1190",
+          "tech_name": "Exploit Public-Facing Application"
+        }
+      ]
+    },
+    {
+      "scenario_id": "GDAF-C9A77626",
+      "objective": "Kubernetes Cluster Takeover via Compromised Deployment",
+      "actor": "Rogue Developer (Insider)",
+      "entry_point": "Developer",
+      "target": "KubeCluster",
+      "hops": 3,
+      "path_score": 4.37,
+      "risk_level": "CRITICAL",
+      "unacceptable_risk": false,
+      "techniques": [
+        {
+          "hop": "Git Repository",
+          "tech_id": "T1078",
+          "tech_name": "Valid Accounts"
+        },
+        {
+          "hop": "CIServer",
+          "tech_id": "T1078",
+          "tech_name": "Valid Accounts"
+        },
+        {
+          "hop": "KubeCluster",
+          "tech_id": "T1078",
+          "tech_name": "Valid Accounts"
+        }
+      ]
+    }
+  ],
+  "files": {
+    "OBJ-CICD-001/TA-CICD-002": [
+      "TA-CICD-002_GDAF-F6FA205E.afb"
+    ],
+    "OBJ-CICD-003/TA-CICD-001": [
+      "TA-CICD-001_GDAF-2615F6AC.afb"
+    ],
+    "OBJ-CICD-003/TA-CICD-003": [
+      "TA-CICD-003_GDAF-7F1A423D.afb"
+    ],
+    "OBJ-CICD-004/TA-CICD-002": [
+      "TA-CICD-002_GDAF-C9A77626.afb"
+    ]
+  }
+}
