@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import asyncio
 import logging
 import yaml
 from pathlib import Path
@@ -20,6 +21,7 @@ import os
 import json
 import time
 import importlib
+from threat_analysis.ai_engine.ai_runtime import resolve_profile, run_stats, select_provider, thinking_params
 from threat_analysis.utils import extract_json_from_llm_response
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -68,29 +70,8 @@ class LiteLLMClient:
             # SECOPSTM_FORCE_PROVIDER names a provider present in the config
             # (used for A/B provider comparison and the evaluation harness —
             # see docs/evaluation.md). A forced provider need not be enabled.
-            provider_name = None
-            _providers = self.ai_config.get("ai_providers", {})
-            _forced = forced_provider or os.environ.get("SECOPSTM_FORCE_PROVIDER")
-            if _forced and _providers.get(_forced):
-                self.provider_config = _providers[_forced]
-                provider_name = _forced
-                logging.warning(
-                    "Provider selection forced to '%s' via %s "
-                    "(overrides the enabled: flags in ai_config.yaml)", _forced,
-                    "explicit forced_provider" if forced_provider else "SECOPSTM_FORCE_PROVIDER",
-                )
-            else:
-                if _forced:
-                    logging.warning(
-                        "SECOPSTM_FORCE_PROVIDER='%s' not found or has no configuration in "
-                        "ai_providers — ignoring", _forced
-                    )
-                for name, provider_config in _providers.items():
-                    if provider_config and provider_config.get('enabled', False):
-                        self.provider_config = provider_config
-                        provider_name = name
-                        break
-            
+            provider_name, self.provider_config = select_provider(self.ai_config, forced_provider)
+
             if self.provider_config:
                 # Prevent LiteLLM from fetching the model cost map from the internet.
                 # Must be set BEFORE importing litellm so it is picked up during module init.
@@ -198,7 +179,7 @@ class LiteLLMClient:
             except Exception:
                 pass
         else:
-            logging.error("[SSL-check] %s — %s: %s", context, err_type, err_str)
+            logging.error("[LLM] %s — %s: %s", context, err_type, err_str)
 
     async def check_connection(self) -> bool:
         """Checks if the configured AI model is available via LiteLLM."""
@@ -227,7 +208,35 @@ class LiteLLMClient:
                           time.time() - check_start_time, self.model_name, target)
             self._log_ssl_error(e, f"check_connection({self.model_name})")
             self.ai_online = False
+            run_stats.add("offline_checks")
             return False
+
+    async def _acompletion(self, params: Dict[str, Any]):
+        """Calls litellm, retrying transient errors but never a timeout.
+
+        litellm's own num_retries also re-runs a timed-out request from scratch, which
+        cost 12-17 minutes per call on a slow model. The batch fallback already retries
+        a timed-out call as smaller requests, so it is the better retry.
+        """
+        module = self._litellm_module
+        retries = params.pop("num_retries", 0)
+        transient = tuple(
+            exc for exc in (
+                getattr(module, name, None)
+                for name in ("RateLimitError", "APIConnectionError", "InternalServerError",
+                             "ServiceUnavailableError")
+            ) if isinstance(exc, type)
+        )
+        for attempt in range(retries + 1):
+            try:
+                return await module.acompletion(**params, num_retries=0)
+            except transient as e:
+                if attempt == retries:
+                    raise
+                delay = min(2 ** (attempt + 1), 30)
+                logging.warning("LLM call failed (%s), retry %d/%d in %ds",
+                                type(e).__name__, attempt + 1, retries, delay)
+                await asyncio.sleep(delay)
 
     async def generate_content(self, prompt: str, system_prompt: str, stream: Optional[bool] = None, output_format: str = "text", max_tokens: Optional[int] = None, timeout: Optional[float] = None, temperature: Optional[float] = None):
         """
@@ -260,8 +269,9 @@ class LiteLLMClient:
             "num_retries": int(self.ai_config.get("threat_generation", {}).get("num_retries", 3)),
             "api_base": self.api_base,
         }
-        if "enable_thinking" in self.provider_config:
-            completion_params["enable_thinking"] = bool(self.provider_config["enable_thinking"])
+        completion_params.update(thinking_params(
+            self.model_name.split('/')[0], self.provider_config, resolve_profile(self.ai_config),
+        ))
         if "top_p" in self.provider_config:
             completion_params["top_p"] = self.provider_config["top_p"]
 
@@ -284,9 +294,10 @@ class LiteLLMClient:
                       self.ssl_verify,
                       completion_params.get("stream"),
                       completion_params.get("max_tokens"))
+        run_stats.add("calls")
         try:
             llm_call_start_time = time.time()
-            response = await self._litellm_module.acompletion(**completion_params)
+            response = await self._acompletion(completion_params)
             llm_call_end_time = time.time()
             logging.debug(f"[LLM Response Time: {llm_call_end_time - llm_call_start_time:.4f}s] Model: {self.model_name}")
             
@@ -305,11 +316,26 @@ class LiteLLMClient:
                 finish_reason = getattr(response.choices[0], "finish_reason", None)
 
             if finish_reason in ("length", "max_tokens"):
+                run_stats.add("truncated_calls")
                 logging.warning(
                     "LLM response truncated by max_tokens (finish_reason=%s) — model=%s max_tokens=%s. "
                     "Raise max_tokens or batch_tokens_per_component in config.",
                     finish_reason, self.model_name, completion_params.get("max_tokens"),
                 )
+
+            if not full_response_content:
+                run_stats.add("failed_calls")
+                hint = (
+                    "the token budget was consumed by reasoning: raise max_tokens or turn "
+                    "reasoning off (enable_thinking: false, or the perf profile)"
+                    if finish_reason in ("length", "max_tokens")
+                    else "the provider returned nothing"
+                )
+                yield (
+                    f"Error: LLM returned no content (finish_reason={finish_reason}, "
+                    f"max_tokens={completion_params.get('max_tokens')}): {hint}."
+                )
+                return
 
             if output_format == "json":
                 cleaned_content = extract_json_from_llm_response(full_response_content)
@@ -317,9 +343,11 @@ class LiteLLMClient:
                     try:
                         yield json.loads(cleaned_content)
                     except json.JSONDecodeError as e:
+                        run_stats.add("failed_calls")
                         logging.error(f"Failed to decode JSON from AI response: {e}")
                         yield f"Error: Failed to decode JSON from AI response. Raw output: {full_response_content}"
                 else:
+                    run_stats.add("failed_calls")
                     yield (
                         f"Error: No valid JSON found in AI response "
                         f"(finish_reason={finish_reason}). Raw output: {full_response_content}"
@@ -331,6 +359,7 @@ class LiteLLMClient:
 
 
         except Exception as e:
+            run_stats.add("failed_calls")
             logging.error("LLM generation failed — model=%s url=%s",
                           self.model_name,
                           completion_params.get("api_base") or "(provider default)")

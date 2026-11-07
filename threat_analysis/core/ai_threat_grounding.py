@@ -30,10 +30,24 @@ from typing import Any, Dict, List
 
 from threat_analysis.core.stride_constants import STRIDE_CATEGORIES
 
-# Confidence is reported on a fixed grid, not a free 0.0–1.0 float.
-_CONF_GRID = (0.3, 0.5, 0.7, 0.9)
+# Confidence is reported on a fixed grid, not a free 0.0–1.0 float. One step per signal:
+# a threshold of 0.75 keeps three signals or more, a threshold of 0.7 keeps two.
+_CONF_GRID = (0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
 
 _CVE_RE = re.compile(r"\bCVE-\d{4}-\d{3,7}\b", re.IGNORECASE)
+# Anything CVE-shaped whose digits are not digits (CVE-2023-XXXX, CVE-YYYY-NNNN), and
+# ATT&CK ids with the same defect (T1XXX). No real identifier can match.
+_PLACEHOLDER_RE = re.compile(
+    r"\bCVE-(?!\d{4}-\d{4,7}\b)[0-9A-Z?#*]+-[0-9A-Z?#*]+|\bT1[0-9]{0,3}X{1,3}\b",
+    re.IGNORECASE,
+)
+_PLACEHOLDER_TEXT = "[unverified identifier removed]"
+
+# A title that claims no encryption over a description that says there is some.
+_NO_ENCRYPTION_RE = re.compile(r"\b(?:unencrypted|plain-?text|clear-?text|non-encrypted)\b")
+_ENCRYPTED_RE = re.compile(
+    r"(?<!not )(?<!un)(?<!non-)\b(?:encrypted|ipsec|tls)\b(?! (?:is|are) (?:not|absent|missing|disabled))"
+)
 _CAPEC_RE = re.compile(r"^CAPEC-\d+$", re.IGNORECASE)
 
 # Cross-domain technology keywords. If the component's tags name one stack and the
@@ -60,8 +74,29 @@ class GroundingResult:
 
 
 def _snap(value: float) -> float:
-    v = max(0.2, min(0.95, value))
-    return min(_CONF_GRID, key=lambda g: abs(g - v))
+    return round(max(_CONF_GRID[0], min(_CONF_GRID[-1], value)), 1)
+
+
+def contains_placeholder(value: Any) -> bool:
+    """True if any string inside ``value`` holds a placeholder identifier."""
+    if isinstance(value, str):
+        return _PLACEHOLDER_RE.search(value) is not None
+    if isinstance(value, dict):
+        return any(contains_placeholder(v) for v in value.values())
+    if isinstance(value, (list, tuple)):
+        return any(contains_placeholder(v) for v in value)
+    return False
+
+
+def scrub_placeholders(value: Any) -> Any:
+    """Copy of ``value`` with placeholder identifiers replaced, for prose worth keeping."""
+    if isinstance(value, str):
+        return _PLACEHOLDER_RE.sub(_PLACEHOLDER_TEXT, value)
+    if isinstance(value, dict):
+        return {k: scrub_placeholders(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [scrub_placeholders(v) for v in value]
+    return value
 
 
 def score_grounding(threat_json: Dict[str, Any], component_details: Dict[str, Any]) -> GroundingResult:
@@ -87,6 +122,13 @@ def score_grounding(threat_json: Dict[str, Any], component_details: Dict[str, An
             if any(k in text for k in kws):
                 flags.append(f"references {d} but component tech tags are '{tags}'")
 
+    title = str(threat_json.get("title", "")).lower()
+    body = " ".join(
+        str(threat_json.get(k, "")) for k in ("description", "attack_scenario")
+    ).lower()
+    if _NO_ENCRYPTION_RE.search(title) and _ENCRYPTED_RE.search(body):
+        flags.append("title claims no encryption but the text describes encryption")
+
     # ── signals: facts about the modelled component the threat gets right ────
     if str(threat_json.get("category", "")) in STRIDE_CATEGORIES:
         signals.append("valid STRIDE category")
@@ -97,7 +139,7 @@ def score_grounding(threat_json: Dict[str, Any], component_details: Dict[str, An
     controls = str(component_details.get("security_controls") or "").lower()
     for marker, kw in (("waf: no", "waf"), ("ids: no", "ids"), ("ips: no", "ips"),
                        ("mfa: no", "mfa")):
-        if marker in controls and kw in text:
+        if marker in controls and re.search(rf"\b{kw}\b", text):
             signals.append(f"targets a real control gap ({kw})")
 
     flows = (

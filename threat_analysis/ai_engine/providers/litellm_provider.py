@@ -19,6 +19,7 @@ from .base_provider import BaseLLMProvider
 from .litellm_client import LiteLLMClient
 from ..prompts.stride_prompts import build_component_prompt, build_batch_prompt
 from threat_analysis.ai_engine.prompt_loader import get as _get_prompt
+from threat_analysis.core.ai_threat_grounding import scrub_placeholders
 import json
 
 class LiteLLMProvider(BaseLLMProvider):
@@ -182,10 +183,8 @@ class LiteLLMProvider(BaseLLMProvider):
                 output_format="json",
                 max_tokens=ciso_max_tokens,
             ):
-                if isinstance(chunk, dict) and "posture_score" in chunk:
-                    return chunk
                 if isinstance(chunk, dict):
-                    return chunk
+                    return scrub_placeholders(chunk)
             return {}
         except Exception as exc:
             logging.error("CISO triage generation failed: %s", exc)
@@ -229,7 +228,7 @@ class LiteLLMProvider(BaseLLMProvider):
                 temperature=temperature,
             ):
                 if isinstance(chunk, dict):
-                    return chunk
+                    return scrub_placeholders(chunk)
             return {}
         except Exception as exc:
             logging.error("Red/Blue debate turn generation failed: %s", exc)

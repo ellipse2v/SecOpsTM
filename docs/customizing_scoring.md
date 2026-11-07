@@ -87,6 +87,19 @@ stride:
 
 ---
 
+### `stride.impact_likelihood_weight`
+
+Share of the score given to impact × likelihood when a threat has both. The product
+is normalised to 0–10, then averaged with the base score:
+
+```
+score = base × (1 − weight) + (impact × likelihood / 25 × 10) × weight
+```
+
+The default is `0.5`. Target multipliers, protocol adjustments, the classification
+multiplier and the VOC deltas apply after this step. Raise the weight to let the
+risk of each threat matter more than its STRIDE category.
+
 ### `stride.voc_deltas`
 
 Additive deltas applied when contextual risk signals are present.  Negative

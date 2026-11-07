@@ -34,7 +34,7 @@ docker run -p 5000:5000 -v $(pwd)/output:/app/output \
   ellipse2v/secopstm:latest
 
 # With LLM inference — default provider is NVIDIA NIM (free tier available)
-# See https://build.nvidia.com/meta/llama-3_3-70b-instruct for a free API key
+# See https://build.nvidia.com/models for a free API key
 docker run -p 5000:5000 \
   -e NVIDIA_NIM_API_KEY=your_key \
   -v $(pwd)/output:/app/output \
@@ -74,7 +74,7 @@ The named volume `secopstm-rag` persists across container restarts and image reb
 
 | Provider | Environment variable | Free tier |
 |---|---|---|
-| NVIDIA NIM *(default)* | `NVIDIA_NIM_API_KEY` | ✅ [build.nvidia.com](https://build.nvidia.com/meta/llama-3_3-70b-instruct) |
+| NVIDIA NIM *(default)* | `NVIDIA_NIM_API_KEY` | ✅ [build.nvidia.com](https://build.nvidia.com/models) |
 | Google Gemini | `GEMINI_API_KEY` | ✅ |
 | OpenAI | `OPENAI_API_KEY` | ❌ |
 | Mistral | `MISTRAL_API_KEY` | ✅ |
@@ -139,8 +139,16 @@ fully offline afterwards. Re-run with `--force` to update.
 ```bash
 git clone https://github.com/ellipse2v/SecOpsTM.git
 cd SecOpsTM
-pip install -e .                  # external_data/ is already in the repo
-pip install -r requirements.txt   # full AI/ML deps for tooling scripts
+pip install -e .                  # includes AI enrichment and RAG
+pip install -e ".[ai]"            # only to rebuild the vector store with tooling/build_vector_store.py
+```
+
+The repo holds `external_data/`, except the CVE→CAPEC files (`cve2capec/*.jsonl`, 94 MB), which
+are kept out of git on purpose. SecOpsTM runs without them, but CVE scoring stays incomplete. To
+install them:
+
+```bash
+secopstm download-data --force    # replaces external_data/ with the release archive
 ```
 
 To get the **latest CVE entries** (beyond the 1999–2025 snapshot in the repo):
@@ -160,6 +168,14 @@ Use the `secopstm` command for automated threat analysis:
 ```bash
 # Full analysis — HTML + JSON + SVG in output/
 secopstm --model-file threatModel_Template/threat_model.md
+
+# AI trade-off for this run. quality (default) relaxes nothing; perf turns reasoning off and
+# loosens the confidence filter: faster, but weaker threats get through
+secopstm --model-file model.md --ai-profile perf
+
+# Exit with code 3 if the AI step failed (provider down, failed calls, components without threats).
+# Without this flag AI failures are reported at the end of the run and in the report, exit code 0
+secopstm --model-file model.md --fail-on-ai-error
 
 # JSON only, printed to stdout — ideal for CI pipelines and SIEM ingestion
 secopstm --model-file model.md --stdout

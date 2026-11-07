@@ -30,6 +30,8 @@ import importlib.util
 import inspect
 import traceback
 
+import yaml
+
 from threat_analysis import config # Re-add config import
 from threat_analysis.utils import (
     resolve_path, _validate_path_within_project, compare_threat_reports,
@@ -45,6 +47,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+
+_DEFAULT_AI_CONFIG = "config/ai_config.yaml"
+# 1 is a failed analysis or a failed gate: a CI job must be able to tell them apart.
+EXIT_AI_FAILED = 3
 
 _VECTOR_STORE_RELEASE_URL = (
     "https://github.com/ellipse2v/SecOpsTM/releases/download/"
@@ -662,6 +668,23 @@ class CustomArgumentParser:
                  "ai_config.yaml enables a provider (implies --no-rag).",
         )
         common.add_argument(
+            "--ai-profile",
+            choices=["quality", "perf"],
+            default=None,
+            dest="ai_profile",
+            help="AI trade-off for this run, overriding threat_generation.profile.\n"
+                 "quality: strict filter, reasoning as configured.\n"
+                 "perf: reasoning off, looser filter: faster, but weaker threats get through.",
+        )
+        common.add_argument(
+            "--fail-on-ai-error",
+            action="store_true",
+            dest="fail_on_ai_error",
+            help=f"Exit with code {EXIT_AI_FAILED} when the AI step failed: provider unreachable,\n"
+                 "failed calls or components without AI threats. Without it AI failures\n"
+                 "are only reported, because the rule engine result stays valid.",
+        )
+        common.add_argument(
             "--server",
             action="store_true",
             help="Launch the web editor (Monaco editor, Simple Mode).",
@@ -766,8 +789,8 @@ class CustomArgumentParser:
         adv.add_argument(
             "--ai-config-file",
             type=str,
-            default="config/ai_config.yaml",
-            help="Path to AI configuration file (default: config/ai_config.yaml).",
+            default=_DEFAULT_AI_CONFIG,
+            help=f"Path to AI configuration file (default: {_DEFAULT_AI_CONFIG}, else the copy in the package).",
         )
         adv.add_argument(
             "--implemented-mitigations-file",
@@ -1063,8 +1086,7 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
         PROJECT_ROOT, cve_definitions_path, is_cve_path_explicit
     )
 
-    _ai_config_rel = args.ai_config_file if hasattr(args, "ai_config_file") else "config/ai_config.yaml"
-    ai_config_path = Path(_ai_config_rel) if Path(_ai_config_rel).is_absolute() else Path.cwd() / _ai_config_rel
+    ai_config_path = _resolve_ai_config_path(args)
     _no_ai = getattr(args, "no_ai", False)
     if _no_ai:
         ai_config_path = None  # ReportGenerator then builds no AI provider and no AIService
@@ -1197,9 +1219,53 @@ class ColoredFormatter(logging.Formatter):
 _JSON_STDOUT = None
 
 
+def _resolve_ai_config_path(args: argparse.Namespace) -> Path:
+    """Return the ai_config.yaml of this run.
+
+    The default falls back to the copy shipped in the package, so that AI works after
+    a pip install outside the repository. An explicit path never falls back: the user
+    chose that file, and another one could send prompts and keys somewhere else.
+    """
+    relative = getattr(args, "ai_config_file", _DEFAULT_AI_CONFIG)
+    path = Path(relative) if Path(relative).is_absolute() else Path.cwd() / relative
+    if relative == _DEFAULT_AI_CONFIG and not path.exists():
+        return Path(__file__).resolve().parent / "config" / "ai_config.yaml"
+    return path
+
+
+def _finish_ai_run(args: argparse.Namespace, mark: Dict[str, Any]) -> None:
+    """Report what the AI step did, and fail the run if the user asked for that."""
+    if getattr(args, "no_ai", False):
+        return
+    from threat_analysis.ai_engine.ai_runtime import run_stats, select_provider  # noqa: PLC0415
+
+    strict = getattr(args, "fail_on_ai_error", False)
+    path = _resolve_ai_config_path(args)
+    expected = False
+    if path.exists():
+        with open(path, "r", encoding="utf-8") as f:
+            expected = select_provider(yaml.safe_load(f) or {})[0] is not None
+    if not expected and not strict:
+        return  # no AI configured: the offline, rule-engine-only path is a normal run
+
+    if expected:
+        problems = run_stats.problems(since=mark)
+        print(f"AI run: {run_stats.summary(since=mark)}", file=sys.stderr)
+    else:
+        problems = ["--fail-on-ai-error is set but no AI provider is configured."]
+    for problem in problems:
+        print(f"AI problem: {problem}", file=sys.stderr)
+    if strict and problems:
+        sys.exit(EXIT_AI_FAILED)
+
+
 def main():
     """Entry point for the `secopstm` CLI command."""
     global _JSON_STDOUT
+    # A redirected stream on Windows is cp1252, which cannot encode the emojis we print.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="backslashreplace")
     if "--stdout" in sys.argv[1:]:
         import contextlib
         _JSON_STDOUT = sys.stdout
@@ -1233,6 +1299,10 @@ def _main():
     loaded_iac_plugins = load_iac_plugins()
     custom_parser = CustomArgumentParser(loaded_iac_plugins)
     args, remaining_argv = custom_parser.parse_args()
+    if args.ai_profile:
+        os.environ["SECOPSTM_AI_PROFILE"] = args.ai_profile
+    from threat_analysis.ai_engine.ai_runtime import run_stats  # noqa: PLC0415
+    ai_run_mark = run_stats.mark()
 
     # --- Logger Configuration ---
     logging.info(f"[{time.time() - _start_time_main:.4f}s] Configuring logger...")
@@ -1336,8 +1406,7 @@ def _main():
         MitreMapping = mitre_mapping_module.MitreMapping
         mitre_mapping = MitreMapping(threat_model_path=str(_root_model_file))
 
-        _ai_config_rel = args.ai_config_file if hasattr(args, 'ai_config_file') else "config/ai_config.yaml"
-        ai_config_path = Path(_ai_config_rel) if Path(_ai_config_rel).is_absolute() else Path.cwd() / _ai_config_rel
+        ai_config_path = _resolve_ai_config_path(args)
         _no_ai = getattr(args, "no_ai", False)
         if _no_ai:
             ai_config_path = None
@@ -1393,6 +1462,9 @@ def _main():
 
     else:
         run_single_analysis(args, loaded_iac_plugins)
+
+    if not args.server:
+        _finish_ai_run(args, ai_run_mark)
 
         # if "html" in reports and reports["html"]:
         #     framework.open_report_in_browser(reports["html"])

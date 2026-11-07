@@ -121,6 +121,7 @@ class ReportSerializer:
             "capecs": t.get("capecs", []),
             "cve": t.get("cve", []),
             "business_value": t.get("business_value"),
+            "mitigations": t.get("mitigations", []),
         }
 
     @staticmethod

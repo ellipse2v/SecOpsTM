@@ -109,11 +109,23 @@ def test_get_returns_threats_on_hit(cache):
     assert result == _SAMPLE_THREATS
 
 
-def test_get_returns_empty_list_on_cached_empty(cache):
-    """An empty list is a valid cache value (no threats for this component)."""
+def test_empty_result_is_never_cached(cache):
+    """A failed LLM call returns [] too: caching it would freeze the failure."""
     h = "aabbccddeeff00112233"
     cache.put(h, "Actor", "LiteLLMProvider", [])
-    assert cache.get(h) == []
+    assert cache.get(h) is None
+
+
+def test_empty_entry_from_an_older_run_is_a_miss(tmp_path):
+    """Cache files written before the fix can hold poisoned entries."""
+    model = tmp_path / "model.md"
+    model.write_text("# Model", encoding="utf-8")
+    h = "aabbccddeeff00112233"
+    (tmp_path / ".secopstm_ai_cache.json").write_text(json.dumps({
+        "version": 1,
+        "entries": {h: {"component_name": "x", "generated_at": "", "provider": "", "threats": []}},
+    }), encoding="utf-8")
+    assert AIThreatCache(model).get(h) is None
 
 
 def test_put_marks_dirty(cache):

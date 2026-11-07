@@ -193,6 +193,11 @@ class TestGeneratePathNarrativesSuccess:
 
     def test_multiple_paths_each_get_a_call(self):
         provider = _make_provider(VALID_NARRATIVE)
+        provider.generate_attack_path_narrative.side_effect = [
+            VALID_NARRATIVE,
+            {"narrative": "Forged tokens let an outsider pass as a trusted service account.",
+             "business_impact": "Fraudulent transactions."},
+        ]
         rg = _make_report_generator(provider=provider)
         paths = [_make_path("Tampering"), _make_path("Spoofing")]
 
@@ -201,6 +206,17 @@ class TestGeneratePathNarrativesSuccess:
 
         assert provider.generate_attack_path_narrative.await_count == 2
         assert all("narrative" in p for p in paths)
+
+    def test_repeated_narrative_is_discarded(self):
+        provider = _make_provider(VALID_NARRATIVE)
+        rg = _make_report_generator(provider=provider)
+        paths = [_make_path("Tampering"), _make_path("Spoofing")]
+
+        with patch("threat_analysis.ai_engine.prompt_loader.get", return_value="stub"):
+            asyncio.run(rg._generate_path_narratives(paths))
+
+        assert "narrative" in paths[0]
+        assert "narrative" not in paths[1]
 
 
 # ---------------------------------------------------------------------------

@@ -21,7 +21,9 @@ import logging
 import re
 from typing import Any, Dict, List, Optional
 
+from threat_analysis.core.ai_threat_grounding import contains_placeholder
 from threat_analysis.core.models_module import ThreatModel
+from threat_analysis.core.threat_consolidator import _jaccard
 from threat_analysis.utils import resolve_bom_directory
 
 # Attack-path narrative persona (threat_analysis/config/prompts.yaml → attack_path_narrative) is
@@ -36,7 +38,12 @@ _ID_LEAKAGE_PATTERN = re.compile(
 
 def _narrative_has_id_leakage(text: str) -> bool:
     """True if free text contains anything shaped like an ATT&CK/CVE/CAPEC/D3FEND ID."""
-    return bool(text) and bool(_ID_LEAKAGE_PATTERN.search(text))
+    return bool(text) and (bool(_ID_LEAKAGE_PATTERN.search(text)) or contains_placeholder(text))
+
+
+def _is_near_duplicate(text: str, others: List[str], threshold: float = 0.6) -> bool:
+    """True if ``text`` shares most of its words with one of ``others``."""
+    return any(_jaccard(text, other) >= threshold for other in others)
 
 
 class AIAnalysisMixin:
@@ -205,6 +212,7 @@ class AIAnalysisMixin:
             logging.warning("Attack path narrative: prompt key missing (%s) — skipping.", exc)
             return
 
+        written: List[str] = []
         for path in discovered_attack_paths:
             try:
                 hops_lines = []
@@ -226,6 +234,7 @@ class AIAnalysisMixin:
                     .replace("<<hop_count>>", str(path.get("hop_count", 0)))
                     .replace("<<path_label>>", str(path.get("path_label", "?")))
                     .replace("<<hops_detail>>", hops_detail)
+                    .replace("<<previous_narratives>>", "\n".join(f"- {n[:300]}" for n in written) or "None yet.")
                 )
 
                 result = await self.ai_provider.generate_attack_path_narrative(prompt, system_prompt)
@@ -245,6 +254,15 @@ class AIAnalysisMixin:
                     )
                     continue
 
+                if narrative and _is_near_duplicate(narrative, written):
+                    logging.warning(
+                        "Attack path narrative for '%s' discarded — it repeats another path's narrative.",
+                        path.get("stride_category", "?"),
+                    )
+                    continue
+
+                if narrative:
+                    written.append(narrative)
                 path["narrative"] = narrative
                 path["business_impact"] = business_impact
             except Exception as exc:

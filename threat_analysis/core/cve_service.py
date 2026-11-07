@@ -50,10 +50,11 @@ class CVEService:
             return
         capec_map: Dict[str, List[str]] = {}
         cwe_map: Dict[str, List[str]] = {}
-        if not self.cve2capec_db_path.is_dir():
+        # The JSONL files are gitignored, so a fresh clone has the directory or nothing.
+        if not self.cve2capec_db_path.is_dir() or not any(self.cve2capec_db_path.glob("*.jsonl")):
             logging.warning(
                 "CVE2CAPEC database not found at %s. "
-                "To enable CVE scoring, run: secopstm download-data  "
+                "To enable CVE scoring, run: secopstm download-data --force  "
                 "(or manually: git clone https://github.com/Galeax/CVE2CAPEC.git "
                 "next to this project, then python tooling/copy_cve_data.py)",
                 self.cve2capec_db_path,

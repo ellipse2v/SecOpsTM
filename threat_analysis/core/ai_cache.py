@@ -156,11 +156,11 @@ class AIThreatCache:
     def get(self, component_hash: str) -> Optional[List[Dict[str, Any]]]:
         """Return cached threat dicts on hit, or ``None`` on miss.
 
-        An empty list ``[]`` is a valid cached value (component was analysed but the
-        LLM returned no threats) — this prevents redundant re-calls on subsequent runs.
+        An empty entry is a miss: a failed LLM call and "no threats" look the same to
+        the caller, so honouring ``[]`` would freeze a failed run as a 100% hit rate.
         """
         entry = self._entries.get(component_hash)
-        if entry is not None:
+        if entry is not None and entry.get("threats"):
             self.hits += 1
             return entry["threats"]
         self.misses += 1
@@ -175,12 +175,16 @@ class AIThreatCache:
     ) -> None:
         """Store threat dicts for a component and mark the cache as dirty.
 
+        An empty list is not stored, see :meth:`get`.
+
         Args:
             component_hash: Value returned by :meth:`compute_hash`.
             component_name: Human-readable component name (for diagnostics only).
             provider: Name of the LLM provider/class used to generate the threats.
             threats: Raw threat dicts as returned by the LLM (JSON-serialisable).
         """
+        if not threats:
+            return
         self._entries[component_hash] = {
             "component_name": component_name,
             "generated_at": datetime.now(timezone.utc).isoformat(),

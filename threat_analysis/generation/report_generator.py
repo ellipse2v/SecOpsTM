@@ -28,6 +28,7 @@ import os
 from pathlib import Path
 from threat_analysis.utils import resolve_gdaf_context
 from threat_analysis.mitigation_suggestions import get_framework_mitigation_suggestions
+from threat_analysis.ai_engine.ai_runtime import run_stats, select_provider
 from threat_analysis.core.cve_service import CVEService
 import yaml
 import asyncio
@@ -111,19 +112,17 @@ class ReportGenerator(ScoringMixin, AIAnalysisMixin, ProjectReportMixin):
                 ai_config = yaml.safe_load(f)
 
             # Look for enabled provider (lazy imports to avoid ~64s cold start in CLI)
-            providers = ai_config.get("ai_providers", {})
-            for provider_name, provider_config in providers.items():
-                if provider_config.get("enabled"):
-                    logging.info(f"AI Provider '{provider_name}' enabled for report enrichment.")
-                    if provider_name in ["ollama", "mistral_local"]:
-                        from threat_analysis.ai_engine.providers.ollama_provider import OllamaProvider  # noqa: PLC0415
-                        self.ai_provider = OllamaProvider(provider_config)
-                    else:
-                        logging.info(f"Initializing LiteLLMProvider for '{provider_name}'")
-                        from threat_analysis.ai_engine.providers.litellm_provider import LiteLLMProvider  # noqa: PLC0415
-                        self.ai_provider = LiteLLMProvider(provider_config, config_path=ai_config_path)
-                    break
-            
+            provider_name, provider_config = select_provider(ai_config)
+            if provider_name:
+                logging.info(f"AI Provider '{provider_name}' enabled for report enrichment.")
+                if provider_name in ["ollama", "mistral_local"]:
+                    from threat_analysis.ai_engine.providers.ollama_provider import OllamaProvider  # noqa: PLC0415
+                    self.ai_provider = OllamaProvider(provider_config)
+                else:
+                    logging.info(f"Initializing LiteLLMProvider for '{provider_name}'")
+                    from threat_analysis.ai_engine.providers.litellm_provider import LiteLLMProvider  # noqa: PLC0415
+                    self.ai_provider = LiteLLMProvider(provider_config, config_path=ai_config_path)
+
             if self.ai_provider:
                 # ai_context is built lazily from threat_model.context_config when
                 # _enrich_threats_with_ai() is called (context is not available at init time).
@@ -151,6 +150,7 @@ class ReportGenerator(ScoringMixin, AIAnalysisMixin, ProjectReportMixin):
         # Temporarily set threat_model_ref for _get_all_threats_with_mitre_info
         original_threat_model_ref = self.threat_model_ref
         self.threat_model_ref = threat_model # Set the current threat_model
+        ai_run_mark = run_stats.mark()
 
         try:
             total_threats_analyzed = threat_model.mitre_analysis_results.get('total_threats', 0)
@@ -404,6 +404,7 @@ class ReportGenerator(ScoringMixin, AIAnalysisMixin, ProjectReportMixin):
                 debate_results=debate_data,
                 discovered_attack_paths=discovered_attack_paths,
                 ciso_triage=ciso_triage,
+                ai_run_problems=run_stats.problems(since=ai_run_mark) if self.ai_provider else [],
                 completeness=completeness,
                 attack_id_validation=attack_id_validation,
                 threat_graph=threat_graph,

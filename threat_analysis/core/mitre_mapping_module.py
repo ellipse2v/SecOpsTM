@@ -30,6 +30,34 @@ from threat_analysis.core.mitre_static_maps import ATTACK_D3FEND_MAPPING
 
 
 
+# ATT&CK tactics that can realise each STRIDE category. A technique fits when at least
+# one of its tactics is listed.
+_STRIDE_TACTICS: Dict[str, frozenset] = {
+    "Spoofing": frozenset({
+        "Credential Access", "Defense Evasion", "Initial Access", "Lateral Movement",
+        "Persistence", "Privilege Escalation", "Reconnaissance", "Resource Development",
+        "Collection",
+    }),
+    "Tampering": frozenset({
+        "Initial Access", "Execution", "Persistence", "Privilege Escalation", "Defense Evasion",
+        "Credential Access", "Lateral Movement", "Collection", "Command And Control",
+        "Resource Development", "Impact",
+    }),
+    "Repudiation": frozenset({"Defense Evasion"}),
+    "Information Disclosure": frozenset({
+        "Reconnaissance", "Discovery", "Collection", "Credential Access", "Exfiltration",
+        "Command And Control",
+    }),
+    "Denial of Service": frozenset({"Impact"}),
+    "Elevation of Privilege": frozenset({
+        "Initial Access", "Execution", "Persistence", "Privilege Escalation", "Defense Evasion",
+        "Credential Access", "Lateral Movement", "Collection",
+    }),
+}
+# Impact also serves Tampering, but these two only ever describe a denial of service.
+_DOS_ONLY_TECHNIQUES = ("T1498", "T1499")
+
+
 class MitreMapping:
     """Class for managing MITRE ATT&CK mapping with D3FEND mitigations"""
     def __init__(self, threat_model=None, threat_model_path: str = ""):
@@ -198,6 +226,23 @@ class MitreMapping:
         top = [c for score, c in scored[:max_results] if score > 0]
         return top if top else capec_list[:max_results]
 
+    @staticmethod
+    def _coherent_techniques(techniques: Dict[str, Dict[str, Any]], stride_category: str) -> Dict[str, Dict[str, Any]]:
+        """Keeps the techniques whose tactics fit the STRIDE category.
+
+        An id that exists is not an id that fits: the CAPEC to ATT&CK mapping put T1027
+        (obfuscation) on a Denial of Service and T1498 on an insider threat, and ID
+        validation cannot see that. An unknown category is left unfiltered.
+        """
+        allowed = _STRIDE_TACTICS.get(stride_category)
+        if allowed is None:
+            return techniques
+        return {
+            tech_id: tech for tech_id, tech in techniques.items()
+            if allowed.intersection(tech.get('tactics') or [])
+            and (stride_category == "Denial of Service" or not tech_id.startswith(_DOS_ONLY_TECHNIQUES))
+        }
+
     def map_threat_to_mitre(self, threat: Dict[str, Any]) -> Dict[str, List[Dict[str, Any]]]:
         """
         Maps a threat to MITRE ATT&CK techniques and CAPEC patterns.
@@ -260,6 +305,8 @@ class MitreMapping:
 
                     found_techniques[tech_id] = technique_data
         
+        found_techniques = self._coherent_techniques(found_techniques, stride_category)
+
         # Fallback: if explicit CAPEC IDs were provided but none mapped to ATT&CK techniques,
         # fall back to the stride_category lookup so reports are never empty.
         if explicit_capec_ids and not found_techniques and stride_category:
@@ -286,6 +333,7 @@ class MitreMapping:
                         technique_data['nist_mitigations'] = [m for m in framework_mitigations if m.get('framework') == 'NIST']
                         technique_data['cis_mitigations'] = [m for m in framework_mitigations if m.get('framework') == 'CIS']
                         found_techniques[tech_id] = technique_data
+            found_techniques = self._coherent_techniques(found_techniques, stride_category)
 
         return {
             "techniques": list(found_techniques.values()),

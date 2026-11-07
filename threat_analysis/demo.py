@@ -24,7 +24,7 @@ Usage:
     secopstm demo                  # Advanced Cloud Web App (small, readable)
     secopstm demo on-prem          # On-Prem Enterprise Network (40+ elements)
     secopstm demo --no-browser     # just print where the files are
-    secopstm demo --ai             # use the LLM providers of config/ai_config.yaml
+    secopstm demo --ai             # use the LLM providers of config/ai_config.yaml, else the packaged copy
     secopstm demo --list
 """
 
@@ -91,8 +91,9 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument(
         "--ai", action="store_true",
-        help="Also run the AI enrichment, with the providers enabled in config/ai_config.yaml\n"
-             "(an API key or Ollama is needed). Without it the demo uses the rule engine only.",
+        help="Also run the AI enrichment, with the providers enabled in config/ai_config.yaml,\n"
+             "else in the copy shipped in the package (an API key or Ollama is needed).\n"
+             "Without it the demo uses the rule engine only.",
     )
     return p
 

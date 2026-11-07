@@ -1141,6 +1141,14 @@
         </details>
         {% endif %}
 
+        {% if ai_run_problems %}
+        <div role="alert" style="margin:1rem 0;padding:.75rem 1rem;border-left:4px solid #c62828;background:var(--bg-secondary, #fdecea);">
+            <strong>⚠️ AI analysis incomplete.</strong> This report does not contain everything the AI step should have produced.
+            <ul style="margin:.5rem 0 0;">
+                {% for problem in ai_run_problems %}<li>{{ problem }}</li>{% endfor %}
+            </ul>
+        </div>
+        {% endif %}
         {% if ciso_triage and ciso_triage.posture_score is defined %}
         {% set _posture_colors = {"CRITICAL": "#b91c1c", "HIGH": "#c2410c", "ELEVATED": "#b45309", "MODERATE": "#1d4ed8", "LOW": "#166534"} %}
         {% set _posture_label = ciso_triage.posture_label | upper if ciso_triage.posture_label else "UNKNOWN" %}

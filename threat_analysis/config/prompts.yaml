@@ -117,6 +117,18 @@ stride_analysis:
     - Regulatory impact if the threat materializes
     - Which D3FEND defensive technique most effectively counters it
 
+    GROUNDING RULES:
+    - Do not cite CVEs: you are given no CVE data. Never write a placeholder identifier
+      such as CVE-2023-XXXX or T1XXX.
+    - The title must say the same thing as the description. Do not title a threat
+      "Unencrypted ..." when the flow is encrypted: name the real weakness instead.
+    - "Security Controls" lists only what the model declares. A control that is not
+      listed is unknown, not missing: do not state that it is absent.
+    - A Type that starts with "Actor" is a person or external party, not a host. Model
+      account takeover, credential misuse, social engineering, insider abuse and
+      repudiation. Never reproach an actor for lacking a WAF, IDS, IPS, redundancy or
+      encryption at rest.
+
   component_template: |
     # STRIDE Threat Analysis — <<comp_name>>
 
@@ -193,6 +205,7 @@ stride_analysis:
         this threat; empty array if none apply
     11. **detection_opportunities** — specific log sources or behavioral signals
     12. **confidence** — float 0.0–1.0 reflecting your certainty this threat is exploitable
+    13. **mitigations** — array of 1 to 3 concrete remediation steps for this component
 
     ## Output
     Return ONLY valid JSON (no markdown wrapper, no preamble):
@@ -218,7 +231,8 @@ stride_analysis:
           "cwe_ids": ["89", "287"],
           "d3fend_techniques": ["D3-NTF", "D3-OAM"],
           "detection_opportunities": ["WAF logs — rule 942100", "auth failure rate spike"],
-          "confidence": 0.82
+          "confidence": 0.82,
+          "mitigations": ["Enforce parameterised queries in the login handler"]
         }
       ]
     }
@@ -262,11 +276,12 @@ stride_analysis:
             },
             "likelihood": "Low|Medium|High",
             "likelihood_rationale": "One sentence.",
-            "capec_ids": ["CAPEC-XX"],
-            "cwe_ids": ["XX"],
-            "d3fend_techniques": ["D3-XX"],
+            "capec_ids": ["CAPEC-66"],
+            "cwe_ids": ["89"],
+            "d3fend_techniques": ["D3-MFA"],
             "detection_opportunities": ["log source or signal"],
-            "confidence": 0.8
+            "confidence": 0.8,
+            "mitigations": ["Concrete remediation step"]
           }
         ]
       }
@@ -309,6 +324,8 @@ rag:
     - If nothing in the retrieved context applies to components actually present in
       this architecture, rely on your own system-level understanding instead — do not
       force-fit an irrelevant retrieved pattern.
+    - Cite a CVE only if its exact identifier appears in the retrieved context. Never
+      write a placeholder identifier such as CVE-2023-XXXX.
 
   human_template: |
     {optional_context}
@@ -337,6 +354,7 @@ rag:
       Return [] if uncertain.
     - **confidence**: float 0.0–1.0 — your certainty this cross-component path is exploitable
       given the described architecture (1.0 = confirmed pattern, 0.5 = plausible, <0.4 = speculative)
+    - **mitigations**: 1 to 3 concrete remediation steps that break this attack path
 
     Format your response as a JSON array:
     [
@@ -349,7 +367,8 @@ rag:
         "likelihood": "medium",
         "impact": "high",
         "source": "LLM",
-        "confidence": 0.75
+        "confidence": 0.75,
+        "mitigations": ["Concrete remediation step"]
       }}
     ]
 
@@ -375,7 +394,8 @@ soc_analyst:
     Rules:
     - Be specific to the technology stack and log sources implied by the architecture.
     - Sigma rule logic must use realistic field names (EventID, CommandLine, Image,
-      DestinationPort, etc.) — not placeholders.
+      DestinationPort, etc.) — not placeholders. Never write a placeholder identifier
+      such as CVE-2023-XXXX: a rule or IOC containing one is discarded.
     - IOCs must be concrete patterns (process names, registry paths, domain patterns,
       network signatures) — never generic IP addresses.
     - detectability reflects the realism of detection given the described controls:
@@ -643,6 +663,10 @@ attack_path_narrative:
     - If you are not confident why a hop matters, say so plainly rather than
       inventing a plausible-sounding justification.
 
+    Each path in a report covers a different STRIDE category. Write about what this
+    category means for this path, and do not reuse the wording of the narratives already
+    written for the other paths: a narrative that repeats one is discarded.
+
     Output exactly two short paragraphs (2-4 sentences each): a narrative
     explaining how an attacker would realistically move through this specific
     path, and a business_impact paragraph explaining the consequence if it
@@ -656,6 +680,9 @@ attack_path_narrative:
 
     ## Grounding facts (use these — do not invent hops, techniques, or facts not listed here)
     <<hops_detail>>
+
+    ## Narratives already written for other paths (do not repeat them)
+    <<previous_narratives>>
 
     ---
     Write the narrative and business_impact as instructed. Return ONLY a JSON

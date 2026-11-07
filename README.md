@@ -141,7 +141,7 @@ Open <http://localhost:5000>. Reports land in `$(pwd)/output/<timestamp>/`.
 
 #### With AI enrichment (LLM + RAG)
 
-**Default provider: NVIDIA NIM** (Llama 3.3 70B) — free API key at https://build.nvidia.com/meta/llama-3_3-70b-instruct
+**Default provider: NVIDIA NIM** (Nemotron 3.5 Lightning) — free API key at https://build.nvidia.com/models
 
 ```bash
 # Step 1 — Download RAG vector store (one-time, ~200 MB)

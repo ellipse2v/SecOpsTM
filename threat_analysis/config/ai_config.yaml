@@ -1,0 +1,305 @@
+# =============================================================================
+# config/ai_config.yaml — SecOpsTM AI & GDAF configuration
+# =============================================================================
+#
+# SECTION 1 — Choose your AI provider
+#   Enable exactly one provider. Set the matching API key as an environment
+#   variable (e.g. export MISTRAL_API_KEY=...).
+#   SecOpsTM works fully offline without AI — AI features are additive.
+#
+# SECTION 2 — Generation settings (optional tuning)
+#   Adjust volume, rate limits, and ranking weights. Defaults work for most cases.
+#
+# SECTION 3 — RAG, embeddings, and GDAF (advanced)
+#   Do not modify embeddings without rebuilding the vector store
+#   (tooling/build_vector_store.py).
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Enterprise SSL — set when your company uses a custom CA / SSL inspection proxy.
+# ssl_cert_file: "/etc/ssl/certs/company-ca.pem"
+# ---------------------------------------------------------------------------
+
+# =============================================================================
+# SECTION 1 — AI provider (enable exactly one)
+# =============================================================================
+
+# Override provider selection without editing `enabled:` flags by exporting
+#   SECOPSTM_FORCE_PROVIDER=<provider-key>
+# (e.g. groq, xai). Used for A/B provider comparison and tooling/eval. A forced
+# provider does not need enabled: true. Unset or unknown value → normal selection.
+
+ai_providers:
+  mistral:
+    enabled: false
+    model: "mistral-small-latest"
+    api_key_env: "MISTRAL_API_KEY"
+    api_base: ""       # Enterprise: http://mistral.internal:8000/v1
+    temperature: 0.3
+    max_tokens: 4096
+    timeout: 30
+    ssl_verify: true   # false | "/path/to/ca-bundle.crt" for self-signed certs
+    # enable_thinking: false  # vLLM/Qwen3-style hybrid thinking toggle — only set this on providers
+    # that actually accept an `enable_thinking` request field. The Anthropic API does NOT (it uses a
+    # nested `thinking: {type: ...}` object instead) — setting this under the anthropic: block causes
+    # every request to fail with "enable_thinking: Extra inputs are not permitted".
+    # nvidia_nim rejects it too at top level: SecOpsTM sends it there through
+    # extra_body.chat_template_kwargs instead, so setting it on that provider is fine.
+
+  gemini:
+    enabled: false
+    model: "gemini-flash-latest"
+    api_key_env: "GOOGLE_API_KEY"
+    api_base: ""
+    temperature: 0.3
+    max_tokens: 4096
+    timeout: 30
+    ssl_verify: true
+
+  openai:
+    enabled: false
+    model: "gpt-4o-mini"
+    api_key_env: "OPENAI_API_KEY"
+    api_base: ""
+    ssl_verify: true
+
+  # Anthropic API — https://console.anthropic.com (separate from a Claude Pro/Code
+  # subscription; needs its own pay-as-you-go API key)
+  # export ANTHROPIC_API_KEY=sk-ant-...
+  anthropic:
+    enabled: true
+    model: "claude-haiku-4-5-20251001"   # fast/cheap for iteration; "claude-sonnet-5" for higher quality
+    api_key_env: "ANTHROPIC_API_KEY"
+    temperature: 0.2
+    # 1024 truncated batch calls: the STRIDE schema asks for 3-5 threats per component
+    # with ~12 fields each (attack_scenario, business_impact object, capec/cwe/d3fend
+    # lists, ...), and this value also floors the batch ceiling (max_tokens x4 in
+    # generate_threats_batch) — 1024 capped a 5-component batch at 4096 tokens total
+    # and cut the JSON off mid-response. 8192 still truncated some 5-component batches
+    # on Haiku's verbose output — raised further. Haiku 4.5 supports up to 64K output,
+    # so this only raises the ceiling, not actual usage/cost.
+    max_tokens: 16000
+    # 30s was too short for a 16000-max_tokens generation: a slow/long response hits
+    # the timeout mid-generation, litellm retries (num_retries: 3 below), each retry
+    # can itself run into the same wall — observed as a run silently stuck for 1h+
+    # with no error surfaced (2026-09-14). Raised so one real generation has room to
+    # finish before the timeout/retry loop kicks in.
+    timeout: 90
+    ssl_verify: true
+
+  # NVIDIA Integrate API (OpenAI-compatible) — https://build.nvidia.com/models
+  # export NVIDIA_NIM_API_KEY=nvapi-...
+  nvidia_nim:
+    enabled: false
+    # Tested 2026-11-07: 73 threats in 5 min on the cloud demo model, reasoning off.
+    # Not usable then: mistral-large-4-1t-a52b (~14 tok/s, over the timeout), gpt-oss-20b
+    # (no answer), nemotron-3-super-120b-a12b (404), meta/llama-3.3-70b-instruct (410).
+    model: "nvidia/nemotron-3.5-lightning-30b-a3b"      # any model from build.nvidia.com
+    api_key_env: "NVIDIA_NIM_API_KEY"
+    api_base: "https://integrate.api.nvidia.com/v1"
+    temperature: 0.2
+    top_p: 0.7
+    # With reasoning on, this model took 38 min for 4 threats instead of 5 min for 18.
+    enable_thinking: false
+    # 1024 truncated batch calls.
+    max_tokens: 8192
+    timeout: 240
+    ssl_verify: true
+
+  # Groq (LPU inference — fast, generous free tier) — https://console.groq.com
+  # export GROQ_API_KEY=gsk_...
+  groq:
+    enabled: true
+    model: "openai/gpt-oss-120b"    # or "openai/gpt-oss-20b" (faster), "qwen/qwen3.8-27b"
+    api_key_env: "GROQ_API_KEY"
+    api_base: "https://api.groq.com/openai/v1"                        # defaults to https://api.groq.com/openai/v1 when empty
+    temperature: 0.3
+    max_tokens: 4096
+    timeout: 30
+    ssl_verify: true
+
+  # xAI Grok — https://console.x.ai (pay-as-you-go API key)
+  # export XAI_API_KEY=xai-...
+  xai:
+    enabled: false
+    model: "grok-3-latest"     # or "grok-4-fast-reasoning", "grok-3-mini-fast-beta" (cheaper)
+    api_key_env: "XAI_API_KEY"
+    api_base: ""               # defaults to https://api.x.ai/v1 when empty
+    temperature: 0.3
+    max_tokens: 4096
+    timeout: 30
+    ssl_verify: true
+
+  ollama:
+    enabled: false
+    model: "llama3:8b-instruct-q4_K_M"
+    host: "http://127.0.0.1:11434"
+    stream: true
+    num_ctx: 4096
+    num_predict: 4096
+    temperature: 0.3
+    timeout: 60                    # aiohttp session timeout (seconds); connection-level
+    ssl_verify: true
+    # Note: Ollama retry count (3 attempts, exponential back-off) is fixed in
+    # ollama_provider.py and is not configurable via this file.
+
+# =============================================================================
+# SECTION 2 — Generation settings
+# =============================================================================
+threat_generation:
+  mode: "hybrid"             # "traditional" | "ai" | "hybrid"
+  fallback_to_traditional: true
+  # Speed against quality, also settable per run with --ai-profile.
+  #   quality: confidence_threshold below applies as set, enable_thinking as set per
+  #            provider. Nothing is relaxed. The default.
+  #   perf:    reasoning off where the provider has a toggle, and confidence_threshold
+  #            capped at 0.7. Faster and more threats, but the extra ones are less
+  #            specific to the component: use it for iteration, not for a final report.
+  profile: "quality"
+  # Per-component cap on AI-generated threats kept (0 = no limit). When more than this
+  # many are returned, the highest-confidence ones are kept.
+  max_threats_per_component: 7
+
+  # Rate limiting — set to 1.5 for Gemini free tier (15 RPM), 0.0 for paid/Ollama
+  rate_limit_sleep: 2
+  # Concurrency — 1 = sequential (safe for free tiers); 3–5 for paid/Ollama
+  max_concurrent_ai_requests: 1
+  # Batch enrichment — components grouped per LLM call (5 = 5× fewer API round trips)
+  # Set to 1 to disable batching and fall back to one call per component
+  batch_size: 5
+
+  # Volume control (0 = no limit)
+  max_total_threats: 0
+  # Guarantee at least one threat per STRIDE category even if above cut-off
+  min_stride_coverage: true
+
+  # Composite ranking weights (must sum to 1.0)
+  ranking_weights:
+    severity: 0.4
+    confidence: 0.3
+    risk_signals: 0.3
+
+  # AI-generated threats below this confidence (0.0-1.0) are dropped before being
+  # attached to the model. Confidence is derived from what a threat gets right about its
+  # component: 0.5 + 0.1 per grounding signal (4 at most), - 0.2 per flag. 0.75 therefore
+  # keeps threats with three signals or more. The count dropped per component is logged.
+  confidence_threshold: 0.75
+
+  # LiteLLM retry policy — applies to all providers
+  num_retries: 3         # automatic retries on rate-limit / transient errors, not on timeouts
+  # Batch token budget — tokens allocated per component in a batch call (default 600).
+  # 2 000 was the previous default but caused timeouts on slow free-tier providers (70B models).
+  # Raise only if threats are being truncated; reduce if you still hit timeouts.
+  batch_tokens_per_component: 600
+  # Batch timeout multiplier — batch timeout = provider timeout × this factor.
+  # With timeout: 60 and factor: 2.0, batch calls get 120 s instead of 60 s.
+  batch_timeout_factor: 2.0
+
+  # Minimum token budget for CISO triage calls (budget = max(this, provider max_tokens))
+  ciso_triage_min_tokens: 2000
+
+  # Timeouts for sync wrappers (seconds) — increase for slow hardware or large models
+  sync_timeouts:
+    rag_prewarm: 300     # asyncio.wait_for for RAG pre-warm in init_ai()
+    rag_sync: 120        # future.result timeout in generate_rag_threats_sync()
+    markdown_sync: 180   # future.result timeout in generate_markdown_from_prompt_sync()
+
+# =============================================================================
+# SECTION 3 — RAG, embeddings, and GDAF (advanced)
+# =============================================================================
+
+# RAG — retrieval-augmented generation from the local vector store
+rag:
+  enabled: true
+  vector_db: "chroma"
+  top_k_examples: 5
+  # Below this many components (actors + servers), RAG's system-level pass is
+  # skipped — cross-model/cross-boundary chaining needs several components to
+  # produce grounded output; on tiny models it mostly restates single-component
+  # threats already covered by the per-component AI pass. Component-level AI
+  # enrichment is unaffected. 0 disables the threshold (always run RAG).
+  min_components: 3
+
+# Embeddings — default is local HuggingFace (no API key, works offline)
+# WARNING: changing the model requires rebuilding the vector store:
+#   python tooling/build_vector_store.py
+embedding:
+  provider: huggingface        # huggingface | google | mistral | ollama
+  model: all-MiniLM-L6-v2
+  device: cpu                  # cpu | cuda
+  api_base: ""
+  ssl_verify: true
+
+# "Automatically Discovered Attack Paths" — the STRIDE-technique-based attack path
+# finder (AttackFlowGenerator), independent of GDAF. Scope: only the HTML report
+# section built by generate_html_report(); the standalone .afb export flows (CLI
+# --attack-flow, server's dedicated "Export Attack Flow" button) always use every
+# STRIDE category regardless of generate_for_categories, since they're meant to be a
+# complete, unfiltered dump of what pytm/AI found.
+attack_flows:
+  enabled: true
+  generate_for_categories: ["Tampering", "Information Disclosure", "Elevation of Privilege"]
+  # Adds a short grounded narrative + business_impact to each discovered path in the
+  # HTML report (attack_path_narrative persona, threat_analysis/config/prompts.yaml). One LLM call per
+  # path (naturally capped at one per STRIDE category, so ≤6). Requires AI enabled;
+  # skipped silently offline. The persona is instructed to never emit an ID (no
+  # T-numbers, CVE, CAPEC, D3-) — any response that does is discarded, not trusted.
+  include_narrative: true
+
+# GDAF engine defaults — override per model via gdaf_min_technique_score in ## Context
+# or via risk_criteria in the per-model GDAF context YAML
+gdaf:
+  risk_criteria:
+    acceptable_risk_score: 5.0
+    max_hops: 7
+    max_paths_per_objective: 3
+    gdaf_min_technique_score: 0.8
+
+# Red/Blue adversarial debate over the top-N GDAF attack scenarios (opt-in).
+# See docs/gdaf.md. Runs after GDAF and before the HTML report is written.
+debate:
+  # Adversarial Review. The re-score is a directional nudge, not a precise number
+  # (see docs/evaluation.md); the Red/Blue narrative and detection-gap list are
+  # the parts to rely on.
+  enabled: true
+  top_n: 5
+  min_viability_threshold: 0.5
+  max_rounds: 3
+  viability_delta_threshold: 0.1
+  # Narrow band: the debate nudges a GDAF score, it does not overrule it.
+  debate_factor_min: 0.8
+  debate_factor_max: 1.2
+  # 0.0 = greedy. The re-score did not reproduce run-to-run at the provider
+  # default temperature (see docs/evaluation.md). Set to null to use the
+  # provider's own temperature instead.
+  temperature: 0.0
+
+# Multi-provider dispatch for the evaluation harness (tooling/eval/determinism.py,
+# ablation.py — see docs/evaluation.md "Multi-provider dispatch"). NOT read by
+# the running application (server.py, ai_service.py, RedBlueDebateEngine) —
+# production provider selection stays "first ai_providers entry with
+# enabled: true wins", or SECOPSTM_FORCE_PROVIDER to pin one. This section only
+# matters when a harness script is invoked with no explicit --provider(s) flag
+# (passing one on the CLI always overrides it).
+eval_multi_provider:
+  enabled: false
+  # "fallback": one pooled run; for each sample, try providers in order until
+  #   one succeeds — same sample count as a single provider, rides out one
+  #   provider's rate limit/quota. Used by both determinism.py and ablation.py.
+  # "parallel_merge": every provider runs its own full sample set concurrently
+  #   and every success is pooled — up to len(providers) x the per-provider
+  #   count, at roughly the slowest provider's wall-clock cost. determinism.py
+  #   only (ablation.py always uses fallback — one debate run per fixture has
+  #   nothing to pool).
+  mode: "fallback"
+  # Providers to dispatch across, in priority/dispatch order. Empty ([]) means
+  # every ai_providers entry above with enabled: true, in the order listed there.
+  providers: []
+
+# Fine-tuning (Phase 3 — optional, not enabled by default)
+fine_tuning:
+  enabled: false
+  base_model: "mistralai/Ministral-8B"
+  lora_rank: 16
+  lora_alpha: 32
+  dataset_path: "data/training/threat_dataset.jsonl"

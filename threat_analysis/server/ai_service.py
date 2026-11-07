@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+import re
 import yaml
 import logging
 import queue
@@ -25,7 +26,14 @@ from threat_analysis.utils import extract_json_from_llm_response, resolve_model_
 from pytm import Threat  # Keep original Threat import for direct pytm usage where needed
 from threat_analysis.core.models_module import ExtendedThreat
 from threat_analysis.core.ai_cache import AIThreatCache
-from threat_analysis.core.ai_threat_grounding import score_grounding
+from threat_analysis.core.ai_threat_grounding import contains_placeholder, score_grounding
+from threat_analysis.ai_engine.ai_runtime import (
+    PERF_CONFIDENCE_THRESHOLD,
+    PROFILE_PERF,
+    resolve_profile,
+    run_stats,
+    select_provider,
+)
 from threat_analysis.ai_engine.rag_service import RAGThreatGenerator
 from threat_analysis.ai_engine.providers.base_provider import BaseLLMProvider
 from threat_analysis.ai_engine.providers.litellm_provider import LiteLLMProvider
@@ -86,6 +94,7 @@ class AIService:
         self.max_threats_per_component: int = int(self.ai_config.get(
             "threat_generation", {}
         ).get("max_threats_per_component", 0))
+        self.profile: str = resolve_profile(self.ai_config)
         self.confidence_threshold: float = float(self.ai_config.get(
             "threat_generation", {}
         ).get("confidence_threshold", 0.0))
@@ -284,12 +293,7 @@ class AIService:
         logging.info("Initializing AI services...")
 
         # Resolve enabled provider config and instantiate LiteLLMProvider
-        providers = self.ai_config.get("ai_providers", {})
-        enabled_config: Dict[str, Any] = {}
-        for _name, cfg in providers.items():
-            if cfg.get("enabled"):
-                enabled_config = cfg
-                break
+        _, enabled_config = select_provider(self.ai_config)
 
         # Pre-warm RAG in a background thread immediately, in parallel with the AI connection
         # check.  RAGThreatGenerator loads chromadb + embeddings (~26s cold) which is independent
@@ -498,6 +502,11 @@ class AIService:
             if not isinstance(threat_json, dict):
                 logging.warning("RAG: skipping non-dict item in threat list: %r", threat_json)
                 continue
+            if contains_placeholder(threat_json):
+                run_stats.add("dropped_placeholder")
+                logging.warning("RAG: dropped '%s' — it cites a placeholder identifier.",
+                                threat_json.get('name', '?'))
+                continue
             try:
                 description = f"(RAG-LLM) {threat_json.get('name', 'N/A')}: {threat_json.get('description', '')}"
                 likelihood = likelihood_map.get(threat_json.get('likelihood', 'medium').lower(), 3)
@@ -683,6 +692,7 @@ class AIService:
                 or {}
             )
             is_boundary_element = element.__class__.__name__ in ("SecOpsBoundary", "Boundary")
+            is_actor = element in _actor_props_map
             if is_boundary_element:
                 trusted = getattr(element, 'isTrusted', False)
                 b_type = props.get('type', '')
@@ -703,29 +713,36 @@ class AIService:
                     or (element.stereotype if getattr(element, 'stereotype', None) else None)
                     or element.__class__.__name__
                 )
+                if is_actor and "actor" not in str(elem_type).lower():
+                    elem_type = f"Actor ({elem_type})"
             machine_type = str(props.get('machine', getattr(element, 'machine', 'unknown')))
-            conf = str(props.get('confidentiality', getattr(element, 'confidentiality', 'unknown')))
-            integ = str(props.get('integrity', getattr(element, 'integrity', 'unknown')))
-            avail = str(props.get('availability', getattr(element, 'availability', 'unknown')))
-            cia_triad = f"Confidentiality: {conf} | Integrity: {integ} | Availability: {avail}"
-            waf = props.get('waf', getattr(element, 'waf', False))
-            ids_ctrl = props.get('ids', getattr(element, 'ids', False))
-            ips_ctrl = props.get('ips', getattr(element, 'ips', False))
-            redundant = props.get('redundant', getattr(element, 'redundant', False))
-            enc_rest = str(props.get('encryption', getattr(element, 'encryption', 'unknown')))
-            auth_proto = str(props.get('auth_protocol', getattr(element, 'auth_protocol', 'N/A')))
-            mfa = props.get('mfa_enabled', getattr(element, 'mfa_enabled', None))
-            controls_parts = [
-                f"WAF: {'Yes' if waf else 'No'}",
-                f"IDS: {'Yes' if ids_ctrl else 'No'}",
-                f"IPS: {'Yes' if ips_ctrl else 'No'}",
-                f"Redundant: {'Yes' if redundant else 'No'}",
-                f"Encryption at rest: {enc_rest}",
-                f"Auth protocol: {auth_proto}",
+
+            def _declared(key: str) -> Any:
+                """The DSL value, or None: a default is not a fact about this component."""
+                value = props.get(key, getattr(element, key, None))
+                return None if value in (None, "", "unknown", "N/A") else value
+
+            cia_parts = [
+                f"{label}: {_declared(key)}"
+                for label, key in (("Confidentiality", "confidentiality"),
+                                   ("Integrity", "integrity"), ("Availability", "availability"))
+                if _declared(key) is not None
             ]
-            if mfa is not None:
-                controls_parts.append(f"MFA: {'Yes' if mfa else 'No'}")
-            security_controls = " | ".join(controls_parts)
+            cia_triad = " | ".join(cia_parts) or "Not specified"
+            controls_parts = []
+            # WAF, IDS and the like protect infrastructure, not a person.
+            if not is_actor:
+                for label, key in (("WAF", "waf"), ("IDS", "ids"), ("IPS", "ips"),
+                                   ("Redundant", "redundant")):
+                    if _declared(key) is not None:
+                        controls_parts.append(f"{label}: {'Yes' if _declared(key) else 'No'}")
+                if _declared('encryption') is not None:
+                    controls_parts.append(f"Encryption at rest: {_declared('encryption')}")
+            if _declared('auth_protocol') is not None:
+                controls_parts.append(f"Auth protocol: {_declared('auth_protocol')}")
+            if _declared('mfa_enabled') is not None:
+                controls_parts.append(f"MFA: {'Yes' if _declared('mfa_enabled') else 'No'}")
+            security_controls = " | ".join(controls_parts) or "None declared in the model"
             raw_tags = props.get('tags', getattr(element, 'tags', None))
             if isinstance(raw_tags, list):
                 technology_tags = ", ".join(str(t) for t in raw_tags) if raw_tags else "N/A"
@@ -779,6 +796,12 @@ class AIService:
             likelihood_map = {"high": 5, "medium": 3, "low": 1}
 
             candidates = [t for t in (ai_threats_json or []) if isinstance(t, dict)]
+            kept = [t for t in candidates if not contains_placeholder(t)]
+            if len(kept) < len(candidates):
+                run_stats.add("dropped_placeholder", len(candidates) - len(kept))
+                logging.warning("AI filter: %s — dropped %d threat(s) citing a placeholder identifier",
+                                details["name"], len(candidates) - len(kept))
+            candidates = kept
             for t in candidates:
                 g = score_grounding(t, details)
                 # keep the LLM's original number once; re-derivation on a cache hit
@@ -787,11 +810,20 @@ class AIService:
                 t["confidence"] = g.confidence
                 t["grounding_flags"] = g.flags
                 t["grounding_signals"] = g.signals
-            if self.confidence_threshold > 0:
-                candidates = [
+            threshold = self.confidence_threshold
+            if self.profile == PROFILE_PERF:
+                threshold = min(threshold, PERF_CONFIDENCE_THRESHOLD)
+            if threshold > 0:
+                kept = [
                     t for t in candidates
-                    if float(t.get("confidence", 1.0) or 1.0) >= self.confidence_threshold
+                    if float(t.get("confidence", 1.0) or 1.0) >= threshold
                 ]
+                if len(kept) < len(candidates):
+                    run_stats.add("dropped_low_confidence", len(candidates) - len(kept))
+                    logging.info("AI filter: %s — dropped %d/%d threat(s) below confidence %.2f (%s profile)",
+                                 details["name"], len(candidates) - len(kept), len(candidates),
+                                 threshold, self.profile)
+                candidates = kept
             if self.max_threats_per_component > 0:
                 candidates = sorted(
                     candidates, key=lambda t: float(t.get("confidence", 0.0) or 0.0), reverse=True
@@ -822,7 +854,7 @@ class AIService:
                 new_threat.likelihood_score = likelihood
                 new_threat.capec_ids = [
                     c for c in threat_json.get('capec_ids', [])
-                    if isinstance(c, str) and c.upper().startswith('CAPEC-')
+                    if isinstance(c, str) and re.fullmatch(r'CAPEC-\d+', c, re.IGNORECASE)
                 ]
                 new_threat.ai_details = threat_json
                 new_threat.confidence = float(threat_json.get('confidence', 0.5))
@@ -898,15 +930,15 @@ class AIService:
 
             # Distribute results back to elements
             for comp_name, threats_json in results.items():
-                if comp_name in elem_by_name:
+                if comp_name in elem_by_name and threats_json:
                     elem, h, det = elem_by_name[comp_name]
-                    cache.put(h, comp_name, provider_name, threats_json or [])
+                    cache.put(h, comp_name, provider_name, threats_json)
                     _apply_threats_to_element(elem, threats_json, det)
                     await _update_progress(det["name"])
                     logging.debug("AI cache MISS %-32s [%s]  → stored %d threats (batch)",
-                                  comp_name, h[:8], len(threats_json or []))
+                                  comp_name, h[:8], len(threats_json))
 
-            missing = [(elem, det, h) for elem, det, h in batch if det["name"] not in results]
+            missing = [(elem, det, h) for elem, det, h in batch if not results.get(det["name"])]
             if not missing:
                 return
 
@@ -944,6 +976,10 @@ class AIService:
                 threats_json = await self.provider.generate_threats(det, context)
                 if self.rate_limit_sleep > 0:
                     await asyncio.sleep(self.rate_limit_sleep)
+            if not threats_json:
+                run_stats.component_failed(det["name"])
+                logging.warning("AI enrichment: no threats for '%s' — not cached, next run retries it.",
+                                det["name"])
             cache.put(h, det["name"], provider_name, threats_json or [])
             logging.debug("AI cache MISS %-32s [%s]  → stored %d threats",
                           det["name"], h[:8], len(threats_json or []))
@@ -968,6 +1004,7 @@ class AIService:
         cache.save()
         if cache.hits + cache.misses > 0:
             logging.info("AI cache: %s", cache.summary())
+        logging.info("AI run so far (%s profile): %s", self.profile, run_stats.summary())
 
         # SOC persona pass — runs after component enrichment so all AI threats are available.
         await self._enrich_with_soc_analysis(threat_model, ai_status_event_queue)
@@ -1130,8 +1167,10 @@ class AIService:
                     t.ai_details["soc_analysis"] = {
                         "detectability": soc.get("detectability", "unknown"),
                         "missing_logs": soc.get("missing_logs", []),
-                        "siem_rules": soc.get("siem_rules", []),
-                        "iocs": soc.get("iocs", []),
+                        "siem_rules": [
+                            r for r in soc.get("siem_rules", []) if not contains_placeholder(r)
+                        ],
+                        "iocs": [i for i in soc.get("iocs", []) if not contains_placeholder(i)],
                     }
                     logging.debug(
                         "SOC pass: enriched '%s' — detectability=%s",
