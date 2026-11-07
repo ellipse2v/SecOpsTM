@@ -27,8 +27,8 @@ Reports land in `$(pwd)/output/<timestamp>/`.
 
 ## Quick start — with AI enrichment (LLM + RAG)
 
-> **Default provider: NVIDIA NIM** (Llama 3.3 70B). Free API key at
-> https://build.nvidia.com/meta/llama-3_3-70b-instruct — no credit card required.
+> **Default provider: NVIDIA NIM** (Nemotron 3.5 Lightning). Free API key at
+> https://build.nvidia.com/models — no credit card required.
 
 **Step 1 — Download the RAG vector store** (one-time, ~200 MB):
 
@@ -56,7 +56,7 @@ The named volume `secopstm-rag` persists across restarts and image upgrades.
 
 | Provider | Environment variable | Free tier |
 |---|---|---|
-| NVIDIA NIM *(default)* | `NVIDIA_NIM_API_KEY` | ✅ [build.nvidia.com](https://build.nvidia.com/meta/llama-3_3-70b-instruct) |
+| NVIDIA NIM *(default)* | `NVIDIA_NIM_API_KEY` | ✅ [build.nvidia.com](https://build.nvidia.com/models) |
 | Google Gemini | `GEMINI_API_KEY` | ✅ |
 | OpenAI | `OPENAI_API_KEY` | ❌ |
 | Mistral | `MISTRAL_API_KEY` | ✅ |

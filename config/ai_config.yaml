@@ -43,6 +43,8 @@ ai_providers:
     # that actually accept an `enable_thinking` request field. The Anthropic API does NOT (it uses a
     # nested `thinking: {type: ...}` object instead) — setting this under the anthropic: block causes
     # every request to fail with "enable_thinking: Extra inputs are not permitted".
+    # nvidia_nim rejects it too at top level: SecOpsTM sends it there through
+    # extra_body.chat_template_kwargs instead, so setting it on that provider is fine.
 
   gemini:
     enabled: false
@@ -89,13 +91,19 @@ ai_providers:
   # export NVIDIA_NIM_API_KEY=nvapi-...
   nvidia_nim:
     enabled: false
-    model: "meta/llama-3.3-70b-instruct"      # any model from build.nvidia.com
+    # Tested 2026-11-07: 73 threats in 5 min on the cloud demo model, reasoning off.
+    # Not usable then: mistral-large-4-1t-a52b (~14 tok/s, over the timeout), gpt-oss-20b
+    # (no answer), nemotron-3-super-120b-a12b (404), meta/llama-3.3-70b-instruct (410).
+    model: "nvidia/nemotron-3.5-lightning-30b-a3b"      # any model from build.nvidia.com
     api_key_env: "NVIDIA_NIM_API_KEY"
     api_base: "https://integrate.api.nvidia.com/v1"
     temperature: 0.2
     top_p: 0.7
-    max_tokens: 1024
-    timeout: 60
+    # With reasoning on, this model took 38 min for 4 threats instead of 5 min for 18.
+    enable_thinking: false
+    # 1024 truncated batch calls.
+    max_tokens: 8192
+    timeout: 240
     ssl_verify: true
 
   # Groq (LPU inference — fast, generous free tier) — https://console.groq.com
@@ -141,6 +149,13 @@ ai_providers:
 threat_generation:
   mode: "hybrid"             # "traditional" | "ai" | "hybrid"
   fallback_to_traditional: true
+  # Speed against quality, also settable per run with --ai-profile.
+  #   quality: confidence_threshold below applies as set, enable_thinking as set per
+  #            provider. Nothing is relaxed. The default.
+  #   perf:    reasoning off where the provider has a toggle, and confidence_threshold
+  #            capped at 0.7. Faster and more threats, but the extra ones are less
+  #            specific to the component: use it for iteration, not for a final report.
+  profile: "quality"
   # Per-component cap on AI-generated threats kept (0 = no limit). When more than this
   # many are returned, the highest-confidence ones are kept.
   max_threats_per_component: 7
@@ -165,11 +180,13 @@ threat_generation:
     risk_signals: 0.3
 
   # AI-generated threats below this confidence (0.0-1.0) are dropped before being
-  # attached to the model.
+  # attached to the model. Confidence is derived from what a threat gets right about its
+  # component: 0.5 + 0.1 per grounding signal (4 at most), - 0.2 per flag. 0.75 therefore
+  # keeps threats with three signals or more. The count dropped per component is logged.
   confidence_threshold: 0.75
 
   # LiteLLM retry policy — applies to all providers
-  num_retries: 3         # automatic retries on rate-limit / transient errors
+  num_retries: 3         # automatic retries on rate-limit / transient errors, not on timeouts
   # Batch token budget — tokens allocated per component in a batch call (default 600).
   # 2 000 was the previous default but caused timeouts on slow free-tier providers (70B models).
   # Raise only if threats are being truncated; reduce if you still hit timeouts.

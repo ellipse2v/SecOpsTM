@@ -388,7 +388,7 @@ def test_ai_cache_enabled_by_default(tmp_path, monkeypatch):
     model = tmp_path / "model.md"
     model.write_text("# m")
     cache = AIThreatCache(str(model))
-    cache.put("k", "comp", "prov", [])
+    cache.put("k", "comp", "prov", [{"title": "t"}])
     cache.save()
     assert (tmp_path / ".secopstm_ai_cache.json").exists()
 

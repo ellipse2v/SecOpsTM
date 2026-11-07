@@ -2,23 +2,21 @@
 #
 # WHY THIS FILE EXISTS SEPARATELY FROM pyproject.toml
 # ----------------------------------------------------
-# pyproject.toml [project.dependencies] lists only the *minimal runtime* deps
-# needed to run the core threat modeling pipeline (no AI, no LangChain, no
-# vector store).  This lets users install a lightweight version with:
+# pyproject.toml [project.dependencies] lists the runtime deps, AI enrichment and
+# RAG included (litellm, chromadb, sentence-transformers):
 #     pip install -e .
 #
-# This file adds the AI/ML layer on top.  Use it when you need AI enrichment:
-#     pip install -r requirements.txt
-#
-# Alternatively, install only the curated AI extras group from pyproject.toml:
+# To rebuild the vector store, add the curated extra from pyproject.toml:
 #     pip install -e ".[ai]"
-# (lighter than requirements.txt — omits langchain, jq, unstructured)
+#
+# This file is the full, heavier list:
+#     pip install -r requirements.txt
 #
 # INTENTIONAL DIFFERENCES vs pyproject.toml
 # ------------------------------------------
-# - Includes langchain, langchain-community, langchain-chroma, langchain-litellm,
-#   langchain-huggingface (not in pyproject.toml [ai] extras — too heavy for most)
-# - Includes jq and unstructured[all] (tooling / data pipeline only)
+# - Includes langchain, langchain-litellm and langchain-huggingface, which no code
+#   imports today (not in the pyproject.toml [ai] extra)
+# - Includes unstructured[all] where the [ai] extra only takes unstructured[xlsx]
 # - Versions are pinned with >= lower-bounds (not exact) to stay compatible with
 #   fresh environments while avoiding known-bad releases.
 pytm>=1.4.0

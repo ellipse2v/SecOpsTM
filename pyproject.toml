@@ -39,6 +39,19 @@ dependencies = [
     "sentence-transformers>=5.6.0",
 ]
 
+[project.optional-dependencies]
+# AI enrichment and RAG already run on the base dependencies above. This extra adds
+# what tooling/build_vector_store.py needs to rebuild the vector store. The Docker
+# image reads only [project.dependencies], so it stays without these packages.
+ai = [
+    "langchain-community>=0.4",
+    "langchain-core>=1.4.6",
+    "langchain-text-splitters>=1.1.2",
+    "langchain-chroma>=1.0.0",
+    "jq>=1.7.0",
+    "unstructured[xlsx]>=0.18.18",
+]
+
 [project.urls]
 "Homepage" = "https://github.com/ellipse2v/SecOpsTM"
 "Live demo" = "https://ellipse2v.github.io/SecOpsTM/"

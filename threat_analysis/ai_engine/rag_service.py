@@ -19,6 +19,7 @@ import threading
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 import yaml
+from threat_analysis.ai_engine.ai_runtime import resolve_profile, run_stats, select_provider, thinking_params
 from threat_analysis.utils import extract_json_from_llm_response
 
 logger = logging.getLogger(__name__)
@@ -150,40 +151,39 @@ class RAGThreatGenerator:
         logger.debug("Vector store ready: %.1fs", _time.monotonic() - _t); _t = _time.monotonic()
 
         # LLM configuration
-        providers = ai_config.get('ai_providers', {})
         llm_params: Dict[str, Any] = {}
         llm_model: Optional[str] = None
 
-        for name, config in providers.items():
-            if config.get('enabled'):
-                # Use the full provider name as the LiteLLM prefix so that
-                # compound names like "nvidia_nim" are preserved intact.
-                prefix = "ollama" if name == "ollama" else name
-                llm_model = f"{prefix}/{config.get('model')}"
-                llm_params['temperature'] = config.get('temperature', 0.5)
-                # Without this, litellm falls back to its own (often much lower)
-                # per-model default and RAG responses risk the same JSON truncation
-                # that the provider's own max_tokens tuning (ai_config.yaml) already
-                # fixed for component-level generation — RAG calls litellm.completion()
-                # directly, bypassing LiteLLMClient entirely, so it never saw that value.
-                if config.get('max_tokens'):
-                    llm_params['max_tokens'] = config['max_tokens']
-                if name == "ollama":
-                    llm_params['api_base'] = config.get('host', 'http://localhost:11434')
-                elif config.get('api_base'):
-                    llm_params['api_base'] = config['api_base']
-                api_key_env = config.get('api_key_env')
-                if api_key_env:
-                    llm_params['api_key'] = os.getenv(api_key_env)
-                ssl_verify = config.get('ssl_verify', True)
-                if ssl_verify is not True:
-                    llm_params['ssl_verify'] = ssl_verify
-                    if ssl_verify is False:
-                        logger.warning("SSL verification DISABLED for RAG LLM calls.")
-                    else:
-                        logger.warning("Using custom SSL cert for RAG LLM: %s", ssl_verify)
-                logger.info(f"Using {name} LLM: {llm_model}")
-                break
+        name, config = select_provider(ai_config)
+        if name:
+            # Use the full provider name as the LiteLLM prefix so that
+            # compound names like "nvidia_nim" are preserved intact.
+            prefix = "ollama" if name == "ollama" else name
+            llm_model = f"{prefix}/{config.get('model')}"
+            llm_params['temperature'] = config.get('temperature', 0.5)
+            # Without this, litellm falls back to its own (often much lower)
+            # per-model default and RAG responses risk the same JSON truncation
+            # that the provider's own max_tokens tuning (ai_config.yaml) already
+            # fixed for component-level generation — RAG calls litellm.completion()
+            # directly, bypassing LiteLLMClient entirely, so it never saw that value.
+            if config.get('max_tokens'):
+                llm_params['max_tokens'] = config['max_tokens']
+            if name == "ollama":
+                llm_params['api_base'] = config.get('host', 'http://localhost:11434')
+            elif config.get('api_base'):
+                llm_params['api_base'] = config['api_base']
+            api_key_env = config.get('api_key_env')
+            if api_key_env:
+                llm_params['api_key'] = os.getenv(api_key_env)
+            ssl_verify = config.get('ssl_verify', True)
+            if ssl_verify is not True:
+                llm_params['ssl_verify'] = ssl_verify
+                if ssl_verify is False:
+                    logger.warning("SSL verification DISABLED for RAG LLM calls.")
+                else:
+                    logger.warning("Using custom SSL cert for RAG LLM: %s", ssl_verify)
+            llm_params.update(thinking_params(name, config, resolve_profile(ai_config)))
+            logger.info(f"Using {name} LLM: {llm_model}")
 
         if not llm_model:
             raise ValueError("No active LLM configuration found in ai_config.yaml.")
@@ -302,6 +302,7 @@ class RAGThreatGenerator:
             {"role": "user", "content": human_message},
         ]
 
+        run_stats.add("calls")
         try:
             os.environ.setdefault("LITELLM_LOCAL_MODEL_COST_MAP", "True")
             import litellm
@@ -312,9 +313,18 @@ class RAGThreatGenerator:
                 messages=messages,
                 **self._llm_params,
             )
-            raw_text: str = response.choices[0].message.content
+            raw_text: Optional[str] = response.choices[0].message.content
         except Exception as e:
+            run_stats.add("failed_calls")
             logger.error(f"Error during LLM call in RAG generation: {e}")
+            return []
+
+        if not raw_text:
+            run_stats.add("failed_calls")
+            logger.error(
+                "RAG LLM returned no content (finish_reason=%s): raise max_tokens or turn "
+                "reasoning off.", getattr(response.choices[0], "finish_reason", None),
+            )
             return []
 
         # --- Parsing ---
@@ -324,11 +334,13 @@ class RAGThreatGenerator:
                 raise ValueError(f"No valid JSON found in LLM response. Raw: {raw_text[:300]}")
             generated_threats = json.loads(extracted)
             if not isinstance(generated_threats, list):
+                run_stats.add("failed_calls")
                 logger.error("RAG LLM returned unexpected type: %s", type(generated_threats))
                 return []
             logger.debug("Threat generation completed: %d threats.", len(generated_threats))
             return generated_threats
         except ValueError as e:
+            run_stats.add("failed_calls")
             logger.error(f"RAG output parsing failed: {e}")
             return []
         except Exception as e:

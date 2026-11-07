@@ -28,7 +28,7 @@ docker run -p 5000:5000 -v $(pwd)/output:/app/output \
   ellipse2v/secopstm:latest
 
 # With LLM inference — default provider is NVIDIA NIM (free tier available)
-# See https://build.nvidia.com/meta/llama-3_3-70b-instruct for a free API key
+# See https://build.nvidia.com/models for a free API key
 docker run -p 5000:5000 \
   -e NVIDIA_NIM_API_KEY=your_key \
   -v $(pwd)/output:/app/output \
@@ -89,7 +89,15 @@ fully offline afterwards. Re-run with `--force` to update.
 git clone https://github.com/ellipse2v/SecOpsTM.git
 cd SecOpsTM
 pip install -e .
-# external_data/ is already in the repo — no download-data step needed
+pip install -e ".[ai]"   # only to rebuild the vector store with tooling/build_vector_store.py
+```
+
+The repo holds `external_data/`, except the CVE→CAPEC files (`cve2capec/*.jsonl`, 94 MB), which
+are kept out of git on purpose. SecOpsTM runs without them, but CVE scoring stays incomplete. To
+install them:
+
+```bash
+secopstm download-data --force   # replaces external_data/ with the release archive
 ```
 
 To get the **latest CVE entries** (beyond the 1999–2025 snapshot in the repo):

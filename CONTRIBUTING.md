@@ -19,6 +19,8 @@ pip install -e .
 pip install pytest
 ```
 
+`threat_analysis/external_data/cve2capec/*.jsonl` (94 MB) stays out of git on purpose: never commit these files. A clone runs without them, with incomplete CVE scoring. `secopstm download-data --force` installs them.
+
 Install [Graphviz](https://graphviz.org/download/) for the diagrams (`dot -V` must answer). Check the setup:
 
 ```bash

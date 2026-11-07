@@ -49,6 +49,8 @@ threatModelBypyTm/
 │   │   └── report_serializer.py  ReportSerializer — stable versioned dict, IDs T-NNNN
 │   │
 │   ├── ai_engine/                AI inference layer
+│   │   ├── ai_runtime.py         select_provider(), resolve_profile(), thinking_params(), run_stats —
+│   │   │                         shared by LiteLLMClient, RAGThreatGenerator and ReportGenerator
 │   │   ├── embedding_factory.py  get_embeddings() — provider-agnostic factory
 │   │   ├── prompt_loader.py      Loads threat_analysis/config/prompts.yaml sections for each AI role
 │   │   ├── rag_service.py        RAGThreatGenerator — ChromaDB + LangChain RAG chain
@@ -117,7 +119,8 @@ threatModelBypyTm/
 │   │   ├── cis_to_mitre_mapping.json
 │   │   ├── nist800-53-r5-mappings.xlsx
 │   │   ├── CIS_Controls_v8_to_Enterprise_ATTCK_v82_Master_Mapping__5262021.xlsx
-│   │   └── cve2capec/            CVE-XXXX.jsonl files (1999-2025, ~26 files)
+│   │   └── cve2capec/            CVE-XXXX.jsonl files (1999-2025, ~26 files), NOT in git:
+│   │                             see "CVE2CAPEC data stays out of git" below
 │   │
 │   ├── vector_store/             ChromaDB persistent directory (built offline)
 │   │   └── chroma.sqlite3 + UUID collection dir
@@ -192,6 +195,15 @@ Markdown file
 ```
 
 ### 2. AI Enrichment Pipeline
+
+Generation profile (`threat_generation.profile`, `--ai-profile`, `SECOPSTM_AI_PROFILE`):
+`quality` is the default and relaxes nothing. `perf` turns reasoning off where the provider
+has a toggle and caps `confidence_threshold` at 0.7 (two grounding signals instead of three).
+
+Failure handling: an empty LLM result is never cached, a timeout is never retried (the batch
+fallback retries it as smaller calls), and `run_stats` feeds the end-of-run summary, the report
+banner and `--fail-on-ai-error` (exit code 3). Placeholder identifiers such as `CVE-2023-XXXX`
+drop the threat, the SIEM rule or the narrative, in both profiles.
 
 ```
 AIService.init_ai()
@@ -515,6 +527,20 @@ never plain strings — see run_gate_check/diff_threat_reports/compare_threat_re
 in __main__.py / utils.py.
 ```
 
+### CVE2CAPEC data stays out of git
+
+Deliberate decision, note for humans and AI agents working on this repo: the
+`threat_analysis/external_data/cve2capec/*.jsonl` files (94 MB) are **not committed and must
+stay that way**. `.gitignore` excludes them through its `*.jsonl` rule. Do not add them, do not
+un-ignore them, and do not read their absence from a clone as a bug.
+
+- A fresh clone has none of them. Everything still runs: `CVEService` logs a warning and the
+  CVE→CAPEC and CVE→CWE maps stay empty, so CVE-based scoring is incomplete.
+- Install them with `secopstm download-data --force`, the release archive holds them. `--force`
+  is needed because `external_data/` is not empty on a clone, and it replaces that whole
+  directory's content with the archive's. Use `tooling/copy_cve_data.py` for the newest entries.
+- Code and tests must not assume they exist.
+
 ## External Dependencies and Rationale
 
 | Dependency | Why |
@@ -557,10 +583,11 @@ in __main__.py / utils.py.
 
 7. **`requirements.txt` vs `pyproject.toml` diverge** — `pyproject.toml`'s base `dependencies`
    already include `litellm`, `chromadb`, `sentence-transformers` (core AI/RAG works via
-   `pip install -e .` alone). `requirements.txt` adds the heavier full RAG stack on top
-   (`langchain*`, `jq`, `unstructured[all]`) — use it only if you need those. There is no
-   `[project.optional-dependencies]` group in `pyproject.toml` (removed at some point;
-   `pip install -e ".[ai]"` no longer applies).
+   `pip install -e .` alone). The `[ai]` extra adds only what `tooling/build_vector_store.py`
+   imports (`langchain-*`, `jq`, `unstructured[xlsx]`): `pip install -e ".[ai]"`. The Dockerfile
+   reads `[project.dependencies]` only, so the extra never reaches the image.
+   `requirements.txt` is the full, heavier list; it also names packages no code imports
+   (`langchain`, `langchain-litellm`, `langchain-huggingface`).
 
 8. **`package-lock.json` at root** — Present on disk but already gitignored (no `package.json`
    exists). Harmless local artifact, not tracked; safe to delete locally if it bothers you.

@@ -192,6 +192,24 @@ def _warn_bom_mismatches(bom_loader: Any, threat_model: Any) -> None:
         )
 
 
+def _ai_mitigations(ai_details: Dict[str, Any], mitre_techniques: List[Dict[str, Any]]) -> List[str]:
+    """The LLM's own mitigations, else the MITRE ones of the mapped techniques.
+
+    The fallback covers threats cached before the prompts asked for mitigations.
+    """
+    stated = ai_details.get("mitigations")
+    if isinstance(stated, str):
+        stated = [stated]
+    if stated:
+        return [str(m) for m in stated if m]
+    return sorted({
+        m["name"]
+        for tech in mitre_techniques
+        for m in tech.get("mitre_mitigations", [])
+        if m.get("name")
+    })
+
+
 def _is_network_exposed(target: Any) -> bool:
     """Return True when the target is reachable without authentication or encryption.
 
@@ -474,6 +492,9 @@ class ScoringMixin:
                     "source": "AI",
                     "risk_signals": score_result["risk_signals"],
                     "grounding_flags": list(getattr(et, "grounding_flags", []) or []),
+                    "mitigations": _ai_mitigations(
+                        getattr(et, "ai_details", {}) or {}, score_result["mitre_techniques"]
+                    ),
                     "soc_analysis": (getattr(et, "ai_details", {}) or {}).get("soc_analysis"),
                 })
 
@@ -521,7 +542,8 @@ class ScoringMixin:
                     "capecs": capecs,
                     "cve": [], # RAG threats don't have CVEs by default
                     "confidence": getattr(threat, 'confidence', 0.75),
-                    "source": threat_source
+                    "source": threat_source,
+                    "mitigations": _ai_mitigations(ai_details, mitre_techniques),
                 })
 
         # Rank by composite score and trim to configured maximum

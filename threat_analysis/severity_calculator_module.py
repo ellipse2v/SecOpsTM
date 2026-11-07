@@ -120,6 +120,8 @@ class SeverityCalculator:
 
         self.target_multipliers = self._load_severity_multipliers_from_markdown(markdown_file_path, markdown_content)
 
+        self.impact_likelihood_weight = float(stride_cfg.get("impact_likelihood_weight", 0.5))
+
         self.protocol_adjustments = stride_cfg.get("protocol_adjustments", {
             "SSH": 0.5,
             "HTTPS": -0.3,
@@ -217,10 +219,16 @@ class SeverityCalculator:
         static scoring so existing call sites continue to work unchanged.
         """
         # --- Stage 1: base score ---
-        score = self.base_scores.get(threat_type, 5.0)
+        # Report categories are spelled "Elevation of Privilege", the config keys
+        # "ElevationOfPrivilege": without this, those categories scored the 5.0 default.
+        category = threat_type.replace(" ", "").lower()
+        score = next((v for k, v in self.base_scores.items() if k.lower() == category), 5.0)
 
         if impact is not None and likelihood is not None:
-            score += (impact * likelihood) / 5.0
+            # Weighted mean of category and risk, both on a 0-10 scale. Adding the two
+            # saturated the score: most threats landed at CRITICAL and could not be sorted.
+            weight = self.impact_likelihood_weight
+            score = score * (1.0 - weight) + (impact * likelihood) / 25.0 * 10.0 * weight
 
         for target_key, multiplier in self.target_multipliers.items():
             if target_key in target_name:
@@ -298,7 +306,8 @@ class SeverityCalculator:
             "Threat severity is calculated on a scale of 1.0 to 10.0 using the following factors:\n\n"
             f"1.  **Base Score**: Each STRIDE threat category has a predefined base score "
             f"({base_lines}).\n"
-            "2.  **Impact and Likelihood**: If provided (scale 1–5), their product is normalised and added.\n"
+            f"2.  **Impact and Likelihood**: If provided (scale 1–5), their product is normalised to 0–10 and "
+            f"averaged with the base score ({self.impact_likelihood_weight:.0%} weight).\n"
             "3.  **Target Multipliers**: Per-element multipliers from the '## Severity Multipliers' section of the model.\n"
             f"4.  **Protocol Adjustments**: "
             + ", ".join(f"{p} {'+' if v >= 0 else ''}{v}" for p, v in self.protocol_adjustments.items())
