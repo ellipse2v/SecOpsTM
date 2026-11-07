@@ -41,6 +41,8 @@ Three independent threat engines feed into a **unified, deduplicated** output:
 - **Per-component AI threat cache** (`AIThreatCache`): Results are cached in `.secopstm_ai_cache.json` next to the model file, keyed by SHA-256 of the component's full detail dict. On re-analysis: only components whose attributes changed call the LLM. A 15-component model goes from ~90 s to ~6 s when unchanged. Cache is committable and shareable across team members and CI runs. Version field ensures stale v0 caches are discarded cleanly.
 - **DSL AI context keys**: `project_description`, `compliance_requirements`, `integrations`, and other context keys are now declared directly in the DSL `## Context` section instead of a global `config/context.yaml`. Per-model `context/*.yaml` files are also supported for larger projects.
 
+Each LLM pass (DSL generation, STRIDE, RAG, SOC, CISO, Red/Blue, attack path narrator) is described in [ai_roles.md](ai_roles.md).
+
 ## Goal-Driven Attack Flows (GDAF)
 
 GDAF is a top-down attack scenario generator that works from attacker objectives and actor profiles through the system graph, assigning MITRE ATT&CK techniques to each hop. It complements the bottom-up `AttackChainAnalyzer` (which starts from threats) by answering: **"What path would a specific adversary take to reach this target?"**

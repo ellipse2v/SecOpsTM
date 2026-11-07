@@ -346,6 +346,20 @@ For a more interactive experience, the framework provides a web-based UI that ru
     -   **Simple Mode**: An interface for editing and visualizing system models described in Markdown. It features a tabbed editor, a live interactive diagram, and full reporting. When a project is loaded, all model files open automatically in separate tabs.
     -   **Graphical Editor**: An interactive canvas to build, modify, and analyze system models from scratch directly in the browser. It includes a toolbar for adding elements, a properties panel for editing, and the ability to generate all artifacts without touching Markdown directly.
 
+### Server configuration
+
+The server is a single-user tool with no authentication by default. Keep it bound to
+`127.0.0.1` (the default, and `-p 127.0.0.1:5000:5000` with Docker) unless the network is
+fully trusted.
+
+When running `secopstm --server`, you can configure the following optional environment variables:
+
+| Environment variable | Notes |
+|---|---|
+| `SECOPSTM_REQUIRE_AUTH` | Optional. When set to `true`, requires bearer token authentication (via `SECOPSTM_API_TOKEN`) for all routes. Off by default — single-user deployments remain frictionless. |
+| `SECOPSTM_API_TOKEN` | Required if `SECOPSTM_REQUIRE_AUTH=true`. Bearer token for authentication (env var or `?token=` query param). Example: `SECOPSTM_REQUIRE_AUTH=true SECOPSTM_API_TOKEN=my_secret secopstm --server` |
+| `SECOPSTM_WORKSPACES_DIR` | Optional. Directory containing one subdirectory per project. When set, a workspace picker appears in the `/simple` editor. See [Multi-User Workspaces](#3c-multi-user-workspaces-optional). |
+
 ### Working with Projects and Sub-models (Simple Mode)
 
 The Simple Mode is optimized for working with complex, multi-file projects.

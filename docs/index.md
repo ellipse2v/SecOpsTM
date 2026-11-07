@@ -40,6 +40,7 @@ cross-functional review.
 - [Data Collection Guide](data_collection_guide.md) — What information to gather before threat modeling
 - [Examples](examples.md) — Ready-to-use model templates
 - [Extensibility](extensibility.md) — Custom threats, IaC plugins, mappings
+- [AI roles](ai_roles.md) — what each LLM pass does and where it shows up in the report
 - [Customizing LLM Prompts](customizing_prompts.md) — `threat_analysis/config/prompts.yaml` reference
 - [Technical Documentation](technical_documentation/index.md) — Architecture deep-dive
 - [Roadmap](Roadmap.md)
