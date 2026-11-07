@@ -1135,7 +1135,8 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
         primary_path = reports.get(primary_key) or reports.get("html") or reports.get("json")
         if primary_path and os.path.exists(primary_path):
             import shutil
-            shutil.copy2(primary_path, explicit_output_file)
+            Path(explicit_output_file).expanduser().parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(primary_path, Path(explicit_output_file).expanduser())
             logging.info(f"Output copied to {explicit_output_file}")
 
     # --stdout: print the JSON report to stdout for CI consumption
