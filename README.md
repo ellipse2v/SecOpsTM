@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://ellipse2v.github.io/SecOpsTM/"><b>Live demo</b></a> ·
-  <a href="https://github.com/ellipse2v/SecOpsTM#quick-start--installation">Quick start</a> ·
+  <a href="https://github.com/ellipse2v/SecOpsTM#quick-start">Quick start</a> ·
   <a href="https://github.com/ellipse2v/SecOpsTM/blob/main/docs/index.md">Docs</a> ·
   <a href="https://owasp.org/www-project-secopstm/">OWASP project page</a>
 </p>
@@ -33,11 +33,17 @@
   <sub>The generated HTML diagram: click a badge to list its threats, isolate a STRIDE category, show the heat map. <a href="https://ellipse2v.github.io/SecOpsTM/">Try it live.</a></sub>
 </p>
 
+## See it in 30 seconds
+
 ```bash
 pip install SecOpsTM
 secopstm demo                          # analyses a bundled example and opens its diagram
 secopstm --model-file threat_model.md  # then your own model
 ```
+
+No API key, no server: the demo runs the rule engine only. Prefer a browser? The
+[live demo](https://ellipse2v.github.io/SecOpsTM/) shows the same reports, including
+AI-enriched ones.
 
 <table>
   <tr>
@@ -50,79 +56,32 @@ secopstm --model-file threat_model.md  # then your own model
   </tr>
 </table>
 
-## Overview
-SecOpsTM is an [OWASP project](https://owasp.org/www-project-secopstm/): a Python-based, end-to-end STRIDE threat modeling and analysis framework with MITRE ATT&CK mapping. It enables you to:
+A model is plain Markdown that lives next to your code:
 
--   **Model your system architecture** in Markdown (`threatModel_Template/threat_model.md`), including boundaries, actors, servers, data, and dataflows.
--   **Automatically identify STRIDE threats** for each component and dataflow.
--   **Map threats to MITRE ATT&CK techniques** for actionable, real-world context.
--   **Calculate severity** using customizable base scores, target multipliers, protocol adjustments, and VOC risk signals (CVE, CWE, network exposure, D3FEND mitigations).
--   **Generate detailed reports** (HTML, JSON) and **visual diagrams** (DOT, SVG, HTML) with threat highlights.
--   **⛓️ Attack Chain Analysis**: Automatically identifies multi-step attack paths that chain threats across dataflows; shown in a dedicated section of the HTML report.
--   **Trust Boundary Visualization**: Trusted zones rendered green solid, untrusted zones red dashed — baked into the DOT/SVG output, with an interactive severity heat map overlay and a threat layer (per-element threat badges, filterable by severity from the legend) in HTML diagrams.
--   **Generate MITRE ATT&CK Navigator layers** for visualizing identified techniques.
--   **Generate optimized Attack Flow diagrams** for key objectives (Tampering, Spoofing, Information Disclosure, Repudiation).
--   **Red/Blue adversarial debate** over the top GDAF attack paths (opt-in). A reproducible harness measures its effect on prioritisation — see [`docs/evaluation.md`](docs/evaluation.md) (first result: the debate moves the ranking meaningfully but not reproducibly; read its reasoning, not its score).
--   **Extend and customize** all mappings, calculations, and reporting logic.
--   **Run as a web-based editor** for live, interactive threat modeling.
--   **AI-Enhanced Threat Analysis (Hybrid Mode)**: Threats from three independent engines — pytm rule engine, component-level LLM, and a cross-model RAG pipeline (ChromaDB + HuggingFace) — are automatically deduplicated and unified before reporting. Boundary objects are also analysed as AI targets. Supports Ollama (offline), Gemini, OpenAI, Mistral, Groq, xAI, and any LiteLLM-compatible provider. Configured in `config/ai_config.yaml`.
--   **Pure CLI & CI integration**: A `secopstm` command ships after `pip install -e .`. Use `--output-format json --stdout` to pipe structured output to dashboards or SIEM without starting a server.
--   **Versioned JSON output**: Every JSON export is stamped `schema_version: "1.0"` and validated against `threat_analysis/schemas/v1/threat_model_report.schema.json`.
+```markdown
+## Boundaries
+- **Internet**: isTrusted=False
+- **DMZ**: isTrusted=True
 
-> **Based on [PyTM](https://github.com/OWASP/pytm) >= 1.4.0:** This framework leverages PyTM's modeling primitives and extends them with advanced reporting, MITRE mapping, and diagram generation.
+## Actors
+- **User**: boundary=Internet
 
----
+## Servers
+- **WebApp**: boundary=DMZ, type="web_server"
 
-## 🤖 AI Roles
+## Data
+- **Credentials**: classification="SECRET"
 
-When AI is enabled, SecOpsTM runs several distinct LLM passes, each with its own system
-prompt and purpose (all defined in `threat_analysis/config/prompts.yaml`, editable without touching Python
-code). All roles share the one provider configured in `config/ai_config.yaml` — there's no
-per-role provider selection — and every pass degrades gracefully offline: if no provider is
-reachable, the tool falls back to the pytm rule engine silently.
+## Dataflows
+- **Login**: from="User", to="WebApp", protocol="HTTPS", data="Credentials"
+```
 
-| Role | Purpose | Where it shows up |
-|---|---|---|
-| **DSL Generation** | Turns a natural-language system description into a valid SecOpsTM Markdown model | "Generate from prompt" in the web editor |
-| **STRIDE Component Analysis** | Generates STRIDE threats per actor/server/boundary, strictly scoped to the component's declared technology tags (no invented stacks) | Per-component AI enrichment, `(AI)`-sourced threats in the report |
-| **RAG System-Level Analysis** | Cross-component/cross-boundary threats retrieved from a local ChromaDB knowledge base (CVE, CAPEC, ATT&CK, D3FEND) | System-level pass, `(LLM)`-sourced threats — skipped on small models below `rag.min_components` |
-| **SOC Analyst** | Detection-engineering pass: Sigma/Splunk SPL/KQL rule suggestions and IOCs per threat | HTML report "SOC Analysis" section |
-| **CISO Triage** | Board-level risk briefing summarizing the highest-priority threats | HTML report "CISO Briefing" section |
-| **Red Team** | Attempts to advance a GDAF attack scenario, citing only facts from the grounding block (CVE, misconfig, exposed ports) | Red/Blue adversarial debate on top GDAF scenarios |
-| **Blue Team** | Challenges the Red team's attempt with SIEM/EDR/IDS controls and calls out detection gaps | Red/Blue adversarial debate |
-| **Attack Path Narrator** | Short grounded narrative + business impact for each automatically discovered attack path (already-fixed hops/techniques — explains them, never adds new ones). Instructed to never emit an ID (T-number, CVE, CAPEC, D3-); any response that does is discarded, not trusted | "Automatically Discovered Attack Paths" section |
+See [the DSL reference](docs/defining_threat_models.md) and the
+[ready-to-use templates](docs/examples.md).
 
 ---
 
-## ✨ New Interactive Features
-
-The web interface now supports the following.
-
-### Interactive Diagrams
-The generated diagrams (both in the live editor and in exported HTML reports) are not static images. They are fully interactive SVGs that allow you to:
--   **Click to Highlight**: Click on any element (node or connection) to highlight it and its direct relationships. The rest of the diagram fades out, allowing you to focus on the selected components.
--   **Toggle Selection**: Click the same element again or the diagram background to clear the selection.
--   **Sub-model Navigation**: In generated project reports, elements that represent sub-models have a distinct hover effect and are clickable, allowing for easy navigation between different parts of a complex architecture.
-
-### Interactive Legend
--   **Filter Connections**: The diagram legend is now interactive. Click on a protocol (e.g., HTTPS, TCP) to instantly show or hide all dataflows using that protocol, making it easy to analyze specific parts of your data flow.
-
-### Project Generation
--   The **"Generate All"** feature handles projects with nested sub-models.
--   If you have a project with multiple system model files, it detects when a referenced sub-model is not currently open in the editor and prompts you to select your project's root directory, so all files are found before generating reports and diagrams.
-
-### Simple Server Mode
--   The integrated web server can be started with a path to a project directory (`--project path/to/your/project`). It automatically finds all `*.md` system model files within that project and opens them in tabs, ready for editing.
-
----
-
-## 📚 Full Documentation
-
-For detailed information on features, usage, and advanced customization, please refer to our full documentation in the [docs](docs/index.md) directory.
-
----
-
-## Quick Start / Installation
+## Quick start
 
 ### Option A — Docker (no Python setup required)
 
@@ -134,10 +93,10 @@ docker run -p 127.0.0.1:5000:5000 \
 
 Open <http://localhost:5000>. Reports land in `$(pwd)/output/<timestamp>/`.
 
-> **Security note:** the server has no authentication on any route (it's a
-> single-user tool). `-p 127.0.0.1:5000:5000` keeps it reachable only from
-> this machine. Only bind it to all interfaces (`-p 5000:5000`) on a network
-> you fully trust.
+> **Security note:** the server is a single-user tool with no authentication by
+> default. `-p 127.0.0.1:5000:5000` keeps it reachable only from this machine.
+> Token auth and multi-user workspaces are covered in
+> [docs/usage.md § Server configuration](docs/usage.md#server-configuration).
 
 #### With AI enrichment (LLM + RAG)
 
@@ -157,8 +116,6 @@ docker run -p 127.0.0.1:5000:5000 \
 
 Other supported providers: `GEMINI_API_KEY`, `OPENAI_API_KEY`, `MISTRAL_API_KEY`, `GROQ_API_KEY`, `XAI_API_KEY`. Ollama works fully offline (no key needed).
 
----
-
 ### Option B — PyPI
 
 ```bash
@@ -170,8 +127,6 @@ Install Graphviz for diagram generation:
 - Windows: <https://graphviz.org/download/>
 - macOS: `brew install graphviz`
 - Linux: `sudo apt-get install graphviz`
-
----
 
 ### Option C — From source
 
@@ -241,28 +196,87 @@ Other inputs: `terraform-path` / `ansible-path` (analyse IaC instead of a model)
 
 ---
 
-## Server Configuration (Optional)
+## Why SecOpsTM
 
-When running `secopstm --server`, you can configure the following optional environment variables:
+SecOpsTM is an [OWASP project](https://owasp.org/www-project-secopstm/) built on
+[pytm](https://github.com/OWASP/pytm). It sits between "code-only" tools and
+"drawing" tools: the model is a text file you review in a pull request, and the output
+is an interactive report someone outside the security team can actually read.
 
-| Environment variable | Notes |
-|---|---|
-| `SECOPSTM_REQUIRE_AUTH` | Optional. When set to `true`, requires bearer token authentication (via `SECOPSTM_API_TOKEN`) for all routes. Off by default — single-user deployments remain frictionless. |
-| `SECOPSTM_API_TOKEN` | Required if `SECOPSTM_REQUIRE_AUTH=true`. Bearer token for authentication (env var or `?token=` query param). Example: `SECOPSTM_REQUIRE_AUTH=true SECOPSTM_API_TOKEN=my_secret secopstm --server` |
-| `SECOPSTM_WORKSPACES_DIR` | Optional. Directory containing one subdirectory per project. When set, a workspace picker appears in the `/simple` editor. See docs/usage.md § Multi-User Workspaces. |
+An honest comparison with the open-source tools you are most likely to consider:
+
+| | **SecOpsTM** | **pytm** | **Threat Dragon** | **Threagile** |
+|---|---|---|---|---|
+| Model written as | Markdown DSL (or web editor) | Python code | Diagram drawn in a GUI (stored as JSON) | YAML |
+| Methodology | STRIDE | STRIDE-style threat library | STRIDE, LINDDUN, CIA, DIE, PLOT4ai | Built-in risk rules |
+| Threats found by | Rule engine + optional LLM / RAG | Rule engine (threat library) | Per-element suggestions, then manual editing | Rule engine |
+| ATT&CK / CAPEC / D3FEND / CVE mapping | All four, per threat | CAPEC / CWE references | Not built in | CWE references |
+| Attack paths across dataflows | Yes | No | No | No |
+| Output | Interactive HTML diagram + report, JSON, SARIF, STIX, ATT&CK Navigator | DFD, sequence diagram, templated report | In-app diagram, PDF report | PDF report, Excel, diagrams, JSON |
+| CI gate | GitHub Action with PR comment and baseline | Scriptable CLI | Not designed for it | CLI / Docker |
+| Generate the model from IaC | Terraform, Ansible, Docker Compose | No | No | No |
+| Maturity and community | Young project, small community | Mature, OWASP | Mature, OWASP Flagship, largest community | Established |
+
+**Pick another tool if:**
+- you need LINDDUN or privacy threat modeling: Threat Dragon covers it, SecOpsTM is STRIDE only;
+- your team wants to draw diagrams rather than write text: Threat Dragon's editor is far more
+  polished than SecOpsTM's graphical editor, which is still under development;
+- you want a minimal library to script yourself in Python: pytm is lighter and SecOpsTM depends on it anyway.
+
+**Pick SecOpsTM if** you want threat models reviewed like code, threats that come with
+ATT&CK techniques and countermeasures rather than a generic list, a gate in CI, and a
+report your developers will open. AI is optional: everything above works offline with the
+rule engine, and AI-generated threats are labelled as such so you can review them.
 
 ---
 
-## Roadmap
-[roadmap link](docs/Roadmap.md)
+## Features
+
+**Analysis**
+- STRIDE threats for every component, dataflow and trust boundary, mapped to
+  MITRE ATT&CK, CAPEC, D3FEND and CVE.
+- Context-aware severity: base scores, target multipliers, protocol, network exposure,
+  CVE / CWE signals and implemented D3FEND mitigations. [Customizable](docs/customizing_scoring.md).
+- Attack chains: multi-step paths that chain threats across dataflows, plus
+  [Goal-Driven Attack Flows](docs/gdaf.md) towards the assets you care about.
+- VEX support: fixed CVEs lower the severity without manual edits.
+
+**AI (optional)**
+- Hybrid mode: pytm rules, a per-component LLM pass and a cross-model RAG pipeline
+  (local ChromaDB), deduplicated into one list.
+- Any LiteLLM provider: NVIDIA NIM, Gemini, OpenAI, Mistral, Groq, xAI, or Ollama fully
+  offline. Configured in `config/ai_config.yaml`.
+- SOC detection rules, CISO briefing, attack path narratives and an opt-in Red/Blue
+  debate. [What each AI pass does](docs/ai_roles.md) and
+  [how the debate was evaluated](docs/evaluation.md).
+
+**Outputs**
+- Self-contained interactive HTML diagram: threat badges, STRIDE and severity filters,
+  heat map, protocol filter, sub-model drill-down.
+- HTML and versioned JSON reports, SARIF, STIX 2.1, ATT&CK Navigator layers, Attack Flow
+  diagrams, report diff.
+
+**Workflow**
+- `secopstm` CLI and a [GitHub Action](action.yml) for CI.
+- Web editor with live diagram, validation and autocomplete; project mode for
+  hierarchical models (`secopstm --server --project path/`).
+- Models generated from Terraform, Ansible or Docker Compose.
+- Extensible threats, mappings and prompts ([extensibility](docs/extensibility.md)).
+
+The complete list is in [docs/features.md](docs/features.md).
+
 ---
+
+## Documentation
+
+Everything else (CLI flags, server configuration, DSL reference, AI configuration,
+architecture) is in [docs/](docs/index.md). The plan ahead is in the [roadmap](docs/Roadmap.md).
+Contributions are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
 Apache License 2.0. See [LICENSE](LICENSE).
----
 
 ## Author
 
 ellipse2v
-
