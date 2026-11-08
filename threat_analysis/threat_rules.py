@@ -552,6 +552,28 @@ THREAT_RULES = {
             ]
         },
         {
+            "conditions": {"authentication": "credentials"},
+            "threats": [
+                {
+                    "description": "Spoofing of {source.name} towards {sink.name} with stolen or guessed credentials (single-factor authentication)",
+                    "stride_category": "Spoofing",
+                    "impact": 3,
+                    "likelihood": 3
+                }
+            ]
+        },
+        {
+            "conditions": {"authentication": "token"},
+            "threats": [
+                {
+                    "description": "Spoofing of {source.name} towards {sink.name} by replaying a stolen or leaked token",
+                    "stride_category": "Spoofing",
+                    "impact": 3,
+                    "likelihood": 2
+                }
+            ]
+        },
+        {
             "conditions": {"authorization": "none", "readonly": False},
             "threats": [
                 {

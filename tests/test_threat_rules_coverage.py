@@ -66,6 +66,7 @@ FIXTURE_DSL = """# System Model: Rule Coverage
 - **Billing To Shipping**: from="Billing App", to="Shipping App", protocol=HTTP
 - **Shipping To DB**: from="Shipping App", to="Orders DB", protocol=TCP, authentication=credentials, is_encrypted=False
 - **Operator To Console**: from="Operator", to="Admin Console", protocol=SSH, authentication=two-factor, is_encrypted=True
+- **Console To Directory**: from="Admin Console", to="Directory", protocol=HTTPS, authentication=token, is_encrypted=True
 """
 
 _SECTIONS = {"servers": "servers", "dataflows": "dataflows", "actors": "actors"}
@@ -136,6 +137,25 @@ def test_declared_authentication_counts_as_authenticated(model):
     assert generator._matches(_flow(model, "Shipping To DB"), {"is_authenticated": True})
     assert generator._matches(_flow(model, "Internet To Edge"), {"is_authenticated": False})
     assert generator._matches(_flow(model, "Sensor To Billing"), {"is_authenticated": False})
+
+
+def _spoofing_threats(model, flow_name):
+    return [
+        t["description"] for t in get_custom_threats(model)
+        if t["component"] == flow_name and t["stride_category"] == "Spoofing"
+    ]
+
+
+def test_weak_authentication_keeps_a_spoofing_threat(model):
+    # Declaring an authentication method drops "lack of authentication", but a
+    # single-factor or token flow can still be spoofed with stolen secrets.
+    assert any("single-factor" in d for d in _spoofing_threats(model, "Shipping To DB"))
+    assert any("token" in d for d in _spoofing_threats(model, "Console To Directory"))
+    assert not any("lack of authentication" in d for d in _spoofing_threats(model, "Shipping To DB"))
+
+
+def test_two_factor_flow_has_no_spoofing_threat(model):
+    assert _spoofing_threats(model, "Operator To Console") == []
 
 
 def test_kerberoasting_survives_grouping(model):
