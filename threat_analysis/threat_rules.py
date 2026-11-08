@@ -340,7 +340,7 @@ THREAT_RULES = {
             "threats": [
                 {
                     "description": "Kerberoasting attack against Domain Controller {name} to extract service account credentials.",
-                    "stride_category": "Credential Access",
+                    "stride_category": "Information Disclosure",
                     "impact": 5,
                     "likelihood": 4
                 }
