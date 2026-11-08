@@ -157,16 +157,19 @@ class RuleBasedThreatGenerator:
         return True
 
     def _apply_rules(self, component, key: str, fmt_kwargs: dict, component_name: str) -> None:
-        """Applies all matching rules (universal + conditional) for one component."""
-        for rule in self._rules_universal[key]:
+        """Applies all matching rules (universal + conditional) for one component.
+
+        The generic server rules (patching, hardening, privilege escalation, logging) only
+        apply to a server no type-specific rule covers: they produced the same four threats
+        on every server and drowned the report.
+        """
+        matched = [r for r in self._rules_conditional[key] if self._matches(component, r["conditions"])]
+        has_type_rule = key == "servers" and any("type" in r["conditions"] for r in matched)
+        rules = ([] if has_type_rule else self._rules_universal[key]) + matched
+        for rule in rules:
             for tpl in rule["threats"]:
                 desc = tpl["description"].format(**fmt_kwargs)
                 self._add_threat(component_name, desc, **{k: v for k, v in tpl.items() if k != 'description'})
-        for rule in self._rules_conditional[key]:
-            if self._matches(component, rule["conditions"]):
-                for tpl in rule["threats"]:
-                    desc = tpl["description"].format(**fmt_kwargs)
-                    self._add_threat(component_name, desc, **{k: v for k, v in tpl.items() if k != 'description'})
 
     def generate_threats(self):
         """

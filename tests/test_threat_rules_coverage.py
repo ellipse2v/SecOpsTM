@@ -214,3 +214,22 @@ def test_attack_ids_reach_the_custom_threat(model):
         if t.description.startswith("SQL injection")
     ]
     assert sqli and sqli[0].attack_ids == ["T1190", "T1565.001"]
+
+
+def _threats_on(model, component):
+    return [t["description"] for t in get_custom_threats(model) if t["component"] == component]
+
+
+def test_generic_server_threats_skip_servers_with_a_type_rule(model):
+    assert not any(d.startswith("Unpatched OS") for d in _threats_on(model, "Orders DB"))
+    assert any(d.startswith("Unauthorized access to sensitive data") for d in _threats_on(model, "Orders DB"))
+
+
+def test_generic_server_threats_cover_untyped_servers():
+    tm = ThreatModel("Generic", "untyped server")
+    ModelParser(tm, tm.mitre_mapper).parse_markdown(
+        "# System Model: Generic\n\n## Servers\n- **Box**: machine=physical\n"
+    )
+    descriptions = _threats_on(tm, "Box")
+    for prefix in ("Unpatched OS", "Insecure security configuration", "Unauthorized privilege escalation", "Lack of monitoring"):
+        assert any(d.startswith(prefix) for d in descriptions)
