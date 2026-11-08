@@ -30,7 +30,8 @@ GDAF reads a YAML file that defines `attack_objectives`, `threat_actors`, and `r
 For each threat actor, entry points are selected based on the actor's `entry_preference`:
 - `internet-facing` — actors in untrusted boundaries, or fallback to untrusted servers (VPN gateways, edge routers)
 - `insider` — trusted actors with outbound edges
-- `supply-chain` — treated as internet-facing (same selection logic)
+- `internal` — a foothold already inside: any actor or server of a trusted boundary with outbound edges
+- `supply-chain` — build and distribution servers (type containing `cicd`, `pipeline`, `build`, `repository`, `registry`, `package`, `artifact`); falls back to internet-facing when the model has none
 
 ### Step 4 — BFS path traversal
 
@@ -55,6 +56,11 @@ Each hop gets a `hop_score` based on the average technique score multiplied by a
 | HIGH | ≥ 2.8 |
 | MEDIUM | ≥ 1.8 |
 | LOW | < 1.8 |
+
+These thresholds alone saturated (IoT gave 28 CRITICAL scenarios out of 28), so the level is then
+capped by rank among the model's scenarios: only the top 10 % can stay CRITICAL, the top 35 % HIGH,
+the top 75 % MEDIUM, the rest is LOW. A level is never raised. Several actors walking the same route
+to the same objective give one scenario, the most severe.
 
 ### Step 7 — Output
 
@@ -129,7 +135,8 @@ wasteful; the point is to stress-test the ones already flagged as most dangerous
 **Outcome:** the final viability is mapped to a `debate_factor` in
 `[debate.debate_factor_min, debate.debate_factor_max]` (default `[0.5, 1.5]`) and applied
 directly to the scenario: `scenario.path_score = round(path_score × debate_factor, 2)`, then
-`risk_level` is recomputed from the same CRITICAL/HIGH/MEDIUM/LOW thresholds GDAF itself uses.
+`risk_level` is recomputed from the same CRITICAL/HIGH/MEDIUM/LOW thresholds GDAF itself uses,
+then capped again by rank across all scenarios.
 A scenario Blue fully shuts down score *lower* than GDAF's original estimate; one Red can push
 through despite Blue's controls scores *higher*. The debate never creates new threats or
 scenarios — it only adjusts the score/risk_level of the ones GDAF already produced, and the
@@ -210,7 +217,8 @@ threat_actors:
 **`entry_preference` values:**
 - `internet-facing` — selects actors in untrusted boundaries (or untrusted servers as fallback)
 - `insider` — selects trusted actors with outgoing dataflows
-- `supply-chain` — same selection as `internet-facing`
+- `internal` — selects any actor or server of a trusted boundary with outgoing dataflows
+- `supply-chain` — selects CI/CD, repository, registry and other build servers (`internet-facing` selection if there is none)
 
 **`sophistication` values:** `low`, `medium`, `high`, `nation-state`. Currently used as informational metadata in output; does not alter graph traversal but is preserved in each `AttackScenario` for reporting.
 

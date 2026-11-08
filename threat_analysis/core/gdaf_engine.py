@@ -59,6 +59,30 @@ _TRAVERSAL_BONUS = {"low": 0.3, "medium": 0.1, "high": 0.0}
 
 _DETECTION_COVERAGE = {"none": 0.0, "low": 0.2, "medium": 0.5, "high": 0.8}
 
+# Server types an `entry_preference: supply-chain` actor starts from
+_SUPPLY_CHAIN_TYPE_MARKERS = ("cicd", "ci-cd", "pipeline", "build", "repository", "repo", "registry", "package", "artifact")
+
+# Highest risk level a scenario can keep given its rank among the model's scenarios
+# (fraction of scenarios ranked above it). Absolute thresholds alone saturated: IoT gave
+# 28/28 CRITICAL. A level is never raised, only capped.
+_RELATIVE_LEVEL_CAPS = ((0.10, "CRITICAL"), (0.35, "HIGH"), (0.75, "MEDIUM"))
+_LEVEL_ORDER = ("LOW", "MEDIUM", "HIGH", "CRITICAL")
+
+
+def cap_risk_levels_by_rank(scenarios: List["AttackScenario"]) -> None:
+    """Caps each scenario's risk_level by its path_score rank within the list, in place."""
+    if len(scenarios) < 2:
+        return
+    ranked = sorted(scenarios, key=lambda sc: sc.path_score, reverse=True)
+    first_rank: Dict[float, int] = {}  # ties share the rank of the first one
+    for i, scenario in enumerate(ranked):
+        first_rank.setdefault(scenario.path_score, i)
+    for scenario in ranked:
+        fraction = first_rank[scenario.path_score] / len(ranked)
+        cap = next((level for limit, level in _RELATIVE_LEVEL_CAPS if fraction < limit), "LOW")
+        if _LEVEL_ORDER.index(scenario.risk_level) > _LEVEL_ORDER.index(cap):
+            scenario.risk_level = cap
+
 
 def compute_risk_level(path_score: float, thresholds: Dict[str, float]) -> str:
     """Classify a GDAF path_score into CRITICAL/HIGH/MEDIUM/LOW using calibrated thresholds."""
@@ -295,6 +319,19 @@ class GDAFEngine:
                     # Keep top max_paths by score for this (actor, target)
                     actor_scenarios.sort(key=lambda s: s.path_score, reverse=True)
                     scenarios.extend(actor_scenarios[:max_paths])
+
+        # Several actors often walk the same route to the same objective: keep the most
+        # severe scenario per (objective, route) — Satellite gave 91 scenarios for 21 routes.
+        best_by_route: Dict[Tuple[str, Tuple[str, ...]], AttackScenario] = {}
+        for scenario in scenarios:
+            key = (scenario.objective_id, (scenario.entry_point,) + tuple(h.asset_name for h in scenario.hops))
+            kept = best_by_route.get(key)
+            if kept is None or scenario.path_score > kept.path_score:
+                best_by_route[key] = scenario
+        scenarios = [sc for sc in scenarios if best_by_route.get(
+            (sc.objective_id, (sc.entry_point,) + tuple(h.asset_name for h in sc.hops))) is sc]
+
+        cap_risk_levels_by_rank(scenarios)
 
         logger.info("GDAF: produced %d attack scenarios", len(scenarios))
         return scenarios
@@ -542,6 +579,20 @@ class GDAFEngine:
                 if node["kind"] == "actor" and node.get("is_trusted", False):
                     if node["edges"]:
                         entries.append(name)
+        elif entry_pref == "internal":
+            # Foothold already inside (a compromised workstation or host): anything that
+            # sits in a trusted boundary, actor or server (no boundary: not inside)
+            for name, node in graph.items():
+                in_boundary = node.get("attrs", {}).get("boundary") is not None
+                if in_boundary and node.get("boundary_trusted", False) and node["edges"]:
+                    entries.append(name)
+        elif entry_pref == "supply-chain" and any(
+            self._is_supply_chain_node(node) and node["edges"] for node in graph.values()
+        ):
+            # Compromised build or distribution component (CI/CD, repository, registry)
+            for name, node in graph.items():
+                if self._is_supply_chain_node(node) and node["edges"]:
+                    entries.append(name)
         else:
             # External: actors in untrusted boundaries, or first reachable servers
             for name, node in graph.items():
@@ -561,6 +612,11 @@ class GDAFEngine:
                             entries.append(name)
 
         return entries
+
+    @staticmethod
+    def _is_supply_chain_node(node: Dict) -> bool:
+        node_type = str(node.get("type", "")).lower().replace("_", "-")
+        return node["kind"] == "server" and any(m in node_type for m in _SUPPLY_CHAIN_TYPE_MARKERS)
 
     # ------------------------------------------------------------------
     # BFS path finding

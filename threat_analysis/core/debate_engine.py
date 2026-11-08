@@ -30,7 +30,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from threat_analysis.ai_engine.prompt_loader import get as _get_prompt
-from threat_analysis.core.gdaf_engine import GDAFEngine, compute_risk_level
+from threat_analysis.core.gdaf_engine import GDAFEngine, cap_risk_levels_by_rank, compute_risk_level
 
 logger = logging.getLogger(__name__)
 
@@ -138,6 +138,11 @@ class RedBlueDebateEngine:
                 continue
             self._reinject_score(scenario, result)
             results.append(result)
+        if results:
+            # _reinject_score() reset debated levels to the absolute thresholds
+            for scenario in scenarios:
+                scenario.risk_level = compute_risk_level(scenario.path_score, GDAFEngine.get_risk_thresholds())
+            cap_risk_levels_by_rank(scenarios)
         return results
 
     # ------------------------------------------------------------------

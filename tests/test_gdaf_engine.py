@@ -17,12 +17,14 @@
 import pytest
 import yaml
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch, MagicMock
 
 from threat_analysis.core.gdaf_engine import (
     GDAFEngine,
     AttackScenario,
     AttackHop,
+    cap_risk_levels_by_rank,
     compute_risk_level,
     _CLASSIFICATION_SCORE,
     _TRAVERSAL_BONUS,
@@ -1481,3 +1483,82 @@ class TestAttackScenarioDebateFields:
         )
         assert scenario.path_score_pre_debate is None
         assert scenario.debate_factor == 1.0
+
+
+# ---------------------------------------------------------------------------
+# internal / supply-chain entry points, route dedup, rank-capped risk levels
+# ---------------------------------------------------------------------------
+
+class TestEntryPreferenceInternalAndSupplyChain:
+    def _engine(self):
+        trusted = type("B", (), {"name": "Corp"})()
+        actors = [make_actor("Outsider", trusted=False), make_actor("Employee", trusted=True, boundary=trusted)]
+        servers = [
+            make_server("Build", stype="cicd", boundary=trusted),
+            make_server("Files", stype="file_server", boundary=trusted),
+        ]
+        dataflows = [
+            MockDataflow("Outsider", "Files"),
+            MockDataflow("Employee", "Files"),
+            MockDataflow("Build", "Files"),
+        ]
+        boundaries = {"corp": {"boundary": trusted, "isTrusted": True}}
+        engine = GDAFEngine(MockThreatModel(actors=actors, servers=servers, dataflows=dataflows, boundaries=boundaries))
+        return engine, engine._build_graph()
+
+    def test_internal_starts_inside_the_trusted_boundary(self):
+        engine, graph = self._engine()
+        entries = engine._find_entry_points(graph, {"entry_preference": "internal"})
+        assert set(entries) == {"Employee", "Build"}
+
+    def test_supply_chain_starts_from_build_servers(self):
+        engine, graph = self._engine()
+        assert engine._find_entry_points(graph, {"entry_preference": "supply-chain"}) == ["Build"]
+
+    def test_supply_chain_without_build_server_falls_back_to_external(self):
+        model = make_simple_model()
+        engine = GDAFEngine(model)
+        entries = engine._find_entry_points(engine._build_graph(), {"entry_preference": "supply-chain"})
+        assert entries == ["External Attacker"]
+
+
+def _scenario(score, level="CRITICAL"):
+    return SimpleNamespace(path_score=score, risk_level=level)
+
+
+class TestCapRiskLevelsByRank:
+    def test_saturated_levels_are_spread_by_rank(self):
+        scenarios = [_scenario(5.0 - i * 0.1) for i in range(10)]
+        cap_risk_levels_by_rank(scenarios)
+        levels = [s.risk_level for s in scenarios]
+        assert levels.count("CRITICAL") == 1
+        assert levels.count("HIGH") == 3
+        assert levels.count("MEDIUM") == 4
+        assert levels.count("LOW") == 2
+
+    def test_level_is_never_raised(self):
+        scenarios = [_scenario(3.0, "LOW"), _scenario(1.0, "LOW")]
+        cap_risk_levels_by_rank(scenarios)
+        assert [s.risk_level for s in scenarios] == ["LOW", "LOW"]
+
+    def test_ties_share_a_level(self):
+        scenarios = [_scenario(4.5) for _ in range(4)]
+        cap_risk_levels_by_rank(scenarios)
+        assert {s.risk_level for s in scenarios} == {"CRITICAL"}
+
+
+def test_run_keeps_one_scenario_per_objective_and_route(tmp_path):
+    model = make_simple_model()
+    ctx = tmp_path / "ctx.yaml"
+    ctx.write_text(
+        "attack_objectives:\n"
+        "  - {id: obj1, name: Steal DB, target_asset_names: [Database]}\n"
+        "threat_actors:\n"
+        "  - {id: a1, name: Crook, objectives: [obj1], entry_preference: internet-facing}\n"
+        "  - {id: a2, name: Spy, objectives: [obj1], entry_preference: internet-facing}\n",
+        encoding="utf-8",
+    )
+    scenarios = GDAFEngine(model, str(ctx)).run()
+    routes = [(s.objective_id, s.entry_point, tuple(h.asset_name for h in s.hops)) for s in scenarios]
+    assert len(scenarios) == 1
+    assert len(routes) == len(set(routes))
