@@ -449,6 +449,7 @@ class ProjectReportMixin:
                 attack_flow_gen = AttackFlowGenerator(
                     threats=all_detailed_threats,
                     model_name=threat_model.tm.name,
+                    dataflows=threat_model.dataflows,
                 )
                 attack_flow_gen.generate_and_save_flows(str(output_dir))
                 logging.info(f"Attack Flow files generated for {model_name} in {output_dir / 'afb'}")

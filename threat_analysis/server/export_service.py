@@ -239,6 +239,7 @@ class ExportService:
                 attack_flow_gen = AttackFlowGenerator(
                     threats=all_detailed_threats,
                     model_name=str(threat_model.tm.name),
+                    dataflows=threat_model.dataflows,
                 )
                 attack_flow_gen.generate_and_save_flows(str(export_path))
                 logging.info("Attack Flow files generated in %s/afb", export_path)
@@ -376,7 +377,9 @@ class ExportService:
             # above for why (fast dedicated export, no generate_html_report() call).
             all_detailed_threats = get_enriched_threats(threat_model)
 
-            attack_flow_generator = AttackFlowGenerator(threats=all_detailed_threats, model_name=threat_model.tm.name)
+            attack_flow_generator = AttackFlowGenerator(
+                threats=all_detailed_threats, model_name=threat_model.tm.name, dataflows=threat_model.dataflows,
+            )
             attack_flow_generator.generate_and_save_flows(temp_export_dir)
 
             afb_dir = os.path.join(temp_export_dir, "afb")

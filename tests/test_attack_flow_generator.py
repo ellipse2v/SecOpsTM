@@ -264,3 +264,57 @@ def test_no_paths_found(output_dir, capsys):
     assert "INFO: No logical attack paths found based on tactic progression." in captured.out
     afb_dir = output_dir / "afb"
     assert len(list(afb_dir.glob("*.afb"))) == 0, "No .afb files should be created when no paths are found."
+
+# --- Topology-aware paths (dataflows given) ---------------------------------------------
+
+from types import SimpleNamespace
+
+
+def _flow(name, source, sink):
+    return SimpleNamespace(name=name, source=SimpleNamespace(name=source), sink=SimpleNamespace(name=sink))
+
+
+TOPOLOGY = [_flow("Web To App", "Web", "App"), _flow("App To DB", "App", "DB")]
+
+
+def _topology_threats():
+    return [
+        create_mock_threat("T1190", "Exploit Public-Facing Application", ["Initial Access"], "Tampering", "Web", 6.0, "T-1"),
+        create_mock_threat("T1021", "Remote Services", ["Lateral Movement"], "Elevation of Privilege", "App", 7.0, "T-2"),
+        create_mock_threat("T1565.001", "Stored Data Manipulation", ["Impact"], "Tampering", "DB", 9.0, "T-3"),
+        create_mock_threat("T1040", "Network Sniffing", ["Credential Access"], "Information Disclosure", "App To DB", 8.0, "T-4"),
+        # Not reachable through any dataflow: must never appear in a path
+        create_mock_threat("T1485", "Data Destruction", ["Impact"], "Tampering", "Isolated", 10.0, "T-5"),
+    ]
+
+
+def _summary_by_category():
+    generator = AttackFlowGenerator(_topology_threats(), model_name="Topology", dataflows=TOPOLOGY)
+    return {p["stride_category"]: p for p in generator.get_paths_summary()}
+
+
+def test_topology_path_follows_the_dataflows_from_the_entry_point():
+    tampering = _summary_by_category()["Tampering"]
+    assert [h["target"] for h in tampering["hops"]] == ["Web", "App", "DB"]
+
+
+def test_topology_path_ends_on_its_own_category():
+    for category, path in _summary_by_category().items():
+        last_id = path["hops"][-1]["threat_id"]
+        last = next(t for t in _topology_threats() if t["id"] == last_id)
+        assert last["stride_category"] == category
+
+
+def test_topology_paths_differ_per_category():
+    labels = [tuple(h["threat_id"] for h in p["hops"]) for p in _summary_by_category().values()]
+    assert len(labels) == len(set(labels))
+
+
+def test_topology_path_skips_unreachable_components():
+    for path in _summary_by_category().values():
+        assert "Isolated" not in [h["target"] for h in path["hops"]]
+
+
+def test_topology_path_can_end_on_a_dataflow_threat():
+    disclosure = _summary_by_category()["Information Disclosure"]
+    assert disclosure["hops"][-1]["target"] == "App To DB"
