@@ -243,7 +243,9 @@ class AssetTechniqueMapper:
         scored: List[ScoredTechnique] = []
 
         if services:
-            protocols = self._load_protocols()
+            # Case-insensitive: models write protocol="HTTPS" or "gRPC", registry keys
+            # are lowercase. An exact match left most protocol boosts unapplied.
+            protocols = {str(k).lower(): v for k, v in self._load_protocols().items()}
         else:
             protocols = {}
 
@@ -313,7 +315,7 @@ class AssetTechniqueMapper:
             # Service-specific boosts (protocols exposed by this asset)
             if services:
                 for svc in sorted(services):  # sorted: deterministic across runs
-                    proto_entry = protocols.get(svc, {})
+                    proto_entry = protocols.get(str(svc).lower(), {})
                     tactic_boost = set(proto_entry.get("tactic_boost", []))
                     if tech_tactics.intersection(tactic_boost):
                         score += boosts.get("service_match", 0.35)

@@ -21,7 +21,7 @@ import pytest
 import yaml
 
 REGISTRY = Path(__file__).resolve().parent.parent / "threat_analysis" / "config" / "protocols_community.yaml"
-NEW_PROTOCOLS = ["gRPC", "AMQP", "WebSocket"]
+NEW_PROTOCOLS = ["grpc", "amqp", "websocket"]
 
 
 @pytest.fixture(scope="module")
@@ -41,15 +41,21 @@ def test_new_protocol_entry_is_well_formed(protocols, name):
         assert re.fullmatch(r"T\d{4}(\.\d{3})?", tech), f"{name}: technique {tech!r} malformed"
 
 
-def test_mixed_case_dataflow_protocol_matches_registry_entry(protocols):
-    """A dataflow protocol="gRPC" must match the 'gRPC' registry entry exactly."""
+def test_registry_keys_are_lowercase(protocols):
+    """Keys are lowercase; the mapper lowercases the dataflow protocol before lookup."""
+    assert [k for k in protocols if k != k.lower()] == []
+
+
+@pytest.mark.parametrize("svc", ["gRPC", "grpc", "AMQP", "WebSocket", "websocket"])
+def test_mixed_case_dataflow_protocol_matches_registry_entry(protocols, svc):
+    """A dataflow protocol="gRPC" (or any case) must match the 'grpc' registry entry."""
     from unittest.mock import patch
 
     from threat_analysis.core.asset_technique_mapper import AssetTechniqueMapper
 
     with patch.object(AssetTechniqueMapper, "_load_protocols", return_value=protocols):
-        result = AssetTechniqueMapper().get_techniques("database", {}, top_k=50, services={"gRPC"})
+        result = AssetTechniqueMapper().get_techniques("database", {}, top_k=50, services={svc})
     reasons = [t.rationale for t in result]
     tokens = {tok for r in reasons for tok in r.split(", ")}
-    assert tokens & {"service:gRPC", "key-tech:gRPC"}, \
-        "no gRPC service boost applied to protocol 'gRPC'"
+    assert tokens & {f"service:{svc}", f"key-tech:{svc}"}, \
+        f"no service boost applied to protocol {svc!r}"

@@ -56,6 +56,9 @@ Add an entry to `threat_analysis/config/protocols_community.yaml` under the `pro
     key_techniques: [T1021.001]       # technique IDs always boosted for this protocol
 ```
 
+Write the key in lowercase. The lookup ignores case, so a dataflow with
+`protocol="HTTPS"` or `protocol="gRPC"` matches the `https` or `grpc` entry.
+
 ## Submitting a PR
 
 1. Add your entry to the appropriate YAML file.

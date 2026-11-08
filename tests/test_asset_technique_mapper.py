@@ -431,6 +431,33 @@ class TestServicesParameter:
         ids = {t.id for t in result}
         assert "T1558.003" in ids or len(result) > 0
 
+    @staticmethod
+    def _service_reasons(result, svc):
+        tokens = {tok for t in result for tok in t.rationale.split(", ")}
+        return tokens & {f"service:{svc}", f"key-tech:{svc}"}
+
+    @pytest.mark.parametrize("svc", ["SSH", "Ssh", "ssh"])
+    def test_service_lookup_ignores_case(self, mapper_with_sample, svc):
+        """Models write protocol="SSH"; the registry key is "ssh". Both must match."""
+        result = mapper_with_sample.get_techniques("database", {}, top_k=50, services={svc})
+        assert self._service_reasons(result, svc), f"no service boost for protocol {svc!r}"
+
+    def test_mixed_case_registry_key_still_matches(self, reset_class_cache):
+        """A registry key written in mixed case matches a lowercase dataflow protocol."""
+        with patch.object(AssetTechniqueMapper, "_load_raw", return_value=SAMPLE_TECHNIQUES), \
+             patch.object(AssetTechniqueMapper, "_load_asset_types", return_value=SAMPLE_ASSET_TYPES), \
+             patch.object(AssetTechniqueMapper, "_load_protocols",
+                          return_value={"SSH": SAMPLE_PROTOCOLS["ssh"]}):
+            result = AssetTechniqueMapper().get_techniques("database", {}, top_k=50, services={"ssh"})
+        assert self._service_reasons(result, "ssh")
+
+    def test_real_registry_boosts_uppercase_https(self, reset_class_cache):
+        """Regression: protocol="HTTPS" (the most common spelling in models) got no boost."""
+        with patch.object(AssetTechniqueMapper, "_load_raw", return_value=SAMPLE_TECHNIQUES), \
+             patch.object(AssetTechniqueMapper, "_load_asset_types", return_value=SAMPLE_ASSET_TYPES):
+            result = AssetTechniqueMapper().get_techniques("web-server", {}, top_k=50, services={"HTTPS"})
+        assert self._service_reasons(result, "HTTPS")
+
 
 # ---------------------------------------------------------------------------
 # get_techniques — credentials_stored
