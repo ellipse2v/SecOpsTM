@@ -6,6 +6,9 @@
 # Fields:
 #   tactic_boost  : kebab-case tactic IDs boosted when this protocol is exposed on an asset
 #   key_techniques: technique IDs always boosted when this protocol service is present
+#
+# Keys are lowercase. Lookup ignores case, so protocol="HTTPS" or "gRPC" in a model
+# matches the https / grpc entry.
 
 protocols:
 
@@ -105,15 +108,14 @@ protocols:
 
   # ── Messaging & RPC protocols ───────────────────────────────────────────────
 
-  # Keys match the dataflow protocol spelling (lookup is exact-case).
-  gRPC:
+  grpc:
     tactic_boost: [initial-access, command-and-control]
     key_techniques: [T1071.001, T1190]
 
-  AMQP:
+  amqp:
     tactic_boost: [initial-access, collection]
     key_techniques: [T1190, T1557]
 
-  WebSocket:
+  websocket:
     tactic_boost: [initial-access, command-and-control]
     key_techniques: [T1071.001, T1190]
