@@ -315,6 +315,46 @@ class TestNormalizeType:
         # "controller" matches the generic catch after scada/plc specifics
         assert m._normalize_type("my-controller") == "plc"
 
+    def test_llm_endpoint(self):
+        m = AssetTechniqueMapper()
+        assert m._normalize_type("llm-endpoint") == "llm-endpoint"
+
+    def test_openai_alias(self):
+        m = AssetTechniqueMapper()
+        assert m._normalize_type("OpenAI API") == "llm-endpoint"
+
+    def test_bedrock_alias(self):
+        m = AssetTechniqueMapper()
+        assert m._normalize_type("AWS Bedrock") == "llm-endpoint"
+
+    def test_model_api_alias(self):
+        m = AssetTechniqueMapper()
+        assert m._normalize_type("self-hosted model-api") == "llm-endpoint"
+
+    def test_vector_database(self):
+        m = AssetTechniqueMapper()
+        assert m._normalize_type("vector-database") == "vector-database"
+
+    def test_pinecone_alias(self):
+        m = AssetTechniqueMapper()
+        assert m._normalize_type("Pinecone") == "vector-database"
+
+    def test_qdrant_alias(self):
+        m = AssetTechniqueMapper()
+        assert m._normalize_type("qdrant") == "vector-database"
+
+    def test_weaviate_alias(self):
+        m = AssetTechniqueMapper()
+        assert m._normalize_type("Weaviate") == "vector-database"
+
+    def test_chroma_alias(self):
+        m = AssetTechniqueMapper()
+        assert m._normalize_type("chroma") == "vector-database"
+
+    def test_pgvector_alias(self):
+        m = AssetTechniqueMapper()
+        assert m._normalize_type("pgvector") == "vector-database"
+
 
 # ---------------------------------------------------------------------------
 # get_techniques — with empty raw data
