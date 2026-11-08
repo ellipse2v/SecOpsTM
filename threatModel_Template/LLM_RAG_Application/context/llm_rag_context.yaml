@@ -1,0 +1,139 @@
+# GDAF Context: LLM / RAG Application (enterprise chat assistant)
+system_description: "Enterprise chat assistant using retrieval-augmented generation. A web front end calls an API gateway and a RAG orchestrator that screens prompts, retrieves passages from a vector database, and calls an external LLM provider. The model can request tool calls that a tool gateway runs against internal customer and ticketing services. An ingestion pipeline turns uploaded documents into embeddings. Prompts, retrieved passages and tool results containing PII are sent to a third-party provider."
+sector: "Cross-sector enterprise software"
+data_sensitivity: "RESTRICTED"
+internet_facing: true
+compliance_requirements:
+  - "GDPR"
+  - "SOC 2 Type II"
+  - "ISO 27001"
+  - "EU AI Act (transparency and risk management duties)"
+deployment_environment: "Cloud (containers on a managed Kubernetes service) with a third-party hosted LLM API"
+
+attack_objectives:
+  - id: "OBJ-LLM-001"
+    name: "Indirect Prompt Injection Leading to Customer Data Exfiltration"
+    description: "Attacker plants hidden instructions in a document that gets ingested. When a user question retrieves the poisoned passage, the model follows the instructions, calls the customer lookup tool for records the attacker is not entitled to, and leaks the result in its answer or through a rendered image or link."
+    target_asset_names:
+      - "Ingestion Pipeline"
+      - "Vector Database"
+      - "RAG Orchestrator"
+      - "Customer Records API"
+    target_types: ["etl-tools", "database", "microservice"]
+    attacker_intent: "read customer PII without credentials by steering a trusted model"
+    business_impact: "GDPR breach notification, loss of customer trust, regulatory fines"
+    mitre_final_tactic: "exfiltration"
+    min_severity_score: 8.5
+
+  - id: "OBJ-LLM-002"
+    name: "Excessive Agency Through Model-Driven Tool Calls"
+    description: "Attacker uses direct or indirect prompt injection to make the model call the ticketing tool with attacker-chosen arguments. Because the tool gateway uses one shared service token for writes, the action is accepted and cannot be attributed to the requesting user."
+    target_asset_names:
+      - "RAG Orchestrator"
+      - "Tool Gateway"
+      - "Ticketing Service"
+    target_types: ["microservice", "api-gateway"]
+    attacker_intent: "trigger unauthorized business actions and hide behind a service account"
+    business_impact: "fraudulent or destructive workflow changes, audit trail without accountability"
+    mitre_final_tactic: "impact"
+    min_severity_score: 8.0
+
+  - id: "OBJ-LLM-003"
+    name: "Knowledge Base Extraction and Poisoning"
+    description: "Attacker exploits the outdated vector database or a leaked API key to read stored chunks directly, or to write altered chunks that change answers for every user. Because searches carry no per-user entitlement filter, an ordinary user can also retrieve chunks they are not entitled to read. The snapshot recovery flaw in the pinned release gives file access on the host."
+    target_asset_names:
+      - "Vector Database"
+      - "Document Store"
+    target_types: ["database", "object-storage"]
+    attacker_intent: "steal proprietary documents or plant false guidance that the assistant repeats"
+    business_impact: "loss of proprietary content, integrity loss of answers given to employees and customers"
+    mitre_final_tactic: "collection"
+    min_severity_score: 7.5
+
+  - id: "OBJ-LLM-004"
+    name: "LLM Provider API Key Theft and Spend Abuse"
+    description: "Attacker obtains the static provider key from the orchestrator, ingestion worker or secrets manager and uses it to run their own workloads or to read provider-side usage data, or floods the chat endpoint to exhaust the token budget."
+    target_asset_names:
+      - "Secrets Manager"
+      - "RAG Orchestrator"
+      - "LLM Provider API"
+    target_types: ["secrets_manager", "microservice", "default"]
+    attacker_intent: "obtain free model access or cause a denial of wallet"
+    business_impact: "unbounded cost, service suspension by the provider, exposure of prompt data"
+    mitre_final_tactic: "credential-access"
+    min_severity_score: 7.0
+
+  - id: "OBJ-LLM-005"
+    name: "Script Injection Through Model Output in the Chat UI"
+    description: "Attacker gets the model to emit markdown or HTML containing script, a malicious link, or an image URL that carries chat content in its query string. The chat front end renders it in the victim browser, giving session theft or silent exfiltration of the conversation."
+    target_asset_names:
+      - "Chat Front End"
+      - "Guardrails Service"
+      - "API Gateway"
+    target_types: ["client-browser", "microservice", "api-gateway"]
+    attacker_intent: "run script in a victim session or leak conversation content through rendered output"
+    business_impact: "account takeover, leakage of confidential chat content, loss of user trust"
+    mitre_final_tactic: "execution"
+    min_severity_score: 7.0
+
+threat_actors:
+  - id: "TA-LLM-001"
+    name: "Prompt Injection Attacker"
+    sophistication: "medium"
+    objectives: ["OBJ-LLM-001", "OBJ-LLM-002", "OBJ-LLM-005"]
+    entry_preference: "internet-facing"
+    description: "External user or content author who crafts jailbreak prompts and documents with hidden instructions. Needs only a normal account or a path to submit content that will be indexed."
+    known_ttps:
+      - "T1659"   # Content Injection
+      - "T1190"   # Exploit Public-Facing Application
+      - "T1078"   # Valid Accounts
+      - "T1565.001"  # Stored Data Manipulation
+    capable_tactics:
+      - "initial-access"
+      - "execution"
+      - "collection"
+      - "exfiltration"
+
+  - id: "TA-LLM-002"
+    name: "Cloud Credential Thief"
+    sophistication: "medium"
+    objectives: ["OBJ-LLM-004", "OBJ-LLM-003"]
+    entry_preference: "internet-facing"
+    description: "Financially motivated actor harvesting API keys from repositories, logs and exposed services to resell or abuse LLM access, and scanning for exposed vector databases."
+    known_ttps:
+      - "T1552"   # Unsecured Credentials
+      - "T1528"   # Steal Application Access Token
+      - "T1190"   # Exploit Public-Facing Application
+      - "T1496"   # Resource Hijacking
+    capable_tactics:
+      - "initial-access"
+      - "credential-access"
+      - "impact"
+
+  - id: "TA-LLM-003"
+    name: "Malicious Insider with Knowledge Upload Rights"
+    sophistication: "low"
+    objectives: ["OBJ-LLM-003", "OBJ-LLM-001"]
+    entry_preference: "internal"
+    description: "Employee or contractor who can upload documents and abuses that right to poison answers, plant instructions or read content outside their entitlement through the assistant."
+    known_ttps:
+      - "T1078.004"  # Valid Accounts: Cloud Accounts
+      - "T1565.001"  # Stored Data Manipulation
+      - "T1213"   # Data from Information Repositories
+    capable_tactics:
+      - "initial-access"
+      - "collection"
+      - "impact"
+
+risk_criteria:
+  acceptable_risk_score: 4.0
+  max_hops: 6
+  max_paths_per_objective: 3
+  gdaf_min_technique_score: 0.8
+
+business_goals_to_protect:
+  - "Customer PII confidentiality when it passes through prompts, tool results and logs"
+  - "Integrity of the knowledge base and of answers given to users"
+  - "Least-privilege control over what the model can do through tools"
+  - "Control of data sent to the external LLM provider"
+  - "Predictable spend on the LLM provider account"
