@@ -1,0 +1,14 @@
+# BOM: Conversation History
+asset: "Conversation History"
+os_version: "debian_12"
+software_version: "PostgreSQL 16.2"
+patch_level: current
+known_cves: []
+running_services:
+  - PostgreSQL (5432, TLS required)
+detection_level: medium
+credentials_stored: true
+notes: >
+  Stores transcripts and long-term memory per user. Memory entries written by the model are
+  replayed in later sessions, so an injected instruction can persist across conversations.
+  Row-level security keyed on the user ID; credentials rotated automatically.

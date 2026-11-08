@@ -1,0 +1,14 @@
+# BOM: Identity Provider
+asset: "Identity Provider"
+software_version: "Managed OIDC identity provider (SaaS), authorization code flow with PKCE"
+patch_level: current
+known_cves: []
+running_services:
+  - OIDC authorization endpoint
+  - Token endpoint (15 minute access tokens)
+  - JWKS endpoint
+detection_level: high
+credentials_stored: true
+notes: >
+  MFA enforced for all users. Access tokens are short lived and carry the user and role claims
+  that the tool gateway propagates to internal services. Refresh token rotation enabled.

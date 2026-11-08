@@ -1,0 +1,15 @@
+# BOM: Document Store
+asset: "Document Store"
+software_version: "Managed S3-compatible object storage with versioning"
+patch_level: current
+known_cves: []
+running_services:
+  - S3 API (HTTPS 443)
+  - Object versioning
+  - Lifecycle rules
+detection_level: medium
+credentials_stored: false
+notes: >
+  Holds original uploads. Versioning allows rollback after a poisoned document is found.
+  Server-side encryption with a customer-managed key. Bucket policy denies public access and
+  limits writers to the API gateway upload role and administrators.

@@ -1,0 +1,22 @@
+# BOM: RAG Orchestrator
+asset: "RAG Orchestrator"
+os_version: "debian_12"
+software_version: "Python 3.11 with FastAPI 0.110 and a pinned LLM orchestration library"
+patch_level: current
+known_cves: []
+running_services:
+  - HTTPS (mTLS) API (8443)
+  - Tool-call loop worker
+  - Prompt template renderer
+detection_level: medium
+credentials_stored: true
+notes: >
+  Assembles the prompt from system prompt, history and retrieved passages, then runs the tool-
+  call loop. Retrieved text and model output are untrusted and must never be passed to exec,
+  eval or shell. A historical example is CVE-2023-29374 (LangChain LLMMathChain, prompt
+  injection leading to code execution through exec, affecting releases up to 0.0.131); the
+  pinned release is not affected, and exec-based chains remain disallowed. Holds the LLM
+  provider key only in memory after fetching it from the secrets manager. Supply chain: the
+  orchestration library, its transitive dependencies and any downloaded model or embedding
+  artifacts are third-party code (OWASP LLM03); pin by hash, keep an SBOM and verify artifact
+  signatures.

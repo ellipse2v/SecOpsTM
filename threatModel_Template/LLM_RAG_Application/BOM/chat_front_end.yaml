@@ -1,0 +1,15 @@
+# BOM: Chat Front End
+asset: "Chat Front End"
+software_version: "React 18 single-page application served as static files from a CDN"
+patch_level: current
+known_cves: []
+running_services:
+  - Static asset hosting (HTTPS 443)
+  - Server-sent events client for streamed answers
+detection_level: medium
+credentials_stored: false
+notes: >
+  Chat UI that renders streamed model output as markdown. Model output is untrusted: raw HTML
+  must be disabled in the markdown renderer, links and images need an allowlist (an image URL
+  can leak chat content in its query string), and a strict Content-Security-Policy is
+  required. Access token kept in memory, not in local storage.
