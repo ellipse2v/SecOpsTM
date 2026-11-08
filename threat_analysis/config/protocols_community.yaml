@@ -6,6 +6,10 @@
 # Fields:
 #   tactic_boost  : kebab-case tactic IDs boosted when this protocol is exposed on an asset
 #   key_techniques: technique IDs always boosted when this protocol service is present
+#   encrypted     : true when the protocol always encrypts traffic. A dataflow without an
+#                   explicit is_encrypted takes it from its protocol (protocol_is_encrypted())
+#   security_layer: true for layers that encrypt whatever runs over them, so a composite
+#                   protocol such as "PostgreSQL/TLS" counts as encrypted
 #
 # Keys are lowercase. Lookup ignores case, so protocol="HTTPS" or "gRPC" in a model
 # matches the https / grpc entry.
@@ -13,6 +17,7 @@
 protocols:
 
   ssh:
+    encrypted: true
     tactic_boost: [initial-access, lateral-movement]
     key_techniques: [T1021.004, T1098.004]
 
@@ -37,6 +42,7 @@ protocols:
     key_techniques: []
 
   https:
+    encrypted: true
     tactic_boost: [initial-access]
     key_techniques: []
 
@@ -65,6 +71,7 @@ protocols:
     key_techniques: [T1565.001, T1498]
 
   ipsec:
+    encrypted: true
     tactic_boost: [initial-access]
     key_techniques: []
 
@@ -119,3 +126,20 @@ protocols:
   websocket:
     tactic_boost: [initial-access, command-and-control]
     key_techniques: [T1071.001, T1190]
+
+  wss:
+    encrypted: true
+    tactic_boost: [initial-access, command-and-control]
+    key_techniques: [T1071.001, T1190]
+
+  tls:
+    encrypted: true
+    security_layer: true
+    tactic_boost: []
+    key_techniques: []
+
+  mtls:
+    encrypted: true
+    security_layer: true
+    tactic_boost: []
+    key_techniques: []

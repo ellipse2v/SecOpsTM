@@ -48,6 +48,7 @@ from .model_validator import ModelValidator
 from threat_analysis.custom_threats import get_custom_threats
 from threat_analysis.core.stride_constants import STRIDE_CATEGORIES as _STRIDE_CATEGORIES_CONST
 from .cve_service import CVEService
+from .asset_technique_mapper import protocol_is_encrypted
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -226,7 +227,8 @@ class ThreatModel:
             protocol=kwargs.get('protocol'),
             data=data_objects,
             is_authenticated=kwargs.get('is_authenticated', False),
-            is_encrypted=kwargs.get('is_encrypted', False)
+            # Not declared: taken from the protocol registry (HTTPS, SSH, .../TLS are encrypted)
+            is_encrypted=kwargs['is_encrypted'] if 'is_encrypted' in kwargs else protocol_is_encrypted(protocol)
         )
 
         # Create a copy to avoid modifying the original dict if it's used elsewhere
