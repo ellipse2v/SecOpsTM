@@ -174,3 +174,36 @@ def test_unauthenticated_database_flow_threat_is_generated(model):
         t["component"] == "Shipping To DB" and "Unauthenticated data flow" in t["description"]
         for t in threats
     )
+
+
+@pytest.fixture(scope="module")
+def mitre_mapping(model):
+    return model.mitre_mapper
+
+
+@pytest.mark.parametrize("section,index", _rule_ids(), ids=lambda v: str(v))
+def test_every_rule_threat_maps_to_its_explicit_attack_ids(mitre_mapping, section, index):
+    # Each ID must exist in the ATT&CK corpus and fit the STRIDE category, otherwise
+    # map_threat_to_mitre() silently drops it.
+    for threat in THREAT_RULES[section][index]["threats"]:
+        assert threat.get("attack_ids"), f"{threat['description'][:60]!r} has no attack_ids"
+        techniques = mitre_mapping.map_threat_to_mitre(threat)["techniques"]
+        assert [t["id"] for t in techniques] == threat["attack_ids"]
+
+
+def test_attack_ids_win_over_capec_word_overlap(mitre_mapping):
+    # The CAPEC path mapped SQL injection to T1195 Supply Chain Compromise.
+    sqli = {
+        "description": "SQL injection vulnerability on Orders DB allowing command execution",
+        "stride_category": "Tampering",
+        "attack_ids": ["T1190"],
+    }
+    assert [t["id"] for t in mitre_mapping.map_threat_to_mitre(sqli)["techniques"]] == ["T1190"]
+
+
+def test_attack_ids_reach_the_custom_threat(model):
+    sqli = [
+        t for t, _ in model._apply_custom_threats()
+        if t.description.startswith("SQL injection")
+    ]
+    assert sqli and sqli[0].attack_ids == ["T1190", "T1565.001"]

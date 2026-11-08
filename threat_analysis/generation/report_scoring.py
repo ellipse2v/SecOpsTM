@@ -251,6 +251,7 @@ def score_threat(
     impact: Optional[int] = None,
     likelihood: Optional[int] = None,
     classification: Optional[str] = None,
+    attack_ids: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """Runs the MITRE + CVE/CWE + network exposure + D3FEND + severity scoring
     pipeline for one threat.
@@ -268,6 +269,7 @@ def score_threat(
         "description": description,
         "stride_category": stride_category,
         "capec_ids": capec_ids,
+        "attack_ids": attack_ids or [],
         "source": source,
     }
     mapping_results = mitre_mapping.map_threat_to_mitre(threat_dict)
@@ -407,6 +409,7 @@ class ScoringMixin:
                     description=threat_description,
                     stride_category=stride_category,
                     capec_ids=getattr(threat, 'capec_ids', []),
+                    attack_ids=getattr(threat, 'attack_ids', []),
                     source=threat_source,
                     target_name=target_name,
                     cve_lookup_names=target_names_to_check,
@@ -526,6 +529,7 @@ class ScoringMixin:
                     "description": threat_description,
                     "stride_category": stride_category,
                     "capec_ids": getattr(threat, 'capec_ids', []),
+                    "attack_ids": getattr(threat, 'attack_ids', []),
                     "source": threat_source
                 }
                 mapping_results = self.mitre_mapping.map_threat_to_mitre(threat_dict)

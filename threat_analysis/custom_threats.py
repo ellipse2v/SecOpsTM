@@ -43,7 +43,7 @@ class RuleBasedThreatGenerator:
             if isinstance(props, dict) and props.get("object") is not None
         }
 
-    def _add_threat(self, component_name, description, stride_category, impact, likelihood, mitigations=None, capec_ids=None):
+    def _add_threat(self, component_name, description, stride_category, impact, likelihood, mitigations=None, capec_ids=None, attack_ids=None):
         threat = {
             "id": self.id_counter,
             "component": component_name,
@@ -52,7 +52,8 @@ class RuleBasedThreatGenerator:
             "impact": impact,
             "likelihood": likelihood,
             "mitigations": mitigations or [],
-            "capec_ids": capec_ids or []
+            "capec_ids": capec_ids or [],
+            "attack_ids": attack_ids or [],
         }
         self.threats.append(threat)
         self.id_counter += 1

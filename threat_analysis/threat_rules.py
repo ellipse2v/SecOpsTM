@@ -49,12 +49,14 @@ THREAT_RULES = {
                 {
                     "description": "Unpatched OS or software vulnerabilities on {name} leading to system compromise",
                     "stride_category": "Tampering",
+                    "attack_ids": ["T1190", "T1210", "T1068"],
                     "impact": 4,
                     "likelihood": 4
                 },
                 {
                     "description": "Insecure security configuration or hardening on {name} leading to information exposure",
                     "stride_category": "Information Disclosure",
+                    "attack_ids": ["T1046", "T1552.001", "T1602"],
                     "impact": 3,
                     "likelihood": 3,
                     "capec_ids": ["CAPEC-511"]
@@ -62,6 +64,7 @@ THREAT_RULES = {
                 {
                     "description": "Unauthorized privilege escalation on {name} due to misconfiguration or vulnerability",
                     "stride_category": "Elevation of Privilege",
+                    "attack_ids": ["T1068", "T1078"],
                     "impact": 5,
                     "likelihood": 4,
                     "capec_ids": ["CAPEC-180", "CAPEC-233"]
@@ -69,6 +72,7 @@ THREAT_RULES = {
                 {
                     "description": "Lack of monitoring or logging on {name}, preventing detection of malicious activities and enabling repudiation",
                     "stride_category": "Repudiation",
+                    "attack_ids": ["T1070", "T1562.001"],
                     "impact": 3,
                     "likelihood": 4
                 }
@@ -81,6 +85,7 @@ THREAT_RULES = {
                 {
                     "description": "Container escape vulnerability on {name}, allowing an attacker to gain access to the underlying host.",
                     "stride_category": "Elevation of Privilege",
+                    "attack_ids": ["T1611"],
                     "impact": 5,
                     "likelihood": 3,
                     "capec_ids": ["CAPEC-585"]
@@ -93,6 +98,7 @@ THREAT_RULES = {
                 {
                     "description": "Event injection vulnerability in serverless function {name}, leading to arbitrary code execution.",
                     "stride_category": "Tampering",
+                    "attack_ids": ["T1648", "T1059"],
                     "impact": 4,
                     "likelihood": 3
                 }
@@ -104,6 +110,7 @@ THREAT_RULES = {
                 {
                     "description": "Lack of redundancy for mission-critical server {name} creates a single point of failure, increasing Denial of Service risk.",
                     "stride_category": "Denial of Service",
+                    "attack_ids": ["T1499", "T1498"],
                     "impact": 5,
                     "likelihood": 4
                 }
@@ -115,6 +122,7 @@ THREAT_RULES = {
                 {
                     "description": "Critical data-at-rest on server {name} is not encrypted, leading to severe information disclosure if compromised.",
                     "stride_category": "Information Disclosure",
+                    "attack_ids": ["T1005", "T1530"],
                     "impact": 5,
                     "likelihood": 5
                 }
@@ -127,6 +135,7 @@ THREAT_RULES = {
                 {
                     "description": "Unauthorized access to sensitive data stored in {name} leading to data breach",
                     "stride_category": "Information Disclosure",
+                    "attack_ids": ["T1213", "T1005"],
                     "impact": 5,
                     "likelihood": 4,
                     "capec_ids": ["CAPEC-1"]
@@ -134,12 +143,14 @@ THREAT_RULES = {
                 {
                     "description": "Data corruption or tampering in {name} via unauthorized write access",
                     "stride_category": "Tampering",
+                    "attack_ids": ["T1565.001"],
                     "impact": 5,
                     "likelihood": 4
                 },
                 {
                     "description": "Denial of Service against {name} through resource-intensive queries or excessive connections",
                     "stride_category": "Denial of Service",
+                    "attack_ids": ["T1499.003", "T1499.002"],
                     "impact": 4,
                     "likelihood": 3,
                     "capec_ids": ["CAPEC-488", "CAPEC-115"]
@@ -152,6 +163,7 @@ THREAT_RULES = {
                  {
                     "description": "SQL injection vulnerability on {name} allowing command execution or data manipulation",
                     "stride_category": "Tampering",
+                    "attack_ids": ["T1190", "T1565.001"],
                     "impact": 5,
                     "likelihood": 5
                 }
@@ -163,12 +175,14 @@ THREAT_RULES = {
                 {
                     "description": "Firewall rule misconfiguration allowing unintended traffic to bypass {name} and reach internal networks",
                     "stride_category": "Spoofing",
+                    "attack_ids": ["T1599", "T1133"],
                     "impact": 4,
                     "likelihood": 4
                 },
                 {
                     "description": "Vulnerability in the management interface of {name} leading to critical privilege escalation",
                     "stride_category": "Elevation of Privilege",
+                    "attack_ids": ["T1190", "T1068"],
                     "impact": 5,
                     "likelihood": 5,
                     "capec_ids": ["CAPEC-51"]
@@ -181,6 +195,7 @@ THREAT_RULES = {
                 {
                     "description": "The firewall {name} lacks a Web Application Firewall (WAF), failing to protect against common web attacks like XSS and SQL Injection.",
                     "stride_category": "Tampering",
+                    "attack_ids": ["T1190"],
                     "impact": 4,
                     "likelihood": 4
                 }
@@ -192,6 +207,7 @@ THREAT_RULES = {
                 {
                     "description": "The firewall {name} lacks an Intrusion Detection System (IDS), preventing the detection of reconnaissance and attack patterns.",
                     "stride_category": "Repudiation",
+                    "attack_ids": ["T1562.001"],
                     "impact": 3,
                     "likelihood": 4
                 }
@@ -203,6 +219,7 @@ THREAT_RULES = {
                 {
                     "description": "The authentication server {name} does not enforce Multi-Factor Authentication (MFA), making it vulnerable to credential stuffing and phishing.",
                     "stride_category": "Spoofing",
+                    "attack_ids": ["T1110", "T1078"],
                     "impact": 5,
                     "likelihood": 4
                 }
@@ -214,6 +231,7 @@ THREAT_RULES = {
                 {
                     "description": "LDAP injection vulnerability in authentication server {name}, potentially allowing bypass of authentication controls.",
                     "stride_category": "Elevation of Privilege",
+                    "attack_ids": ["T1190"],
                     "impact": 5,
                     "likelihood": 3
                 }
@@ -226,12 +244,14 @@ THREAT_RULES = {
                 {
                     "description": "Session hijacking or fixation attack against the {name} leading to unauthorized access",
                     "stride_category": "Spoofing",
+                    "attack_ids": ["T1539", "T1550.004"],
                     "impact": 3,
                     "likelihood": 3
                 },
                 {
                     "description": "Weak SSL/TLS configuration or ciphers used by {name} leading to information disclosure",
                     "stride_category": "Information Disclosure",
+                    "attack_ids": ["T1557", "T1040"],
                     "impact": 3,
                     "likelihood": 3,
                     "capec_ids": ["CAPEC-17"]
@@ -244,12 +264,14 @@ THREAT_RULES = {
                 {
                     "description": "VLAN hopping attack to gain access to unauthorized network segments through {name} for privilege escalation",
                     "stride_category": "Elevation of Privilege",
+                    "attack_ids": ["T1599"],
                     "impact": 4,
                     "likelihood": 4
                 },
                 {
                     "description": "MAC flooding attack on {name} to force it into a hub-like state, enabling network sniffing and information disclosure",
                     "stride_category": "Information Disclosure",
+                    "attack_ids": ["T1040"],
                     "impact": 3,
                     "likelihood": 3
                 }
@@ -261,6 +283,7 @@ THREAT_RULES = {
                 {
                     "description": "Denial of Service (DoS) attack targeting the public-facing asset {name} causing service unavailability",
                     "stride_category": "Denial of Service",
+                    "attack_ids": ["T1498", "T1499"],
                     "impact": 5,
                     "likelihood": 4
                 }
@@ -272,6 +295,7 @@ THREAT_RULES = {
                 {
                     "description": "Lateral movement from {name} to other systems in the network for further compromise",
                     "stride_category": "Elevation of Privilege",
+                    "attack_ids": ["T1021", "T1210", "T1570"],
                     "impact": 4,
                     "likelihood": 4
                 }
@@ -283,12 +307,14 @@ THREAT_RULES = {
                 {
                     "description": "Compromise of the management interface of {name} leading to critical system control",
                     "stride_category": "Elevation of Privilege",
+                    "attack_ids": ["T1133", "T1078"],
                     "impact": 5,
                     "likelihood": 5
                 },
                 {
                     "description": "Authentication bypass on the management interface of {name}",
                     "stride_category": "Elevation of Privilege",
+                    "attack_ids": ["T1556", "T1190"],
                     "impact": 5,
                     "likelihood": 4,
                     "capec_ids": ["CAPEC-115"]
@@ -301,6 +327,7 @@ THREAT_RULES = {
                 {
                     "description": "Improper rate limiting on API Gateway {name}, leading to Denial of Service.",
                     "stride_category": "Denial of Service",
+                    "attack_ids": ["T1499.003", "T1499.002"],
                     "impact": 4,
                     "likelihood": 4,
                     "capec_ids": ["CAPEC-601", "CAPEC-301"]
@@ -308,6 +335,7 @@ THREAT_RULES = {
                 {
                     "description": "Weak or missing authentication on routes managed by API Gateway {name}, allowing unauthorized access to backend services.",
                     "stride_category": "Spoofing",
+                    "attack_ids": ["T1190", "T1078"],
                     "impact": 5,
                     "likelihood": 4
                 }
@@ -319,6 +347,7 @@ THREAT_RULES = {
                 {
                     "description": "Use of vulnerable or untrusted base images in Docker Registry {name}, leading to supply chain compromise.",
                     "stride_category": "Tampering",
+                    "attack_ids": ["T1195.002", "T1525", "T1610"],
                     "impact": 5,
                     "likelihood": 4
                 }
@@ -330,6 +359,7 @@ THREAT_RULES = {
                 {
                     "description": "Critical Information Disclosure: S3 Bucket {name} is publicly accessible.",
                     "stride_category": "Information Disclosure",
+                    "attack_ids": ["T1530"],
                     "impact": 5,
                     "likelihood": 5
                 }
@@ -341,6 +371,7 @@ THREAT_RULES = {
                 {
                     "description": "Kerberoasting attack against Domain Controller {name} to extract service account credentials.",
                     "stride_category": "Information Disclosure",
+                    "attack_ids": ["T1558.003"],
                     "impact": 5,
                     "likelihood": 4
                 }
@@ -352,6 +383,7 @@ THREAT_RULES = {
                 {
                     "description": "Lateral movement from bastion host {name} to other systems in the network for further compromise.",
                     "stride_category": "Elevation of Privilege",
+                    "attack_ids": ["T1021.004", "T1021", "T1078"],
                     "impact": 4,
                     "likelihood": 4,
                     "capec_ids": ["CAPEC-555", "CAPEC-645"]
@@ -364,6 +396,7 @@ THREAT_RULES = {
                 {
                     "description": "Lateral movement from management server {name} to other systems in the network for further compromise.",
                     "stride_category": "Elevation of Privilege",
+                    "attack_ids": ["T1072", "T1021"],
                     "impact": 4,
                     "likelihood": 4,
                     "capec_ids": ["CAPEC-555", "CAPEC-645"]
@@ -379,6 +412,7 @@ THREAT_RULES = {
                 {
                     "description": "Data interception on an unencrypted channel from {source.name} to {sink.name} (Man-in-the-Middle attack)",
                     "stride_category": "Information Disclosure",
+                    "attack_ids": ["T1040", "T1557"],
                     "impact": 4,
                     "likelihood": 4
                 }
@@ -390,6 +424,7 @@ THREAT_RULES = {
                 {
                     "description": "Spoofing of data from {source.name} to {sink.name} due to lack of authentication",
                     "stride_category": "Spoofing",
+                    "attack_ids": ["T1557"],
                     "impact": 3,
                     "likelihood": 3
                 }
@@ -401,6 +436,7 @@ THREAT_RULES = {
                 {
                     "description": "Sensitive data transmitted in cleartext from {source.name} to {sink.name}, leading to critical information disclosure",
                     "stride_category": "Information Disclosure",
+                    "attack_ids": ["T1040", "T1557"],
                     "impact": 5,
                     "likelihood": 5
                 }
@@ -412,6 +448,7 @@ THREAT_RULES = {
                 {
                     "description": "Potential for spoofing attacks on data crossing trust boundaries from {source.name} to {sink.name} without proper authentication",
                     "stride_category": "Spoofing",
+                    "attack_ids": ["T1557", "T1199"],
                     "impact": 4,
                     "likelihood": 4
                 }
@@ -423,6 +460,7 @@ THREAT_RULES = {
                 {
                     "description": "Insufficient traffic filtering between DMZ and internal network, allowing attacks from {source.name} to {sink.name}",
                     "stride_category": "Elevation of Privilege",
+                    "attack_ids": ["T1021", "T1210"],
                     "impact": 4,
                     "likelihood": 3
                 }
@@ -434,6 +472,7 @@ THREAT_RULES = {
                 {
                     "description": "Insufficient inspection of inbound traffic from the internet to the DMZ, from {source.name} to {sink.name}",
                     "stride_category": "Tampering",
+                    "attack_ids": ["T1190"],
                     "impact": 4,
                     "likelihood": 4
                 }
@@ -445,6 +484,7 @@ THREAT_RULES = {
                 {
                     "description": "Critical Spoofing/Info Disclosure: Credentials for {sink.name} are sent unencrypted from {source.name}.",
                     "stride_category": "Information Disclosure",
+                    "attack_ids": ["T1040", "T1552"],
                     "impact": 5,
                     "likelihood": 5
                 }
@@ -456,6 +496,7 @@ THREAT_RULES = {
                 {
                     "description": "Critical Elevation of Privilege: Unauthenticated data flow from {source.name} is allowed to interact with a critical database {sink.name}.",
                     "stride_category": "Elevation of Privilege",
+                    "attack_ids": ["T1210", "T1213"],
                     "impact": 5,
                     "likelihood": 4
                 }
@@ -467,6 +508,7 @@ THREAT_RULES = {
                 {
                     "description": "Information Disclosure: Insecure FTP protocol between {source.name} and {sink.name} exposes credentials.",
                     "stride_category": "Information Disclosure",
+                    "attack_ids": ["T1040", "T1048.003"],
                     "impact": 4,
                     "likelihood": 4
                 }
@@ -478,6 +520,7 @@ THREAT_RULES = {
                 {
                     "description": "Critical Information Disclosure: Secrets are being transferred from Git Repository {source.name}, likely indicating they are committed in source code.",
                     "stride_category": "Information Disclosure",
+                    "attack_ids": ["T1552.001", "T1213.003"],
                     "impact": 5,
                     "likelihood": 5
                 }
@@ -489,6 +532,7 @@ THREAT_RULES = {
                 {
                     "description": "Tampering: Unauthenticated access to Docker Registry {sink.name} allows for potential image poisoning (Supply Chain Attack).",
                     "stride_category": "Tampering",
+                    "attack_ids": ["T1525", "T1195.002"],
                     "impact": 5,
                     "likelihood": 4
                 }
@@ -500,6 +544,7 @@ THREAT_RULES = {
                 {
                     "description": "Spoofing: IoT device {source.name} communicates with {sink.name} without authentication, allowing device impersonation.",
                     "stride_category": "Spoofing",
+                    "attack_ids": ["T1036"],
                     "impact": 4,
                     "likelihood": 5
                 }
@@ -511,6 +556,7 @@ THREAT_RULES = {
                 {
                     "description": "Elevation of Privilege: Lack of authentication in East-West traffic between microservices ({source.name} to {sink.name}) inside a trusted zone breaks Zero Trust principles.",
                     "stride_category": "Elevation of Privilege",
+                    "attack_ids": ["T1021", "T1210"],
                     "impact": 4,
                     "likelihood": 4
                 }
@@ -523,6 +569,7 @@ THREAT_RULES = {
                 {
                     "description": "Information Disclosure: Insecure FTP protocol between {source.name} and {sink.name} exposes credentials in cleartext.",
                     "stride_category": "Information Disclosure",
+                    "attack_ids": ["T1040", "T1048.003"],
                     "impact": 4,
                     "likelihood": 4
                 }
@@ -535,6 +582,7 @@ THREAT_RULES = {
                 {
                     "description": "Spoofing risk on dataflow from {source.name} to {sink.name} as it crosses a trust boundary with no authentication.",
                     "stride_category": "Spoofing",
+                    "attack_ids": ["T1557", "T1199"],
                     "impact": 4,
                     "likelihood": 4
                 }
@@ -546,6 +594,7 @@ THREAT_RULES = {
                 {
                     "description": "Credentials in dataflow from {source.name} to {sink.name} are sent over an unencrypted channel.",
                     "stride_category": "Information Disclosure",
+                    "attack_ids": ["T1040", "T1552"],
                     "impact": 5,
                     "likelihood": 5
                 }
@@ -557,6 +606,7 @@ THREAT_RULES = {
                 {
                     "description": "Spoofing of {source.name} towards {sink.name} with stolen or guessed credentials (single-factor authentication)",
                     "stride_category": "Spoofing",
+                    "attack_ids": ["T1078", "T1110"],
                     "impact": 3,
                     "likelihood": 3
                 }
@@ -568,6 +618,7 @@ THREAT_RULES = {
                 {
                     "description": "Spoofing of {source.name} towards {sink.name} by replaying a stolen or leaked token",
                     "stride_category": "Spoofing",
+                    "attack_ids": ["T1550.001"],
                     "impact": 3,
                     "likelihood": 2
                 }
@@ -579,6 +630,7 @@ THREAT_RULES = {
                 {
                     "description": "Dataflow from {source.name} to {sink.name} allows write operations without any authorization specified, risking unauthorized tampering.",
                     "stride_category": "Tampering",
+                    "attack_ids": ["T1565.002"],
                     "impact": 4,
                     "likelihood": 3
                 }
@@ -590,6 +642,7 @@ THREAT_RULES = {
                 {
                     "description": "Dataflow from untrusted source {source.name} to {sink.name} does not use a VPN, exposing it to interception.",
                     "stride_category": "Information Disclosure",
+                    "attack_ids": ["T1040", "T1557"],
                     "impact": 3,
                     "likelihood": 4
                 }
@@ -601,6 +654,7 @@ THREAT_RULES = {
                 {
                     "description": "Dataflow from {source.name} to trusted component {sink.name} is not protected by IP filtering, allowing connections from any source.",
                     "stride_category": "Spoofing",
+                    "attack_ids": ["T1133"],
                     "impact": 3,
                     "likelihood": 4
                 }
@@ -615,18 +669,21 @@ THREAT_RULES = {
                 {
                     "description": "Identity spoofing of the actor {name} via phishing or credential theft",
                     "stride_category": "Spoofing",
+                    "attack_ids": ["T1566", "T1078"],
                     "impact": 3,
                     "likelihood": 3
                 },
                 {
                     "description": "Repudiation of critical actions performed by {name} due to insufficient logging or non-repudiation controls",
                     "stride_category": "Repudiation",
+                    "attack_ids": ["T1070"],
                     "impact": 3,
                     "likelihood": 3
                 },
                 {
                     "description": "Privilege abuse by actor {name} to gain unauthorized access or perform unauthorized actions",
                     "stride_category": "Elevation of Privilege",
+                    "attack_ids": ["T1078", "T1098"],
                     "impact": 4,
                     "likelihood": 3,
                     "capec_ids": ["CAPEC-122"]
@@ -640,6 +697,7 @@ THREAT_RULES = {
                 {
                     "description": "Actor {name} uses single-factor authentication (credentials only), increasing risk from phishing and credential stuffing.",
                     "stride_category": "Spoofing",
+                    "attack_ids": ["T1110.004", "T1566"],
                     "impact": 4,
                     "likelihood": 4
                 }
@@ -651,6 +709,7 @@ THREAT_RULES = {
                 {
                     "description": "Untrusted actor {name} may attempt to inject malicious data or exploit vulnerabilities in connected systems.",
                     "stride_category": "Tampering",
+                    "attack_ids": ["T1190", "T1059"],
                     "impact": 4,
                     "likelihood": 5
                 }

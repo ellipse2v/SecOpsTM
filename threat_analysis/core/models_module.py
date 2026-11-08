@@ -54,7 +54,7 @@ _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 class CustomThreat:
     """A simple class to represent a custom threat."""
-    def __init__(self, name, description, stride_category, impact, likelihood, target, capec_ids=None):
+    def __init__(self, name, description, stride_category, impact, likelihood, target, capec_ids=None, attack_ids=None):
         self.name = name
         self.description = description
         self.stride_category = stride_category
@@ -62,6 +62,7 @@ class CustomThreat:
         self.likelihood = likelihood
         self.target = target
         self.capec_ids = capec_ids or []
+        self.attack_ids = attack_ids or []
         self.severity_info = None # To store calculated severity
 
     def __str__(self):
@@ -376,7 +377,8 @@ class ThreatModel:
                     impact=threat_dict['impact'],
                     likelihood=threat_dict['likelihood'],
                     target=target_obj,
-                    capec_ids=threat_dict.get('capec_ids')
+                    capec_ids=threat_dict.get('capec_ids'),
+                    attack_ids=threat_dict.get('attack_ids'),
                 )
                 
                 # Calculate and store severity for custom threats
