@@ -100,6 +100,10 @@ class ReportSerializer:
     @staticmethod
     def _serialize_threat(t: Dict, index: int) -> Dict:
         severity = t.get("severity") or {}
+        score = severity.get("score")
+        if isinstance(score, float):
+            # One decimal, like formatted_score: scoring sums give 7.699999999999999
+            score = round(score, 1)
         # Reuse a stable id pre-assigned upstream (e.g. by generate_html_report(), so the
         # CISO triage prompt can cite ids that actually match the final report) — otherwise
         # fall back to positional numbering as before.
@@ -112,7 +116,7 @@ class ReportSerializer:
             "stride_category": t.get("stride_category", ""),
             "target": str(t.get("target", "")),
             "severity": {
-                "score": severity.get("score"),
+                "score": score,
                 "level": severity.get("level"),
                 "formatted_score": severity.get("formatted_score"),
             },
