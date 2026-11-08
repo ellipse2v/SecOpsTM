@@ -53,6 +53,12 @@ FIXTURE_DSL = """# System Model: Rule Coverage
 - **Sensor**: boundary="Internal", type=iot-device
 - **Billing App**: boundary="Internal", type=app-service
 - **Shipping App**: boundary="Internal", type=app-service
+- **Web Front**: boundary="DMZ", type="web_server"
+- **Resize Function**: boundary="Internal", type=faas
+- **Event Bus**: boundary="Internal", type="message_broker"
+- **Resolver**: boundary="DMZ", type=dns
+- **Log Collector**: boundary="Internal", type=siem
+- **Metrics**: boundary="Internal", type=monitoring
 
 ## Data
 - **DB Password**: type=credentials, classification=SECRET
@@ -67,6 +73,7 @@ FIXTURE_DSL = """# System Model: Rule Coverage
 - **Shipping To DB**: from="Shipping App", to="Orders DB", protocol=TCP, authentication=credentials, is_encrypted=False
 - **Operator To Console**: from="Operator", to="Admin Console", protocol=SSH, authentication=two-factor, is_encrypted=True
 - **Console To Directory**: from="Admin Console", to="Directory", protocol=HTTPS, authentication=token, is_encrypted=True
+- **Billing To Logs**: from="Billing App", to="Log Collector", protocol=SYSLOG
 """
 
 _SECTIONS = {"servers": "servers", "dataflows": "dataflows", "actors": "actors"}

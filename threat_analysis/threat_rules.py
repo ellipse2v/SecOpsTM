@@ -402,6 +402,102 @@ THREAT_RULES = {
                     "capec_ids": ["CAPEC-555", "CAPEC-645"]
                 }
             ]
+        },
+        {
+            "conditions": {"type": "web-server"},
+            "threats": [
+                {
+                    "description": "Application-layer flood (HTTP requests or slow connections) exhausting web server {name}",
+                    "stride_category": "Denial of Service",
+                    "attack_ids": ["T1499.002", "T1499.003"],
+                    "impact": 3,
+                    "likelihood": 4
+                }
+            ]
+        },
+        {
+            "conditions": {"type": "load-balancer"},
+            "threats": [
+                {
+                    "description": "Volumetric network flood saturating load balancer {name} and every service behind it",
+                    "stride_category": "Denial of Service",
+                    "attack_ids": ["T1498.001"],
+                    "impact": 4,
+                    "likelihood": 3
+                }
+            ]
+        },
+        {
+            "conditions": {"type": "faas"},
+            "threats": [
+                {
+                    "description": "Invocation flood on serverless function {name} exhausting its concurrency limit and driving up cost (denial of wallet)",
+                    "stride_category": "Denial of Service",
+                    "attack_ids": ["T1499.003"],
+                    "impact": 3,
+                    "likelihood": 3
+                }
+            ]
+        },
+        {
+            "conditions": {"type": "message-broker"},
+            "threats": [
+                {
+                    "description": "Message flood or oversized messages filling the queues of broker {name}, stalling its consumers",
+                    "stride_category": "Denial of Service",
+                    "attack_ids": ["T1499.003"],
+                    "impact": 3,
+                    "likelihood": 3
+                }
+            ]
+        },
+        {
+            "conditions": {"type": "dns"},
+            "threats": [
+                {
+                    "description": "Query flood or reflection amplification abusing DNS server {name}",
+                    "stride_category": "Denial of Service",
+                    "attack_ids": ["T1498.002"],
+                    "impact": 4,
+                    "likelihood": 3
+                }
+            ]
+        },
+        {
+            "conditions": {"type": "database"},
+            "threats": [
+                {
+                    "description": "No audit trail of data changes in {name}, so modifications cannot be attributed to a user",
+                    "stride_category": "Repudiation",
+                    "attack_ids": ["T1070"],
+                    "impact": 3,
+                    "likelihood": 3
+                }
+            ]
+        },
+        {
+            "conditions": {"type": "siem"},
+            "threats": [
+                {
+                    "description": "Log deletion or tampering on {name} erases the evidence of an intrusion",
+                    "stride_category": "Repudiation",
+                    "attack_ids": ["T1070", "T1562.006"],
+                    "impact": 4,
+                    "likelihood": 3
+                }
+            ]
+        },
+        {
+            "conditions": {"type": "monitoring"},
+            "threats": [
+                {
+                    "description": "Log deletion or tampering on {name} erases the evidence of an intrusion",
+                    "stride_category": "Repudiation",
+                    "attack_ids": ["T1070", "T1562.006"],
+                    "impact": 4,
+                    "likelihood": 3
+                }
+            ]
         }
     ],
     "dataflows": [
@@ -657,6 +753,18 @@ THREAT_RULES = {
                     "attack_ids": ["T1133"],
                     "impact": 3,
                     "likelihood": 4
+                }
+            ]
+        },
+        {
+            "conditions": {"protocol": "syslog"},
+            "threats": [
+                {
+                    "description": "Unsigned syslog from {source.name} to {sink.name}: forged or dropped log entries go unnoticed",
+                    "stride_category": "Repudiation",
+                    "attack_ids": ["T1562.006", "T1070"],
+                    "impact": 3,
+                    "likelihood": 3
                 }
             ]
         }
