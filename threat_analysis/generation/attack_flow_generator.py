@@ -17,7 +17,8 @@ import uuid
 import os
 import logging
 from datetime import datetime, timezone
-from collections import defaultdict
+from collections import defaultdict, deque
+from pytm import Actor
 from .tactic_logic import TACTIC_PROGRESSION, TACTIC_INFO
 from .utils import extract_name_from_object, get_target_name
 
@@ -37,12 +38,15 @@ class AttackFlowGenerator:
         "Elevation of Privilege",
     }
 
-    def __init__(self, threats, model_name="Attack Flow", allowed_categories=None):
+    def __init__(self, threats, model_name="Attack Flow", allowed_categories=None, dataflows=None):
         """Args:
             allowed_categories: STRIDE categories to build paths for — defaults to all
                 six. Callers may pass config/ai_config.yaml's
                 attack_flows.generate_for_categories to narrow this (e.g. to skip
                 Spoofing/Denial of Service/Repudiation paths as noise).
+            dataflows: the model's pytm dataflows. When given, each path follows them from
+                an entry point and ends on a threat of its own STRIDE category. Without
+                them, the older topology-free search runs.
         """
         self.model_name = model_name
 
@@ -64,6 +68,18 @@ class AttackFlowGenerator:
 
         self.techniques = self._get_techniques_from_threats(self.threats)
         self.tactic_phase_map = self._build_tactic_phase_map()
+
+        self._edges = None  # (source name, sink name) per dataflow name
+        self._entry_nodes = set()
+        if dataflows:
+            self._edges = {}
+            for df in dataflows:
+                if getattr(df, 'source', None) is None or getattr(df, 'sink', None) is None:
+                    continue
+                source = extract_name_from_object(df.source)
+                self._edges[str(getattr(df, 'name', '') or '')] = (source, extract_name_from_object(df.sink))
+                if isinstance(df.source, Actor):
+                    self._entry_nodes.add(source)
 
     def _get_techniques_from_threats(self, threats):
         techniques = {}
@@ -139,6 +155,105 @@ class AttackFlowGenerator:
         find_paths_recursive([], 0)
         return all_paths
 
+    def _phase(self, tech_id):
+        """Earliest TACTIC_PROGRESSION phase of a technique, None if it has none."""
+        phases = [self.tactic_phase_map[t] for t in self.techniques[tech_id]['tactics'] if t in self.tactic_phase_map]
+        return min(phases) if phases else None
+
+    @staticmethod
+    def _severity(threat):
+        return threat.get('severity', {}).get('score') or 0
+
+    def _route(self, target_node):
+        """Shortest dataflow route from an entry point to target_node, or None.
+
+        Entry points are the actors that start a dataflow, or, if there is none, the nodes
+        no dataflow reaches.
+        """
+        adjacency = defaultdict(list)
+        sinks = set()
+        for source, sink in self._edges.values():
+            adjacency[source].append(sink)
+            sinks.add(sink)
+        starts = self._entry_nodes or {source for source, _ in self._edges.values()} - sinks
+        if target_node in starts:
+            return [target_node]
+        parent = {start: None for start in sorted(starts)}
+        queue = deque(sorted(starts))
+        while queue:
+            node = queue.popleft()
+            for nxt in adjacency[node]:
+                if nxt in parent:
+                    continue
+                parent[nxt] = node
+                if nxt == target_node:
+                    route = [nxt]
+                    while parent[route[-1]] is not None:
+                        route.append(parent[route[-1]])
+                    return route[::-1]
+                queue.append(nxt)
+        return None
+
+    def _compute_topology_paths(self):
+        """Best path per STRIDE category, following the dataflows.
+
+        The last hop is the most severe threat of the category that an entry point can
+        reach. Each earlier node of the route adds its most severe threat whose tactic phase
+        lies between the previous hop and the last one; a node with none is skipped.
+        """
+        by_node, by_edge = defaultdict(list), defaultdict(list)
+        for tech_id, tech in self.techniques.items():
+            if self._phase(tech_id) is None:
+                continue
+            for threat in tech['threats']:
+                name = self._get_target_name(threat.get('target'))
+                if name in self._edges:
+                    by_edge[self._edges[name]].append((tech_id, threat))
+                else:
+                    by_node[name].append((tech_id, threat))
+
+        finals = [(hop, node, None) for node, hops in by_node.items() for hop in hops]
+        finals += [(hop, sink, source) for (source, sink), hops in by_edge.items() for hop in hops]
+
+        best_paths_data = {}
+        for category in sorted({t.get('stride_category') for t in self.threats}):
+            best, best_key = None, None
+            for (tech_id, threat), node, edge_source in finals:
+                if threat.get('stride_category') != category:
+                    continue
+                route = self._route(edge_source if edge_source is not None else node)
+                if route is None:
+                    continue
+                nodes = route + [node] if edge_source is not None else route
+                path = self._fill_hops(nodes, (tech_id, threat), by_node, by_edge)
+                key = (self._severity(threat), self._phase(tech_id), -len(path))
+                if best_key is None or key > best_key:
+                    best, best_key = path, key
+            if best:
+                best_paths_data[category] = {"path": best, "objectives": [category]}
+        return best_paths_data
+
+    def _fill_hops(self, nodes, final, by_node, by_edge):
+        final_phase = self._phase(final[0])
+        path, previous_phase, used = [], 0, {id(final[1])}
+        for i, node in enumerate(nodes[:-1]):
+            candidates = by_node[node] + (by_edge[(nodes[i - 1], node)] if i else [])
+            fitting = [
+                (tech_id, threat) for tech_id, threat in candidates
+                if id(threat) not in used and previous_phase <= self._phase(tech_id) <= final_phase
+            ]
+            if not fitting:
+                continue
+            # Past the entry point, prefer a technique that moves the attack forward
+            hop = max(fitting, key=lambda h: (
+                i == 0 or self._phase(h[0]) > previous_phase, self._severity(h[1]), -self._phase(h[0])
+            ))
+            path.append(hop)
+            used.add(id(hop[1]))
+            previous_phase = self._phase(hop[0])
+        path.append(final)
+        return path
+
     def _compute_best_paths(self):
         """Finds the highest-severity attack path per STRIDE category.
 
@@ -146,6 +261,8 @@ class AttackFlowGenerator:
         get_paths_summary() (compact data for HTML rendering) — same selection,
         two different output formats.
         """
+        if self._edges:
+            return self._compute_topology_paths()
         attack_paths = self._find_attack_paths()
         if not attack_paths:
             return {}

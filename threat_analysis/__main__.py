@@ -557,7 +557,8 @@ def generate_and_save_attack_flow(threat_model: 'ThreatModel', output_dir: Path,
 
         flow_generator = AttackFlowGenerator(
             threats=raw_threats,
-            model_name=model_name
+            model_name=model_name,
+            dataflows=threat_model.dataflows,
         )
         flow_generator.generate_and_save_flows(output_dir)
         logging.info(f"✅ Attack Flow generation process completed for {model_name}.")

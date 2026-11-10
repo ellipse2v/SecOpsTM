@@ -243,6 +243,23 @@ class MitreMapping:
             and (stride_category == "Denial of Service" or not tech_id.startswith(_DOS_ONLY_TECHNIQUES))
         }
 
+    def _technique_details(self, tech_id: str, from_mitre: str = 'yes') -> Dict[str, Any]:
+        """ATT&CK technique data with its MITRE, D3FEND and framework mitigations."""
+        technique_data = self.all_attack_techniques[tech_id].copy()
+        technique_data['fromMitre'] = from_mitre
+        technique_data['mitre_mitigations'] = self.technique_to_mitigation_map.get(tech_id, [])
+        d3fend_list = []
+        for mitre_mitigation in technique_data['mitre_mitigations']:
+            mitigation_id = mitre_mitigation.get('id')
+            if mitigation_id:
+                d3fend_list.extend(self._get_d3fend_mitigations_for_mitre_id(mitigation_id))
+        technique_data['defend_mitigations'] = d3fend_list
+        framework_mitigations = get_framework_mitigation_suggestions([tech_id])
+        technique_data['owasp_mitigations'] = [m for m in framework_mitigations if m.get('framework') == 'OWASP ASVS']
+        technique_data['nist_mitigations'] = [m for m in framework_mitigations if m.get('framework') == 'NIST']
+        technique_data['cis_mitigations'] = [m for m in framework_mitigations if m.get('framework') == 'CIS']
+        return technique_data
+
     def map_threat_to_mitre(self, threat: Dict[str, Any]) -> Dict[str, List[Dict[str, Any]]]:
         """
         Maps a threat to MITRE ATT&CK techniques and CAPEC patterns.
@@ -253,6 +270,7 @@ class MitreMapping:
         stride_category = threat.get("stride_category", "")
 
         explicit_capec_ids = threat.get("capec_ids", [])
+        explicit_attack_ids = threat.get("attack_ids") or []
         if not explicit_capec_ids:
             # No CAPEC IDs provided — derive from STRIDE category, narrowed to the patterns
             # relevant to this specific threat (see _rank_capecs_by_relevance).
@@ -284,27 +302,19 @@ class MitreMapping:
                 # now shared across all MitreMapping instances (see data_loader.py).
                 found_capecs[capec_id] = {**found_capecs[capec_id], 'source': 'manual'}
 
+            if explicit_attack_ids:
+                continue  # the rule names its techniques; CAPECs are kept for CVE matching
             for tech_info in techniques_from_capec:
                 tech_id = tech_info.get('id')
                 if tech_id and tech_id in self.all_attack_techniques and tech_id not in found_techniques:
-                    technique_data = self.all_attack_techniques[tech_id].copy()
-                    technique_data['fromMitre'] = tech_info.get('fromMitre', 'yes')
-                    
-                    technique_data['mitre_mitigations'] = self.technique_to_mitigation_map.get(tech_id, [])
-                    d3fend_list = []
-                    for mitre_mitigation in technique_data['mitre_mitigations']:
-                        mitigation_id = mitre_mitigation.get('id')
-                        if mitigation_id:
-                            d3fend_list.extend(self._get_d3fend_mitigations_for_mitre_id(mitigation_id))
-                    technique_data['defend_mitigations'] = d3fend_list
+                    found_techniques[tech_id] = self._technique_details(tech_id, tech_info.get('fromMitre', 'yes'))
 
-                    framework_mitigations = get_framework_mitigation_suggestions([tech_id])
-                    technique_data['owasp_mitigations'] = [m for m in framework_mitigations if m.get('framework') == 'OWASP ASVS']
-                    technique_data['nist_mitigations'] = [m for m in framework_mitigations if m.get('framework') == 'NIST']
-                    technique_data['cis_mitigations'] = [m for m in framework_mitigations if m.get('framework') == 'CIS']
+        # Explicit ATT&CK IDs (THREAT_RULES attack_ids) win over the CAPEC word-overlap path,
+        # which put T1195 Supply Chain Compromise on SQL injection.
+        for tech_id in explicit_attack_ids:
+            if tech_id in self.all_attack_techniques and tech_id not in found_techniques:
+                found_techniques[tech_id] = self._technique_details(tech_id)
 
-                    found_techniques[tech_id] = technique_data
-        
         found_techniques = self._coherent_techniques(found_techniques, stride_category)
 
         # Fallback: if explicit CAPEC IDs were provided but none mapped to ATT&CK techniques,
@@ -320,19 +330,7 @@ class MitreMapping:
                 for tech_info in self.capec_to_mitre_map.get(cid, []):
                     tech_id = tech_info.get('id')
                     if tech_id and tech_id in self.all_attack_techniques and tech_id not in found_techniques:
-                        technique_data = self.all_attack_techniques[tech_id].copy()
-                        technique_data['fromMitre'] = tech_info.get('fromMitre', 'yes')
-                        technique_data['mitre_mitigations'] = self.technique_to_mitigation_map.get(tech_id, [])
-                        d3fend_list = []
-                        for mm in technique_data['mitre_mitigations']:
-                            if mm.get('id'):
-                                d3fend_list.extend(self._get_d3fend_mitigations_for_mitre_id(mm['id']))
-                        technique_data['defend_mitigations'] = d3fend_list
-                        framework_mitigations = get_framework_mitigation_suggestions([tech_id])
-                        technique_data['owasp_mitigations'] = [m for m in framework_mitigations if m.get('framework') == 'OWASP ASVS']
-                        technique_data['nist_mitigations'] = [m for m in framework_mitigations if m.get('framework') == 'NIST']
-                        technique_data['cis_mitigations'] = [m for m in framework_mitigations if m.get('framework') == 'CIS']
-                        found_techniques[tech_id] = technique_data
+                        found_techniques[tech_id] = self._technique_details(tech_id, tech_info.get('fromMitre', 'yes'))
             found_techniques = self._coherent_techniques(found_techniques, stride_category)
 
         return {
@@ -360,7 +358,8 @@ class MitreMapping:
             threat_dict = {
                 "description": threat_description,
                 "stride_category": stride_category,
-                "capec_ids": getattr(threat, 'capec_ids', [])
+                "capec_ids": getattr(threat, 'capec_ids', []),
+                "attack_ids": getattr(threat, 'attack_ids', []),
             }
             mapping_results = self.map_threat_to_mitre(threat_dict)
 

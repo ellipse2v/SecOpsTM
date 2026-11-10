@@ -327,6 +327,16 @@ def test_threat_with_none_severity():
     assert report["threats"][0]["severity"]["score"] is None
 
 
+def test_severity_score_is_rounded_to_one_decimal():
+    """Scoring sums such as 7.699999999999999 must not leak into the JSON report."""
+    threat_model = _make_threat_model()
+    threat = _make_threat()
+    threat["severity"] = {"score": 7.699999999999999, "level": "HIGH", "formatted_score": "7.7/10"}
+
+    report = ReportSerializer.serialize(threat_model, [threat])
+    assert report["threats"][0]["severity"]["score"] == 7.7
+
+
 def test_threat_with_empty_description():
     """A threat with empty description string must serialize without error."""
     threat_model = _make_threat_model()

@@ -117,7 +117,7 @@ def test_generate_full_project_export_html_runs_before_json_and_exports(mock_cre
     # Navigator/STIX/AttackFlowGenerator must receive the cached AI-enriched list.
     mock_nav.assert_called_once_with(threat_model_name="TestModel", all_detailed_threats=tm._report_all_detailed_threats)
     mock_stix.assert_called_once_with(threat_model=tm, all_detailed_threats=tm._report_all_detailed_threats)
-    mock_afg.assert_called_once_with(threats=tm._report_all_detailed_threats, model_name="TestModel")
+    mock_afg.assert_called_once_with(threats=tm._report_all_detailed_threats, model_name="TestModel", dataflows=tm.dataflows)
 
 
 @patch('threat_analysis.server.export_service.ModelValidator')

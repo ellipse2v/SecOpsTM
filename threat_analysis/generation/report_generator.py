@@ -375,6 +375,7 @@ class ReportGenerator(ScoringMixin, AIAnalysisMixin, ProjectReportMixin):
                     discovered_attack_paths = AttackFlowGenerator(
                         all_detailed_threats, model_name=str(threat_model.tm.name),
                         allowed_categories=self._attack_flows_config.get("generate_for_categories"),
+                        dataflows=threat_model.dataflows,
                     ).get_paths_summary()
                 except Exception as exc:
                     logging.warning("Discovered attack path summary failed (non-fatal): %s", exc)

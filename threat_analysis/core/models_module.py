@@ -48,12 +48,13 @@ from .model_validator import ModelValidator
 from threat_analysis.custom_threats import get_custom_threats
 from threat_analysis.core.stride_constants import STRIDE_CATEGORIES as _STRIDE_CATEGORIES_CONST
 from .cve_service import CVEService
+from .asset_technique_mapper import protocol_is_encrypted
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 class CustomThreat:
     """A simple class to represent a custom threat."""
-    def __init__(self, name, description, stride_category, impact, likelihood, target, capec_ids=None):
+    def __init__(self, name, description, stride_category, impact, likelihood, target, capec_ids=None, attack_ids=None):
         self.name = name
         self.description = description
         self.stride_category = stride_category
@@ -61,6 +62,7 @@ class CustomThreat:
         self.likelihood = likelihood
         self.target = target
         self.capec_ids = capec_ids or []
+        self.attack_ids = attack_ids or []
         self.severity_info = None # To store calculated severity
 
     def __str__(self):
@@ -226,7 +228,8 @@ class ThreatModel:
             protocol=kwargs.get('protocol'),
             data=data_objects,
             is_authenticated=kwargs.get('is_authenticated', False),
-            is_encrypted=kwargs.get('is_encrypted', False)
+            # Not declared: taken from the protocol registry (HTTPS, SSH, .../TLS are encrypted)
+            is_encrypted=kwargs['is_encrypted'] if 'is_encrypted' in kwargs else protocol_is_encrypted(protocol)
         )
 
         # Create a copy to avoid modifying the original dict if it's used elsewhere
@@ -374,7 +377,8 @@ class ThreatModel:
                     impact=threat_dict['impact'],
                     likelihood=threat_dict['likelihood'],
                     target=target_obj,
-                    capec_ids=threat_dict.get('capec_ids')
+                    capec_ids=threat_dict.get('capec_ids'),
+                    attack_ids=threat_dict.get('attack_ids'),
                 )
                 
                 # Calculate and store severity for custom threats

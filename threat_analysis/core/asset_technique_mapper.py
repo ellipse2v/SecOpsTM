@@ -27,6 +27,7 @@ For a given asset, returns a ranked list of ScoredTechnique dicts based on:
 
 import json
 import logging
+import re
 import yaml
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
@@ -472,3 +473,23 @@ class AssetTechniqueMapper:
                 if pattern and pattern in t:
                     return type_key
         return "default"
+
+
+# Separators inside a composite protocol value: "HTTPS/mTLS", "PostgreSQL/TLS", "Encrypted TLS"
+_PROTOCOL_SPLIT = re.compile(r"[\s/,()+]+")
+
+
+def protocol_is_encrypted(protocol: Optional[str]) -> bool:
+    """True when the protocol registry says the dataflow's protocol encrypts traffic.
+
+    A composite value is encrypted when one part is a security layer ("PostgreSQL/TLS")
+    or when every part is an encrypted protocol ("HTTPS/SSH"). A part the registry does not
+    know, or does not mark encrypted, makes it unencrypted ("HTTPS/MQTT", "HTTP/S").
+    """
+    if not protocol:
+        return False
+    registry = {str(k).lower(): v or {} for k, v in AssetTechniqueMapper._load_protocols().items()}
+    entries = [registry.get(token) for token in _PROTOCOL_SPLIT.split(str(protocol).lower()) if token]
+    if any(entry and entry.get("security_layer") for entry in entries):
+        return True
+    return bool(entries) and all(entry and entry.get("encrypted") for entry in entries)

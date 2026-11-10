@@ -34,8 +34,16 @@ class RuleBasedThreatGenerator:
             conditional = [r for r in rule_list if r.get("conditions")]
             self._rules_universal[key] = universal
             self._rules_conditional[key] = conditional
+        # A dataflow's source/sink is a pytm object, but the DSL attributes (type, boundary,
+        # ...) live in the server/actor props dict. Map one to the other so conditions like
+        # 'sink.type' resolve.
+        self._props_by_element = {
+            id(props["object"]): props
+            for props in list(getattr(threat_model, "servers", []) or []) + list(getattr(threat_model, "actors", []) or [])
+            if isinstance(props, dict) and props.get("object") is not None
+        }
 
-    def _add_threat(self, component_name, description, stride_category, impact, likelihood, mitigations=None, capec_ids=None):
+    def _add_threat(self, component_name, description, stride_category, impact, likelihood, mitigations=None, capec_ids=None, attack_ids=None):
         threat = {
             "id": self.id_counter,
             "component": component_name,
@@ -44,25 +52,57 @@ class RuleBasedThreatGenerator:
             "impact": impact,
             "likelihood": likelihood,
             "mitigations": mitigations or [],
-            "capec_ids": capec_ids or []
+            "capec_ids": capec_ids or [],
+            "attack_ids": attack_ids or [],
         }
         self.threats.append(threat)
         self.id_counter += 1
 
+    def _lookup(self, value, part):
+        """Reads one attribute from a props dict (falling back to its pytm object) or an object."""
+        if isinstance(value, dict):
+            found = value.get(part)
+            if found is None and value.get("object") is not None:
+                found = getattr(value["object"], part, None)
+        else:
+            found = getattr(value, part, None)
+        return self._props_by_element.get(id(found), found)
+
     def _get_property(self, component, key):
-        """Gets a property from a component, handling dot notation for nested objects."""
+        """Gets a property from a component, handling dot notation for nested objects.
+
+        A set or list on the path (a dataflow's DataSet) yields the list of each item's value.
+        """
         value = component
+        parts = key.split('.')
         try:
-            for part in key.split('.'):
-                if isinstance(value, dict):
-                    value = value.get(part)
-                else:
-                    value = getattr(value, part, None)
+            for i, part in enumerate(parts):
+                if isinstance(value, (set, frozenset, list, tuple)):
+                    rest = '.'.join(parts[i:])
+                    values = [self._get_property(item, rest) for item in value]
+                    return [v for v in values if v is not None] or None
+                value = self._lookup(value, part)
                 if value is None:
                     return None
         except AttributeError:
             return None
         return value
+
+    @staticmethod
+    def _normalize(value):
+        """Lowercases strings and treats '_' and '-' as equivalent, like `secopstm validate`."""
+        if hasattr(value, 'name') and not isinstance(value, (str, dict)):
+            value = value.name
+        if isinstance(value, str):
+            return value.strip().lower().replace('_', '-')
+        return value
+
+    def _is_authenticated(self, flow) -> bool:
+        """A flow is authenticated if is_authenticated=True or it declares an authentication method."""
+        if self._get_property(flow, 'is_authenticated') is True:
+            return True
+        method = self._get_property(flow, 'authentication')
+        return isinstance(method, str) and method.strip().lower() not in ('', 'none')
 
     def _matches(self, component, conditions):
         """
@@ -86,42 +126,50 @@ class RuleBasedThreatGenerator:
                 continue # Move to the next condition
 
             if key == 'contains_sensitive_data':
-                data_list = self._get_property(component, 'data')
-                if not isinstance(data_list, list):
-                    return False # Data is not in the expected list format
-                
+                classifications = self._get_property(component, 'data.classification') or []
                 has_sensitive = any(
-                    self._get_property(d, 'classification.name').lower() in ['secret', 'top_secret', 'sensitive'] 
-                    for d in data_list
+                    self._normalize(c) in ('secret', 'top-secret', 'sensitive')
+                    for c in classifications
                 )
                 if has_sensitive != expected_value:
                     return False
                 continue # Move to the next condition
 
-            # Handle direct property lookups
-            prop_value = self._get_property(component, key)
-            
-            if hasattr(prop_value, 'name'):
-                prop_value = prop_value.name.lower()
-
-            if isinstance(prop_value, str) and isinstance(expected_value, str):
-                if prop_value.lower() != expected_value.lower():
+            if key == 'is_authenticated':
+                if self._is_authenticated(component) != expected_value:
                     return False
-            elif prop_value != expected_value:
+                continue
+
+            if key in ('source_boundary', 'sink_boundary'):
+                # The name of the boundary the flow's source/sink sits in (None: outside any)
+                boundary = self._get_property(component, key.split('_')[0] + '.inBoundary')
+                prop_value = getattr(boundary, 'name', None) if boundary is not None else None
+            else:
+                # Handle direct property lookups
+                prop_value = self._get_property(component, key)
+            expected = self._normalize(expected_value)
+            if isinstance(prop_value, list):
+                # Several values (one per data item): match if any of them does
+                if not any(self._normalize(v) == expected for v in prop_value):
+                    return False
+            elif self._normalize(prop_value) != expected:
                 return False
         return True
 
     def _apply_rules(self, component, key: str, fmt_kwargs: dict, component_name: str) -> None:
-        """Applies all matching rules (universal + conditional) for one component."""
-        for rule in self._rules_universal[key]:
+        """Applies all matching rules (universal + conditional) for one component.
+
+        The generic server rules (patching, hardening, privilege escalation, logging) only
+        apply to a server no type-specific rule covers: they produced the same four threats
+        on every server and drowned the report.
+        """
+        matched = [r for r in self._rules_conditional[key] if self._matches(component, r["conditions"])]
+        has_type_rule = key == "servers" and any("type" in r["conditions"] for r in matched)
+        rules = ([] if has_type_rule else self._rules_universal[key]) + matched
+        for rule in rules:
             for tpl in rule["threats"]:
                 desc = tpl["description"].format(**fmt_kwargs)
                 self._add_threat(component_name, desc, **{k: v for k, v in tpl.items() if k != 'description'})
-        for rule in self._rules_conditional[key]:
-            if self._matches(component, rule["conditions"]):
-                for tpl in rule["threats"]:
-                    desc = tpl["description"].format(**fmt_kwargs)
-                    self._add_threat(component_name, desc, **{k: v for k, v in tpl.items() if k != 'description'})
 
     def generate_threats(self):
         """
