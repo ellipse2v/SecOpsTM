@@ -1,0 +1,23 @@
+# BOM: Vector Database
+asset: "Vector Database"
+os_version: "debian_12"
+software_version: "Qdrant 1.8.x (self-hosted, container)"
+patch_level: outdated
+known_cves:
+  - CVE-2024-3829
+running_services:
+  - gRPC API (6334, TLS)
+  - REST API (6333, TLS)
+  - Snapshot management
+detection_level: medium
+credentials_stored: true
+notes: >
+  CVE-2024-3829: snapshot recovery follows symlinks, allowing arbitrary file read and write on
+  the server; fixed in 1.9.0, upgrade pending. Interim control: snapshot upload and recovery
+  endpoints are blocked from the application network. One API key covers all collections, so
+  the ingestion pipeline write key and the orchestrator read key should be split. Chunks carry
+  no per-user or per-group ACL metadata and searches apply no entitlement filter, so retrieval
+  can return content the asking user may not read (OWASP LLM08, vector and embedding
+  weaknesses). Embeddings can be inverted to recover most of the source text (Morris et al.,
+  2023), so stored vectors need the same access control as the documents. Stored chunk text is
+  readable by any holder of an API key.

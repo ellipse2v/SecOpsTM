@@ -1,0 +1,18 @@
+# BOM: Guardrails Service
+asset: "Guardrails Service"
+os_version: "debian_12"
+software_version: "Python 3.11 service with Microsoft Presidio 2.2 and a prompt-injection classifier"
+patch_level: current
+known_cves: []
+running_services:
+  - HTTPS (mTLS) API (8443)
+  - PII analyzer and anonymizer
+  - Prompt-injection classifier
+  - Output moderation
+detection_level: medium
+credentials_stored: false
+notes: >
+  Screens user prompts and retrieved passages before the model sees them, and screens model
+  output before the user sees it. Classifiers are probabilistic and can be bypassed with
+  encoding tricks or other languages, so authorization decisions must not depend on this
+  service. Fail closed on timeout.

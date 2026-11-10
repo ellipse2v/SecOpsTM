@@ -1,0 +1,18 @@
+# BOM: LLM Provider API
+asset: "LLM Provider API"
+software_version: "Third-party hosted chat completion and embedding API (provider-managed, versioned model endpoints)"
+patch_level: unknown
+known_cves: []
+running_services:
+  - Chat completions (HTTPS 443)
+  - Embeddings (HTTPS 443)
+  - Streaming responses
+detection_level: none
+credentials_stored: false
+notes: >
+  Outside organisational control. Each request carries the system prompt, retrieved passages,
+  chat history and tool results. Contract must cover zero data retention, no training on
+  customer data, region, and sub-processors. Provider-side prompt caching can act as a timing
+  side channel when caches are shared across customers (Gu et al., ICML 2025), so confirm that
+  caching is scoped to the organisation. Model version changes can alter behaviour without
+  notice, so pin dated model versions and rerun injection tests on each change.

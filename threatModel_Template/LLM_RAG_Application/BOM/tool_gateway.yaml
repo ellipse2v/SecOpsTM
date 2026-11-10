@@ -1,0 +1,17 @@
+# BOM: Tool Gateway
+asset: "Tool Gateway"
+os_version: "debian_12"
+software_version: "Python 3.11 with FastAPI 0.110 and JSON Schema validation"
+patch_level: current
+known_cves: []
+running_services:
+  - HTTPS (mTLS) API (8443)
+  - Tool allowlist and schema registry
+  - Per-tool rate limits
+detection_level: high
+credentials_stored: true
+notes: >
+  Only registered tools can be called and arguments are validated against a schema. Read tools
+  forward the end-user token. The ticket-creation tool still uses one shared service token and
+  has no human approval step, so a manipulated model can create tickets on behalf of any user.
+  Every call is logged with user, tool and arguments.

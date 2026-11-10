@@ -1,0 +1,18 @@
+# BOM: API Gateway
+asset: "API Gateway"
+os_version: "alpine_3.19"
+software_version: "Kong Gateway 3.7 (OSS, deployed as container)"
+patch_level: current
+known_cves: []
+running_services:
+  - HTTPS proxy (8443)
+  - Admin API (8001, internal only)
+  - JWT validation plugin
+  - Rate limiting plugin (per user and per token budget)
+detection_level: high
+credentials_stored: false
+notes: >
+  Public entry point for chat and document upload traffic. Validates OIDC access tokens,
+  enforces request size limits and per-user token budgets to limit denial-of-wallet. Upload
+  endpoints accept PDF and Office files, so file type and size checks happen here before
+  storage. Admin API is reachable only from the management network.
