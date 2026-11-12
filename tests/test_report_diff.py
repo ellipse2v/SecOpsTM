@@ -126,3 +126,16 @@ class TestDiffThreatReportsCli:
     def test_missing_file_returns_two(self, tmp_path):
         old_path = self._write(tmp_path, "old.json", _report([]))
         assert diff_threat_reports(old_path, str(tmp_path / "missing.json")) == 2
+
+    def test_added_and_resolved_lines_show_description_when_no_name(self, tmp_path, capsys):
+        # v1 reports carry no "name" field: the diff must print the description
+        # instead of an empty label ("[HIGH]  → WebApp").
+        old = [_threat("WebApp", "Tampering", "SQL injection")]
+        new = [_threat("WebApp", "Spoofing", "Credential theft")]
+        old_path = self._write(tmp_path, "old.json", _report(old))
+        new_path = self._write(tmp_path, "new.json", _report(new))
+        assert diff_threat_reports(old_path, new_path) == 1
+        out = capsys.readouterr().out
+        assert "[HIGH] Credential theft → WebApp" in out
+        assert "[HIGH] SQL injection → WebApp" in out
+        assert "]  →" not in out

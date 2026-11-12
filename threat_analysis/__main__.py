@@ -856,6 +856,11 @@ def diff_threat_reports(old_path: str, new_path: str) -> int:
         print("No threat differences between the two reports.")
         return 0
 
+    def _label(t: dict) -> str:
+        # The v1 schema has no "name" field (only "description"): printing
+        # t["name"] alone left every line as "[LEVEL]  → target".
+        return t.get("name") or (t.get("description") or "")[:80]
+
     def _sev_level(t: dict) -> str:
         # severity is {score, level, formatted_score} per ReportSerializer/the
         # v1 schema, not a plain string.
@@ -864,19 +869,19 @@ def diff_threat_reports(old_path: str, new_path: str) -> int:
     if added:
         print(f"\n[+] {len(added)} NEW threat(s):")
         for t in added:
-            print(f"    [{_sev_level(t)}] {t.get('name','')} → {t.get('target','')} ({t.get('stride_category','')})")
+            print(f"    [{_sev_level(t)}] {_label(t)} → {t.get('target','')} ({t.get('stride_category','')})")
 
     if resolved:
         print(f"\n[-] {len(resolved)} RESOLVED threat(s):")
         for t in resolved:
-            print(f"    [{_sev_level(t)}] {t.get('name','')} → {t.get('target','')} ({t.get('stride_category','')})")
+            print(f"    [{_sev_level(t)}] {_label(t)} → {t.get('target','')} ({t.get('stride_category','')})")
 
     if changed_pairs:
         print(f"\n[~] {len(changed_pairs)} SEVERITY CHANGE(s):")
         for entry in changed_pairs:
             old_t = entry["old"]
             new_t = entry["new"]
-            print(f"    {old_t.get('name','')} → {old_t.get('target','')}: "
+            print(f"    {_label(old_t)} → {old_t.get('target','')}: "
                   f"{_sev_level(old_t)} → {_sev_level(new_t)}")
 
     return 1
@@ -1111,6 +1116,7 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
 
     if not threats:
         logging.error("Threat analysis failed. Please check the logs for validation errors.")
+        from threat_analysis.core.model_validator import ModelValidator  # noqa: PLC0415
         validator = ModelValidator(framework.threat_model)
         errors = validator.validate()
         for error in errors:
