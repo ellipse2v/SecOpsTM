@@ -1570,3 +1570,66 @@ def test_api_workspaces_route_empty_by_default(client, monkeypatch):
     response = client.get("/api/workspaces")
     assert response.status_code == 200
     assert response.get_json() == []
+
+
+# ---------------------------------------------------------------------------
+# Unresolved references and project mode
+# ---------------------------------------------------------------------------
+
+def test_validate_markdown_reports_unresolved_references(client):
+    """A server in an undefined boundary or a dataflow from an unknown actor used to
+    be dropped by the parser, so the editor answered valid: true."""
+    markdown = """## Servers
+- **Web**: boundary=Nowhere
+
+## Dataflows
+- **X**: from="Ghost", to="Web", protocol="HTTPS"
+"""
+    response = client.post('/api/validate_markdown',
+                           data=json.dumps({'markdown': markdown}),
+                           content_type='application/json')
+    data = response.get_json()
+    assert data['valid'] is False
+    assert "Server 'Web' refers to a non-existent boundary: 'Nowhere'." in data['errors']
+    assert "Dataflow 'X' refers to a non-existent 'from' element: 'Ghost'." in data['errors']
+
+
+_EXAMPLE_PROJECT = Path(__file__).resolve().parents[1] / "threatModel_Template" / "projects" / "example_2"
+
+
+def test_list_models_in_project_mode_lists_project_models(client):
+    _server_module.initial_project_path = str(_EXAMPLE_PROJECT)
+    try:
+        response = client.get('/api/models')
+    finally:
+        _server_module.initial_project_path = None
+    models = response.get_json()['models']
+    names = {Path(m).relative_to(Path(os.path.relpath(_EXAMPLE_PROJECT, _server_module.project_root))).as_posix()
+             for m in models}
+    assert "main.md" in names
+    assert "frontend/model.md" in names
+    assert "backend/model.md" in names
+    # Supporting documents and generated output are not models.
+    assert not any(n.startswith(("BOM/", "context/")) for n in names)
+    assert not any(m.startswith("output") for m in models)
+
+
+def test_load_model_accepts_a_file_of_the_active_project(client):
+    _server_module.initial_project_path = str(_EXAMPLE_PROJECT)
+    try:
+        model_path = os.path.relpath(_EXAMPLE_PROJECT / "main.md", _server_module.project_root)
+        response = client.post('/api/load_model', data=json.dumps({'model_path': model_path}),
+                               content_type='application/json')
+    finally:
+        _server_module.initial_project_path = None
+    assert response.status_code == 200
+    assert response.get_json()['markdown_content'] == (_EXAMPLE_PROJECT / "main.md").read_text(encoding="utf-8")
+
+
+def test_load_model_rejects_project_files_outside_project_mode(client, tmp_path):
+    _server_module.initial_project_path = None
+    with patch('threat_analysis.server.server.config.OUTPUT_BASE_DIR', str(tmp_path)):
+        model_path = os.path.relpath(_EXAMPLE_PROJECT / "main.md", _server_module.project_root)
+        response = client.post('/api/load_model', data=json.dumps({'model_path': model_path}),
+                               content_type='application/json')
+    assert response.status_code == 400

@@ -119,3 +119,20 @@ def test_resolve_path():
     path, explicit = resolve_path(None, base_dir, default_name)
     assert path == base_dir / default_name
     assert explicit is False
+
+
+def test_validate_path_does_not_exist_message_is_short():
+    # The message used to embed an os.walk listing of the whole base directory
+    # (thousands of lines on a checkout).
+    with pytest.raises(ValueError) as excinfo:
+        _validate_path_within_project("threatModel_Template/IoT/modele.md", base_dir=PROJECT_ROOT)
+    message = str(excinfo.value)
+    assert "\n" not in message
+    assert len(message) < 600
+    assert "threatModel_Template/IoT/modele.md" in message
+    assert "model.md" in message.split("In ", 1)[1]  # suggests the real file
+
+
+def test_validate_path_does_not_exist_missing_parent():
+    with pytest.raises(ValueError, match="does not exist either"):
+        _validate_path_within_project("no_such_dir/model.md", base_dir=PROJECT_ROOT)

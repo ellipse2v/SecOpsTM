@@ -37,6 +37,12 @@ class ModelValidator:
         self.errors = []
         self.element_names = set()
 
+        # Unresolved references recorded while parsing: the elements they point
+        # from were dropped or detached, so the checks below cannot see them.
+        for message in getattr(self.threat_model, "reference_errors", None) or []:
+            if message not in self.errors:
+                self._add_error(message)
+
         self._validate_unique_names()
         self._validate_unique_dataflow_names()
         self._validate_dataflow_references()
