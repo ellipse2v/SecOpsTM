@@ -140,6 +140,10 @@ class ThreatModel:
         self._model_file_path: Optional[str] = None
         # Populated by ExportService after GDAFEngine.run() — displayed in the HTML report
         self.gdaf_scenarios: List[Any] = []
+        # References the DSL names but that cannot be resolved (unknown boundary,
+        # dataflow endpoint or data object). The parser drops or detaches those
+        # elements, so ModelValidator reports them from here.
+        self.reference_errors: List[str] = []
 
     def add_boundary(self, name: str, color: str = "lightgray", parent_boundary_obj: Optional[Boundary] = None, business_value: Optional[str] = None, **kwargs) -> SecOpsBoundary:
         """Adds a boundary to the model with additional properties, including an optional parent.
@@ -176,6 +180,10 @@ class ThreatModel:
             boundary_obj = self.boundaries[boundary_name.lower()]["boundary"]
         if boundary_obj:
             actor.inBoundary = boundary_obj
+        elif boundary_name:
+            self.reference_errors.append(
+                f"Actor '{name}' refers to a non-existent boundary: '{boundary_name}'."
+            )
         actor_props = {'name': name, 'object': actor, 'boundary': boundary_obj, 'business_value': business_value}
         actor_props.update(kwargs)
         self.actors.append(actor_props)
@@ -191,6 +199,10 @@ class ThreatModel:
         server = Server(name)
         if boundary_obj:
             server.inBoundary = boundary_obj
+        elif boundary_name:
+            self.reference_errors.append(
+                f"Server '{name}' refers to a non-existent boundary: '{boundary_name}'."
+            )
         server_props = {'name': name, 'object': server, 'boundary': boundary_obj, 'business_value': business_value}
         server_props.update(kwargs)
         self.servers.append(server_props)
@@ -220,6 +232,9 @@ class ThreatModel:
                 data_objects.append(data_object)
             else:
                 logging.warning(f"⚠️ Warning: Data object '{data_name}' not found for dataflow '{name}'.")
+                self.reference_errors.append(
+                    f"Dataflow '{name}' refers to non-existent data: '{data_name}'."
+                )
 
         dataflow = Dataflow(
             from_element,

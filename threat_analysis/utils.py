@@ -143,6 +143,39 @@ def compare_threat_reports(old: dict, new: dict) -> dict:
     }
 
 
+_MAX_PATH_SUGGESTIONS = 5
+
+
+def _missing_path_message(input_path: str, path_obj: Path, base_dir: Path) -> str:
+    """Short "does not exist" message with a few nearby candidates.
+
+    It used to embed an ``os.walk`` listing of the whole base directory: thousands
+    of lines on a repository checkout, which buried the error and printed the
+    server's directory layout.
+    """
+    resolved = path_obj if path_obj.is_absolute() else (base_dir / path_obj)
+    message = f"Path does not exist: {input_path} (resolved to {resolved})"
+    parent = resolved.parent
+    if not parent.is_dir():
+        return f"{message}. Directory {parent} does not exist either."
+    suffix = path_obj.suffix
+    try:
+        candidates = sorted(
+            entry.name for entry in parent.iterdir()
+            if not entry.name.startswith(".")
+            and (entry.is_dir() or not suffix or entry.suffix == suffix)
+        )
+    except OSError:
+        return message
+    if not candidates:
+        return message
+    shown = ", ".join(candidates[:_MAX_PATH_SUGGESTIONS])
+    more = len(candidates) - _MAX_PATH_SUGGESTIONS
+    if more > 0:
+        shown += f" (+{more} more)"
+    return f"{message}. In {parent}: {shown}"
+
+
 def _validate_path_within_project(input_path: str, base_dir: Optional[Path] = None) -> Path:
     """
     Validates an input path and, for relative paths, ensures it stays within base_dir.
@@ -158,16 +191,7 @@ def _validate_path_within_project(input_path: str, base_dir: Optional[Path] = No
         base_dir = Path.cwd()
     path_obj = Path(input_path)
     if not path_obj.exists():
-        listing = []
-        for root, dirs, files in os.walk(base_dir):
-            level = str(Path(root).relative_to(base_dir)).count(os.sep) if Path(root) != base_dir else 0
-            indent = ' ' * 4 * level
-            listing.append(f'{indent}{os.path.basename(root)}/')
-            subindent = ' ' * 4 * (level + 1)
-            for f in files:
-                listing.append(f'{subindent}{f}')
-        dir_listing = "\n".join(listing)
-        raise ValueError(f"Path does not exist: {input_path}. Project directory structure:\n{dir_listing}")
+        raise ValueError(_missing_path_message(input_path, path_obj, base_dir))
 
     # Absolute paths are explicit user inputs — no base_dir restriction applied.
     if path_obj.is_absolute():

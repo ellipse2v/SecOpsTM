@@ -23,6 +23,9 @@ from .models_module import ThreatModel, CustomThreat
 from .mitre_mapping_module import MitreMapping
 from pytm import Classification, Lifetime
 
+_ELEMENT_LINE_RE = re.compile(r'^\s*- \*\*(?P<name>[^\*:]+)\*\*:\s*(?P<params>.*)')
+
+
 class ModelParser:
     """
     Parses a threat model defined in Markdown and constructs a ThreatModel object.
@@ -125,7 +128,7 @@ class ModelParser:
             if line.strip().startswith("- "):
                 if current_section and current_section in parsers:
                     logging.debug(f"Attempting to parse list item under section: {current_section}")
-                    match = re.match(r'^\s*- \*\*(?P<name>[^\*:]+)\*\*:\s*(?P<params>.*)', line)
+                    match = _ELEMENT_LINE_RE.match(line)
                     if match:
                         name = match.group('name').strip()
                         params_str = match.group('params').strip()
@@ -137,6 +140,11 @@ class ModelParser:
                             next_line = lines[j]
                             next_indentation = len(next_line) - len(next_line.lstrip())
                             
+                            # A nested element ("  - **Child**: ...") starts its own item:
+                            # swallowing it as a continuation line dropped every nested
+                            # boundary (its children then pointed to an unknown boundary).
+                            if _ELEMENT_LINE_RE.match(next_line):
+                                break
                             if next_line.strip() and (next_indentation > current_indentation or (not next_line.strip().startswith("- ") and not next_line.strip().startswith("## ") and not next_line.strip().startswith("### "))):
                                 params_str += "\n" + next_line.strip()
                                 j += 1
@@ -308,6 +316,9 @@ class ModelParser:
 
         if not all([from_name_raw, to_name_raw]):
             logging.warning(f"⚠️ Warning: Dataflow '{name}' is missing mandatory parameters (from, to).")
+            self.threat_model.reference_errors.append(
+                f"Dataflow '{name}' is missing mandatory parameters (from, to)."
+            )
             return
 
         # Using an inner function for DRY code
@@ -325,6 +336,14 @@ class ModelParser:
             logging.debug(f"   - Added Dataflow: {name} ({from_name_raw} -> {to_name_raw}, Props: {params})")
         else:
             logging.warning(f"⚠️ Warning: Elements for dataflow '{name}' not found. From: '{from_name_raw}', To: '{to_name_raw}'.")
+            if not from_elem:
+                self.threat_model.reference_errors.append(
+                    f"Dataflow '{name}' refers to a non-existent 'from' element: '{from_name_raw}'."
+                )
+            if not to_elem:
+                self.threat_model.reference_errors.append(
+                    f"Dataflow '{name}' refers to a non-existent 'to' element: '{to_name_raw}'."
+                )
             
     def _parse_protocol_style(self, name: str, params_str: str):
         """Parses a protocol style from a name and a parameter string (can be multi-line)."""

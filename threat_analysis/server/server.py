@@ -1041,12 +1041,28 @@ def export_attack_flow():
         return jsonify({"error": "An internal error occurred. Check server logs for details."}), 500
 
 
+# Project sub-directories that hold supporting documents, not threat models.
+_PROJECT_NON_MODEL_DIRS = {"BOM", "context"}
+
+
 @app.route("/api/models", methods=["GET"])
 def list_models():
     """
-    Lists all threat models (.md files) in the output directory.
+    Lists the threat models (.md files) the editor can open: the active project's
+    models in project mode (--project or /api/set_project_path), else the models
+    saved in the output directory.
     """
     try:
+        active_project = _get_active_project_path()
+        if active_project and os.path.isdir(active_project):
+            model_files = sorted(
+                os.path.relpath(filepath, project_root)
+                for filepath in glob.iglob(os.path.join(active_project, "**", "*.md"), recursive=True)
+                if not _PROJECT_NON_MODEL_DIRS.intersection(
+                    Path(os.path.relpath(filepath, active_project)).parts[:-1]
+                )
+            )
+            return jsonify({"success": True, "models": model_files})
         output_dir = config.OUTPUT_BASE_DIR
         model_files = []
         for filepath in glob.iglob(os.path.join(output_dir, "**", "*.md"), recursive=True):
@@ -1070,9 +1086,14 @@ def load_model():
         if not model_path:
             return jsonify({"error": "Missing model path"}), 400
 
-        # Security check: ensure the path is within the output directory (symlink-safe).
-        full_model_path = Path(os.path.abspath(os.path.join(project_root, model_path)))
-        if not full_model_path.is_relative_to(Path(config.OUTPUT_BASE_DIR).resolve()):
+        # Security check: the path must be within the output directory or, in
+        # project mode, within the active project (the models /api/models lists).
+        full_model_path = Path(os.path.realpath(os.path.join(project_root, model_path)))
+        allowed_roots = [Path(config.OUTPUT_BASE_DIR).resolve()]
+        active_project = _get_active_project_path()
+        if active_project:
+            allowed_roots.append(Path(active_project).resolve())
+        if not any(full_model_path.is_relative_to(root) for root in allowed_roots):
             return jsonify({"error": "Invalid model path"}), 400
 
         if not os.path.exists(full_model_path):

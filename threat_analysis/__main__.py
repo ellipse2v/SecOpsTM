@@ -856,6 +856,11 @@ def diff_threat_reports(old_path: str, new_path: str) -> int:
         print("No threat differences between the two reports.")
         return 0
 
+    def _label(t: dict) -> str:
+        # The v1 schema has no "name" field (only "description"): printing
+        # t["name"] alone left every line as "[LEVEL]  → target".
+        return t.get("name") or (t.get("description") or "")[:80]
+
     def _sev_level(t: dict) -> str:
         # severity is {score, level, formatted_score} per ReportSerializer/the
         # v1 schema, not a plain string.
@@ -864,19 +869,19 @@ def diff_threat_reports(old_path: str, new_path: str) -> int:
     if added:
         print(f"\n[+] {len(added)} NEW threat(s):")
         for t in added:
-            print(f"    [{_sev_level(t)}] {t.get('name','')} → {t.get('target','')} ({t.get('stride_category','')})")
+            print(f"    [{_sev_level(t)}] {_label(t)} → {t.get('target','')} ({t.get('stride_category','')})")
 
     if resolved:
         print(f"\n[-] {len(resolved)} RESOLVED threat(s):")
         for t in resolved:
-            print(f"    [{_sev_level(t)}] {t.get('name','')} → {t.get('target','')} ({t.get('stride_category','')})")
+            print(f"    [{_sev_level(t)}] {_label(t)} → {t.get('target','')} ({t.get('stride_category','')})")
 
     if changed_pairs:
         print(f"\n[~] {len(changed_pairs)} SEVERITY CHANGE(s):")
         for entry in changed_pairs:
             old_t = entry["old"]
             new_t = entry["new"]
-            print(f"    {old_t.get('name','')} → {old_t.get('target','')}: "
+            print(f"    {_label(old_t)} → {old_t.get('target','')}: "
                   f"{_sev_level(old_t)} → {_sev_level(new_t)}")
 
     return 1
@@ -1058,7 +1063,11 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
 
     if not iac_plugin_used:
         # If no IaC plugin was used, read from the specified model file
-        original_model_path = _validate_path_within_project(args.model_file)
+        try:
+            original_model_path = _validate_path_within_project(args.model_file)
+        except ValueError as exc:
+            logging.error(f"❌ --model-file: {exc}")
+            sys.exit(1)
         with open(original_model_path, "r", encoding="utf-8") as f:
             markdown_content_for_analysis = f.read()
         
@@ -1094,23 +1103,33 @@ def run_single_analysis(args: argparse.Namespace, loaded_iac_plugins: Dict[str, 
 
     from threat_analysis.server.server import get_model_name  # noqa: PLC0415
 
-    framework = SecOpsTMFramework(
-        markdown_content=markdown_content_for_analysis,
-        model_name=get_model_name(markdown_content_for_analysis), # Derive from content
-        model_description="Threat model generated from markdown file", # Derive or default
-        model_file_path=str(base_model_filepath),
-        original_model_path=str(original_model_path) if not iac_plugin_used else None,
-        implemented_mitigations_path=str(implemented_mitigations_path) if implemented_mitigations_path else None,
-        cve_service=cve_service,
-        ai_config_path=ai_config_path,
-        cve_definitions_path=cve_definitions_path,
-        disable_rag=getattr(args, "no_rag", False) or _no_ai,
-    )
+    try:
+        framework = SecOpsTMFramework(
+            markdown_content=markdown_content_for_analysis,
+            model_name=get_model_name(markdown_content_for_analysis), # Derive from content
+            model_description="Threat model generated from markdown file", # Derive or default
+            model_file_path=str(base_model_filepath),
+            original_model_path=str(original_model_path) if not iac_plugin_used else None,
+            implemented_mitigations_path=str(implemented_mitigations_path) if implemented_mitigations_path else None,
+            cve_service=cve_service,
+            ai_config_path=ai_config_path,
+            cve_definitions_path=cve_definitions_path,
+            disable_rag=getattr(args, "no_rag", False) or _no_ai,
+        )
+    except RuntimeError:
+        # The validation errors were already logged one per line by
+        # create_threat_model; a traceback would only bury them.
+        logging.error(
+            "❌ The threat model is invalid: fix the errors listed above, "
+            "then run the analysis again."
+        )
+        sys.exit(1)
 
     threats = framework.run_analysis()
 
     if not threats:
         logging.error("Threat analysis failed. Please check the logs for validation errors.")
+        from threat_analysis.core.model_validator import ModelValidator  # noqa: PLC0415
         validator = ModelValidator(framework.threat_model)
         errors = validator.validate()
         for error in errors:
@@ -1366,7 +1385,11 @@ def _main():
             sys.exit(1)
     elif args.project:
 
-        project_path = _validate_path_within_project(args.project)
+        try:
+            project_path = _validate_path_within_project(args.project)
+        except ValueError as exc:
+            logging.error(f"❌ --project: {exc}")
+            sys.exit(1)
         output_dir = Path(config.OUTPUT_BASE_DIR) / project_path.name
         output_dir.mkdir(parents=True, exist_ok=True)
 
