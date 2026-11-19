@@ -125,3 +125,23 @@ def test_nested_boundaries_are_parsed_as_their_own_boundaries():
     assert main.inBoundary is model.boundaries["infra"]["boundary"]
     assert model.boundaries["fallback"]["isTrusted"] is False
     assert model.boundaries["infra"].get("isTrusted") is True
+
+
+def test_parent_boundary_of_a_used_nested_boundary_is_in_use():
+    # A server in a subnet is also inside the subnet's VPC: the VPC must not be
+    # reported as "defined but not used" (Terraform plugin output did this).
+    markdown = """## Boundaries
+- **Vpc**: isTrusted=False
+  - **Subnet**: isTrusted=True
+
+## Actors
+- **User**: boundary=Subnet
+
+## Servers
+- **Web**: boundary=Subnet
+
+## Dataflows
+- **F**: from="User", to="Web", protocol="HTTPS"
+"""
+    errors = ModelValidator(_build(markdown)).validate()
+    assert not [e for e in errors if "defined but not used" in e]

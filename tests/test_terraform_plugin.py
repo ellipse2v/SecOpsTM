@@ -411,6 +411,26 @@ class TestGenerateThreatModelComponents:
             iac_data = plugin.parse_iac_config(str(p))
             return plugin.generate_threat_model_components(iac_data)
 
+    def test_generated_model_passes_validation(self):
+        # The subnet used to stay unassigned (servers only matched vpc_id) and was
+        # rejected as "Boundary 'Public' is defined but not used" once nested
+        # boundaries were parsed: `--terraform-path` exited 1 on its own output.
+        from unittest.mock import MagicMock
+        from threat_analysis.core.cve_service import CVEService
+        from threat_analysis.core.model_factory import create_threat_model
+
+        tf = SIMPLE_TF + LAMBDA_TF + DB_TF + ACTOR_TF + (
+            'resource "aws_subnet" "unused" {\n  vpc_id = "aws_vpc.main.id"\n}\n'
+        )
+        md = self._parse_and_generate(tf)
+        assert 'boundary="Public"' in md       # instance placed in its subnet
+        assert "**Unused**" not in md          # empty subnet dropped
+        model = create_threat_model(
+            markdown_content=md, model_name="tf", model_description="",
+            cve_service=MagicMock(spec=CVEService), validate=True,
+        )
+        assert model is not None
+
     def test_servers_section(self):
         md = self._parse_and_generate(SIMPLE_TF + LAMBDA_TF)
         assert "## Servers" in md
@@ -467,10 +487,14 @@ resource "aws_subnet" "pub" {
   vpc_id     = "aws_vpc.main.id"
   cidr_block = "10.0.1.0/24"
 }
+resource "aws_instance" "web" {
+  subnet_id = "aws_subnet.pub.id"
+}
 """
         md = self._parse_and_generate(tf)
         assert "## Boundaries" in md
-        assert "Pub" in md
+        assert "  - **Pub**" in md
+        assert 'boundary="Pub"' in md
 
     def test_no_top_level_boundary_only_nested(self):
         tf = """

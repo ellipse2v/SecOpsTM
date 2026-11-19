@@ -597,7 +597,8 @@ class TerraformPlugin(IaCPlugin):
         for srv in servers:
             attrs = srv.get("_attrs", {})
             assigned: Optional[str] = None
-            for conn_attr in ("vpc_id", "network", "virtual_network_name"):
+            # Most specific first: a subnet is nested in its VPC/network.
+            for conn_attr in ("subnet_id", "subnetwork", "vpc_id", "network", "virtual_network_name"):
                 ref = attrs.get(conn_attr)
                 if ref:
                     tf_key = self._resolve_ref(ref)
@@ -626,6 +627,11 @@ class TerraformPlugin(IaCPlugin):
                 }
             )
             logger.debug("No IAM actors found; added synthetic 'External User' actor.")
+
+        # A nested boundary (subnet, security group) that no server or actor sits in
+        # is rejected by the model validator ("defined but not used"): drop it.
+        used = {e.get("boundary") for e in servers + actors if e.get("boundary")}
+        boundaries = [b for b in boundaries if not b.get("_nested") or b["name"] in used]
 
         dataflows = self._derive_dataflows(servers, boundaries, actors, name_registry)
         return self._render_markdown(boundaries, actors, servers, dataflows)
