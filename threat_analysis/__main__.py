@@ -1390,14 +1390,19 @@ def _main():
         except ValueError as exc:
             logging.error(f"❌ --project: {exc}")
             sys.exit(1)
-        output_dir = Path(config.OUTPUT_BASE_DIR) / project_path.name
-        output_dir.mkdir(parents=True, exist_ok=True)
-
         # Resolve root model file: main.md (multi-model project) or model.md (single-model directory)
         _root_model_file = project_path / "main.md"
         if not _root_model_file.exists() and (project_path / "model.md").exists():
             _root_model_file = project_path / "model.md"
             logging.info("Project mode: using model.md (single-model directory with data)")
+        if not _root_model_file.exists():
+            # Checked before creating the output directory: generate_project_reports()
+            # would log "Aborting" after copying static/ into output/, and exit 0.
+            logging.error(f"❌ --project: no main.md or model.md in {project_path}")
+            sys.exit(1)
+
+        output_dir = Path(config.OUTPUT_BASE_DIR) / project_path.name
+        output_dir.mkdir(parents=True, exist_ok=True)
 
         implemented_mitigations_path, _ = resolve_path(
             args.implemented_mitigations_file, project_path, "implemented_mitigations.txt"
@@ -1457,6 +1462,11 @@ def _main():
         ai_service = None if _no_ai else _build_project_ai_service(ai_config_path, force_disable_rag=_disable_rag)
 
         project_threat_model = report_generator.generate_project_reports(project_path, output_dir, ai_service=ai_service)
+        if project_threat_model is None:
+            # generate_project_reports() returns None when the main model cannot be
+            # built; the run produced no report, so it must not exit 0.
+            logging.error("❌ Project analysis failed: no report was generated (see the errors above).")
+            sys.exit(1)
 
         if args.navigator and project_threat_model:
             logging.info("🗺️ Generating ATT&CK Navigator layer for project...")

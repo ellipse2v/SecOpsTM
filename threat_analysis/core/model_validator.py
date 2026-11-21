@@ -209,6 +209,17 @@ class ModelValidator:
             if boundary_name:
                 used_boundaries.add(boundary_name.lower())
 
+        # A boundary that encloses a used nested boundary is in use too: a server in
+        # a subnet is also inside the subnet's VPC.
+        for b_lower in list(used_boundaries):
+            b_obj = (self.threat_model.boundaries.get(b_lower) or {}).get("boundary")
+            parent = getattr(b_obj, "inBoundary", None)
+            seen = set()
+            while parent is not None and id(parent) not in seen:
+                seen.add(id(parent))
+                used_boundaries.add(parent.name.lower())
+                parent = getattr(parent, "inBoundary", None)
+
         defined_boundaries_map = {
             b_lower: self.threat_model.boundaries[b_lower].get("original_name", b_lower)
             for b_lower in self.threat_model.boundaries
