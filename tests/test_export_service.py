@@ -60,6 +60,20 @@ def test_export_files_logic_svg(mock_create, mock_validator, export_service):
 
 @patch('threat_analysis.server.export_service.ModelValidator')
 @patch('threat_analysis.server.export_service.create_threat_model')
+def test_export_files_logic_diagram_without_svg_raises(mock_create, mock_validator, export_service):
+    """No Graphviz: the diagram export must fail with a clear error, not a 404 on a missing temp SVG."""
+    mock_create.return_value = MagicMock()
+    mock_validator.return_value.validate.return_value = []
+    export_service.diagram_generator._generate_manual_dot.return_value = "dot"
+    export_service.diagram_generator.generate_custom_svg_export.return_value = None
+
+    with patch('os.makedirs'):
+        with pytest.raises(RuntimeError, match="Failed to generate SVG file"):
+            export_service.export_files_logic("md", "diagram")
+    export_service.diagram_generator._generate_html_with_legend.assert_not_called()
+
+@patch('threat_analysis.server.export_service.ModelValidator')
+@patch('threat_analysis.server.export_service.create_threat_model')
 def test_export_files_logic_markdown(mock_create, mock_validator, export_service):
     tm = MagicMock()
     mock_create.return_value = tm
