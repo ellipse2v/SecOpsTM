@@ -1,0 +1,7 @@
+version: "3.8"
+networks: {frontend_net: {}, backend_net: {}}
+services:
+  nginx: {image: "nginx:1.25-alpine", ports: ["443:443"], networks: [frontend_net], depends_on: [webapp]}
+  webapp: {image: "myorg/webapp:latest", environment: ["DB_PASSWORD=supersecret"], networks: [frontend_net, backend_net], depends_on: [postgres, redis]}
+  postgres: {image: "postgres:15", environment: {POSTGRES_PASSWORD: dbsecret}, networks: [backend_net]}
+  redis: {image: "redis:7-alpine", networks: [backend_net]}

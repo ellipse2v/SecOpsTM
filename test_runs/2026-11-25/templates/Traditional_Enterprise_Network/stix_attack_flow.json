@@ -1,0 +1,1425 @@
+{
+    "type": "bundle",
+    "id": "bundle--f955f98a-84e1-4ab1-b71d-4c1cae495d65",
+    "spec_version": "2.1",
+    "objects": [
+        {
+            "type": "extension-definition",
+            "id": "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4",
+            "spec_version": "2.1",
+            "created": "2022-08-02T19:34:35.143Z",
+            "modified": "2022-08-02T19:34:35.143Z",
+            "name": "Attack Flow",
+            "description": "Extends STIX 2.1 with features to create Attack Flows.",
+            "created_by_ref": "identity--0ac162a7-acb0-4f57-8c2a-f26360ad48ce",
+            "schema": "https://center-for-threat-informed-defense.github.io/attack-flow/stix/attack-flow-schema-2.0.0.json",
+            "version": "2.0.0",
+            "extension_types": [
+                "new-sdo"
+            ]
+        },
+        {
+            "type": "identity",
+            "id": "identity--0ac162a7-acb0-4f57-8c2a-f26360ad48ce",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197181Z",
+            "modified": "2026-11-25T23:45:55.197195Z",
+            "name": "Threat Model Analysis Tool",
+            "identity_class": "tool"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--276f8050-5071-4be6-8f21-52f3e48b4e9e",
+            "created": "2026-11-25T23:45:55.197202Z",
+            "modified": "2026-11-25T23:45:55.197204Z",
+            "name": "Kerberoasting attack against Domain Controller DomainController to extract service account credentials.",
+            "description": "Kerberoasting attack against Domain Controller DomainController to extract service account credentials.",
+            "technique_id": "T1558.003",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--fba6a8b3-55fb-45ee-a806-5ad723678613"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--fba6a8b3-55fb-45ee-a806-5ad723678613",
+            "created": "2026-11-25T23:45:55.197210Z",
+            "modified": "2026-11-25T23:45:55.197212Z",
+            "name": "DomainController",
+            "description": "Asset targeted by threat: Kerberoasting attack against Domain Controller DomainController to extract service account credentials.",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--c105f1bf-1be1-4e1e-89c3-7cf725d90e62",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197217Z",
+            "modified": "2026-11-25T23:45:55.197219Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--276f8050-5071-4be6-8f21-52f3e48b4e9e",
+            "target_ref": "attack-asset--fba6a8b3-55fb-45ee-a806-5ad723678613"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--92ed4226-8af8-463c-a5dd-da1134515b93",
+            "created": "2026-11-25T23:45:55.197225Z",
+            "modified": "2026-11-25T23:45:55.197227Z",
+            "name": "Vulnerability in the management interface of Firewall leading to critical privilege escalation",
+            "description": "Vulnerability in the management interface of Firewall leading to critical privilege escalation",
+            "technique_id": "T1190",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--af4d2805-8260-4923-8151-78e9a8dac9cb"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--af4d2805-8260-4923-8151-78e9a8dac9cb",
+            "created": "2026-11-25T23:45:55.197232Z",
+            "modified": "2026-11-25T23:45:55.197233Z",
+            "name": "Firewall",
+            "description": "Asset targeted by threat: Vulnerability in the management interface of Firewall leading to critical privilege escalation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--177f73eb-c05b-41e1-82ae-5e94a7a78fc5",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197238Z",
+            "modified": "2026-11-25T23:45:55.197240Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--92ed4226-8af8-463c-a5dd-da1134515b93",
+            "target_ref": "attack-asset--af4d2805-8260-4923-8151-78e9a8dac9cb"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--6f435a1f-acac-4852-98cf-5bfe594bd96a",
+            "created": "2026-11-25T23:45:55.197244Z",
+            "modified": "2026-11-25T23:45:55.197246Z",
+            "name": "Unauthorized privilege escalation on Application Server due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on Application Server due to misconfiguration or vulnerability",
+            "technique_id": "T1068",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--63ff4cde-fcec-490e-8fab-bb8399bcbf7b"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--63ff4cde-fcec-490e-8fab-bb8399bcbf7b",
+            "created": "2026-11-25T23:45:55.197250Z",
+            "modified": "2026-11-25T23:45:55.197251Z",
+            "name": "Application Server",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on Application Server due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--1aa86a3c-1054-47ac-ab58-0de1f511348d",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197256Z",
+            "modified": "2026-11-25T23:45:55.197257Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--6f435a1f-acac-4852-98cf-5bfe594bd96a",
+            "target_ref": "attack-asset--63ff4cde-fcec-490e-8fab-bb8399bcbf7b"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--bae86bc4-3b04-4acb-a6be-4ab05c2e2f7a",
+            "created": "2026-11-25T23:45:55.197261Z",
+            "modified": "2026-11-25T23:45:55.197263Z",
+            "name": "Unauthorized privilege escalation on File Server due to misconfiguration or vulnerability",
+            "description": "Unauthorized privilege escalation on File Server due to misconfiguration or vulnerability",
+            "technique_id": "T1068",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--f82a8a99-6c20-4a3f-a1d5-f151f1da58a1"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--f82a8a99-6c20-4a3f-a1d5-f151f1da58a1",
+            "created": "2026-11-25T23:45:55.197267Z",
+            "modified": "2026-11-25T23:45:55.197269Z",
+            "name": "File Server",
+            "description": "Asset targeted by threat: Unauthorized privilege escalation on File Server due to misconfiguration or vulnerability",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--172d3add-3472-4b1b-a7f5-d647e0b645ff",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197272Z",
+            "modified": "2026-11-25T23:45:55.197274Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--bae86bc4-3b04-4acb-a6be-4ab05c2e2f7a",
+            "target_ref": "attack-asset--f82a8a99-6c20-4a3f-a1d5-f151f1da58a1"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--3df59b22-65cd-4de7-b08b-30ea9890305b",
+            "created": "2026-11-25T23:45:55.197278Z",
+            "modified": "2026-11-25T23:45:55.197280Z",
+            "name": "Unpatched OS or software vulnerabilities on Application Server leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on Application Server leading to system compromise",
+            "technique_id": "T1190",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--196f7c58-dca0-4628-b473-050ef2e9d6a6"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--196f7c58-dca0-4628-b473-050ef2e9d6a6",
+            "created": "2026-11-25T23:45:55.197284Z",
+            "modified": "2026-11-25T23:45:55.197286Z",
+            "name": "Application Server",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on Application Server leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--8b8a157d-e0ae-4994-8b7f-454f80dbb1df",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197290Z",
+            "modified": "2026-11-25T23:45:55.197291Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--3df59b22-65cd-4de7-b08b-30ea9890305b",
+            "target_ref": "attack-asset--196f7c58-dca0-4628-b473-050ef2e9d6a6"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--d9c7d628-d6f7-4c54-ae89-6b9b1be4fb3b",
+            "created": "2026-11-25T23:45:55.197296Z",
+            "modified": "2026-11-25T23:45:55.197298Z",
+            "name": "Unpatched OS or software vulnerabilities on File Server leading to system compromise",
+            "description": "Unpatched OS or software vulnerabilities on File Server leading to system compromise",
+            "technique_id": "T1190",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--aa4de1a6-986b-4771-836a-5ea0b2d006bf"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--aa4de1a6-986b-4771-836a-5ea0b2d006bf",
+            "created": "2026-11-25T23:45:55.197302Z",
+            "modified": "2026-11-25T23:45:55.197304Z",
+            "name": "File Server",
+            "description": "Asset targeted by threat: Unpatched OS or software vulnerabilities on File Server leading to system compromise",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--3fbb1ef7-5cf3-4d0a-a960-6739759fe5cf",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197308Z",
+            "modified": "2026-11-25T23:45:55.197310Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--d9c7d628-d6f7-4c54-ae89-6b9b1be4fb3b",
+            "target_ref": "attack-asset--aa4de1a6-986b-4771-836a-5ea0b2d006bf"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--c44530ba-d91a-4941-9690-a90f74f3d530",
+            "created": "2026-11-25T23:45:55.197314Z",
+            "modified": "2026-11-25T23:45:55.197315Z",
+            "name": "Application-layer flood (HTTP requests or slow connections) exhausting web server DMZWebServer",
+            "description": "Application-layer flood (HTTP requests or slow connections) exhausting web server DMZWebServer",
+            "technique_id": "T1499.002",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--4296e66d-54d2-41a2-bc8f-7e2c09fc6122"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--4296e66d-54d2-41a2-bc8f-7e2c09fc6122",
+            "created": "2026-11-25T23:45:55.197320Z",
+            "modified": "2026-11-25T23:45:55.197321Z",
+            "name": "DMZWebServer",
+            "description": "Asset targeted by threat: Application-layer flood (HTTP requests or slow connections) exhausting web server DMZWebServer",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--a9ba1c6b-8a11-4734-a9ec-2c2883f6f539",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197325Z",
+            "modified": "2026-11-25T23:45:55.197327Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--c44530ba-d91a-4941-9690-a90f74f3d530",
+            "target_ref": "attack-asset--4296e66d-54d2-41a2-bc8f-7e2c09fc6122"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--dbf9f68b-645d-4f17-9f57-54f8a8f334eb",
+            "created": "2026-11-25T23:45:55.197334Z",
+            "modified": "2026-11-25T23:45:55.197336Z",
+            "name": "Data interception on an unencrypted channel from Employee to DomainController (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from Employee to DomainController (Man-in-the-Middle attack)",
+            "technique_id": "T1040",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--74e32e3e-6499-41aa-b7ae-1b3e48ac27fd"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--74e32e3e-6499-41aa-b7ae-1b3e48ac27fd",
+            "created": "2026-11-25T23:45:55.197341Z",
+            "modified": "2026-11-25T23:45:55.197343Z",
+            "name": "User Authentication",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from Employee to DomainController (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--9645c27e-8c78-4311-b16d-1b09e6f950d2",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197347Z",
+            "modified": "2026-11-25T23:45:55.197349Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--dbf9f68b-645d-4f17-9f57-54f8a8f334eb",
+            "target_ref": "attack-asset--74e32e3e-6499-41aa-b7ae-1b3e48ac27fd"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--2ea3c374-8926-45e4-8f63-1c3af77fb140",
+            "created": "2026-11-25T23:45:55.197354Z",
+            "modified": "2026-11-25T23:45:55.197356Z",
+            "name": "Data interception on an unencrypted channel from Employee to File Server (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from Employee to File Server (Man-in-the-Middle attack)",
+            "technique_id": "T1040",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--e5654cb0-4a10-491a-a965-aa33243431e5"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--e5654cb0-4a10-491a-a965-aa33243431e5",
+            "created": "2026-11-25T23:45:55.197361Z",
+            "modified": "2026-11-25T23:45:55.197362Z",
+            "name": "File Access",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from Employee to File Server (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--e32d115a-6b4f-4ad4-8407-9fbe07b4775f",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197366Z",
+            "modified": "2026-11-25T23:45:55.197367Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--2ea3c374-8926-45e4-8f63-1c3af77fb140",
+            "target_ref": "attack-asset--e5654cb0-4a10-491a-a965-aa33243431e5"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--6fab7786-c81e-4695-b850-10898705c5fd",
+            "created": "2026-11-25T23:45:55.197372Z",
+            "modified": "2026-11-25T23:45:55.197373Z",
+            "name": "Data interception on an unencrypted channel from DomainController to DomainController (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from DomainController to DomainController (Man-in-the-Middle attack)",
+            "technique_id": "T1040",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--bcb9f9b3-36bc-49ba-b286-4fb4ae06023b"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--bcb9f9b3-36bc-49ba-b286-4fb4ae06023b",
+            "created": "2026-11-25T23:45:55.197378Z",
+            "modified": "2026-11-25T23:45:55.197379Z",
+            "name": "AD Replication",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from DomainController to DomainController (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--aa666b94-9603-485e-b652-88d9a642e9b9",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197383Z",
+            "modified": "2026-11-25T23:45:55.197384Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--6fab7786-c81e-4695-b850-10898705c5fd",
+            "target_ref": "attack-asset--bcb9f9b3-36bc-49ba-b286-4fb4ae06023b"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--a65b856b-fd40-4205-ae1a-0766ed829574",
+            "created": "2026-11-25T23:45:55.197388Z",
+            "modified": "2026-11-25T23:45:55.197389Z",
+            "name": "Data interception on an unencrypted channel from System Administrator to DomainController (Man-in-the-Middle attack)",
+            "description": "Data interception on an unencrypted channel from System Administrator to DomainController (Man-in-the-Middle attack)",
+            "technique_id": "T1040",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--ead17908-5bb7-4631-8e58-d5d9348ce9c5"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--ead17908-5bb7-4631-8e58-d5d9348ce9c5",
+            "created": "2026-11-25T23:45:55.197393Z",
+            "modified": "2026-11-25T23:45:55.197395Z",
+            "name": "Admin Management",
+            "description": "Asset targeted by threat: Data interception on an unencrypted channel from System Administrator to DomainController (Man-in-the-Middle attack)",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--804eb189-2639-4f25-b388-590a14e06ace",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197398Z",
+            "modified": "2026-11-25T23:45:55.197400Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--a65b856b-fd40-4205-ae1a-0766ed829574",
+            "target_ref": "attack-asset--ead17908-5bb7-4631-8e58-d5d9348ce9c5"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--87f0bf1e-e195-4e86-a650-048406c20095",
+            "created": "2026-11-25T23:45:55.197404Z",
+            "modified": "2026-11-25T23:45:55.197405Z",
+            "name": "Privilege abuse by actor ExternalUser to gain unauthorized access or perform unauthorized actions",
+            "description": "Privilege abuse by actor ExternalUser to gain unauthorized access or perform unauthorized actions",
+            "technique_id": "T1078",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--afe2341a-861f-48f9-a6df-3bef4a8cea99"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--afe2341a-861f-48f9-a6df-3bef4a8cea99",
+            "created": "2026-11-25T23:45:55.197409Z",
+            "modified": "2026-11-25T23:45:55.197411Z",
+            "name": "ExternalUser",
+            "description": "Asset targeted by threat: Privilege abuse by actor ExternalUser to gain unauthorized access or perform unauthorized actions",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--8341bc88-4356-4e32-a26e-dd8e3903ffd2",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197415Z",
+            "modified": "2026-11-25T23:45:55.197416Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--87f0bf1e-e195-4e86-a650-048406c20095",
+            "target_ref": "attack-asset--afe2341a-861f-48f9-a6df-3bef4a8cea99"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--7d66af40-d854-43c5-b4c4-73c466832ca7",
+            "created": "2026-11-25T23:45:55.197421Z",
+            "modified": "2026-11-25T23:45:55.197422Z",
+            "name": "Firewall rule misconfiguration allowing unintended traffic to bypass Firewall and reach internal networks",
+            "description": "Firewall rule misconfiguration allowing unintended traffic to bypass Firewall and reach internal networks",
+            "technique_id": "T1599",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--7a621a25-c6e5-4172-968b-53f22c75bc7e"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--7a621a25-c6e5-4172-968b-53f22c75bc7e",
+            "created": "2026-11-25T23:45:55.197427Z",
+            "modified": "2026-11-25T23:45:55.197428Z",
+            "name": "Firewall",
+            "description": "Asset targeted by threat: Firewall rule misconfiguration allowing unintended traffic to bypass Firewall and reach internal networks",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--acb441fe-fdf8-414c-9be5-a2086b706ab0",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197432Z",
+            "modified": "2026-11-25T23:45:55.197433Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--7d66af40-d854-43c5-b4c4-73c466832ca7",
+            "target_ref": "attack-asset--7a621a25-c6e5-4172-968b-53f22c75bc7e"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--a5eda617-2bd9-497f-8b9f-9654454e68fb",
+            "created": "2026-11-25T23:45:55.197437Z",
+            "modified": "2026-11-25T23:45:55.197438Z",
+            "name": "Insecure security configuration or hardening on Application Server leading to information exposure",
+            "description": "Insecure security configuration or hardening on Application Server leading to information exposure",
+            "technique_id": "T1046",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--59907788-c3f5-4b97-9ce0-8db18ea2e883"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--59907788-c3f5-4b97-9ce0-8db18ea2e883",
+            "created": "2026-11-25T23:45:55.197442Z",
+            "modified": "2026-11-25T23:45:55.197443Z",
+            "name": "Application Server",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on Application Server leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--4bdf15b0-688b-4278-a8f9-cefe8c46a51f",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197446Z",
+            "modified": "2026-11-25T23:45:55.197448Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--a5eda617-2bd9-497f-8b9f-9654454e68fb",
+            "target_ref": "attack-asset--59907788-c3f5-4b97-9ce0-8db18ea2e883"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--cbccdce0-1e6c-42f8-9e1a-de063e5cc673",
+            "created": "2026-11-25T23:45:55.197452Z",
+            "modified": "2026-11-25T23:45:55.197453Z",
+            "name": "Insecure security configuration or hardening on File Server leading to information exposure",
+            "description": "Insecure security configuration or hardening on File Server leading to information exposure",
+            "technique_id": "T1046",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--9540d969-39a2-4be3-afbc-8aae33d34372"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--9540d969-39a2-4be3-afbc-8aae33d34372",
+            "created": "2026-11-25T23:45:55.197457Z",
+            "modified": "2026-11-25T23:45:55.197458Z",
+            "name": "File Server",
+            "description": "Asset targeted by threat: Insecure security configuration or hardening on File Server leading to information exposure",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--58b6a04d-7690-4758-b040-4316bb017336",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197462Z",
+            "modified": "2026-11-25T23:45:55.197463Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--cbccdce0-1e6c-42f8-9e1a-de063e5cc673",
+            "target_ref": "attack-asset--9540d969-39a2-4be3-afbc-8aae33d34372"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--41f2ff2b-602f-4720-ac39-588edba0f140",
+            "created": "2026-11-25T23:45:55.197467Z",
+            "modified": "2026-11-25T23:45:55.197468Z",
+            "name": "Privilege abuse by actor Employee to gain unauthorized access or perform unauthorized actions",
+            "description": "Privilege abuse by actor Employee to gain unauthorized access or perform unauthorized actions",
+            "technique_id": "T1078",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--ee715a1a-199f-419f-8a74-df2ce64c6c72"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--ee715a1a-199f-419f-8a74-df2ce64c6c72",
+            "created": "2026-11-25T23:45:55.197472Z",
+            "modified": "2026-11-25T23:45:55.197474Z",
+            "name": "Employee",
+            "description": "Asset targeted by threat: Privilege abuse by actor Employee to gain unauthorized access or perform unauthorized actions",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--3e5db838-e2eb-4b5b-8e15-b1962cbe5cff",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197478Z",
+            "modified": "2026-11-25T23:45:55.197479Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--41f2ff2b-602f-4720-ac39-588edba0f140",
+            "target_ref": "attack-asset--ee715a1a-199f-419f-8a74-df2ce64c6c72"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--69886bfa-34db-4642-be43-da072f3e9831",
+            "created": "2026-11-25T23:45:55.197483Z",
+            "modified": "2026-11-25T23:45:55.197484Z",
+            "name": "Privilege abuse by actor System Administrator to gain unauthorized access or perform unauthorized actions",
+            "description": "Privilege abuse by actor System Administrator to gain unauthorized access or perform unauthorized actions",
+            "technique_id": "T1078",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--c98da834-d115-4dc7-aa43-942faf585086"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--c98da834-d115-4dc7-aa43-942faf585086",
+            "created": "2026-11-25T23:45:55.197487Z",
+            "modified": "2026-11-25T23:45:55.197489Z",
+            "name": "System Administrator",
+            "description": "Asset targeted by threat: Privilege abuse by actor System Administrator to gain unauthorized access or perform unauthorized actions",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--3e99335a-9dbd-4bd6-86d9-afeab15ebb9d",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197492Z",
+            "modified": "2026-11-25T23:45:55.197493Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--69886bfa-34db-4642-be43-da072f3e9831",
+            "target_ref": "attack-asset--c98da834-d115-4dc7-aa43-942faf585086"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--d7f2c2d3-fb53-4c1e-8882-88ea415929ea",
+            "created": "2026-11-25T23:45:55.197498Z",
+            "modified": "2026-11-25T23:45:55.197499Z",
+            "name": "Lack of monitoring or logging on Application Server, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on Application Server, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--8bf1b451-daaf-4cea-80c0-be2b5c859cda"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--8bf1b451-daaf-4cea-80c0-be2b5c859cda",
+            "created": "2026-11-25T23:45:55.197503Z",
+            "modified": "2026-11-25T23:45:55.197504Z",
+            "name": "Application Server",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on Application Server, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--74de82d9-df46-480b-add5-da3812f4a354",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197508Z",
+            "modified": "2026-11-25T23:45:55.197510Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--d7f2c2d3-fb53-4c1e-8882-88ea415929ea",
+            "target_ref": "attack-asset--8bf1b451-daaf-4cea-80c0-be2b5c859cda"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--71666a66-dd3e-4a06-b641-cc9ad8064c43",
+            "created": "2026-11-25T23:45:55.197513Z",
+            "modified": "2026-11-25T23:45:55.197515Z",
+            "name": "Lack of monitoring or logging on File Server, preventing detection of malicious activities and enabling repudiation",
+            "description": "Lack of monitoring or logging on File Server, preventing detection of malicious activities and enabling repudiation",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--74b8ea2e-998b-48d2-91bc-77eb43441fe6"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--74b8ea2e-998b-48d2-91bc-77eb43441fe6",
+            "created": "2026-11-25T23:45:55.197518Z",
+            "modified": "2026-11-25T23:45:55.197520Z",
+            "name": "File Server",
+            "description": "Asset targeted by threat: Lack of monitoring or logging on File Server, preventing detection of malicious activities and enabling repudiation",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--e266a59b-1cd6-4308-81ad-a10f50dd7534",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197523Z",
+            "modified": "2026-11-25T23:45:55.197525Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--71666a66-dd3e-4a06-b641-cc9ad8064c43",
+            "target_ref": "attack-asset--74b8ea2e-998b-48d2-91bc-77eb43441fe6"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--1962cf56-77a0-43b5-a8e7-4bf18e5e361c",
+            "created": "2026-11-25T23:45:55.197529Z",
+            "modified": "2026-11-25T23:45:55.197530Z",
+            "name": "Spoofing of data from Employee to DomainController due to lack of authentication",
+            "description": "Spoofing of data from Employee to DomainController due to lack of authentication",
+            "technique_id": "T1557",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--2cc0f116-cf9e-4b08-b6a9-475e4cd2628e"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--2cc0f116-cf9e-4b08-b6a9-475e4cd2628e",
+            "created": "2026-11-25T23:45:55.197534Z",
+            "modified": "2026-11-25T23:45:55.197535Z",
+            "name": "User Authentication",
+            "description": "Asset targeted by threat: Spoofing of data from Employee to DomainController due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--cdd40b12-86b0-4266-90fc-12dbadc42f4a",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197539Z",
+            "modified": "2026-11-25T23:45:55.197540Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--1962cf56-77a0-43b5-a8e7-4bf18e5e361c",
+            "target_ref": "attack-asset--2cc0f116-cf9e-4b08-b6a9-475e4cd2628e"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--a3777089-9a5a-4a38-82aa-0ae1fe1d7aa2",
+            "created": "2026-11-25T23:45:55.197544Z",
+            "modified": "2026-11-25T23:45:55.197546Z",
+            "name": "Spoofing of data from Employee to File Server due to lack of authentication",
+            "description": "Spoofing of data from Employee to File Server due to lack of authentication",
+            "technique_id": "T1557",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--30231fbe-6500-46a3-ae8d-1e6f2deae5f8"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--30231fbe-6500-46a3-ae8d-1e6f2deae5f8",
+            "created": "2026-11-25T23:45:55.197550Z",
+            "modified": "2026-11-25T23:45:55.197551Z",
+            "name": "File Access",
+            "description": "Asset targeted by threat: Spoofing of data from Employee to File Server due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--467b7aca-ca5c-4af9-88f0-a530a6762a6d",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197554Z",
+            "modified": "2026-11-25T23:45:55.197556Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--a3777089-9a5a-4a38-82aa-0ae1fe1d7aa2",
+            "target_ref": "attack-asset--30231fbe-6500-46a3-ae8d-1e6f2deae5f8"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--c7f4f701-0340-4923-9ba5-1f195310992c",
+            "created": "2026-11-25T23:45:55.197560Z",
+            "modified": "2026-11-25T23:45:55.197562Z",
+            "name": "Spoofing of data from Employee to Application Server due to lack of authentication",
+            "description": "Spoofing of data from Employee to Application Server due to lack of authentication",
+            "technique_id": "T1557",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--9315ed5c-e99b-4357-bee6-a6ba7595cf2e"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--9315ed5c-e99b-4357-bee6-a6ba7595cf2e",
+            "created": "2026-11-25T23:45:55.197565Z",
+            "modified": "2026-11-25T23:45:55.197567Z",
+            "name": "Internal App Access",
+            "description": "Asset targeted by threat: Spoofing of data from Employee to Application Server due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--ab1646a8-5f3d-4e3a-8c06-a0d2682f6aaf",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197571Z",
+            "modified": "2026-11-25T23:45:55.197572Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--c7f4f701-0340-4923-9ba5-1f195310992c",
+            "target_ref": "attack-asset--9315ed5c-e99b-4357-bee6-a6ba7595cf2e"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--8de5f5a3-4363-46eb-a718-e88098e33424",
+            "created": "2026-11-25T23:45:55.197576Z",
+            "modified": "2026-11-25T23:45:55.197577Z",
+            "name": "Spoofing of data from ExternalUser to Firewall due to lack of authentication",
+            "description": "Spoofing of data from ExternalUser to Firewall due to lack of authentication",
+            "technique_id": "T1557",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--ca4ff66d-e93a-4ad3-9e1a-da4584fd0a35"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--ca4ff66d-e93a-4ad3-9e1a-da4584fd0a35",
+            "created": "2026-11-25T23:45:55.197581Z",
+            "modified": "2026-11-25T23:45:55.197582Z",
+            "name": "External Web Request",
+            "description": "Asset targeted by threat: Spoofing of data from ExternalUser to Firewall due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--4c3e544b-873e-495c-ac5c-0d733d2f0d52",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197586Z",
+            "modified": "2026-11-25T23:45:55.197587Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--8de5f5a3-4363-46eb-a718-e88098e33424",
+            "target_ref": "attack-asset--ca4ff66d-e93a-4ad3-9e1a-da4584fd0a35"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--779bab1c-712f-47fe-93c8-176499a2d40c",
+            "created": "2026-11-25T23:45:55.197591Z",
+            "modified": "2026-11-25T23:45:55.197593Z",
+            "name": "Spoofing of data from Firewall to DMZWebServer due to lack of authentication",
+            "description": "Spoofing of data from Firewall to DMZWebServer due to lack of authentication",
+            "technique_id": "T1557",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--ffbd3c5c-55a2-43f7-b143-1b3cc7382191"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--ffbd3c5c-55a2-43f7-b143-1b3cc7382191",
+            "created": "2026-11-25T23:45:55.197596Z",
+            "modified": "2026-11-25T23:45:55.197598Z",
+            "name": "Internal Web Request",
+            "description": "Asset targeted by threat: Spoofing of data from Firewall to DMZWebServer due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--b1372298-0f7d-4cc3-9274-8000407d8e9c",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197602Z",
+            "modified": "2026-11-25T23:45:55.197603Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--779bab1c-712f-47fe-93c8-176499a2d40c",
+            "target_ref": "attack-asset--ffbd3c5c-55a2-43f7-b143-1b3cc7382191"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--9d6ae523-1422-4b74-84c2-bbb63eef9bcd",
+            "created": "2026-11-25T23:45:55.197607Z",
+            "modified": "2026-11-25T23:45:55.197608Z",
+            "name": "Spoofing of data from DomainController to DomainController due to lack of authentication",
+            "description": "Spoofing of data from DomainController to DomainController due to lack of authentication",
+            "technique_id": "T1557",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--b23d96b7-8064-4aa4-b33e-b3df37bacd63"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--b23d96b7-8064-4aa4-b33e-b3df37bacd63",
+            "created": "2026-11-25T23:45:55.197612Z",
+            "modified": "2026-11-25T23:45:55.197613Z",
+            "name": "AD Replication",
+            "description": "Asset targeted by threat: Spoofing of data from DomainController to DomainController due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--fa5888ca-03ce-4119-a37c-6a8a38323a71",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197617Z",
+            "modified": "2026-11-25T23:45:55.197618Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--9d6ae523-1422-4b74-84c2-bbb63eef9bcd",
+            "target_ref": "attack-asset--b23d96b7-8064-4aa4-b33e-b3df37bacd63"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--63abc3f4-017b-42f4-939e-6916d4bdfa30",
+            "created": "2026-11-25T23:45:55.197623Z",
+            "modified": "2026-11-25T23:45:55.197624Z",
+            "name": "Spoofing of data from System Administrator to DomainController due to lack of authentication",
+            "description": "Spoofing of data from System Administrator to DomainController due to lack of authentication",
+            "technique_id": "T1557",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--0056a99f-bc9a-41e8-806e-7f6293f326d5"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--0056a99f-bc9a-41e8-806e-7f6293f326d5",
+            "created": "2026-11-25T23:45:55.197629Z",
+            "modified": "2026-11-25T23:45:55.197630Z",
+            "name": "Admin Management",
+            "description": "Asset targeted by threat: Spoofing of data from System Administrator to DomainController due to lack of authentication",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--a63dc55b-950c-40a5-9384-350cff18bddd",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197634Z",
+            "modified": "2026-11-25T23:45:55.197636Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--63abc3f4-017b-42f4-939e-6916d4bdfa30",
+            "target_ref": "attack-asset--0056a99f-bc9a-41e8-806e-7f6293f326d5"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--69d9f3ef-c948-46e9-a841-7ab425e9d53c",
+            "created": "2026-11-25T23:45:55.197639Z",
+            "modified": "2026-11-25T23:45:55.197640Z",
+            "name": "Identity spoofing of the actor ExternalUser via phishing or credential theft",
+            "description": "Identity spoofing of the actor ExternalUser via phishing or credential theft",
+            "technique_id": "T1566",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--8e9ffd8f-4f74-43de-a582-5df09c149172"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--8e9ffd8f-4f74-43de-a582-5df09c149172",
+            "created": "2026-11-25T23:45:55.197644Z",
+            "modified": "2026-11-25T23:45:55.197645Z",
+            "name": "ExternalUser",
+            "description": "Asset targeted by threat: Identity spoofing of the actor ExternalUser via phishing or credential theft",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--1f76a13a-9bd2-4c16-a4bd-5dfcc9071a53",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197649Z",
+            "modified": "2026-11-25T23:45:55.197650Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--69d9f3ef-c948-46e9-a841-7ab425e9d53c",
+            "target_ref": "attack-asset--8e9ffd8f-4f74-43de-a582-5df09c149172"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--b50f6beb-c059-4d43-8aee-2d31dbaae4df",
+            "created": "2026-11-25T23:45:55.197654Z",
+            "modified": "2026-11-25T23:45:55.197656Z",
+            "name": "Identity spoofing of the actor Employee via phishing or credential theft",
+            "description": "Identity spoofing of the actor Employee via phishing or credential theft",
+            "technique_id": "T1566",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--b85c11c0-1cc2-448d-bf65-ce00aec3eab3"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--b85c11c0-1cc2-448d-bf65-ce00aec3eab3",
+            "created": "2026-11-25T23:45:55.197660Z",
+            "modified": "2026-11-25T23:45:55.197661Z",
+            "name": "Employee",
+            "description": "Asset targeted by threat: Identity spoofing of the actor Employee via phishing or credential theft",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--5f1fc9e4-176b-4b9e-85cd-10f615862322",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197665Z",
+            "modified": "2026-11-25T23:45:55.197666Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--b50f6beb-c059-4d43-8aee-2d31dbaae4df",
+            "target_ref": "attack-asset--b85c11c0-1cc2-448d-bf65-ce00aec3eab3"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--326cb1f6-63d0-4b04-89cc-4bce79873f92",
+            "created": "2026-11-25T23:45:55.197670Z",
+            "modified": "2026-11-25T23:45:55.197672Z",
+            "name": "Identity spoofing of the actor System Administrator via phishing or credential theft",
+            "description": "Identity spoofing of the actor System Administrator via phishing or credential theft",
+            "technique_id": "T1566",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--5cb765b1-fdb8-42a5-95b6-69ad4bbb8759"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--5cb765b1-fdb8-42a5-95b6-69ad4bbb8759",
+            "created": "2026-11-25T23:45:55.197675Z",
+            "modified": "2026-11-25T23:45:55.197677Z",
+            "name": "System Administrator",
+            "description": "Asset targeted by threat: Identity spoofing of the actor System Administrator via phishing or credential theft",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--eb16ca6d-849f-4a1b-b92b-63e8042aaacd",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197681Z",
+            "modified": "2026-11-25T23:45:55.197682Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--326cb1f6-63d0-4b04-89cc-4bce79873f92",
+            "target_ref": "attack-asset--5cb765b1-fdb8-42a5-95b6-69ad4bbb8759"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--c828da21-13a8-42e2-9307-99dc17baa831",
+            "created": "2026-11-25T23:45:55.197686Z",
+            "modified": "2026-11-25T23:45:55.197687Z",
+            "name": "Repudiation of critical actions performed by ExternalUser due to insufficient logging or non-repudiation controls",
+            "description": "Repudiation of critical actions performed by ExternalUser due to insufficient logging or non-repudiation controls",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--697527da-1676-4b7b-bb2d-f21d793f533c"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--697527da-1676-4b7b-bb2d-f21d793f533c",
+            "created": "2026-11-25T23:45:55.197690Z",
+            "modified": "2026-11-25T23:45:55.197692Z",
+            "name": "ExternalUser",
+            "description": "Asset targeted by threat: Repudiation of critical actions performed by ExternalUser due to insufficient logging or non-repudiation controls",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--3eab0738-872e-47c5-ac4d-8089e7e1fe56",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197696Z",
+            "modified": "2026-11-25T23:45:55.197697Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--c828da21-13a8-42e2-9307-99dc17baa831",
+            "target_ref": "attack-asset--697527da-1676-4b7b-bb2d-f21d793f533c"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--39c1d46c-0102-4ab1-ae93-476f818679bb",
+            "created": "2026-11-25T23:45:55.197701Z",
+            "modified": "2026-11-25T23:45:55.197703Z",
+            "name": "Repudiation of critical actions performed by Employee due to insufficient logging or non-repudiation controls",
+            "description": "Repudiation of critical actions performed by Employee due to insufficient logging or non-repudiation controls",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--a5dc1ca6-2354-4dad-92c9-b84b12ae68f2"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--a5dc1ca6-2354-4dad-92c9-b84b12ae68f2",
+            "created": "2026-11-25T23:45:55.197707Z",
+            "modified": "2026-11-25T23:45:55.197708Z",
+            "name": "Employee",
+            "description": "Asset targeted by threat: Repudiation of critical actions performed by Employee due to insufficient logging or non-repudiation controls",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--553c2a79-6b36-44eb-a1c1-e1709a849290",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197712Z",
+            "modified": "2026-11-25T23:45:55.197714Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--39c1d46c-0102-4ab1-ae93-476f818679bb",
+            "target_ref": "attack-asset--a5dc1ca6-2354-4dad-92c9-b84b12ae68f2"
+        },
+        {
+            "type": "attack-action",
+            "spec_version": "2.1",
+            "id": "attack-action--d99e8f7d-47a8-49e9-b5cf-b93cae01ad67",
+            "created": "2026-11-25T23:45:55.197718Z",
+            "modified": "2026-11-25T23:45:55.197720Z",
+            "name": "Repudiation of critical actions performed by System Administrator due to insufficient logging or non-repudiation controls",
+            "description": "Repudiation of critical actions performed by System Administrator due to insufficient logging or non-repudiation controls",
+            "technique_id": "T1070",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            },
+            "asset_refs": [
+                "attack-asset--93c51d04-a052-4f7a-bf8b-03b7f574d3a5"
+            ]
+        },
+        {
+            "type": "attack-asset",
+            "spec_version": "2.1",
+            "id": "attack-asset--93c51d04-a052-4f7a-bf8b-03b7f574d3a5",
+            "created": "2026-11-25T23:45:55.197724Z",
+            "modified": "2026-11-25T23:45:55.197726Z",
+            "name": "System Administrator",
+            "description": "Asset targeted by threat: Repudiation of critical actions performed by System Administrator due to insufficient logging or non-repudiation controls",
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        },
+        {
+            "type": "relationship",
+            "id": "relationship--2afbed91-14ca-40cd-812a-9e24891dcaae",
+            "spec_version": "2.1",
+            "created": "2026-11-25T23:45:55.197730Z",
+            "modified": "2026-11-25T23:45:55.197731Z",
+            "relationship_type": "targets",
+            "source_ref": "attack-action--d99e8f7d-47a8-49e9-b5cf-b93cae01ad67",
+            "target_ref": "attack-asset--93c51d04-a052-4f7a-bf8b-03b7f574d3a5"
+        },
+        {
+            "type": "attack-flow",
+            "spec_version": "2.1",
+            "id": "attack-flow--5da0620c-e3ac-435e-83d5-964513887186",
+            "created_by_ref": "identity--0ac162a7-acb0-4f57-8c2a-f26360ad48ce",
+            "created": "2026-11-25T23:45:55.197736Z",
+            "modified": "2026-11-25T23:45:55.197737Z",
+            "name": "Attack Flow for Traditional Enterprise Network",
+            "description": "This Attack Flow was generated from the threat model 'Traditional Enterprise Network'.",
+            "scope": "attack-tree",
+            "start_refs": [
+                "attack-action--276f8050-5071-4be6-8f21-52f3e48b4e9e",
+                "attack-action--92ed4226-8af8-463c-a5dd-da1134515b93",
+                "attack-action--6f435a1f-acac-4852-98cf-5bfe594bd96a",
+                "attack-action--bae86bc4-3b04-4acb-a6be-4ab05c2e2f7a",
+                "attack-action--3df59b22-65cd-4de7-b08b-30ea9890305b",
+                "attack-action--d9c7d628-d6f7-4c54-ae89-6b9b1be4fb3b",
+                "attack-action--c44530ba-d91a-4941-9690-a90f74f3d530",
+                "attack-action--dbf9f68b-645d-4f17-9f57-54f8a8f334eb",
+                "attack-action--2ea3c374-8926-45e4-8f63-1c3af77fb140",
+                "attack-action--6fab7786-c81e-4695-b850-10898705c5fd",
+                "attack-action--a65b856b-fd40-4205-ae1a-0766ed829574",
+                "attack-action--87f0bf1e-e195-4e86-a650-048406c20095",
+                "attack-action--7d66af40-d854-43c5-b4c4-73c466832ca7",
+                "attack-action--a5eda617-2bd9-497f-8b9f-9654454e68fb",
+                "attack-action--cbccdce0-1e6c-42f8-9e1a-de063e5cc673",
+                "attack-action--41f2ff2b-602f-4720-ac39-588edba0f140",
+                "attack-action--69886bfa-34db-4642-be43-da072f3e9831",
+                "attack-action--d7f2c2d3-fb53-4c1e-8882-88ea415929ea",
+                "attack-action--71666a66-dd3e-4a06-b641-cc9ad8064c43",
+                "attack-action--1962cf56-77a0-43b5-a8e7-4bf18e5e361c",
+                "attack-action--a3777089-9a5a-4a38-82aa-0ae1fe1d7aa2",
+                "attack-action--c7f4f701-0340-4923-9ba5-1f195310992c",
+                "attack-action--8de5f5a3-4363-46eb-a718-e88098e33424",
+                "attack-action--779bab1c-712f-47fe-93c8-176499a2d40c",
+                "attack-action--9d6ae523-1422-4b74-84c2-bbb63eef9bcd",
+                "attack-action--63abc3f4-017b-42f4-939e-6916d4bdfa30",
+                "attack-action--69d9f3ef-c948-46e9-a841-7ab425e9d53c",
+                "attack-action--b50f6beb-c059-4d43-8aee-2d31dbaae4df",
+                "attack-action--326cb1f6-63d0-4b04-89cc-4bce79873f92",
+                "attack-action--c828da21-13a8-42e2-9307-99dc17baa831",
+                "attack-action--39c1d46c-0102-4ab1-ae93-476f818679bb",
+                "attack-action--d99e8f7d-47a8-49e9-b5cf-b93cae01ad67"
+            ],
+            "extensions": {
+                "extension-definition--fb9c968a-745b-4ade-9b25-c324172197f4": {
+                    "extension_type": "new-sdo"
+                }
+            }
+        }
+    ]
+}
