@@ -57,6 +57,7 @@ _SERVER_RESOURCES: Dict[str, Dict[str, str]] = {
     "azurerm_function_app":                {"type": "serverless"},
     "azurerm_linux_function_app":          {"type": "serverless"},
     # Database
+    "aws_db_instance":                     {"type": "database"},
     "aws_rds_instance":                    {"type": "database"},
     "aws_rds_cluster":                     {"type": "database"},
     "aws_dynamodb_table":                  {"type": "database"},
@@ -120,6 +121,20 @@ _ACTOR_RESOURCES: Dict[str, Dict[str, str]] = {
     "azurerm_user_assigned_identity":      {},
     "azurerm_role_assignment":             {},
 }
+
+# Attributes that place a server inside a boundary, most specific first.
+_PLACEMENT_ATTRS: List[str] = [
+    "subnet_id",
+    "subnet_ids",
+    "subnetwork",
+    "db_subnet_group_name",
+    "vpc_security_group_ids",
+    "security_group_ids",
+    "security_groups",
+    "vpc_id",
+    "network",
+    "virtual_network_name",
+]
 
 _CONNECTIVITY_ATTRS: List[str] = [
     "vpc_id",
@@ -597,13 +612,19 @@ class TerraformPlugin(IaCPlugin):
         for srv in servers:
             attrs = srv.get("_attrs", {})
             assigned: Optional[str] = None
-            for conn_attr in ("vpc_id", "network", "virtual_network_name"):
-                ref = attrs.get(conn_attr)
-                if ref:
-                    tf_key = self._resolve_ref(ref)
+            # Most specific placement first: subnet, then security group, then network.
+            for conn_attr in _PLACEMENT_ATTRS:
+                ref_value = attrs.get(conn_attr)
+                if not ref_value:
+                    continue
+                refs = ref_value if isinstance(ref_value, list) else [ref_value]
+                for ref in refs:
+                    tf_key = self._resolve_ref(str(ref))
                     if tf_key and tf_key in boundary_by_tf_key:
                         assigned = boundary_by_tf_key[tf_key]
                         break
+                if assigned:
+                    break
             srv["boundary"] = assigned or default_boundary
 
         # ── Ensure at least one external actor so the model is valid ──────────
@@ -626,6 +647,15 @@ class TerraformPlugin(IaCPlugin):
                 }
             )
             logger.debug("No IAM actors found; added synthetic 'External User' actor.")
+
+        # ── Drop boundaries that hold no actor or server ──────────────────────
+        # The model validator rejects a boundary nothing is placed in, so an
+        # unused subnet or security group would make the generated model invalid.
+        used_boundaries = {c.get("boundary") for c in servers + actors if c.get("boundary")}
+        dropped = [b["name"] for b in boundaries if b["name"] not in used_boundaries]
+        if dropped:
+            logger.info("Terraform: omitting boundaries with no component: %s", ", ".join(dropped))
+        boundaries = [b for b in boundaries if b["name"] in used_boundaries]
 
         dataflows = self._derive_dataflows(servers, boundaries, actors, name_registry)
         return self._render_markdown(boundaries, actors, servers, dataflows)

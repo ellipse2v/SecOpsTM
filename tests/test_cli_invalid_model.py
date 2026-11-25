@@ -82,3 +82,21 @@ def test_missing_model_file_short_error_no_traceback():
     assert "Traceback" not in out
     assert "--model-file: Path does not exist: no_such_model_file.md" in out
     assert len(out.splitlines()) < 40
+
+
+def test_missing_ai_config_file_exits_1(tmp_path):
+    """An explicit --ai-config-file that does not exist used to be ignored: the run went on without AI, exit 0."""
+    import os, subprocess, sys
+    from pathlib import Path
+    root = Path(__file__).resolve().parent.parent
+    proc = subprocess.run(
+        [sys.executable, "-m", "threat_analysis",
+         "--model-file", "threatModel_Template/CI_CD_Pipeline/model.md",
+         "--ai-config-file", str(tmp_path / "missing.yaml"),
+         "--output-format", "json", "--output-file", str(tmp_path / "r.json")],
+        cwd=root, capture_output=True, text=True, encoding="utf-8",
+        env=dict(os.environ, PYTHONIOENCODING="utf-8"), timeout=600,
+    )
+    assert proc.returncode == 1, proc.stderr[-2000:]
+    assert "--ai-config-file: file not found" in proc.stderr
+    assert not (tmp_path / "r.json").exists()

@@ -50,3 +50,29 @@ def test_output_file_creates_missing_parent_dirs(tmp_path, fmt, ext):
     assert "FileNotFoundError" not in proc.stderr
     assert target.is_file()
     assert target.stat().st_size > 0
+
+
+PROJECT = PROJECT_ROOT / "threatModel_Template" / "projects" / "example_1"
+
+
+@pytest.mark.skipif(not PROJECT.exists(), reason="example project not available")
+@pytest.mark.parametrize("ext,marker", [("html", "<html"), ("json", "{")])
+def test_project_output_file_is_written(tmp_path, ext, marker):
+    """`--project --output-file` used to be ignored silently: nothing was copied."""
+    target = tmp_path / "out" / f"project.{ext}"
+    env = dict(os.environ, PYTHONIOENCODING="utf-8")
+    proc = subprocess.run(
+        [sys.executable, "-m", "threat_analysis",
+         "--project", str(PROJECT.relative_to(PROJECT_ROOT)),
+         "--no-ai", "--sarif", "--output-file", str(target)],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        env=env,
+        timeout=900,
+    )
+    assert proc.returncode == 0, proc.stderr[-2000:]
+    assert target.is_file()
+    assert marker in target.read_text(encoding="utf-8")[:2000].lower()
+    assert "--sarif" in proc.stderr + proc.stdout and "not supported with --project" in proc.stderr + proc.stdout

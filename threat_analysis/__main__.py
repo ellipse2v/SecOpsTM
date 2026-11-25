@@ -1321,6 +1321,15 @@ def _main():
     args, remaining_argv = custom_parser.parse_args()
     if args.ai_profile:
         os.environ["SECOPSTM_AI_PROFILE"] = args.ai_profile
+    if (
+        getattr(args, "ai_config_file", _DEFAULT_AI_CONFIG) != _DEFAULT_AI_CONFIG
+        and not getattr(args, "no_ai", False)
+        and not _resolve_ai_config_path(args).is_file()
+    ):
+        # An explicit path never falls back to another config: a typo would
+        # otherwise run the whole analysis without AI and exit 0.
+        print(f"Error: --ai-config-file: file not found: {args.ai_config_file}", file=sys.stderr)
+        sys.exit(1)
     from threat_analysis.ai_engine.ai_runtime import run_stats  # noqa: PLC0415
     ai_run_mark = run_stats.mark()
 
@@ -1393,6 +1402,21 @@ def _main():
         output_dir = Path(config.OUTPUT_BASE_DIR) / project_path.name
         output_dir.mkdir(parents=True, exist_ok=True)
 
+        # Project mode writes its fixed set of reports; say so instead of
+        # silently ignoring the single-model output options.
+        _ignored = [
+            flag for flag, on in (
+                ("--sarif", getattr(args, "sarif", False)),
+                ("--stdout", getattr(args, "stdout", False)),
+                ("--output-format", getattr(args, "output_format", "all") != "all"),
+            ) if on
+        ]
+        if _ignored:
+            logging.warning(
+                f"⚠️ {', '.join(_ignored)} not supported with --project: "
+                "ignored, the project reports are written to the output directory."
+            )
+
         # Resolve root model file: main.md (multi-model project) or model.md (single-model directory)
         _root_model_file = project_path / "main.md"
         if not _root_model_file.exists() and (project_path / "model.md").exists():
@@ -1457,6 +1481,22 @@ def _main():
         ai_service = None if _no_ai else _build_project_ai_service(ai_config_path, force_disable_rag=_disable_rag)
 
         project_threat_model = report_generator.generate_project_reports(project_path, output_dir, ai_service=ai_service)
+
+        _explicit_output = getattr(args, "output_file", None)
+        import shutil  # noqa: PLC0415
+        if _explicit_output:
+            _dest = Path(_explicit_output).expanduser()
+            _root_stem = _root_model_file.stem
+            _source = (
+                output_dir / f"{_root_stem}.json" if _dest.suffix.lower() == ".json"
+                else output_dir / "global_threat_report.html"
+            )
+            if _source.exists():
+                _dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(_source, _dest)
+                logging.info(f"Output copied to {_dest}")
+            else:
+                logging.error(f"❌ --output-file: {_source.name} was not generated, nothing copied to {_dest}")
 
         if args.navigator and project_threat_model:
             logging.info("🗺️ Generating ATT&CK Navigator layer for project...")
