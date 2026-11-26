@@ -467,10 +467,66 @@ resource "aws_subnet" "pub" {
   vpc_id     = "aws_vpc.main.id"
   cidr_block = "10.0.1.0/24"
 }
+resource "aws_instance" "web" {
+  ami       = "ami-123"
+  subnet_id = aws_subnet.pub.id
+}
 """
         md = self._parse_and_generate(tf)
         assert "## Boundaries" in md
-        assert "Pub" in md
+        assert "  - **Pub**" in md
+
+    def test_server_placed_in_most_specific_boundary(self):
+        """subnet_id / vpc_security_group_ids place the server; aws_db_instance is a database."""
+        tf = """
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+}
+resource "aws_subnet" "app" {
+  vpc_id     = aws_vpc.main.id
+  cidr_block = "10.0.1.0/24"
+}
+resource "aws_security_group" "db" {
+  vpc_id = aws_vpc.main.id
+}
+resource "aws_instance" "web" {
+  ami       = "ami-123"
+  subnet_id = aws_subnet.app.id
+}
+resource "aws_db_instance" "pg" {
+  engine                 = "postgres"
+  vpc_security_group_ids = [aws_security_group.db.id]
+}
+"""
+        md = self._parse_and_generate(tf)
+        assert '**Web**: type=server, boundary="App"' in md
+        assert '**Pg**: type=database, boundary="Db"' in md
+
+    def test_unused_boundaries_omitted_and_model_valid(self):
+        """A subnet or security group nothing is placed in must not make the generated model invalid."""
+        from threat_analysis.core.model_factory import create_threat_model
+        from threat_analysis.core.model_validator import ModelValidator
+        tf = """
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+}
+resource "aws_subnet" "unused" {
+  vpc_id     = aws_vpc.main.id
+  cidr_block = "10.0.9.0/24"
+}
+resource "aws_security_group" "unused_sg" {
+  vpc_id = aws_vpc.main.id
+}
+resource "aws_instance" "web" {
+  ami    = "ami-123"
+  vpc_id = aws_vpc.main.id
+}
+"""
+        md = self._parse_and_generate(tf)
+        assert "Unused" not in md
+        tm = create_threat_model(markdown_content=md, model_name="tf", model_description="",
+                                 cve_service=None, validate=False)
+        assert ModelValidator(tm).validate() == []
 
     def test_no_top_level_boundary_only_nested(self):
         tf = """

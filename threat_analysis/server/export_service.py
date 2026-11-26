@@ -88,7 +88,8 @@ class ExportService:
         elif export_format == "diagram":
             dot_code = self.diagram_generator._generate_manual_dot(threat_model)
             svg_path_temp = output_dir / "temp_diagram.svg"
-            self.diagram_generator.generate_custom_svg_export(dot_code, svg_path_temp)
+            if not self.diagram_generator.generate_custom_svg_export(dot_code, svg_path_temp):
+                raise RuntimeError("Failed to generate SVG file")
             output_filename = "diagram.html"
             output_path = output_dir / output_filename
             graph_metadata = self.diagram_service._extract_graph_metadata_for_frontend(threat_model)
